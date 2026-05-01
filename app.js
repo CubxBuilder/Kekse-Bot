@@ -1782,8 +1782,6 @@ Um sicherzustellen, dass unsere Community sicher und freundlich bleibt, befolge 
 
   await user.send(message).catch(() => console.log(`Konnte DM an ${user.tag} nicht senden.`));
 }
-import { EmbedBuilder, PermissionsBitField } from "discord.js";
-
 export function registerMessageCommands(client) {
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot || !msg.content.startsWith("!")) return;
@@ -2107,7 +2105,6 @@ async function closePoll(client, poll, polls, closer) {
   const updatedPolls = (getData("polls_data") || []).filter(p => p.id !== poll.id);
   await setPollData("polls_data", updatedPolls);
 }
-import { MessageType } from "discord.js";
 
 export function initReactions(client) {
   const userContext = new Map();
