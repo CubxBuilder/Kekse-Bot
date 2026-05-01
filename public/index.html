@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keksegang</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #36393f;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        .card {
+            background: #2f3136;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .btn {
+            display: inline-block;
+            background-color: #5865F2;
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background-color: #4752c4;
+        }
+        .timer {
+            font-size: 0.9rem;
+            color: #b9bbbe;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>Du wirst verbunden...</h1>
+        <p>Gleich gibts Kekse!</p>
+        <a href="https://discord.gg/t3etc93anq" id="discord-link" class="btn">Direkt beitreten</a>
+        <div class="timer">Weiterleitung in <span id="seconds">5</span> Sekunden...</div>
+    </div>
+
+    <script>
+        const target = document.getElementById('discord-link').href;
+        let timeLeft = 5;
+        const countdown = document.getElementById('seconds');
+
+        const interval = setInterval(() => {
+            timeLeft--;
+            countdown.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(interval);
+                window.location.href = target;
+            }
+        }, 1000);
+    </script>
+
+</body>
+</html>
