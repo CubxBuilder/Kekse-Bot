@@ -491,7 +491,7 @@ export async function initInvites(client) {
       const target = msg.mentions.users.first() || await client.users.fetch(args[0]).catch(() => null);
       const amount = parseInt(args[1]);
       if (!target || isNaN(amount)) return msg.reply("❌ !addbonus @user 10");
-      const stats = getData("invite_stats") || {};
+      const stats = getIData("invite_stats") || {};
       stats[target.id] = stats[target.id] || { regular: 0, left: 0, fake: 0, bonus: 0 };
       stats[target.id].bonus = (stats[target.id].bonus || 0) + amount;
       await setIData("invite_stats", stats);
@@ -1559,7 +1559,7 @@ export function initGiveaway(client) {
     await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
   };
   const checkGiveaways = async () => {
-    const giveaways = getData("activeGiveaways") || {};
+    const giveaways = getGivData("activeGiveaways") || {};
     const now = Date.now();
     let changed = false;
     for (const [msgId, data] of Object.entries(giveaways)) {
@@ -1621,7 +1621,7 @@ export function initGiveaway(client) {
       embeds: [embed],
       components: [row]
     });
-    const giveaways = getData("activeGiveaways") || {};
+    const giveaways = getGivData("activeGiveaways") || {};
     giveaways[giveawayMsg.id] = {
       channelId: channel.id,
       startTime, endTime, price, messageText, winnerCount,
@@ -2040,7 +2040,7 @@ async function closePoll(client, poll, polls, closer) {
       .setTimestamp();
     await logChannel.send({ embeds: [logEmbed] });
   }
-  const updatedPolls = (getData("polls_data") || []).filter(p => p.id !== poll.id);
+  const updatedPolls = (getPollData("polls_data") || []).filter(p => p.id !== poll.id);
   await setPollData("polls_data", updatedPolls);
 }
 
