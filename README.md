@@ -1,4 +1,4 @@
-# Kekse Clan Security and Management System
+# Kekse Bot
 
 This repository contains the source code for an advanced, multi-functional Discord management bot built with discord.js v14. The system is designed to provide comprehensive server automation, ranging from security and moderation to community engagement and utility features.
 
