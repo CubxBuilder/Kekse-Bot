@@ -1875,7 +1875,7 @@ export async function initPollsStorage(client) {
   if (!channel || !channel.isTextBased()) return;
 
   const messages = await channel.messages.fetch({ limit: 20 });
-  storageMessage = messages.find(
+  storageMessagePoll = messages.find(
     m => m.author.id === client.user.id && m.embeds.length > 0
   );
 
