@@ -1059,7 +1059,6 @@ export async function setRData(key, value) {
   await storageMessageR.edit({ embeds: [embed] }).catch(console.error);
 }
 const FORUM_CHANNEL_ID = "1474918563218198548";
-const LOG_CHANNEL_ID = "1423413348220796991";
 export async function initSupport(client) {
     const savedData = getDData("tickets") || {};
     let OPEN_HELP = new Map(Object.entries(savedData));
