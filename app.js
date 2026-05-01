@@ -614,7 +614,7 @@ export function initModeration(client) {
 
       const match = durationStr.match(/^(\d+)([smhd])$/);
       if (!match) return msg.reply({ content: "❌ Format: 10s, 5m, 2h, 1d", ephemeral: true });
-      const durationMs = parseDuration(match[1], match[2]);
+      const durationMs = parseTimDuration(match[1], match[2]);
 
       try {
         const member = await msg.guild.members.fetch(user.id);
@@ -725,7 +725,7 @@ export function initModeration(client) {
   });
 }
 
-function parseDuration(amount, unit) {
+function parseTimDuration(amount, unit) {
   const map = { s: 1000, m: 60000, h: 3600000, d: 86400000 };
   return parseInt(amount) * map[unit];
 }
@@ -1199,7 +1199,7 @@ function initReminder(client) {
       .setTimestamp();
     await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
   };
-  function parseDuration(str) {
+  function parseRemDuration(str) {
     const match = str.match(/(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?/);
     if (!match) return 0;
     const days = parseInt(match[1] || "0");
@@ -1255,7 +1255,7 @@ function initReminder(client) {
       const dmFlag = args[args.length - 1]?.toLowerCase() === "dm";
       if (dmFlag) args.pop();
       const text = args.join(" ");
-      let triggerAt = timeArg.includes(";") ? parseAbsoluteTime(timeArg) : (Date.now() + parseDuration(timeArg));
+      let triggerAt = timeArg.includes(";") ? parseAbsoluteTime(timeArg) : (Date.now() + parseRemDuration(timeArg));
       if (!triggerAt || isNaN(triggerAt) || triggerAt <= Date.now()) {
         return msg.channel.send({ content: "❌ Ungültiger Zeitpunkt.", ephemeral: true });
       }
