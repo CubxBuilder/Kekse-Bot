@@ -31,7 +31,7 @@ const client = new Client({
 });
 client.setMaxListeners(20);
 const ISTORAGE_CHANNEL_ID = "1474141512165097616";
-
+const TEAM_ROLE = "1457906448234319922";
 let storageMessageI = null;
 let dataI = {};
 
@@ -467,7 +467,6 @@ Um sicherzustellen, dass unsere Community sicher und freundlich bleibt, befolge 
 }
 export async function initInvites(client) {
   const inviteCache = new Map();
-  const TEAM_ROLE_ID = "1457906448234319922";
   const cacheInvites = async () => {
     for (const g of client.guilds.cache.values()) {
       const invs = await g.invites.fetch().catch(() => null);
@@ -1060,7 +1059,6 @@ export async function setRData(key, value) {
   await storageMessageR.edit({ embeds: [embed] }).catch(console.error);
 }
 const FORUM_CHANNEL_ID = "1474918563218198548";
-const TEAM_ROLE_ID = "1457906448234319922";
 const LOG_CHANNEL_ID = "1423413348220796991";
 export async function initSupport(client) {
     const savedData = getDData("tickets") || {};
@@ -1543,7 +1541,6 @@ export async function setGivData(key, value) {
   
 }
 const GIVEAWAY_EMOJI = "🎉";
-const TEAM_ROLE_ID = "1457906448234319922";
 const BOOSTER_ROLE_ID = "1464202435638722621";
 const REPORT_CHANNEL_ID = "1474140482551414899";
 const EMBED_COLOR = 0xffffff;
@@ -1888,7 +1885,6 @@ export function registerMessageCommands(client) {
   });
 }
 export function initPing(client) {
-  const TEAM_ROLE_ID = "1457906448234319922";
   client.on("messageCreate", async msg => {
     if (!msg.content.startsWith("!ping") || msg.author.bot) return;
     if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) {
@@ -2163,7 +2159,6 @@ const TRIGGERS = [
 const SUPPORT_CATEGORY = "1423413348065611953";
 const ADMIN_CATEGORY = "1426271033047912582";
 const ADMIN_ROLE = "1423427747103113307";
-const TEAM_ROLE = "1457906448234319922";
 
 export function initTicketCategory(client) {
   const askedUsers = new Set();
