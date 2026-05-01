@@ -3,69 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Keksegang</title>
+    <title>Kekse Bot</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #36393f;
-            color: white;
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            background: #0a0c10;
+            color: #e2e8f0;
             display: flex;
-            justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            justify-content: center;
+        }
+        .center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
             text-align: center;
         }
-        .card {
-            background: #2f3136;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
         .btn {
-            display: inline-block;
-            background-color: #5865F2;
-            color: white;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: #5865f2;
+            color: #fff;
+            font-weight: 700;
+            font-size: 15px;
+            padding: 13px 28px;
+            border-radius: 12px;
             text-decoration: none;
-            padding: 12px 24px;
-            border-radius: 5px;
-            font-weight: bold;
-            margin-top: 20px;
-            transition: background 0.3s;
+            transition: background 0.2s, transform 0.1s;
         }
-        .btn:hover {
-            background-color: #4752c4;
-        }
-        .timer {
-            font-size: 0.9rem;
-            color: #b9bbbe;
-            margin-top: 15px;
-        }
+        .btn:hover { background: #4752c4; transform: translateY(-1px); }
     </style>
 </head>
 <body>
-
-    <div class="card">
-        <h1>Du wirst verbunden...</h1>
-        <p>Gleich gibts Kekse!</p>
-        <a href="https://discord.gg/t3etc93anq" id="discord-link" class="btn">Direkt beitreten</a>
-        <div class="timer">Weiterleitung in <span id="seconds">5</span> Sekunden...</div>
+    <div class="center">
+        <img src="/icon.png" alt="Kekse Bot" style="width:90px;height:90px;image-rendering:pixelated;border-radius:20px;">
+        <div>
+            <div style="font-size:26px;font-weight:900;letter-spacing:-0.5px;">Kekse Bot</div>
+            <div style="font-size:15px;color:#6b7280;margin-top:6px;">Ich mag Kekse :3</div>
+        </div>
+        <a href="https://discord.gg/pU9zyJRFGn" target="_blank" class="btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+            Server beitreten
+        </a>
+        <div style="font-size:10px;color:#1f2937;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;">© 2026 Kekse Bot</div>
     </div>
-
-    <script>
-        const target = document.getElementById('discord-link').href;
-        let timeLeft = 5;
-        const countdown = document.getElementById('seconds');
-
-        const interval = setInterval(() => {
-            timeLeft--;
-            countdown.textContent = timeLeft;
-            if (timeLeft <= 0) {
-                clearInterval(interval);
-                window.location.href = target;
-            }
-        }, 1000);
-    </script>
-
 </body>
 </html>
