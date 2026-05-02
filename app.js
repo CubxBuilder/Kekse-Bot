@@ -29,154 +29,82 @@ const client = new Client({
     Partials.GuildMember, Partials.User, Partials.ThreadMember
     ]
 });
-client.setMaxListeners(20);
-const ISTORAGE_CHANNEL_ID = "1474141512165097616";
 const TEAM_ROLE = "1457906448234319922";
-let storageMessageI = null;
-let dataI = {};
-
-export async function initInvitesStorage(client) {
-  const channel = await client.channels.fetch(ISTORAGE_CHANNEL_ID).catch(() => null);
-  if (!channel || !channel.isTextBased()) return;
-
-  const messages = await channel.messages.fetch({ limit: 20 });
-  storageMessageI = messages.find(
-    m => m.author.id === client.user.id && m.embeds.length > 0
-  );
-
-  if (!storageMessageI) {
-    dataI = { _init: true };
-    const embed = new EmbedBuilder()
-      .setTitle("Storage")
-      .setDescription("```json\n" + JSON.stringify(dataI) + "\n```");
-
-    storageMessageI = await channel.send({ embeds: [embed] });
-  } else {
-    try {
-      const raw = storageMessageI.embeds[0].description
-        .replace("```json\n", "")
-        .replace("\n```", "");
-
-      dataI = JSON.parse(raw);
-    } catch {
-      dataI = { _init: true };
-    }
-  }
+const LOG_CHANNEL_ID = "1423413348220796991";
+import { dbGet, dbSet } from './database.js';
+export async function initInvitesStorage() {
+  console.log("📦 Invite-Storage via MongoDB bereit.");
 }
-
-export function getIData(key) {
-  return dataI[key];
+export async function getIData(key) {
+  return await dbGet("invites", key);
 }
-
 export async function setIData(key, value) {
-  if (!storageMessageI) return;
-
-  dataI[key] = value;
-
-  const jsonString = JSON.stringify(dataI);
-
-  const embed = new EmbedBuilder()
-    .setTitle("Storage")
-    .setDescription("```json\n" + jsonString + "\n```");
-
-  await storageMessageI.edit({ embeds: [embed] }).catch(console.error);
-  
+  await dbSet("invites", key, value);
 }
-const MSTORAGE_CHANNEL_ID = "1474146608915681384";
-
-let storageMessageM = null;
-let dataM = {};
-
-export async function initModerationStorage(client) {
-  const channel = await client.channels.fetch(MSTORAGE_CHANNEL_ID).catch(() => null);
-  if (!channel || !channel.isTextBased()) return;
-
-  const messages = await channel.messages.fetch({ limit: 20 });
-  storageMessageM = messages.find(
-    m => m.author.id === client.user.id && m.embeds.length > 0
-  );
-
-  if (!storageMessageM) {
-    dataM = { _init: true };
-    const embed = new EmbedBuilder()
-      .setTitle("Storage")
-      .setDescription("```json\n" + JSON.stringify(dataM) + "\n```");
-
-    storageMessageM = await channel.send({ embeds: [embed] });
-  } else {
-    try {
-      const raw = storageMessageM.embeds[0].description
-        .replace("```json\n", "")
-        .replace("\n```", "");
-
-      dataM = JSON.parse(raw);
-    } catch {
-      dataM = { _init: true };
-    }
-  }
+export async function initModerationStorage() {
+  console.log("📦 Moderation-Storage via MongoDB bereit.");
 }
-
-export function getMData(key) {
-  return dataM[key];
+export async function getMData(key) {
+  return await dbGet("moderation", key);
 }
-
 export async function setMData(key, value) {
-  if (!storageMessageM) return;
-
-  dataM[key] = value;
-
-  const jsonString = JSON.stringify(dataM);
-
-  const embed = new EmbedBuilder()
-    .setTitle("Storage")
-    .setDescription("```json\n" + jsonString + "\n```");
-
-  await storageMessageM.edit({ embeds: [embed] }).catch(console.error);
-  
+  await dbSet("moderation", key, value);
 }
-const VSTORAGE_CHANNEL_ID = "1474153032139931720";
-let storageMessageV = null;
-let dataV = {};
-export async function initViolationsStorage(client) {
-  const channel = await client.channels.fetch(VSTORAGE_CHANNEL_ID).catch(() => null);
-  if (!channel || !channel.isTextBased()) return;
-  const messages = await channel.messages.fetch({ limit: 20 });
-  storageMessageV = messages.find(
-    m => m.author.id === client.user.id && m.embeds.length > 0
-  );
-  if (!storageMessageV) {
-    dataV = { _init: true };
-    const embed = new EmbedBuilder()
-      .setTitle("Storage")
-      .setDescription("```json\n" + JSON.stringify(dataV) + "\n```");
-    storageMessageV = await channel.send({ embeds: [embed] });
-  } else {
-    try {
-      const raw = storageMessageV.embeds[0].description
-        .replace("```json\n", "")
-        .replace("\n```", "");
-      dataV = JSON.parse(raw);
-    } catch {
-      dataV = { _init: true };
-    }
-  }
+export async function initViolationsStorage() {
+  console.log("📦 Violations-Storage via MongoDB bereit.");
 }
-export function getVData(key) {
-  return dataV[key];
+export async function getVData(key) {
+  return await dbGet("violations", key);
 }
 export async function setVData(key, value) {
-  if (!storageMessageV) return;
-  dataV[key] = value;
-  const jsonString = JSON.stringify(dataV);
-  const embed = new EmbedBuilder()
-    .setTitle("Storage")
-    .setDescription("```json\n" + jsonString + "\n```");
-  await storageMessageV.edit({ embeds: [embed] }).catch(console.error);
+  await dbSet("violations", key, value);
 }
-const LOG_CHANNEL_ID = "1423413348220796991";
-
+export async function initDmTicketsStorage() {
+  console.log("📦 Ticket-Storage via MongoDB bereit.");
+}
+export async function getDData(key) {
+  return await dbGet("tickets", key);
+}
+export async function setDData(key, value) {
+  await dbSet("tickets", key, value);
+}
+export async function initRemindersStorage() {
+  console.log("📦 Reminder-Storage via MongoDB bereit.");
+}
+export async function getRData(key) {
+  return await dbGet("reminders", key);
+}
+export async function setRData(key, value) {
+  await dbSet("reminders", key, value);
+}
+export async function initCountingStorage() {
+  console.log("📦 Counting-Storage (Cou) via MongoDB bereit.");
+}
+export async function getCouData(key) {
+  return await dbGet("counting", key);
+}
+export async function setCouData(key, value) {
+  await dbSet("counting", key, value);
+}
+export async function initGiveawayStorage() {
+  console.log("📦 Giveaway-Storage (Giv) via MongoDB bereit.");
+}
+export async function getGivData(key) {
+  return await dbGet("giveaways", key);
+}
+export async function setGivData(key, value) {
+  await dbSet("giveaways", key, value);
+}
+export async function initPollsStorage() {
+  console.log("📦 Polls-Storage (Poll) via MongoDB bereit.");
+}
+export async function getPollData(key) {
+  return await dbGet("polls", key);
+}
+export async function setPollData(key, value) {
+  await dbSet("polls", key, value);
+}
 export function initAuditLogs(client) {
-
     const sendLog = async (title, user, text, color = "#ffffff", thumb = null, channelId = null) => {
         if (channelId === LOG_CHANNEL_ID) return;
         const chan = client.channels.cache.get(LOG_CHANNEL_ID);
@@ -479,7 +407,7 @@ export async function initInvites(client) {
     const args = msg.content.slice(1).split(/\s+/);
     const cmd = args.shift().toLowerCase();
     if (cmd === "invite_leaderboard" || cmd === "invites") {
-      const stats = getIData("invite_stats") || {};
+      const stats = await getIData("invite_stats") || {};
       const leaderboard = Object.entries(stats).map(([id, s]) => ({ id, ...s, total: (s.regular || 0) - (s.left || 0) - (s.fake || 0) + (s.bonus || 0) })).sort((a, b) => b.total - a.total).slice(0, 10);
       if (leaderboard.length === 0) return msg.reply("Keine Daten.");
       let desc = "";
@@ -491,7 +419,7 @@ export async function initInvites(client) {
       const target = msg.mentions.users.first() || await client.users.fetch(args[0]).catch(() => null);
       const amount = parseInt(args[1]);
       if (!target || isNaN(amount)) return msg.reply("❌ !addbonus @user 10");
-      const stats = getIData("invite_stats") || {};
+      const stats = await getIData("invite_stats") || {};
       stats[target.id] = stats[target.id] || { regular: 0, left: 0, fake: 0, bonus: 0 };
       stats[target.id].bonus = (stats[target.id].bonus || 0) + amount;
       await setIData("invite_stats", stats);
@@ -505,8 +433,8 @@ export async function initInvites(client) {
     const used = current.find(i => i.uses > (cached.get(i.code) || 0));
     inviteCache.set(m.guild.id, new Map(current.map(i => [i.code, i.uses])));
     if (used) {
-      const stats = getIData("invite_stats") || {};
-      const rels = getIData("invite_relations") || {};
+      const stats = await getIData("invite_stats") || {};
+      const rels = await getIData("invite_relations") || {};
       const inviterId = used.inviter.id;
       stats[inviterId] = stats[inviterId] || { regular: 0, left: 0, fake: 0, bonus: 0 };
       rels[m.id] = inviterId;
@@ -517,10 +445,10 @@ export async function initInvites(client) {
     }
   });
   client.on("guildMemberRemove", async (m) => {
-    const rels = getIData("invite_relations") || {};
+    const rels = await getIData("invite_relations") || {};
     const inviterId = rels[m.id];
     if (inviterId) {
-      const stats = getIData("invite_stats") || {};
+      const stats = await getIData("invite_stats") || {};
       if (stats[inviterId]) { stats[inviterId].left++; await setIData("invite_stats", stats); }
       delete rels[m.id];
       await setIData("invite_relations", rels);
@@ -579,7 +507,7 @@ export function initModeration(client) {
 
     const args = msg.content.slice(1).split(/\s+/);
     const cmd = args.shift().toLowerCase();
-    let data = getMData("moderation") || { warns: {} };
+    let data = await getMData("moderation") || { warns: {} };
 
     const getUser = async (input) => {
       if (!input) return null;
@@ -825,7 +753,7 @@ export async function violations(client) {
   };
   client.on("messageCreate", async (message) => {
     if (message.author.bot || !message.guild) return;
-    const data = getVData("violations");
+    const data = await getVData("violations");
     if (!data) return;
     const entry = data[message.author.id];
     if (!entry) return;
@@ -898,7 +826,7 @@ export async function warning(client) {
     if (!result) return;
     const userId = message.author.id;
     const now = Date.now();
-    const violations = getVData("violations") || {};
+    const violations = await getVData("violations") || {};
     if (!violations[userId]) {
       violations[userId] = { name: message.author.username, count: 0, last: 0 };
     }
@@ -963,104 +891,9 @@ function detectViolation(msg) {
     }
   }
   return null;
-}
-const DSTORAGE_CHANNEL_ID = "1474153763647389860";
-const RSTORAGE_CHANNEL_ID = "1474144083105808556";
-let storageMessageD = null;
-let dataD = {};
-let storageMessageR = null;
-let dataR = {};
-async function initDmTicketsStorage(client) {
-  const channel = await client.channels.fetch(DSTORAGE_CHANNEL_ID).catch(() => null);
-  if (!channel || !channel.isTextBased()) return;
-
-  const messages = await channel.messages.fetch({ limit: 20 });
-  storageMessageD = messages.find(
-    m => m.author.id === client.user.id && m.embeds.length > 0
-  );
-
-  if (!storageMessageD) {
-    dataD = { _init: true };
-    const embed = new EmbedBuilder()
-      .setTitle("Storage")
-      .setDescription("```json\n" + JSON.stringify(dataD) + "\n```");
-
-    storageMessageD = await channel.send({ embeds: [embed] });
-  } else {
-    try {
-      const raw = storageMessageD.embeds[0].description
-        .replace("```json\n", "")
-        .replace("\n```", "");
-
-      dataD = JSON.parse(raw);
-    } catch {
-      dataD = { _init: true };
-    }
-  }
-}
-
-export function getDData(key) {
-  return dataD[key];
-}
-
-export async function setDData(key, value) {
-  if (!storageMessageD) return;
-
-  dataD[key] = value;
-
-  const jsonString = JSON.stringify(dataD);
-
-  const embed = new EmbedBuilder()
-    .setTitle("Storage")
-    .setDescription("```json\n" + jsonString + "\n```");
-
-  await storageMessageD.edit({ embeds: [embed] }).catch(console.error);
-  
-}
-
-async function initRemindersStorage(client) {
-  const channel = await client.channels.fetch(RSTORAGE_CHANNEL_ID).catch(() => null);
-  if (!channel || !channel.isTextBased()) return;
-
-  const messages = await channel.messages.fetch({ limit: 20 });
-  storageMessageR = messages.find(
-    m => m.author.id === client.user.id && m.embeds.length > 0
-  );
-
-  if (!storageMessageR) {
-    dataR = { _init: true };
-    const embed = new EmbedBuilder()
-      .setTitle("Storage")
-      .setDescription("```json\n" + JSON.stringify(dataR) + "\n```");
-
-    storageMessageR = await channel.send({ embeds: [embed] });
-  } else {
-    try {
-      const raw = storageMessageR.embeds[0].description
-        .replace("```json\n", "")
-        .replace("\n```", "");
-
-      dataR = JSON.parse(raw);
-    } catch {
-      dataR = { _init: true };
-    }
-  }
-}
-export function getRData(key) {
-  return dataR[key];
-}
-export async function setRData(key, value) {
-  if (!storageMessageR) return;
-  dataR[key] = value;
-  const jsonString = JSON.stringify(dataR);
-  const embed = new EmbedBuilder()
-    .setTitle("Storage")
-    .setDescription("```json\n" + jsonString + "\n```");
-  await storageMessageR.edit({ embeds: [embed] }).catch(console.error);
-}
 const FORUM_CHANNEL_ID = "1474918563218198548";
 export async function initSupport(client) {
-    const savedData = getDData("tickets") || {};
+    const savedData = await getDData("tickets") || {};
     let OPEN_HELP = new Map(Object.entries(savedData));
     const getAccountAge = (createdAt) => {
         const diff = Date.now() - createdAt.getTime();
@@ -1215,7 +1048,7 @@ function initReminder(client) {
     return new Date(YYYY, MM - 1, dd, hh, mm, 0).getTime();
   }
   async function checkReminders() {
-    const data = getRData("reminders") || { reminders: [] };
+    const data = await getRData("reminders") || { reminders: [] };
     if (data.reminders.length === 0) return;
     const now = Date.now();
     const remaining = [];
@@ -1267,64 +1100,13 @@ function initReminder(client) {
         text,
         dm: dmFlag
       };
-      const data = getRData("reminders") || { reminders: [] };
+      const data = await getRData("reminders") || { reminders: [] };
       data.reminders.push(reminder);
       await setRData("reminders", data);
       await sendKekseLog("Erinnerung gesetzt", msg.author, `**Text:** ${text}\n**Zeitpunkt:** <t:${Math.floor(triggerAt / 1000)}:f>\n**DM:** ${dmFlag ? "Ja" : "Nein"}`);
       msg.channel.send({ content: `✅ Erinnerung gesetzt für <t:${Math.floor(triggerAt / 1000)}:R>!`, ephemeral: true });
     }
   });
-}
-const CouSTORAGE_CHANNEL_ID = "1423413348220796996";
-
-let storageMessageCou = null;
-let dataCou = {};
-
-export async function initCountingStorage(client) {
-  const channel = await client.channels.fetch(CouSTORAGE_CHANNEL_ID).catch(() => null);
-  if (!channel || !channel.isTextBased()) return;
-
-  const messages = await channel.messages.fetch({ limit: 20 });
-  storageMessageCou = messages.find(
-    m => m.author.id === client.user.id && m.embeds.length > 0
-  );
-
-  if (!storageMessageCou) {
-    dataCou = { _init: true };
-    const embed = new EmbedBuilder()
-      .setTitle("Storage")
-      .setDescription("```json\n" + JSON.stringify(dataCou) + "\n```");
-
-    storageMessageCou = await channel.send({ embeds: [embed] });
-  } else {
-    try {
-      const raw = storageMessageCou.embeds[0].description
-        .replace("```json\n", "")
-        .replace("\n```", "");
-
-      dataCou = JSON.parse(raw);
-    } catch {
-      dataCou = { _init: true };
-    }
-  }
-}
-
-export function getCouData(key) {
-  return dataCou[key];
-}
-
-export async function setCouData(key, value) {
-  if (!storageMessageCou) return;
-
-  dataCou[key] = value;
-
-  const jsonString = JSON.stringify(dataCou);
-
-  const embed = new EmbedBuilder()
-    .setTitle("Storage")
-    .setDescription("```json\n" + jsonString + "\n```");
-
-  await storageMessageCou.edit({ embeds: [embed] }).catch(console.error);
 }
 const COUNTING_CHANNEL = "1423434079390535730";
 let countingData = {
@@ -1335,7 +1117,7 @@ let countingData = {
   scoreboard: {}
 };
 function loadCounting() {
-  const stored = getCouData("counting");
+  const stored = await getCouData("counting");
   if (stored) {
     countingData = stored;
   } else {
@@ -1487,58 +1269,6 @@ export async function initCounting(client) {
   });
 }
 loadCounting();
-const GivSTORAGE_CHANNEL_ID = "1474140482551414899";
-
-let storageMessageGiv = null;
-let dataGiv = {};
-
-export async function initGiveawayStorage(client) {
-  const channel = await client.channels.fetch(GivSTORAGE_CHANNEL_ID).catch(() => null);
-  if (!channel || !channel.isTextBased()) return;
-
-  const messages = await channel.messages.fetch({ limit: 20 });
-  storageMessageGiv = messages.find(
-    m => m.author.id === client.user.id && m.embeds.length > 0
-  );
-
-  if (!storageMessageGiv) {
-    dataGiv = { _init: true };
-    const embed = new EmbedBuilder()
-      .setTitle("Storage")
-      .setDescription("```json\n" + JSON.stringify(dataGiv) + "\n```");
-
-    storageMessageGiv = await channel.send({ embeds: [embed] });
-  } else {
-    try {
-      const raw = storageMessageGiv.embeds[0].description
-        .replace("```json\n", "")
-        .replace("\n```", "");
-
-      dataGiv = JSON.parse(raw);
-    } catch {
-      dataGiv = { _init: true };
-    }
-  }
-}
-
-export function getGivData(key) {
-  return dataGiv[key];
-}
-
-export async function setGivData(key, value) {
-  if (!storageMessageGiv) return;
-
-  dataGiv[key] = value;
-
-  const jsonString = JSON.stringify(dataGiv);
-
-  const embed = new EmbedBuilder()
-    .setTitle("Storage")
-    .setDescription("```json\n" + jsonString + "\n```");
-
-  await storageMessageGiv.edit({ embeds: [embed] }).catch(console.error);
-  
-}
 const GIVEAWAY_EMOJI = "🎉";
 const BOOSTER_ROLE_ID = "1464202435638722621";
 const REPORT_CHANNEL_ID = "1474140482551414899";
@@ -1559,7 +1289,7 @@ export function initGiveaway(client) {
     await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
   };
   const checkGiveaways = async () => {
-    const giveaways = getGivData("activeGiveaways") || {};
+    const giveaways = await getGivData("activeGiveaways") || {};
     const now = Date.now();
     let changed = false;
     for (const [msgId, data] of Object.entries(giveaways)) {
@@ -1621,7 +1351,7 @@ export function initGiveaway(client) {
       embeds: [embed],
       components: [row]
     });
-    const giveaways = getGivData("activeGiveaways") || {};
+    const giveaways = await getGivData("activeGiveaways") || {};
     giveaways[giveawayMsg.id] = {
       channelId: channel.id,
       startTime, endTime, price, messageText, winnerCount,
@@ -1634,7 +1364,7 @@ export function initGiveaway(client) {
   });
   client.on("interactionCreate", async interaction => {
     if (!interaction.isButton() || interaction.customId !== "join_giveaway") return;
-    const giveaways = getGivData("activeGiveaways") || {};
+    const giveaways = await getGivData("activeGiveaways") || {};
     const data = giveaways[interaction.message.id];
     if (!data) return interaction.reply({ content: "❌ Dieses Giveaway ist nicht mehr aktiv.", ephemeral: true });
     if (data.participants.includes(interaction.user.id)) {
@@ -1865,58 +1595,6 @@ export function initPing(client) {
     }, 10000);
   });
 }
-const PollSTORAGE_CHANNEL_ID = "1474142240560644198";
-
-let storageMessagePoll = null;
-let dataPoll = {};
-
-export async function initPollsStorage(client) {
-  const channel = await client.channels.fetch(PollSTORAGE_CHANNEL_ID).catch(() => null);
-  if (!channel || !channel.isTextBased()) return;
-
-  const messages = await channel.messages.fetch({ limit: 20 });
-  storageMessagePoll = messages.find(
-    m => m.author.id === client.user.id && m.embeds.length > 0
-  );
-
-  if (!storageMessagePoll) {
-    dataPoll = { _init: true };
-    const embed = new EmbedBuilder()
-      .setTitle("Storage")
-      .setDescription("```json\n" + JSON.stringify(dataPoll) + "\n```");
-
-    storageMessagePoll = await channel.send({ embeds: [embed] });
-  } else {
-    try {
-      const raw = storageMessagePoll.embeds[0].description
-        .replace("```json\n", "")
-        .replace("\n```", "");
-
-      dataPoll = JSON.parse(raw);
-    } catch {
-      dataPoll = { _init: true };
-    }
-  }
-}
-
-export function getPollData(key) {
-  return dataPoll[key];
-}
-
-export async function setPollData(key, value) {
-  if (!storageMessage) return;
-
-  dataPoll[key] = value;
-
-  const jsonString = JSON.stringify(dataPoll);
-
-  const embed = new EmbedBuilder()
-    .setTitle("Storage")
-    .setDescription("```json\n" + jsonString + "\n```");
-
-  await storageMessagePoll.edit({ embeds: [embed] }).catch(console.error);
-  
-}
 export function initPoll(client) {
   const sendKekseLog = async (action, user, details) => {
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
@@ -1952,7 +1630,7 @@ export function initPoll(client) {
       for (let i = 0; i < pollOptions.length; i++) {
         await pollMsg.react(pollOptions[i].emoji).catch(() => {});
       }
-      const polls = getPollData("polls_data") || [];
+      const polls = await getPollData("polls_data") || [];
       polls.push({
         id: pollId, messageId: pollMsg.id, channelId: msg.channel.id,
         question, description, options: pollOptions, endTime,
@@ -2176,58 +1854,6 @@ async function moveChannelToAdmin(channel, isGerman) {
         await channel.send("❌ Fehler beim Verschieben des Channels.");
     }
 }
-const TickSTORAGE_CHANNEL_ID = "1474143412268699773";
-
-let storageMessageTick = null;
-let dataTick = {};
-
-export async function initTicketsStorage(client) {
-  const channel = await client.channels.fetch(TickSTORAGE_CHANNEL_ID).catch(() => null);
-  if (!channel || !channel.isTextBased()) return;
-
-  const messages = await channel.messages.fetch({ limit: 20 });
-  storageMessageTick = messages.find(
-    m => m.author.id === client.user.id && m.embeds.length > 0
-  );
-
-  if (!storageMessageTick) {
-    dataTick = { _init: true };
-    const embed = new EmbedBuilder()
-      .setTitle("Storage")
-      .setDescription("```json\n" + JSON.stringify(dataTick) + "\n```");
-
-    storageMessageTick = await channel.send({ embeds: [embed] });
-  } else {
-    try {
-      const raw = storageMessageTick.embeds[0].description
-        .replace("```json\n", "")
-        .replace("\n```", "");
-
-      dataTick = JSON.parse(raw);
-    } catch {
-      dataTick = { _init: true };
-    }
-  }
-}
-
-export function getTickData(key) {
-  return dataTick[key];
-}
-
-export async function setTickData(key, value) {
-  if (!storageMessageTick) return;
-
-  dataTick[key] = value;
-
-  const jsonString = JSON.stringify(dataTick);
-
-  const embed = new EmbedBuilder()
-    .setTitle("Storage")
-    .setDescription("```json\n" + jsonString + "\n```");
-
-  await storageMessageTick.edit({ embeds: [embed] }).catch(console.error);
-  
-}
 const ARCHIVE_CATEGORY_ID = "1465452886657077593";
 const ADMIN_ROLE_ID = "1423427747103113307";
 const CATEGORY_EMOJI = { Support: "⚙️", Abholung: "🎉", Bewerbung: "✉️" };
@@ -2238,14 +1864,14 @@ const CATEGORY_CHANNELS = {
 };
 let ticketData = { lastId: 0, tickets: {} };
 function loadTickets() {
-  const stored = getTickData("tickets");
+  const stored = await getTickData("tickets");
   if (stored) ticketData = stored;
 }
 async function saveTickets() {
   await setTickData("tickets", ticketData);
 }
 function isBlocked(userId) {
-  const blocked = getTickData("blocked_users") || {};
+  const blocked = await getTickData("blocked_users") || {};
   if (!blocked[userId]) return false;
   if (Date.now() > blocked[userId].until) {
     delete blocked[userId];
@@ -2255,7 +1881,7 @@ function isBlocked(userId) {
   return true;
 }
 async function blockUser(userId, username, durationMs = 7 * 24 * 60 * 60 * 1000) {
-  const blocked = getTickData("blocked_users") || {};
+  const blocked = await getTickData("blocked_users") || {};
   blocked[userId] = {
     username,
     until: Date.now() + durationMs,
@@ -2515,3 +2141,19 @@ client.setMaxListeners(20);
 client.on("error", console.error)
 client.on("warn", console.warn)
 client.login(process.env.BOT_TOKEN)
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('🍪 Verbindung zu MongoDB (KekseStorage) erfolgreich!'))
+  .catch(err => console.error('❌ MongoDB Verbindungsfehler:', err));
+async function startStorages() {
+    await initInvitesStorage();
+    await initModerationStorage();
+    await initViolationsStorage();
+    await initDmTicketsStorage();
+    await initRemindersStorage();
+    await initCountingStorage();
+    await initGiveawayStorage();
+    await initPollsStorage();
+    console.log("✅ Alle MongoDB-Storages sind einsatzbereit!");
+}
+
+startStorages();
