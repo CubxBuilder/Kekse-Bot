@@ -902,6 +902,7 @@ function detectViolation(msg) {
     }
   }
   return null;
+}
 const FORUM_CHANNEL_ID = "1474918563218198548";
 export async function initSupport(client) {
     const savedData = await getDData("tickets") || {};
