@@ -42,6 +42,40 @@ async function startStorages() {
     console.log("✅ Alle MongoDB-Storages sind einsatzbereit!");
 }
 const TEAM_ROLE = "1457906448234319922";
+client.on("messageCreate", async (message) => {
+  // Nur du oder Team-Mitglieder sollten diesen Befehl nutzen dürfen
+  if (!message.content.startsWith("!database add") || message.author.bot) return;
+  if (!message.member.roles.cache.has(TEAM_ROLE_ID)) return;
+
+  const args = message.content.split(/\s+/);
+  if (args.length < 4) {
+    return message.reply("❌ Nutzung: `!database add <storage_name> <json_daten>`\nBeispiel: `!database add counting {\"key\":\"value\"}`");
+  }
+
+  const namespace = args[2].toLowerCase(); // z.B. counting, invites, giveaways
+  
+  // Extrahiert alles, was nach dem Storage-Namen kommt (den JSON-Teil)
+  const rawJson = message.content.split(args[2])[1].trim();
+
+  try {
+    // Falls das JSON in Anführungszeichen steht, entfernen wir sie für den Parser
+    const cleanJson = rawJson.startsWith('"') && rawJson.endsWith('"') 
+      ? rawJson.slice(1, -1) 
+      : rawJson;
+
+    const parsedData = JSON.parse(cleanJson);
+
+    // Wir speichern es unter dem Key, den dein Bot erwartet (meistens der Name des Systems)
+    // Für Counting ist der Key in deinem Code "counting"
+    await dbSet(namespace, namespace, parsedData);
+
+    message.reply(`✅ Daten erfolgreich in den Storage **${namespace}** übertragen!`);
+    console.log(`📥 Manueller Import für ${namespace} durch ${message.author.tag}`);
+  } catch (err) {
+    console.error("Fehler beim Datenbank-Import:", err);
+    message.reply(`❌ Fehler beim Parsen des JSON: \`\`\`${err.message}\`\`\``);
+  }
+});
 const LOG_CHANNEL_ID = "1423413348220796991";
 import { dbGet, dbSet } from './database.js';
 export async function initInvitesStorage() {
