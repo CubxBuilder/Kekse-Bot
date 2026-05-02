@@ -29,6 +29,17 @@ const client = new Client({
     Partials.GuildMember, Partials.User, Partials.ThreadMember
     ]
 });
+async function startStorages() {
+    await initInvitesStorage();
+    await initModerationStorage();
+    await initViolationsStorage();
+    await initDmTicketsStorage();
+    await initRemindersStorage();
+    await initCountingStorage();
+    await initGiveawayStorage();
+    await initPollsStorage();
+    console.log("✅ Alle MongoDB-Storages sind einsatzbereit!");
+}
 const TEAM_ROLE = "1457906448234319922";
 const LOG_CHANNEL_ID = "1423413348220796991";
 import { dbGet, dbSet } from './database.js';
@@ -2144,16 +2155,5 @@ client.login(process.env.BOT_TOKEN)
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('🍪 Verbindung zu MongoDB (KekseStorage) erfolgreich!'))
   .catch(err => console.error('❌ MongoDB Verbindungsfehler:', err));
-async function startStorages() {
-    await initInvitesStorage();
-    await initModerationStorage();
-    await initViolationsStorage();
-    await initDmTicketsStorage();
-    await initRemindersStorage();
-    await initCountingStorage();
-    await initGiveawayStorage();
-    await initPollsStorage();
-    console.log("✅ Alle MongoDB-Storages sind einsatzbereit!");
-}
 
 startStorages();
