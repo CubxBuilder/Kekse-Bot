@@ -1875,7 +1875,7 @@ const CATEGORY_CHANNELS = {
   Bewerbung: "1434277752982474945"
 };
 let ticketData = { lastId: 0, tickets: {} };
-function loadTickets() {
+async function loadTickets() {
   const stored = await getTickData("tickets");
   if (stored) ticketData = stored;
 }
