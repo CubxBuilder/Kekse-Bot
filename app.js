@@ -43,9 +43,7 @@ async function startStorages() {
 }
 const TEAM_ROLE = "1457906448234319922";
 async function runOneTimeImport() {
-  const dataToImport = {
-      {"_init":true,"invites":{"1266400369383047231":{"regular":92,"left":23,"fake":4,"bonus":0},"1151971830983311441":{"regular":31,"left":13,"fake":2,"bonus":0},"1271382539101016146":{"regular":3,"left":0,"fake":0,"bonus":0},"1089227392029044746":{"regular":1,"left":0,"fake":0,"bonus":0},"1143151029706293409":{"regular":1,"left":0,"fake":0,"bonus":0},"1177314433698115636":{"regular":1,"left":0,"fake":0,"bonus":0},"1416787374700236941":{"regular":1,"left":0,"fake":0,"bonus":0},"173554407408009217":{"regular":0,"left":0,"fake":0,"bonus":0},"270519783835828224":{"regular":0,"left":0,"fake":0,"bonus":0},"371649310137384960":{"regular":0,"left":0,"fake":0,"bonus":0}}}
-  };
+  const dataToImport = {"_init":true,"invites":{"1266400369383047231":{"regular":92,"left":23,"fake":4,"bonus":0},"1151971830983311441":{"regular":31,"left":13,"fake":2,"bonus":0},"1271382539101016146":{"regular":3,"left":0,"fake":0,"bonus":0},"1089227392029044746":{"regular":1,"left":0,"fake":0,"bonus":0},"1143151029706293409":{"regular":1,"left":0,"fake":0,"bonus":0},"1177314433698115636":{"regular":1,"left":0,"fake":0,"bonus":0},"1416787374700236941":{"regular":1,"left":0,"fake":0,"bonus":0},"173554407408009217":{"regular":0,"left":0,"fake":0,"bonus":0},"270519783835828224":{"regular":0,"left":0,"fake":0,"bonus":0},"371649310137384960":{"regular":0,"left":0,"fake":0,"bonus":0}}};
   try {
     await dbSet("invites", "invite_stats", inviteData);
     console.log("✅ Invite-Daten übertragen!");
