@@ -2083,15 +2083,6 @@ export function initVoiceChannels(client) {
   });
 }
 client.once("ready", async () => {
-    await initInvitesStorage(client);
-    await initModerationStorage(client); 
-    await initViolationsStorage(client);
-    await initDmTicketsStorage(client);
-    await initRemindersStorage(client);
-    await initCountingStorage(client); 
-    await initGiveawayStorage(client);
-    await initPollsStorage(client);
-    await initTicketsStorage(client);
     await initCounting(client);
     registerMessageCommands(client);
     initTickets(client);
