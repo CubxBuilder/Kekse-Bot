@@ -2157,6 +2157,6 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(async () => {
     console.log('🍃 MongoDB verbunden!');
     await startStorages();
-    client.login(process.env.DISCORD_TOKEN);
+    client.login(process.env.BOT_TOKEN);
   })
   .catch(err => console.error('❌ MongoDB Fehler:', err));
