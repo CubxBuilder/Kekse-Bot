@@ -31,14 +31,6 @@ const client = new Client({
     ]
 });
 async function startStorages() {
-    await initInvitesStorage();
-    await initModerationStorage();
-    await initViolationsStorage();
-    await initDmTicketsStorage();
-    await initRemindersStorage();
-    await initCountingStorage();
-    await initGiveawayStorage();
-    await initPollsStorage();
     console.log("✅ Alle MongoDB-Storages sind einsatzbereit!");
 }
 const TEAM_ROLE = "1457906448234319922";
