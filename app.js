@@ -1128,7 +1128,7 @@ let countingData = {
   lastCountingTime: null,
   scoreboard: {}
 };
-function loadCounting() {
+async function loadCounting() {
   const stored = await getCouData("counting");
   if (stored) {
     countingData = stored;
