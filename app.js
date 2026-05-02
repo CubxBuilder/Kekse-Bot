@@ -1,6 +1,7 @@
 import { Client, GatewayIntentBits, Partials, ChannelType, PermissionFlagsBits, EmbedBuilder, Events, AuditLogEvent, MessageFlags, MessageType, PermissionsBitField, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js"
 import "dotenv/config"
 import path from "path"
+import mongoose from 'mongoose';
 import express from "express"
 import { fileURLToPath } from "url"
 import fs from "fs"
