@@ -2153,9 +2153,10 @@ client.once("ready", async () => {
 client.setMaxListeners(20);
 client.on("error", console.error)
 client.on("warn", console.warn)
-client.login(process.env.BOT_TOKEN)
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('🍪 Verbindung zu MongoDB (KekseStorage) erfolgreich!'))
-  .catch(err => console.error('❌ MongoDB Verbindungsfehler:', err));
-
-startStorages();
+  .then(async () => {
+    console.log('🍃 MongoDB verbunden!');
+    await startStorages();
+    client.login(process.env.DISCORD_TOKEN);
+  })
+  .catch(err => console.error('❌ MongoDB Fehler:', err));
