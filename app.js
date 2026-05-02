@@ -42,42 +42,6 @@ async function startStorages() {
     console.log("✅ Alle MongoDB-Storages sind einsatzbereit!");
 }
 const TEAM_ROLE = "1457906448234319922";
-async function runFinalImport() {
-  try {
-    // 1. Counting
-    await dbSet("counting", "counting", {"_init":true,"counting":{"currentNumber":41,"lastUserId":"1151971830983311441","lastCountingTime":1777744539311,"scoreboard":{"1266400369383047231":365,"1215705226896740386":40,"1416787374700236941":161,"1395778435682533456":5,"1051093106386284597":306,"1247562549172637749":41,"1014186378000601139":15,"1394708479666819172":38,"1341476313806012476":1,"1275425602349830238":4,"1232644707171958805":1,"1117500437386494043":6,"1406541925590372432":2,"1201211788872659054":57,"1357727579603468430":2,"745298246980599838":4,"1346918189375688804":1,"1310730812731424812":5,"371649310137384960":1,"1334582973785309234":3,"243830938549747723":4,"1083788822376099960":1,"1047547302333649016":2,"1107410616123134063":2,"1143151029706293409":1,"1429845194106343497":357,"987357529107476510":1,"544540694077767681":6,"1172824752528838768":1,"1192423110490738709":2,"628632671484117027":1,"1435207719429603349":138,"896022020364591144":33,"1456649070558052518":1,"1274320881585356892":4,"1142488142897758268":2,"1464348989687333062":28,"1151971830983311441":14,"1062436951266951198":1,"1180975110165893152":12,"1304775524215685209":3,"1263039491959029783":4,"1470079738553831522":35,"1239911232773947414":2,"1223365509580329026":1,"1436995177288830986":1,"1358497960094335088":2,"1168921625287204894":3,"1121874905009487932":1,"1456362019706900593":622,"1431378039199109161":28,"1315221583861645332":28,"1312771299059433523":1,"1391885940376469665":49,"1333007881250930790":2,"1148145781459669033":2,"1405195984119660554":2,"1419762963526713487":1,"1457066913661321323":133,"1300179933531738112":1,"1011686864568193116":1,"1192159371560485005":1,"1180181119455477842":38,"1195438644589232218":1,"1250984719252721775":1,"1216785281240404069":2,"1109874156645912577":2},"direction":1,"lastMessageId":"1500194073208684775"}});
-
-    // 2. Invites
-    await dbSet("invites", "invite_stats", {"_init":true,"invites":{"1266400369383047231":{"regular":92,"left":23,"fake":4,"bonus":0},"1151971830983311441":{"regular":31,"left":13,"fake":2,"bonus":0},"1271382539101016146":{"regular":3,"left":0,"fake":0,"bonus":0},"1089227392029044746":{"regular":1,"left":0,"fake":0,"bonus":0},"1143151029706293409":{"regular":1,"left":0,"fake":0,"bonus":0},"1177314433698115636":{"regular":1,"left":0,"fake":0,"bonus":0},"1416787374700236941":{"regular":1,"left":0,"fake":0,"bonus":0},"173554407408009217":{"regular":0,"left":0,"fake":0,"bonus":0},"270519783835828224":{"regular":0,"left":0,"fake":0,"bonus":0},"371649310137384960":{"regular":0,"left":0,"fake":0,"bonus":0}}});
-
-    // 3. Giveaways & Polls
-    await dbSet("giveaways", "giveaways", {"_init":true,"activeGiveaways":{}});
-    await dbSet("polls", "polls", {"_init":true,"polls_data":[{"id":"1475277058044068081","messageId":"1475277059554279579","channelId":"1472658090812899358","question":"Wie soll der Server genau heißen?","description":"Keksegang","options":[{"text":"Keksgang","emoji":"1️⃣","votes":0},{"text":"Kekse Gang","emoji":"2️⃣","votes":0},{"text":"Keks Gang","emoji":"3️⃣","votes":0}],"endTime":1771890259990,"creatorId":"1151971830983311441","voters":[],"closed":true}]});
-
-    // 4. Tickets (Allgemein & DM-Tickets)
-    await dbSet("tickets", "tickets", {
-      "_init":true,
-      "ticket_panel":{"messageId":"1465471793014898709"},
-      "tickets":{"lastId":55,"tickets":{"0033":{"idString":"0033","category":"Support","username":"swissflugzeug","userId":"1315221583861645332","channelId":"1483887363498315917","created":1773856716895}}}
-    });
-    await dbSet("tickets", "dm_tickets", {
-      "_init":true,
-      "tickets":{"1151971830983311441":"1499893124569497670"},
-      "last_ticket_id":1
-    });
-
-    // 5. Blocked Users, Reminder & Violations
-    await dbSet("tickets", "blocked_users", {"1148145781459669033":{"username":"Unbekannt","until":1773588283575,"reason":"Spam / Limit überschritten"},"1416787374700236941":{"username":"tim3847.","until":1773432997751,"reason":"Spam / Limit überschritten"}});
-    await dbSet("reminders", "reminders", {"_init":true,"reminders":[]});
-    await dbSet("violations", "violations", {"_init":true,"violations":{"1151971830983311441":{"name":"cubxbuilder","count":2,"last":1777760736733}}});
-
-    console.log("🏆 MISSION ERFÜLLT: Alle Daten inklusive DM-Tickets sind in MongoDB!");
-  } catch (err) {
-    console.error("❌ IMPORT FEHLER:", err);
-  }
-}
-
-runFinalImport();
 const LOG_CHANNEL_ID = "1423413348220796991";
 import { dbGet, dbSet } from './database.js';
 export async function initInvitesStorage() {
