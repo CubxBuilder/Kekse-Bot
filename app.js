@@ -44,17 +44,11 @@ async function startStorages() {
 const TEAM_ROLE = "1457906448234319922";
 const LOG_CHANNEL_ID = "1423413348220796991";
 import { dbGet, dbSet } from './database.js';
-export async function initInvitesStorage() {
-  console.log("📦 Invite-Storage via MongoDB bereit.");
-}
 export async function getIData(key) {
   return await dbGet("invites", key);
 }
 export async function setIData(key, value) {
   await dbSet("invites", key, value);
-}
-export async function initModerationStorage() {
-  console.log("📦 Moderation-Storage via MongoDB bereit.");
 }
 export async function getMData(key) {
   return await dbGet("moderation", key);
@@ -62,17 +56,11 @@ export async function getMData(key) {
 export async function setMData(key, value) {
   await dbSet("moderation", key, value);
 }
-export async function initViolationsStorage() {
-  console.log("📦 Violations-Storage via MongoDB bereit.");
-}
 export async function getVData(key) {
   return await dbGet("violations", key);
 }
 export async function setVData(key, value) {
   await dbSet("violations", key, value);
-}
-export async function initDmTicketsStorage() {
-  console.log("📦 Ticket-Storage via MongoDB bereit.");
 }
 export async function getDData(key) {
   return await dbGet("tickets", key);
@@ -80,17 +68,11 @@ export async function getDData(key) {
 export async function setDData(key, value) {
   await dbSet("tickets", key, value);
 }
-export async function initRemindersStorage() {
-  console.log("📦 Reminder-Storage via MongoDB bereit.");
-}
 export async function getRData(key) {
   return await dbGet("reminders", key);
 }
 export async function setRData(key, value) {
   await dbSet("reminders", key, value);
-}
-export async function initCountingStorage() {
-  console.log("📦 Counting-Storage (Cou) via MongoDB bereit.");
 }
 export async function getCouData(key) {
   return await dbGet("counting", key);
@@ -98,17 +80,11 @@ export async function getCouData(key) {
 export async function setCouData(key, value) {
   await dbSet("counting", key, value);
 }
-export async function initGiveawayStorage() {
-  console.log("📦 Giveaway-Storage (Giv) via MongoDB bereit.");
-}
 export async function getGivData(key) {
   return await dbGet("giveaways", key);
 }
 export async function setGivData(key, value) {
   await dbSet("giveaways", key, value);
-}
-export async function initPollsStorage() {
-  console.log("📦 Polls-Storage (Poll) via MongoDB bereit.");
 }
 export async function getPollData(key) {
   return await dbGet("polls", key);
@@ -1134,7 +1110,7 @@ async function loadCounting() {
   if (stored) {
     countingData = stored;
   } else {
-    saveCounting();
+    await saveCounting();
   }
 }
 async function saveCounting() {
