@@ -42,40 +42,94 @@ async function startStorages() {
     console.log("✅ Alle MongoDB-Storages sind einsatzbereit!");
 }
 const TEAM_ROLE = "1457906448234319922";
-client.on("messageCreate", async (message) => {
-  // Nur du oder Team-Mitglieder sollten diesen Befehl nutzen dürfen
-  if (!message.content.startsWith("!database add") || message.author.bot) return;
-  if (!message.member.roles.cache.has(TEAM_ROLE_ID)) return;
-
-  const args = message.content.split(/\s+/);
-  if (args.length < 4) {
-    return message.reply("❌ Nutzung: `!database add <storage_name> <json_daten>`\nBeispiel: `!database add counting {key\":\"value}`");
-  }
-
-  const namespace = args[2].toLowerCase(); // z.B. counting, invites, giveaways
-  
-  // Extrahiert alles, was nach dem Storage-Namen kommt (den JSON-Teil)
-  const rawJson = message.content.split(args[2])[1].trim();
-
+async function runOneTimeImport() {
+  const dataToImport = {
+    "_init": true,
+    "counting": {
+      "currentNumber": 41,
+      "lastUserId": "1151971830983311441",
+      "lastCountingTime": 1777744539311,
+      "scoreboard": {
+        "1266400369383047231": 365,
+        "1215705226896740386": 40,
+        "1416787374700236941": 161,
+        "1395778435682533456": 5,
+        "1051093106386284597": 306,
+        "1247562549172637749": 41,
+        "1014186378000601139": 15,
+        "1394708479666819172": 38,
+        "1341476313806012476": 1,
+        "1275425602349830238": 4,
+        "1232644707171958805": 1,
+        "1117500437386494043": 6,
+        "1406541925590372432": 2,
+        "1201211788872659054": 57,
+        "1357727579603468430": 2,
+        "745298246980599838": 4,
+        "1346918189375688804": 1,
+        "1310730812731424812": 5,
+        "371649310137384960": 1,
+        "1334582973785309234": 3,
+        "243830938549747723": 4,
+        "1083788822376099960": 1,
+        "1047547302333649016": 2,
+        "1107410616123134063": 2,
+        "1143151029706293409": 1,
+        "1429845194106343497": 357,
+        "987357529107476510": 1,
+        "544540694077767681": 6,
+        "1172824752528838768": 1,
+        "1192423110490738709": 2,
+        "628632671484117027": 1,
+        "1435207719429603349": 138,
+        "896022020364591144": 33,
+        "1456649070558052518": 1,
+        "1274320881585356892": 4,
+        "1142488142897758268": 2,
+        "1464348989687333062": 28,
+        "1151971830983311441": 14,
+        "1062436951266951198": 1,
+        "1180975110165893152": 12,
+        "1304775524215685209": 3,
+        "1263039491959029783": 4,
+        "1470079738553831522": 35,
+        "1239911232773947414": 2,
+        "1223365509580329026": 1,
+        "1436995177288830986": 1,
+        "1358497960094335088": 2,
+        "1168921625287204894": 3,
+        "1121874905009487932": 1,
+        "1456362019706900593": 622,
+        "1431378039199109161": 28,
+        "1315221583861645332": 28,
+        "1312771299059433523": 1,
+        "1391885940376469665": 49,
+        "1333007881250930790": 2,
+        "1148145781459669033": 2,
+        "1405195984119660554": 2,
+        "1419762963526713487": 1,
+        "1457066913661321323": 133,
+        "1300179933531738112": 1,
+        "1011686864568193116": 1,
+        "1192159371560485005": 1,
+        "1180181119455477842": 38,
+        "1195438644589232218": 1,
+        "1250984719252721775": 1,
+        "1216785281240404069": 2,
+        "1109874156645912577": 2
+      },
+      "direction": 1,
+      "lastMessageId": "1500194073208684775"
+    }
+  };
   try {
-    // Falls das JSON in Anführungszeichen steht, entfernen wir sie für den Parser
-    const cleanJson = rawJson.startsWith('"') && rawJson.endsWith('"') 
-      ? rawJson.slice(1, -1) 
-      : rawJson;
-
-    const parsedData = JSON.parse(cleanJson);
-
-    // Wir speichern es unter dem Key, den dein Bot erwartet (meistens der Name des Systems)
-    // Für Counting ist der Key in deinem Code "counting"
-    await dbSet(namespace, namespace, parsedData);
-
-    message.reply(`✅ Daten erfolgreich in den Storage **${namespace}** übertragen!`);
-    console.log(`📥 Manueller Import für ${namespace} durch ${message.author.tag}`);
+    await dbSet("counting", "counting", dataToImport);
+    console.log("✅ IMPORT ERFOLGREICH: Counting-Daten wurden übertragen!");
   } catch (err) {
-    console.error("Fehler beim Datenbank-Import:", err);
-    message.reply(`❌ Fehler beim Parsen des JSON: \`\`\`${err.message}\`\`\``);
+    console.error("❌ IMPORT FEHLGESCHLAGEN:", err);
   }
-});
+}
+runOneTimeImport();
 const LOG_CHANNEL_ID = "1423413348220796991";
 import { dbGet, dbSet } from './database.js';
 export async function initInvitesStorage() {
