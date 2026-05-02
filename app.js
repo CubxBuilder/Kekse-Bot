@@ -1336,7 +1336,7 @@ export function initGiveaway(client) {
         const giveawayData = data;
         delete giveaways[msgId];
         changed = true;
-        await setData("activeGiveaways", giveaways);
+        await setGivData("activeGiveaways", giveaways);
         changed = false;
         await endGiveaway(client, msg, giveawayData, sendKekseLog);
       } else {
@@ -1345,7 +1345,7 @@ export function initGiveaway(client) {
         await msg.edit({ embeds: [embed] }).catch(() => {});
       }
     }
-    if (changed) await setData("activeGiveaways", giveaways);
+    if (changed) await setGivData("activeGiveaways", giveaways);
   };
   setInterval(checkGiveaways, 10000);
   client.on("messageCreate", async msg => {
