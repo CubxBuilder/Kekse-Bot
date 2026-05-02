@@ -1284,7 +1284,7 @@ export async function initCounting(client) {
 loadCounting();
 const GIVEAWAY_EMOJI = "🎉";
 const BOOSTER_ROLE_ID = "1464202435638722621";
-const REPORT_CHANNEL_ID = "1474140482551414899";
+const REPORT_CHANNEL_ID = LOG_CHANNEL_ID;
 const EMBED_COLOR = 0xffffff;
 export function initGiveaway(client) {
   const sendKekseLog = async (action, user, details) => {
