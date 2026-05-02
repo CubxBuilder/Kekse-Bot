@@ -1882,7 +1882,7 @@ async function loadTickets() {
 async function saveTickets() {
   await setTickData("tickets", ticketData);
 }
-function isBlocked(userId) {
+async function isBlocked(userId) {
   const blocked = await getTickData("blocked_users") || {};
   if (!blocked[userId]) return false;
   if (Date.now() > blocked[userId].until) {
@@ -1901,7 +1901,7 @@ async function blockUser(userId, username, durationMs = 7 * 24 * 60 * 60 * 1000)
   };
   await setTickData("blocked_users", blocked);
 }
-export function initTickets(client) {
+export async function initTickets(client) {
   loadTickets();
   const sendKekseLog = async (action, user, details) => {
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
