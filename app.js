@@ -1133,7 +1133,7 @@ export async function initCounting(client) {
   const handleCounting = async (msg, syncMode = false) => {
     if (!syncMode && msg.author.bot) return;
     if (msg.channel.id !== COUNTING_CHANNEL) return;
-    loadCounting();
+    await loadCounting();
     if (!syncMode && msg.content === "!top") {
       const sorted = Object.entries(countingData.scoreboard)
         .sort((a, b) => b[1] - a[1])
@@ -1209,7 +1209,7 @@ export async function initCounting(client) {
 
   const runSync = async () => {
     console.log("🔄 Starte Counting-Synchronisation...");
-    loadCounting();
+    await loadCounting();
     const channel = await client.channels.fetch(COUNTING_CHANNEL).catch(() => null);
     if (!channel || !channel.isTextBased()) return;
     let lastId = countingData.lastMessageId;
@@ -1255,7 +1255,7 @@ export async function initCounting(client) {
     await handleCounting(msg, false);
   });
 }
-loadCounting();
+await loadCounting();
 const GIVEAWAY_EMOJI = "🎉";
 const BOOSTER_ROLE_ID = "1464202435638722621";
 const REPORT_CHANNEL_ID = LOG_CHANNEL_ID;
