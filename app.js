@@ -54,11 +54,17 @@ export async function getVData(key) {
 export async function setVData(key, value) {
   await dbSet("violations", key, value);
 }
+export async function getTickData(key) {
+  return await dbGet("tickets", "tickets"); 
+}
+export async function setTickData(key, value) {
+  await dbSet("tickets", "tickets", value);
+}
 export async function getDData(key) {
-  return await dbGet("tickets", key);
+  return await dbGet("tickets", "dm_tickets");
 }
 export async function setDData(key, value) {
-  await dbSet("tickets", key, value);
+  await dbSet("tickets", "dm_tickets", value);
 }
 export async function getRData(key) {
   return await dbGet("reminders", key);
