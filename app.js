@@ -1659,7 +1659,8 @@ export function initPoll(client) {
     await reaction.users.remove(user.id).catch(() => {});
   });
   setInterval(async () => {
-    const polls = getPollData("polls_data") || [];
+    const data = await getPollData("polls") || { polls_data: [] };
+    const polls = data.polls_data || [];
     const now = Date.now();
     for (const poll of polls) {
       if (!poll.closed && poll.endTime <= now) {
