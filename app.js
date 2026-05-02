@@ -49,7 +49,7 @@ client.on("messageCreate", async (message) => {
 
   const args = message.content.split(/\s+/);
   if (args.length < 4) {
-    return message.reply("❌ Nutzung: `!database add <storage_name> <json_daten>`\nBeispiel: `!database add counting {\"key\":\"value\"}`");
+    return message.reply("❌ Nutzung: `!database add <storage_name> <json_daten>`\nBeispiel: `!database add counting {key\":\"value}`");
   }
 
   const namespace = args[2].toLowerCase(); // z.B. counting, invites, giveaways
