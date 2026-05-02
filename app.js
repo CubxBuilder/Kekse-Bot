@@ -1198,7 +1198,7 @@ export async function initCounting(client) {
         if (isNaN(newNum)) return;
         countingData.currentNumber = newNum;
         countingData.direction = newNum < 0 ? -1 : 1;
-        saveCounting();
+        await saveCounting();
         await sendKekseLog("Counting Reset (Admin)", msg.author, `Die Zahl wurde manuell auf **${newNum}** gesetzt.`);
         return msg.reply(`✅ Die nächste Zahl wurde auf **${newNum}** gesetzt.`);
     }
@@ -1215,7 +1215,7 @@ export async function initCounting(client) {
           countingData.scoreboard[msg.author.id] ??= 0;
           countingData.scoreboard[msg.author.id]++;
         }
-        saveCounting();
+        await saveCounting();
         if (!syncMode) return await msg.react("✅");
         return;
       }
@@ -1228,7 +1228,7 @@ export async function initCounting(client) {
         countingData.direction = 1;
         countingData.lastUserId = null;
         countingData.lastCountingTime = msg.createdTimestamp;
-        saveCounting();
+        await saveCounting();
         await msg.react("❌");
         const replyContent = msg.author.id === countingData.lastUserId
           ? `❌ <@${msg.author.id}>, nicht zwei mal nacheinander! Zurück auf den Start (1 oder -1).`
@@ -1245,10 +1245,10 @@ export async function initCounting(client) {
       countingData.scoreboard[msg.author.id] ??= 0;
       countingData.scoreboard[msg.author.id]++;
     }
-    saveCounting();
+    await saveCounting();
     if (!syncMode) await msg.react("✅");
     countingData.lastMessageId = msg.id;
-    saveCounting();
+    await saveCounting();
   };
 
   const runSync = async () => {
@@ -1261,7 +1261,7 @@ export async function initCounting(client) {
     if (!lastId) {
       const lastMsg = await channel.messages.fetch({ limit: 1 });
       countingData.lastMessageId = lastMsg.first()?.id;
-      saveCounting();
+      await saveCounting();
       console.log("📍 Keine Referenz-ID gefunden. Starte ab der aktuellsten Nachricht.");
       return;
     }
@@ -1907,7 +1907,7 @@ async function isBlocked(userId) {
   if (!blocked[userId]) return false;
   if (Date.now() > blocked[userId].until) {
     delete blocked[userId];
-    setTickData("blocked_users", blocked);
+    await setTickData("blocked_users", blocked);
     return false;
   }
   return true;
@@ -1922,7 +1922,7 @@ async function blockUser(userId, username, durationMs = 7 * 24 * 60 * 60 * 1000)
   await setTickData("blocked_users", blocked);
 }
 export async function initTickets(client) {
-  loadTickets();
+  await loadTickets();
   const sendKekseLog = async (action, user, details) => {
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
     if (!logChannel) return;
@@ -2136,24 +2136,24 @@ export function initVoiceChannels(client) {
 client.once("ready", async () => {
     await initCounting(client);
     registerMessageCommands(client);
-    initTickets(client);
-    initGiveaway(client);
+    await initTickets(client);
+    await initGiveaway(client);
     initPing(client);
     initReactions(client);
     initHelp(client);
     initTicketCategory(client);
-    initPoll(client);
+    await initPoll(client);
     initVoiceChannels(client);
-    initSupport(client);
-    initReminder(client);
-    initModeration(client);
+    await initSupport(client);
+    await initReminder(client);
+    await initModeration(client);
     initVerification(client);
-    initInvites(client); 
+    await initInvites(client); 
     initAuditLogs(client);
     clear(client);
     warning(client);
     initModSend(client);
-    violations(client);
+    await violations(client);
     client.user.setPresence({
       activities: [{ name: "!help", type: 0 }],
       status: "online"
