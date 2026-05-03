@@ -2131,7 +2131,7 @@ client.once("ready", async () => {
     await initSupport(client);
     await initReminder(client);
     await initModeration(client);
-    initVerification(client);
+    await initVerification(client);
     await initInvites(client); 
     initAuditLogs(client);
     clear(client);
