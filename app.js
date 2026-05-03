@@ -1951,15 +1951,19 @@ export async function initTickets(client) {
     }
   }
   async function closeTicket(channel, moderator) {
-    const ticket = Object.values(ticketData.tickets).find(t => t.channelId === channel.id);
-    if (!ticket) return channel.send("❌ Kein aktives Ticket gefunden.");
+    const stored = await getTickData("tickets") || { tickets: { tickets: {} } };
+    const tickets = stored.tickets.tickets || {};
+    const ticket = Object.values(tickets).find(t => t.channelId === channel.id);
+    if (!ticket) {
+      return channel.send("❌ Kein aktives Ticket gefunden.");
+    }
     try {
       await channel.setParent(ARCHIVE_CATEGORY_ID, { lockPermissions: true });
       await channel.permissionOverwrites.delete(ticket.userId).catch(() => {});
       await channel.send({ content: `✅ **Ticket archiviert.**\nErstellt von: ${ticket.username}\nID: ${ticket.idString}`, components: [] });
       await sendKekseLog("Ticket Archiviert", moderator, `**Besitzer:** ${ticket.username}\n**Kanal:** ${channel.name}`);
-      delete ticketData.tickets[ticket.idString];
-      await saveTickets();
+      delete stored.tickets.tickets[ticket.idString];
+      await setTickData("tickets", stored);
     } catch (err) {
       console.error("[TICKET] Fehler beim Schließen:", err);
     }
