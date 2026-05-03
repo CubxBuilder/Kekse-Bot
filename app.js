@@ -1953,7 +1953,7 @@ export async function initTickets(client) {
   async function closeTicket(channel, moderator) {
   try {
     const stored = await getTickData("tickets") || { tickets: { tickets: {} } };
-    const allTickets = stored.tickets.tickets || {};
+    const allEntries = stored.tickets || {};
     const ticket = Object.values(allTickets).find(t => t.channelId === channel.id);
     if (!ticket) {
       return channel.send("❌ Kein aktives Ticket in der Datenbank gefunden.");
