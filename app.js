@@ -112,9 +112,6 @@ app.get("/api/stats_internal", (req, res) => {
         members: client.guilds.cache.reduce((a, g) => a + g.memberCount, 0)
     });
 });
-server.listen(port, () => {
-    originalLog("Dashboard & WebSocket bereit auf Port " + port);
-});
 async function startStorages() {
     console.log("✅ Alle MongoDB-Storages sind einsatzbereit!");
 }
