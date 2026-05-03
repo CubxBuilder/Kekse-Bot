@@ -1908,7 +1908,7 @@ export async function initTickets(client) {
     await channel.send({ embeds: [embed], components: [row] });
   }
   async function createTicket(category, user, guild) {
-    if (isBlocked(user.id)) return;
+    if (await isBlocked(user.id)) return;
     const id = ++ticketData.lastId;
     const idString = id.toString().padStart(4, "0");
     const parentId = CATEGORY_CHANNELS[category];
