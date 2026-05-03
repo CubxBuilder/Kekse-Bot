@@ -889,20 +889,14 @@ export async function initSupport(client) {
     };
     client.on("messageCreate", async (msg) => {
     if (msg.author.bot) return;
-
     if (msg.channel.type === ChannelType.DM) {
-        // 1. Daten JEDES MAL frisch aus der DB laden (sonst vergisst der Bot offene Tickets nach Neustart)
         const stored = await getDData("dm_tickets") || { tickets: {}, last_ticket_id: 0 };
         const tickets = stored.tickets || {};
-        
         let threadId = tickets[msg.author.id];
         let thread = threadId ? await client.channels.fetch(threadId).catch(() => null) : null;
-
         if (!thread) {
             const forumChannel = await client.channels.fetch(FORUM_CHANNEL_ID).catch(() => null);
             if (!forumChannel) return console.error("Forum Channel nicht gefunden!");
-
-            // 2. ID korrekt hochzählen
             const lastId = (parseInt(stored.last_ticket_id) || 0) + 1;
             const ticketIndex = String(lastId).padStart(4, "0");
 
@@ -931,13 +925,9 @@ export async function initSupport(client) {
                     ]
                 }
             });
-
-            // 3. Daten im Objekt speichern und zurück an MongoDB senden
             stored.tickets[msg.author.id] = thread.id;
             stored.last_ticket_id = lastId;
-            
-            await setDData("dm_tickets", stored); // Wichtig: Alles in einem Rutsch speichern
-
+            await setDData("dm_tickets", stored);
             const userConfirm = new EmbedBuilder()
                 .setTitle("✅ Ticket erstellt!")
                 .setDescription(`Dein Support-Ticket wurde erfolgreich erstellt!\n\n💬 Schreibe hier weiter, um mit dem Team zu kommunizieren.`)
@@ -974,7 +964,7 @@ export async function initSupport(client) {
                     .catch(() => msg.channel.send("❌ DMs des Users sind deaktiviert."));
             }
         }
-    });
+    };
     client.on("interactionCreate", async (interaction) => {
         if (!interaction.isButton()) return;   
         const entry = [...OPEN_HELP.entries()].find(([uId, tId]) => tId === interaction.channelId);
