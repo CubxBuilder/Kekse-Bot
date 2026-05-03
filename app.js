@@ -1952,31 +1952,39 @@ export async function initTickets(client) {
   }
   async function closeTicket(channel, moderator) {
   try {
-    const stored = await getTickData("tickets") || { tickets: { tickets: {} } };
+    // 1. Daten laden
+    const stored = await getTickData("tickets") || { tickets: {} };
+    
+    // WICHTIG: Wir schauen direkt in stored.tickets (da liegen laut deinem JSON "0056" etc.)
     const allEntries = stored.tickets || {};
-    const ticket = Object.values(allTickets).find(t => t.channelId === channel.id);
+
+    // 2. Suchen (wir filtern lastId und ticket_panel aus der Suche raus)
+    const ticket = Object.values(allEntries).find(
+      t => typeof t === 'object' && t.channelId === channel.id
+    );
+
     if (!ticket) {
+      // Fehlersuche, falls es immer noch nicht geht:
+      console.log("Gesuchte Channel-ID:", channel.id);
       return channel.send("❌ Kein aktives Ticket in der Datenbank gefunden.");
     }
+
+    // --- ARCHIVIERUNG ---
     await channel.setParent(ARCHIVE_CATEGORY_ID, { lockPermissions: true });
     await channel.permissionOverwrites.delete(ticket.userId).catch(() => {});
+
     await channel.send({ 
-      content: `✅ **Ticket archiviert.**\nErstellt von: ${ticket.username}\nID: ${ticket.idString}`, 
-      components: [] 
+      content: `✅ **Ticket archiviert.**\nErstellt von: ${ticket.username}\nID: ${ticket.idString}`
     });
-    if (typeof sendKekseLog === 'function') {
-      await sendKekseLog(
-        "Ticket Archiviert", 
-        moderator, 
-        `**Besitzer:** ${ticket.username}\n**Kanal:** ${channel.name}\n**ID:** ${ticket.idString}`
-      );
-    }
-    delete stored.tickets.tickets[ticket.idString];
+
+    // 3. Löschen aus der DB (Pfad angepasst!)
+    delete stored.tickets[ticket.idString];
+    
+    // 4. Speichern
     await setTickData("tickets", stored);
-    console.log(`✅ Ticket ${ticket.idString} erfolgreich archiviert und aus DB gelöscht.`);
+
   } catch (err) {
-    console.error("[TICKET] Kritischer Fehler beim Schließen:", err);
-    channel.send("❌ Ein Fehler ist beim Archivieren aufgetreten. Siehe Konsole.");
+    console.error("[TICKET] Fehler:", err);
   }
 }
   client.on("interactionCreate", async (int) => {
