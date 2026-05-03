@@ -60,12 +60,6 @@ export async function getTickData(key) {
 export async function setTickData(key, value) {
   await dbSet("tickets", "tickets", value);
 }
-export async function getDData(key) {
-  return await dbGet("tickets", "dm_tickets");
-}
-export async function setDData(key, value) {
-  await dbSet("tickets", "dm_tickets", value);
-}
 export async function getRData(key) {
   return await dbGet("reminders", key);
 }
@@ -878,134 +872,6 @@ function detectViolation(msg) {
   }
   return null;
 }
-const FORUM_CHANNEL_ID = "1474918563218198548";
-export async function initSupport(client) {
-    const savedData = await getDData("tickets") || {};
-    let OPEN_HELP = new Map(Object.entries(savedData));
-    const getAccountAge = (createdAt) => {
-        const diff = Date.now() - createdAt.getTime();
-        const years = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
-        return years === 0 ? "Weniger als ein Jahr" : `${years} Jahre`;
-    };
-    client.on("messageCreate", async (msg) => {
-    if (msg.author.bot) return;
-    if (msg.channel.type === ChannelType.DM) {
-        const stored = await getDData("dm_tickets") || { tickets: {}, last_ticket_id: 0 };
-        const tickets = stored.tickets || {};
-        let threadId = tickets[msg.author.id];
-        let thread = threadId ? await client.channels.fetch(threadId).catch(() => null) : null;
-        if (!thread) {
-            const forumChannel = await client.channels.fetch(FORUM_CHANNEL_ID).catch(() => null);
-            if (!forumChannel) return console.error("Forum Channel nicht gefunden!");
-            const lastId = (parseInt(stored.last_ticket_id) || 0) + 1;
-            const ticketIndex = String(lastId).padStart(4, "0");
-
-            thread = await forumChannel.threads.create({
-                name: `Ticket #${ticketIndex} - ${msg.author.username}`,
-                message: {
-                    content: `<@&${TEAM_ROLE_ID}> - Neues Ticket von ${msg.author}!`,
-                    embeds: [
-                        new EmbedBuilder()
-                            .setTitle("🎫 Neues Support-Ticket")
-                            .setColor("#ffffff")
-                            .setThumbnail(msg.author.displayAvatarURL())
-                            .addFields(
-                                { name: "User", value: `${msg.author.tag} (${msg.author.id})`, inline: true },
-                                { name: "Account erstellt", value: getAccountAge(msg.author.createdAt), inline: true },
-                                { name: "Erste Nachricht", value: msg.content || "*Anhang*" }
-                            )
-                            .setFooter({ text: "🎯 Nutze die Buttons unten zur Verwaltung" })
-                    ],
-                    components: [
-                        new ActionRowBuilder().addComponents(
-                            new ButtonBuilder().setCustomId("ticket_claim").setLabel("Claim Ticket").setStyle(ButtonStyle.Success).setEmoji("🙋‍♂️"),
-                            new ButtonBuilder().setCustomId("ticket_warn").setLabel("User warnen").setStyle(ButtonStyle.Secondary).setEmoji("⚠️"),
-                            new ButtonBuilder().setCustomId("ticket_delete").setLabel("Ticket Schließen").setStyle(ButtonStyle.Danger).setEmoji("🔒")
-                        )
-                    ]
-                }
-            });
-            stored.tickets[msg.author.id] = thread.id;
-            stored.last_ticket_id = lastId;
-            await setDData("dm_tickets", stored);
-            const userConfirm = new EmbedBuilder()
-                .setTitle("✅ Ticket erstellt!")
-                .setDescription(`Dein Support-Ticket wurde erfolgreich erstellt!\n\n💬 Schreibe hier weiter, um mit dem Team zu kommunizieren.`)
-                .setColor("#ffffff")
-                .setFooter({ text: `Ticket #${ticketIndex}` })
-                .setTimestamp();
-            await msg.author.send({ embeds: [userConfirm] }).catch(() => {});
-        } else {
-            const relayEmbed = new EmbedBuilder()
-                .setAuthor({ name: msg.author.username, iconURL: msg.author.displayAvatarURL() })
-                .setDescription(msg.content || "*Kein Textinhalt*")
-                .setColor("#ffffff")
-                .setTimestamp();
-            if (msg.attachments.size > 0) relayEmbed.setImage(msg.attachments.first().url);
-            await thread.send({ embeds: [relayEmbed] });
-        }
-    }
-});
-        if (msg.guild && msg.channel.isThread() && msg.channel.parentId === FORUM_CHANNEL_ID) {
-            const entry = [...OPEN_HELP.entries()].find(([uId, tId]) => tId === msg.channel.id);
-            if (!entry) return;
-            const userId = entry[0];
-            const targetUser = await client.users.fetch(userId).catch(() => null);
-            if (targetUser) {
-                const staffEmbed = new EmbedBuilder()
-                    .setAuthor({ name: "Kekse Clan Support", iconURL: client.user.displayAvatarURL() })
-                    .setTitle("💬 Antwort vom Support-Team")
-                    .setDescription(msg.content)
-                    .setColor("#ffffff")
-                    .setFooter({ text: "Antworte direkt auf diese DM, um mit uns zu schreiben." });
-                if (msg.attachments.size > 0) staffEmbed.setImage(msg.attachments.first().url);
-                await targetUser.send({ embeds: [staffEmbed] })
-                    .then(() => msg.react("✅"))
-                    .catch(() => msg.channel.send("❌ DMs des Users sind deaktiviert."));
-            }
-        }
-    };
-    client.on("interactionCreate", async (interaction) => {
-        if (!interaction.isButton()) return;   
-        const entry = [...OPEN_HELP.entries()].find(([uId, tId]) => tId === interaction.channelId);
-        if (!entry) return;
-        const userId = entry[0];
-        if (interaction.customId === "ticket_claim") {
-            await interaction.reply({ content: `🙋‍♂️ **${interaction.user.username}** hat dieses Ticket übernommen.` });
-        }
-        if (interaction.customId === "ticket_warn") {
-            const user = await client.users.fetch(userId).catch(() => null);
-            if (user) {
-                const warnEmbed = new EmbedBuilder()
-                    .setTitle("⚠️ Warnung vom Support-Team")
-                    .setDescription(`Du wurdest von ${interaction.user.username} verwarnt.\nBitte achte auf einen respektvollen Umgangston. Wir sind hier, um dir zu helfen, erwarten aber Höflichkeit.`)
-                    .setColor("#F78420");
-                await user.send({ embeds: [warnEmbed] }).catch(() => {});
-                await interaction.reply({ content: "⚠️ Warnung gesendet.", ephemeral: true });
-            }
-        }
-                if (interaction.customId === "ticket_delete") {
-            const user = await client.users.fetch(userId).catch(() => null);
-            if (user) {
-                await user.send("🔒 **Ticket geschlossen.** Deine Anfrage wurde archiviert. Schreibe eine neue Nachricht, um ein neues Ticket zu eröffnen.").catch(() => {});
-            }
-            await interaction.reply("🔒 Ticket wird archiviert und geschlossen...");
-            OPEN_HELP.delete(userId);
-            await setDData("tickets", Object.fromEntries(OPEN_HELP));
-            setTimeout(async () => {
-                try {
-                    await interaction.channel.edit({
-                        name: `[Closed] ${interaction.channel.name}`,
-                        archived: true,
-                        locked: true
-                    });
-                } catch (err) {
-                    console.error("Fehler beim Archivieren des Forum-Threads:", err);
-                }
-            }, 3000);
-        }
-
-    });
 function initReminder(client) {
   const sendKekseLog = async (action, user, details) => {
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
@@ -2128,7 +1994,6 @@ client.once("ready", async () => {
     initTicketCategory(client);
     await initPoll(client);
     initVoiceChannels(client);
-    await initSupport(client);
     await initReminder(client);
     await initModeration(client);
     await initVerification(client);
