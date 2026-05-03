@@ -1006,7 +1006,6 @@ export async function initSupport(client) {
         }
 
     });
-}
 function initReminder(client) {
   const sendKekseLog = async (action, user, details) => {
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
