@@ -5,8 +5,6 @@ import mongoose from 'mongoose';
 import express from "express"
 import { fileURLToPath } from "url"
 import fs from "fs"
-import { Server } from "socket.io";
-import http from "http";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express()
@@ -31,73 +29,6 @@ const client = new Client({
         Partials.Channel, Partials.Message, Partials.Reaction, 
     Partials.GuildMember, Partials.User, Partials.ThreadMember
     ]
-});
-const server = http.createServer(app);
-const io = new Server(server);
-const originalLog = console.log;
-const originalError = console.error;
-console.log = (...args) => {
-    const msg = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(" ");
-    originalLog(...args);
-    io.emit("bot_log", { type: "info", msg });
-};
-console.error = (...args) => {
-    const msg = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(" ");
-    originalError(...args);
-    io.emit("bot_log", { type: "error", msg });
-};
-app.get("/dashboard", (req, res) => {
-    res.send(`
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Dashboard</title>
-    <script src="/socket.io/socket.io.js"></script>
-    <style>
-        body { background: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px; }
-        .card { background: #1a1a1a; padding: 15px; border-radius: 8px; border-left: 4px solid #ffffff; }
-        .card h3 { margin: 0 0 10px 0; font-size: 14px; text-transform: uppercase; color: #888; }
-        .card p { margin: 0; font-size: 24px; font-weight: bold; }
-        #log-container { background: #000; border-radius: 8px; padding: 15px; height: 500px; overflow-y: auto; font-family: 'Consolas', monospace; font-size: 13px; border: 1px solid #333; }
-        .log-entry { margin-bottom: 4px; border-bottom: 1px solid #111; padding-bottom: 2px; }
-        .log-time { color: #555; margin-right: 10px; }
-        .log-info { color: #00ff00; }
-        .log-error { color: #ff4444; }
-    </style>
-</head>
-<body>
-    <h1>Bot Management Console</h1>
-    <div class="grid">
-        <div class="card"><h3>Uptime</h3><p id="uptime">0s</p></div>
-        <div class="card"><h3>Ping</h3><p id="ping">0ms</p></div>
-        <div class="card"><h3>Guilds</h3><p id="guilds">0</p></div>
-        <div class="card"><h3>Members</h3><p id="members">0</p></div>
-    </div>
-    <div id="log-container"></div>
-    <script>
-        const socket = io();
-        const logContainer = document.getElementById('log-container');
-        socket.on('bot_log', (data) => {
-            const entry = document.createElement('div');
-            entry.className = 'log-entry';
-            const time = new Date().toLocaleTimeString();
-            entry.innerHTML = '<span class="log-time">['+time+']</span><span class="log-'+data.type+'">'+data.msg+'</span>';
-            logContainer.appendChild(entry);
-            logContainer.scrollTop = logContainer.scrollHeight;
-        });
-        setInterval(() => {
-            fetch('/api/stats_internal').then(r => r.json()).then(data => {
-                document.getElementById('uptime').innerText = data.uptime;
-                document.getElementById('ping').innerText = data.ping + 'ms';
-                document.getElementById('guilds').innerText = data.guilds;
-                document.getElementById('members').innerText = data.members;
-            });
-        }, 2000);
-    </script>
-</body>
-</html>
-    `);
 });
 async function startStorages() {
     console.log("✅ Alle MongoDB-Storages sind einsatzbereit!");
