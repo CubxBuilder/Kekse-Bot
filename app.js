@@ -1908,81 +1908,80 @@ export async function initTickets(client) {
     await channel.send({ embeds: [embed], components: [row] });
   }
   async function createTicket(category, user, guild) {
-    if (await isBlocked(user.id)) return;
-    const stored = await getTickData("tickets") || { tickets: { lastId: 0 } };
-    let currentLastId = parseInt(stored.tickets?.lastId) || 0;
-    const id = currentLastId + 1;
-    const idString = id.toString().padStart(4, "0");
-    stored.tickets.lastId = id;
+  if (await isBlocked(user.id)) return;
+  const stored = await getTickData("tickets") || { tickets: { lastId: 0 } };
+  if (!stored.tickets) stored.tickets = { lastId: 0 };
+  const currentLastId = parseInt(stored.tickets.lastId) || 0;
+  const id = currentLastId + 1;
+  const idString = id.toString().padStart(4, "0");
+  stored.tickets.lastId = id;
+  const parentId = CATEGORY_CHANNELS[category];
+  try {
+    const channel = await guild.channels.create({
+      name: `${CATEGORY_EMOJI[category]}-${category}-${idString}`,
+      type: ChannelType.GuildText,
+      parent: parentId,
+      permissionOverwrites: [
+        { id: guild.roles.everyone, deny: [PermissionFlagsBits.ViewChannel] },
+        { id: TEAM_ROLE_ID, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] },
+        { id: user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }
+      ]
+    });
+    stored.tickets[idString] = {
+      idString,
+      category,
+      username: user.username,
+      userId: user.id,
+      channelId: channel.id,
+      created: Date.now()
+    };
     await setTickData("tickets", stored);
-    const parentId = CATEGORY_CHANNELS[category];
-    try {
-      const channel = await guild.channels.create({
-        name: `${CATEGORY_EMOJI[category]}-${category}-${idString}`,
-        type: ChannelType.GuildText,
-        parent: parentId,
-        permissionOverwrites: [
-          { id: guild.roles.everyone, deny: [PermissionFlagsBits.ViewChannel] },
-          { id: TEAM_ROLE_ID, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] },
-          { id: user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }
-        ]
-      });
-      ticketData.tickets[idString] = {
-        idString, category, username: user.username, userId: user.id, channelId: channel.id, created: Date.now()
-      };
-      await saveTickets();
-      const ticketEmbed = new EmbedBuilder()
-        .setTitle(`Ticket ${idString}`)
-        .setDescription(`**User:** ${user.username}\n**Kategorie:** ${category}\n**Erstellt:** <t:${Math.floor(Date.now() / 1000)}:F>`)
-        .setColor(0xffffff);
-      const closeRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('t_close').setLabel('Ticket schließen').setEmoji('🔒').setStyle(ButtonStyle.Danger)
-      );
-      const greetings = {
-        Support: `Hey <@${user.id}>, bitte beschreibe dein Anliegen genauer.`,
-        Abholung: `Hey <@${user.id}>, wir benötigen deinen **Minecraft Namen** und die **Info zum Gewinn**.`,
-        Bewerbung: `Hey <@${user.id}>, ein Teammitglied wird sich in Kürze melden.`
-      };
-      await channel.send({ content: `<@&${TEAM_ROLE_ID}>`, embeds: [ticketEmbed], components: [closeRow], flags: MessageFlags.SuppressNotifications });
-      await channel.send({ content: greetings[category] });
-      await sendKekseLog("Ticket Erstellt", user, `**Kategorie:** ${category}\n**Kanal:** ${channel}\n**ID:** \`${idString}\``);
-    } catch (err) {
-      console.error("[TICKET] Fehler:", err);
-    }
+    const ticketEmbed = new EmbedBuilder()
+      .setTitle(`Ticket ${idString}`)
+      .setDescription(`**User:** ${user.username}\n**Kategorie:** ${category}\n**Erstellt:** <t:${Math.floor(Date.now() / 1000)}:F>`)
+      .setColor(0xffffff);
+    const closeRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('t_close')
+        .setLabel('Ticket schließen')
+        .setEmoji('🔒')
+        .setStyle(ButtonStyle.Danger)
+    );
+    const greetings = {
+      Support: `Hey <@${user.id}>, bitte beschreibe dein Anliegen genauer.`,
+      Abholung: `Hey <@${user.id}>, wir benötigen deinen **Minecraft Namen** und die **Info zum Gewinn**.`,
+      Bewerbung: `Hey <@${user.id}>, ein Teammitglied wird sich in Kürze melden.`
+    };
+    await channel.send({ 
+      content: `<@&${TEAM_ROLE_ID}>`, 
+      embeds: [ticketEmbed], 
+      components: [closeRow], 
+      flags: MessageFlags.SuppressNotifications 
+    });
+    await channel.send({ content: greetings[category] });
+    await sendKekseLog("Ticket Erstellt", user, `**Kategorie:** ${category}\n**Kanal:** ${channel}\n**ID:** \`${idString}\``);
+  } catch (err) {
+    console.error("[TICKET] Fehler:", err);
   }
+}
   async function closeTicket(channel, moderator) {
   try {
-    // 1. Daten laden
     const stored = await getTickData("tickets") || { tickets: {} };
-    
-    // WICHTIG: Wir schauen direkt in stored.tickets (da liegen laut deinem JSON "0056" etc.)
     const allEntries = stored.tickets || {};
-
-    // 2. Suchen (wir filtern lastId und ticket_panel aus der Suche raus)
     const ticket = Object.values(allEntries).find(
       t => typeof t === 'object' && t.channelId === channel.id
     );
-
     if (!ticket) {
-      // Fehlersuche, falls es immer noch nicht geht:
       console.log("Gesuchte Channel-ID:", channel.id);
       return channel.send("❌ Kein aktives Ticket in der Datenbank gefunden.");
     }
-
-    // --- ARCHIVIERUNG ---
     await channel.setParent(ARCHIVE_CATEGORY_ID, { lockPermissions: true });
     await channel.permissionOverwrites.delete(ticket.userId).catch(() => {});
-
     await channel.send({ 
       content: `✅ **Ticket archiviert.**\nErstellt von: ${ticket.username}\nID: ${ticket.idString}`
     });
-
-    // 3. Löschen aus der DB (Pfad angepasst!)
     delete stored.tickets[ticket.idString];
-    
-    // 4. Speichern
     await setTickData("tickets", stored);
-
   } catch (err) {
     console.error("[TICKET] Fehler:", err);
   }
