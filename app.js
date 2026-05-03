@@ -1910,7 +1910,7 @@ export async function initTickets(client) {
   async function createTicket(category, user, guild) {
     if (await isBlocked(user.id)) return;
     const stored = await getTickData("tickets") || { tickets: { lastId: 0 } };
-    let currentLastId = parseInt(stored.tickets?.lastId || 0);
+    let currentLastId = parseInt(stored.tickets?.lastId) || 0;
     const id = currentLastId + 1;
     const idString = id.toString().padStart(4, "0");
     stored.tickets.lastId = id;
