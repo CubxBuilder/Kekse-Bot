@@ -888,61 +888,74 @@ export async function initSupport(client) {
         return years === 0 ? "Weniger als ein Jahr" : `${years} Jahre`;
     };
     client.on("messageCreate", async (msg) => {
-        if (msg.author.bot) return;
-        if (msg.channel.type === ChannelType.DM) {
-            let threadId = OPEN_HELP.get(msg.author.id);
-            let thread = threadId ? await client.channels.fetch(threadId).catch(() => null) : null;
-            if (!thread) {
-                const forumChannel = await client.channels.fetch(FORUM_CHANNEL_ID).catch(() => null);
-                if (!forumChannel) return console.error("Forum Channel nicht gefunden!");
+    if (msg.author.bot) return;
 
-                const lastId = (await getDData("last_ticket_id") || 0) + 1;
-                const ticketIndex = String(lastId).padStart(4, "0");
-                thread = await forumChannel.threads.create({
-                    name: `Ticket #${ticketIndex} - ${msg.author.username}`,
-                    message: {
-                        content: `<@&${TEAM_ROLE_ID}> - Neues Ticket von ${msg.author}!`,
-                        embeds: [
-                            new EmbedBuilder()
-                                .setTitle("🎫 Neues Support-Ticket")
-                                .setColor("#ffffff")
-                                .setThumbnail(msg.author.displayAvatarURL())
-                                .addFields(
-                                    { name: "User", value: `${msg.author.tag} (${msg.author.id})`, inline: true },
-                                    { name: "Account erstellt", value: getAccountAge(msg.author.createdAt), inline: true },
-                                    { name: "Erste Nachricht", value: msg.content || "*Anhang*" }
-                                )
-                                .setFooter({ text: "🎯 Nutze die Buttons unten zur Verwaltung" })
-                        ],
-                        components: [
-                            new ActionRowBuilder().addComponents(
-                                new ButtonBuilder().setCustomId("ticket_claim").setLabel("Claim Ticket").setStyle(ButtonStyle.Success).setEmoji("🙋‍♂️"),
-                                new ButtonBuilder().setCustomId("ticket_warn").setLabel("User warnen").setStyle(ButtonStyle.Secondary).setEmoji("⚠️"),
-                                new ButtonBuilder().setCustomId("ticket_delete").setLabel("Ticket Schließen").setStyle(ButtonStyle.Danger).setEmoji("🔒")
+    if (msg.channel.type === ChannelType.DM) {
+        // 1. Daten JEDES MAL frisch aus der DB laden (sonst vergisst der Bot offene Tickets nach Neustart)
+        const stored = await getDData("dm_tickets") || { tickets: {}, last_ticket_id: 0 };
+        const tickets = stored.tickets || {};
+        
+        let threadId = tickets[msg.author.id];
+        let thread = threadId ? await client.channels.fetch(threadId).catch(() => null) : null;
+
+        if (!thread) {
+            const forumChannel = await client.channels.fetch(FORUM_CHANNEL_ID).catch(() => null);
+            if (!forumChannel) return console.error("Forum Channel nicht gefunden!");
+
+            // 2. ID korrekt hochzählen
+            const lastId = (parseInt(stored.last_ticket_id) || 0) + 1;
+            const ticketIndex = String(lastId).padStart(4, "0");
+
+            thread = await forumChannel.threads.create({
+                name: `Ticket #${ticketIndex} - ${msg.author.username}`,
+                message: {
+                    content: `<@&${TEAM_ROLE_ID}> - Neues Ticket von ${msg.author}!`,
+                    embeds: [
+                        new EmbedBuilder()
+                            .setTitle("🎫 Neues Support-Ticket")
+                            .setColor("#ffffff")
+                            .setThumbnail(msg.author.displayAvatarURL())
+                            .addFields(
+                                { name: "User", value: `${msg.author.tag} (${msg.author.id})`, inline: true },
+                                { name: "Account erstellt", value: getAccountAge(msg.author.createdAt), inline: true },
+                                { name: "Erste Nachricht", value: msg.content || "*Anhang*" }
                             )
-                        ]
-                    }
-                });
-                OPEN_HELP.set(msg.author.id, thread.id);
-                await setDData("tickets", Object.fromEntries(OPEN_HELP));
-                await setDData("last_ticket_id", lastId);
-                const userConfirm = new EmbedBuilder()
-                    .setTitle("✅ Ticket erstellt!")
-                    .setDescription(`Dein Support-Ticket wurde erfolgreich erstellt!\n\n💬 Schreibe hier weiter, um mit dem Team zu kommunizieren.\n⏱️ Ein Teammitglied wird sich bald bei dir melden!`)
-                    .setColor("#ffffff")
-                    .setFooter({ text: `Ticket #${ticketIndex}` })
-                    .setTimestamp();
-                await msg.author.send({ embeds: [userConfirm] }).catch(() => {});
-            } else {
-                const relayEmbed = new EmbedBuilder()
-                    .setAuthor({ name: msg.author.username, iconURL: msg.author.displayAvatarURL() })
-                    .setDescription(msg.content || "*Kein Textinhalt*")
-                    .setColor("#ffffff")
-                    .setTimestamp();
-                if (msg.attachments.size > 0) relayEmbed.setImage(msg.attachments.first().url);
-                await thread.send({ embeds: [relayEmbed] });
-            }
+                            .setFooter({ text: "🎯 Nutze die Buttons unten zur Verwaltung" })
+                    ],
+                    components: [
+                        new ActionRowBuilder().addComponents(
+                            new ButtonBuilder().setCustomId("ticket_claim").setLabel("Claim Ticket").setStyle(ButtonStyle.Success).setEmoji("🙋‍♂️"),
+                            new ButtonBuilder().setCustomId("ticket_warn").setLabel("User warnen").setStyle(ButtonStyle.Secondary).setEmoji("⚠️"),
+                            new ButtonBuilder().setCustomId("ticket_delete").setLabel("Ticket Schließen").setStyle(ButtonStyle.Danger).setEmoji("🔒")
+                        )
+                    ]
+                }
+            });
+
+            // 3. Daten im Objekt speichern und zurück an MongoDB senden
+            stored.tickets[msg.author.id] = thread.id;
+            stored.last_ticket_id = lastId;
+            
+            await setDData("dm_tickets", stored); // Wichtig: Alles in einem Rutsch speichern
+
+            const userConfirm = new EmbedBuilder()
+                .setTitle("✅ Ticket erstellt!")
+                .setDescription(`Dein Support-Ticket wurde erfolgreich erstellt!\n\n💬 Schreibe hier weiter, um mit dem Team zu kommunizieren.`)
+                .setColor("#ffffff")
+                .setFooter({ text: `Ticket #${ticketIndex}` })
+                .setTimestamp();
+            await msg.author.send({ embeds: [userConfirm] }).catch(() => {});
+        } else {
+            const relayEmbed = new EmbedBuilder()
+                .setAuthor({ name: msg.author.username, iconURL: msg.author.displayAvatarURL() })
+                .setDescription(msg.content || "*Kein Textinhalt*")
+                .setColor("#ffffff")
+                .setTimestamp();
+            if (msg.attachments.size > 0) relayEmbed.setImage(msg.attachments.first().url);
+            await thread.send({ embeds: [relayEmbed] });
         }
+    }
+});
         if (msg.guild && msg.channel.isThread() && msg.channel.parentId === FORUM_CHANNEL_ID) {
             const entry = [...OPEN_HELP.entries()].find(([uId, tId]) => tId === msg.channel.id);
             if (!entry) return;
