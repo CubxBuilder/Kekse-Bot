@@ -1969,7 +1969,7 @@ export async function initTickets(client) {
         await int.deferUpdate();
         return closeTicket(int.channel, int.user);
       }
-      if (isBlocked(int.user.id)) return int.reply({ content: "❌ Du bist gesperrt.", flags: MessageFlags.Ephemeral }); 
+      if (await isBlocked(int.user.id) && !int.member.roles.cache.has(TEAM_ROLE_ID)) return int.reply({ content: "❌ Du bist gesperrt.", flags: MessageFlags.Ephemeral }); 
       const alreadyOpen = Object.values(ticketData.tickets).some(t => t.userId === int.user.id && t.category === action);
       if (alreadyOpen) return int.reply({ content: "❌ Du hast bereits ein Ticket in dieser Kategorie.", flags: MessageFlags.Ephemeral });
       await int.deferReply({ flags: MessageFlags.Ephemeral });
