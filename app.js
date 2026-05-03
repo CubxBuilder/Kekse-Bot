@@ -896,7 +896,7 @@ export async function initSupport(client) {
                 const forumChannel = await client.channels.fetch(FORUM_CHANNEL_ID).catch(() => null);
                 if (!forumChannel) return console.error("Forum Channel nicht gefunden!");
 
-                const lastId = (getDData("last_ticket_id") || 0) + 1;
+                const lastId = (await getDData("last_ticket_id") || 0) + 1;
                 const ticketIndex = String(lastId).padStart(4, "0");
                 thread = await forumChannel.threads.create({
                     name: `Ticket #${ticketIndex} - ${msg.author.username}`,
