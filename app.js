@@ -2073,7 +2073,7 @@ export async function initStatistics(client) {
       const args = message.content.slice(1).split(/\s+/);
       const cmd = args.shift().toLowerCase();
       if (cmd === "stats") {
-        if (!message.author.id = '1151971830983311441') return;
+        if (message.author.id !== '1151971830983311441') return;
           if (!message.channel.type === 1) {
               await message.channel.send(getStatsMessage());
           } else {
