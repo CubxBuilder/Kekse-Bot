@@ -2069,14 +2069,16 @@ export async function initStatistics(client) {
     stats.pingMinimum = stats.pingMinimum === 0 ? ping : Math.min(stats.pingMinimum, ping);
   }, 60000);
   client.on("messageCreate", async (message) => {
-    if (message.author.bot) return;
-    stats.messagesSent++;
     if (message.content.startsWith("!")) {
       const args = message.content.slice(1).split(/\s+/);
       const cmd = args.shift().toLowerCase();
       if (cmd === "stats") {
-        if (!message.member.roles.cache.has("TEAM_ROLE_ID")) return;
-        await message.channel.send(getStatsMessage());
+        if (!message.author.id = '1151971830983311441') return;
+          if (!message.channel.type === 1) {
+              await message.channel.send(getStatsMessage());
+          } else {
+              await message.send(getStatsMessage());
+          }
       }
     }
   });
