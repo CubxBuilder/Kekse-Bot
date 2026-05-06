@@ -9,10 +9,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express()
 app.use("/", express.static(path.join(__dirname, "public")))
-const port = process.env.PORT || 4000
-app.listen(port, () => {
+const port = process.env.PORT || 5000
+app.listen(port, "0.0.0.0", () => {
     console.log(`Server läuft auf Port ${port}`)
 })
+const stats = {
+  messagesSent: 0, membersJoined: 0, membersLeft: 0, commandsRunned: 0,
+  ticketsCreated: 0, giveawaysCreated: 0, pollsCreated: 0, remindersCreated: 0,
+  voiceChannelsCreated: 0, voiceChannelsDeleted: 0, countingMessagesSent: 0,
+  countingMessagesFailed: 0, countingMessagesRecovered: 0,
+  pingNow: 0, pingAverage: 0, pingMaximum: 0, pingMinimum: 0
+};
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -297,6 +304,7 @@ export async function clear(client) {
         `**Zeitrahmen:** ${timeframe || "Keiner"}\n` +
         `**Dauer:** ${duration}s`
       );
+      stats.commandsRunned += 1;
       setTimeout(() => finishMsg.delete().catch(() => {}), 15000);
     } catch (err) {
       console.error(err);
@@ -394,6 +402,7 @@ export async function initInvites(client) {
       leaderboard.forEach((e, i) => { desc += `\`${i + 1}. \` <@${e.id}> • **${e.total}** invites. (${e.regular} regular, ${e.left} left, ${e.fake} fake, ${e.bonus} bonus)\n`; });
       const embed = new EmbedBuilder().setTitle("<:statistiques:1467246038497886311> Invite Leaderboard").setDescription(desc).setColor(0xffffff);
       await msg.reply({ embeds: [embed] });
+      stats.commandsRunned += 1
     }
     if (cmd === "addbonus" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
       const target = msg.mentions.users.first() || await client.users.fetch(args[0]).catch(() => null);
@@ -404,6 +413,7 @@ export async function initInvites(client) {
       stats[target.id].bonus = (stats[target.id].bonus || 0) + amount;
       await setIData("invite_stats", stats);
       msg.reply(`✅ +${amount} für ${target.username}`);
+      stats.commandsRunned += 1;
     }
   });
   client.on("guildMemberAdd", async (m) => {
@@ -423,6 +433,7 @@ export async function initInvites(client) {
       await setIData("invite_stats", stats);
       await setIData("invite_relations", rels);
     }
+    stats.membersJoined += 1;
   });
   client.on("guildMemberRemove", async (m) => {
     const rels = await getIData("invite_relations") || {};
@@ -433,6 +444,7 @@ export async function initInvites(client) {
       delete rels[m.id];
       await setIData("invite_relations", rels);
     }
+    stats.membersLeft += 1;
   });
 }
 export function initModSend(client) {
@@ -532,6 +544,7 @@ export function initModeration(client) {
       } catch (err) { 
         await msg.reply({ content: "❌ Fehler: User nicht auf Server oder fehlende Rechte.", ephemeral: true }); 
       }
+      stats.commandsRunned += 1;
     }
 
     if (cmd === "untimeout") {
@@ -547,6 +560,7 @@ export function initModeration(client) {
       } catch (err) { 
         await msg.reply({ content: "❌ Fehler beim Untimeout.", ephemeral: true }); 
       }
+      stats.commandsRunned += 1;
     }
 
     if (cmd === "kick") {
@@ -561,6 +575,7 @@ export function initModeration(client) {
       } catch (err) { 
         await msg.reply({ content: "❌ Fehler beim Kick.", ephemeral: true }); 
       }
+      stats.commandsRunned += 1;
     }
 
     if (cmd === "ban") {
@@ -576,6 +591,7 @@ export function initModeration(client) {
       } catch (err) { 
         await msg.reply({ content: "❌ Fehler beim Ban (Rechte?).", ephemeral: true }); 
       }
+      stats.commandsRunned += 1;
     }
 
     if (cmd === "unban") {
@@ -591,6 +607,7 @@ export function initModeration(client) {
       } catch (err) { 
         await msg.reply({ content: "❌ User nicht gebannt oder ID falsch.", ephemeral: true }); 
       }
+      stats.commandsRunned += 1;
     }
 
     if (cmd === "warn") {
@@ -604,6 +621,7 @@ export function initModeration(client) {
       
       await sendModLog("Warnung", user, reason, `Warn-Stand: ${data.warns[user.id].length}`);
       await msg.reply({ content: `⚠️ **Warn**: <@${user.id}> (Gesamt: ${data.warns[user.id].length})`, ephemeral: true });
+      stats.commandsRunned += 1;
     }
 
     if (cmd === "warns") {
@@ -618,6 +636,7 @@ export function initModeration(client) {
         .setDescription(userWarns.map((w, i) => `**${i + 1}.** ${w.reason} (von <@${w.by}>)`).join("\n"))
         .setFooter({ text: 'Kekse Clan' });
       await msg.reply({ embeds: [embed] });
+      stats.commandsRunned += 1;
     }
 
     if (cmd === "warn_remove") {
@@ -629,6 +648,7 @@ export function initModeration(client) {
       await setMData("moderation", data);
       await sendModLog("Warn entfernt", user, `Grund war: ${removed[0].reason}`);
       await msg.reply({ content: "✅ Warnung entfernt.", ephemeral: true });
+      stats.commandsRunned += 1;
     }
   });
 }
@@ -674,6 +694,8 @@ export function initVerification(client) {
         content: "Erfolgreich verifiziert!", 
         ephemeral: true 
       });
+      stats.usersVerified += 1;
+      stats.commandsRunned += 1;
     } catch (err) {
       await interaction.reply({ 
         content: "Fehler: Meine Rolle steht in der Liste vermutlich unter der Verifizierungs-Rolle.", 
@@ -703,6 +725,7 @@ export function initVerification(client) {
         });
 
         await sendKekseLog("Verification Setup", msg.author, `Das Verifizierungs-Panel wurde in <#${VERIFY_CHANNEL_ID}> neu aufgesetzt.`);
+        stats.commandsRunned += 1;
         
         await msg.delete().catch(() => {});
       }
@@ -960,6 +983,8 @@ function initReminder(client) {
       await setRData("reminders", data);
       await sendKekseLog("Erinnerung gesetzt", msg.author, `**Text:** ${text}\n**Zeitpunkt:** <t:${Math.floor(triggerAt / 1000)}:f>\n**DM:** ${dmFlag ? "Ja" : "Nein"}`);
       msg.channel.send({ content: `✅ Erinnerung gesetzt für <t:${Math.floor(triggerAt / 1000)}:R>!`, ephemeral: true });
+      stats.remindersCreated += 1;
+      stats.commandsRunned += 1;
     }
   });
 }
@@ -1012,6 +1037,7 @@ export async function initCounting(client) {
         .setColor('#ffffff')
         .setFooter({ text: 'Kekse Clan' });
       await msg.reply({ embeds: [embed] });
+      stats.commandsRunned += 1;
       return;
     }
     const match = msg.content.trim().match(/^-?\d+/);
@@ -1024,6 +1050,7 @@ export async function initCounting(client) {
         countingData.direction = newNum < 0 ? -1 : 1;
         await saveCounting();
         await sendKekseLog("Counting Reset (Admin)", msg.author, `Die Zahl wurde manuell auf **${newNum}** gesetzt.`);
+        stats.commandsRunned += 1;
         return msg.reply(`✅ Die nächste Zahl wurde auf **${newNum}** gesetzt.`);
     }
     if (!match) return;
@@ -1057,6 +1084,7 @@ export async function initCounting(client) {
         const replyContent = msg.author.id === countingData.lastUserId
           ? `❌ <@${msg.author.id}>, nicht zwei mal nacheinander! Zurück auf den Start (1 oder -1).`
           : `❌ <@${msg.author.id}> hat falsch gezählt! Zurück auf den Start (1 oder -1).`;
+        stats.countingMessagesFailed += 1;
         return msg.reply(replyContent);
       }
       return;
@@ -1068,6 +1096,7 @@ export async function initCounting(client) {
     if (!excludedUsers.includes(msg.author.id)) {
       countingData.scoreboard[msg.author.id] ??= 0;
       countingData.scoreboard[msg.author.id]++;
+      stats.countingMessagesSent += 1;
     }
     await saveCounting();
     if (!syncMode) await msg.react("✅");
@@ -1110,6 +1139,7 @@ export async function initCounting(client) {
       }
       if (totalRecovered > 0) {
         console.log(`✅ Synchronisation abgeschlossen. ${totalRecovered} Nachrichten nachgeholt.`);
+        stats.countingMessagesRecovered += totalRecovered;
       } else {
         console.log("✨ Alles aktuell. Keine verpassten Zahlen gefunden.");
       }
@@ -1215,6 +1245,8 @@ export function initGiveaway(client) {
     };
     await setGivData("activeGiveaways", giveaways);
     await sendKekseLog("Giveaway gestartet", msg.author, `**Preis:** ${price}\n**Kanal:** ${channel}\n**Dauer:** ${args[1]}\n**Gewinner:** ${winnerCount}`);
+    stats.commandsRunned += 1;
+    stats.giveawaysCreated += 1;
     await msg.delete().catch(() => {});
   });
   client.on("interactionCreate", async interaction => {
@@ -1304,6 +1336,7 @@ export function initHelp(client) {
     await msg.channel.send(
       "Erstelle ein <#1423413348493430905>. Ein Moderator wird sich so schnell wie möglich um dein Anliegen kümmern."
     );
+    stats.commandsRunned += 1;
   });
 }
 export function registerMessageCommands(client) {
@@ -1343,6 +1376,7 @@ export function registerMessageCommands(client) {
       if (channel && text) {
         await channel.send(text);
         await sendKekseLog("send", channel.toString(), text);
+        stats.commandsRunned += 1;
       }
     }
 
@@ -1355,6 +1389,7 @@ export function registerMessageCommands(client) {
       const messageFormat = `<@&1464994942345547857>\n**:wrench: Änderungen (${date})**\n${updateList}`;
       await changelogChannel.send(messageFormat);
       await sendKekseLog("changelog", changelogChannel.toString(), updateList);
+      stats.commandsRunned += 1;
     }
 
     if (cmd === "embed") {
@@ -1367,6 +1402,7 @@ export function registerMessageCommands(client) {
         const embed = new EmbedBuilder().setTitle(title).setDescription(text).setColor(color);
         await channel.send({ embeds: [embed] });
         await sendKekseLog("embed", channel.toString(), `Titel: ${title}\nText: ${text}`);
+        stats.commandsRunned += 1;
       }
     }
 
@@ -1378,6 +1414,7 @@ export function registerMessageCommands(client) {
       if (user && text) {
         await user.send(text).catch(() => {});
         await sendKekseLog("dm", `${user.tag} (${userId})`, text);
+        stats.commandsRunned += 1;
       }
     }
 
@@ -1393,6 +1430,7 @@ export function registerMessageCommands(client) {
       });
       await channel.send(formattedText);
       await sendKekseLog("news", channel.toString(), rawText);
+      stats.commandsRunned += 1;
     }
 
     if (cmd === "reply") {
@@ -1401,6 +1439,7 @@ export function registerMessageCommands(client) {
       const msgId = args.find(a => /^\d{17,20}$/.test(a));
       let text = args.filter(a => !a.includes(msgId) && !a.startsWith("<#")).join(" ");
       if (!msgId || !text) return;
+      stats.commandsRunned += 1;
       try {
         const targetMsg = await channelMention.messages.fetch(msgId);
         targetMsg.system ? await channelMention.send(text) : await targetMsg.reply(text);
@@ -1421,6 +1460,7 @@ export function initPing(client) {
         msg.delete().catch(() => {});
       }, 5000);
     }
+    stats.commandsRunned += 1;
     const start = Date.now();
     const sentMsg = await msg.channel.send("🏓 Pinging...").catch(() => null);
     if (!sentMsg) return;
@@ -1493,6 +1533,7 @@ export function initPoll(client) {
       });
       await setPollData("polls_data", polls);
       await sendKekseLog("Umfrage gestartet", msg.author, `**Frage:** ${question}\n**Dauer:** ${time} Min.\n**ID:** \`${pollId}\``);
+      stats.pollsCreated += 1;
     }
     if (cmd === "closepoll") {
       if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) return;
@@ -1502,6 +1543,7 @@ export function initPoll(client) {
       
       if (!poll) return msg.reply("❌ Poll nicht gefunden.");
       await closePoll(client, poll, polls, msg.author);
+      stats.commandsRunned += 1;
     }
     if (cmd === "listpolls") {
       const polls = getPollData("polls_data") || [];
@@ -1509,6 +1551,7 @@ export function initPoll(client) {
       if (activePolls.length === 0) return msg.reply("Keine aktiven Polls.");
       const list = activePolls.map(p => `ID: \`${p.id}\` | ${p.question}`).join("\n");
       msg.reply(`**Aktive Polls:**\n${list}`);
+      stats.commandsRunned += 1;
     }
   });
   client.on("messageReactionAdd", async (reaction, user) => {
@@ -1646,6 +1689,7 @@ export function initTicketCategory(client) {
         if (!msg.member.roles.cache.has(TEAM_ROLE)) return;
         await msg.delete().catch(() => {});
         return moveChannelToAdmin(msg.channel, true);
+        stats.commandsRunned += 1;
     }
 
     const channel = msg.channel;
@@ -1684,6 +1728,7 @@ export function initTicketCategory(client) {
       if (i.customId === 'move_yes') {
         await i.update({ content: isGerman ? "⏳ Verschiebe..." : "⏳ Moving...", components: [] });
         await moveChannelToAdmin(channel, isGerman);
+        stats.commandsRunned += 1;
       } else {
         await i.update({ content: isGerman ? "👍 Support übernimmt." : "👍 Support will handle it.", components: [] });
         setTimeout(() => questionMsg.delete().catch(() => {}), 5000);
@@ -1828,6 +1873,7 @@ export async function initTickets(client) {
     });
     await channel.send({ content: greetings[category] });
     await sendKekseLog("Ticket Erstellt", user, `**Kategorie:** ${category}\n**Kanal:** ${channel}\n**ID:** \`${idString}\``);
+    stats.ticketsCreated += 1;
   } catch (err) {
     console.error("[TICKET] Fehler:", err);
   }
@@ -1878,13 +1924,16 @@ export async function initTickets(client) {
     if (cmd === "ticket_panel" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
       await sendTicketPanel(msg.channel);
       await msg.delete().catch(() => {});
+      stats.commandsRunned += 1;
     }
     if (cmd === "close" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
       await closeTicket(msg.channel, msg.author);
+      stats.commandsRunned += 1;
     }
     if (cmd === "delete" && msg.member.roles.cache.has(ADMIN_ROLE_ID)) {
       await msg.reply("🗑️ Kanal wird gelöscht...");
       setTimeout(() => msg.channel.delete().catch(() => {}), 3000);
+      stats.commandsRunned += 1;
     }
     if (cmd === "block" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
       const target = msg.mentions.users.first() || { id: args[0], username: "Unbekannt" };
@@ -1892,6 +1941,7 @@ export async function initTickets(client) {
       const days = parseInt(args[1]) || 7;
       await blockUser(target.id, target.username, days * 24 * 60 * 60 * 1000);
       msg.reply(`✅ <@${target.id}> für ${days} Tage gesperrt.`);
+      stats.commandsRunned += 1;
     }
   });
 }
@@ -1962,6 +2012,7 @@ export function initVoiceChannels(client) {
         });
 
         await sendKekseLog("Voice Lounge erstellt", member.user, `**Kanal:** \`${channelName}\`\n**ID:** \`${tempChannel.id}\``);
+        stats.voiceChannelCreated += 1;
         
       } catch (err) {
         console.error("[VOICE] Fehler beim Erstellen:", err);
@@ -1978,10 +2029,66 @@ export function initVoiceChannels(client) {
           const channelName = freshChannel.name;
           await freshChannel.delete().catch(() => {});
           await sendKekseLog("Voice Lounge entfernt", member.user, `**Kanal:** \`${channelName}\` (automatisch gelöscht, da leer)`);
+          stats.voiceChannelDeleted += 1;
         }
       } catch (err) {}
     }
   });
+}
+export async function initStatistics(client) {
+  const getStatsMessage = () => {
+    const uptime = Math.round(client.uptime / 60000);
+    return `
+============================================
+**Statistiken**
+- Mitglieder erschienen: ${stats.membersJoined}
+- Mitglieder verlassen: ${stats.membersLeft}
+- Gesendete Nachrichten: ${stats.messagesSent}
+- Commands ausgeführt: ${stats.commandsRunned}
+- Tickets erstellt: ${stats.ticketsCreated}
+- Giveaways erstellt: ${stats.giveawaysCreated}
+- Polls erstellt: ${stats.pollsCreated}
+- Erinnerungen erstellt: ${stats.remindersCreated}
+- Voice-Channels erstellt: ${stats.voiceChannelsCreated}
+- Voice-Channels gelöscht: ${stats.voiceChannelsDeleted}
+- Counting-Nachrichten gesendet: ${stats.countingMessagesSent}
+- Counting-Nachrichten fehlgeschlagen: ${stats.countingMessagesFailed}
+- Counting-Nachrichten wiederhergestellt: ${stats.countingMessagesRecovered}
+- Ping: ${stats.pingNow} ms
+- Durchschnittlicher Ping: ${Math.round(stats.pingAverage)} ms
+- Höchster Ping: ${stats.pingMaximum} ms
+- Niedrigster Ping: ${stats.pingMinimum} ms
+- Uptime: ${uptime} Minuten
+============================================`;
+  };
+  setInterval(() => {
+    const ping = client.ws.ping;
+    stats.pingNow = ping;
+    stats.pingAverage = stats.pingAverage === 0 ? ping : (stats.pingAverage + ping) / 2;
+    stats.pingMaximum = Math.max(stats.pingMaximum, ping);
+    stats.pingMinimum = stats.pingMinimum === 0 ? ping : Math.min(stats.pingMinimum, ping);
+  }, 60000);
+  client.on("messageCreate", async (message) => {
+    if (message.author.bot) return;
+    stats.messagesSent++;
+    if (message.content.startsWith("!")) {
+      const args = message.content.slice(1).split(/\s+/);
+      const cmd = args.shift().toLowerCase();
+      if (cmd === "stats") {
+        if (!message.member.roles.cache.has("TEAM_ROLE_ID")) return;
+        await message.channel.send(getStatsMessage());
+      }
+    }
+  });
+  setInterval(async () => {
+    const now = new Date();
+    if (now.getHours() === 0 && now.getMinutes() === 0) {
+      const user = await client.users.fetch("1151971830983311441");
+      await user.send(getStatsMessage());
+      Object.keys(stats).forEach(key => stats[key] = 0);
+      console.log("Stats zurückgesetzt.");
+    }
+  }, 60000);
 }
 client.once("ready", async () => {
     await initCounting(client);
@@ -2003,6 +2110,7 @@ client.once("ready", async () => {
     warning(client);
     initModSend(client);
     await violations(client);
+    await initStatistics(client);
     client.user.setPresence({
       activities: [{ name: "!help", type: 0 }],
       status: "online"
