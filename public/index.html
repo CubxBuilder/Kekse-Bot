@@ -1,62 +1,374 @@
 <!DOCTYPE html>
 <html lang="de">
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kekse Bot</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <title>Dashboard</title>
     <link rel="icon" href="icon.png" type="image/png">
     <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body {
-            height: 100%;
-            font-family: 'Inter', sans-serif;
-            background: #0a0c10;
-            background-image: url('verify.png'); background-size: cover; background-position: center;
-    background-attachment: fixed;
-            color: #e2e8f0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .center {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background: rgba(20, 22, 26, 0.65);
-            padding: 30px;
-            border-radius: 15px;
-            gap: 20px;
-            text-align: center;
-        }
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            background: #5865f2;
-            color: #fff;
-            font-weight: 700;
-            font-size: 15px;
-            padding: 13px 28px;
-            border-radius: 12px;
-            text-decoration: none;
-            transition: background 0.2s, transform 0.1s;
-        }
-        .btn:hover { background: #4752c4; transform: translateY(-1px); }
+      :root {
+        --bg-base:        #0a0a0a;
+        --bg-surface:     #111111;
+        --bg-elevated:    #1a1a1a;
+        --bg-input:       #0d0d0d;
+        --border:         #2a2a2a;
+        --accent:         #ffffff;
+        --text-primary:   #ffffff;
+        --text-secondary: #888888;
+        --text-muted:     #444444;
+        --dot-online:     #4ade80;
+        --radius:         12px;
+        --radius-sm:      6px;
+        --gap:            16px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        color: var(--text-primary);
+        font-family: 'Segoe UI', system-ui, sans-serif;
+      }
+
+      body {
+        background-color: var(--bg-base);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 24px;
+        height: 56px;
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+
+      header h1 {
+        font-size: 1.2rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+      }
+
+      header h1:last-child {
+        color: var(--text-secondary);
+        font-weight: 400;
+      }
+
+      header .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--dot-online);
+        box-shadow: 0 0 6px var(--dot-online);
+      }
+
+      main {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: var(--gap);
+        padding: var(--gap);
+        overflow: hidden;
+      }
+
+      article {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: var(--gap);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        overflow: hidden;
+      }
+
+      article h3 {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-secondary);
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 8px;
+        flex-shrink: 0;
+      }
+
+      article ol {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        flex: 1;
+        overflow: hidden;
+      }
+
+      article ol li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.82rem;
+        color: var(--text-secondary);
+        padding: 6px 10px;
+        background: var(--bg-elevated);
+        border-radius: var(--radius-sm);
+      }
+
+      article ol li p {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.85rem;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        flex: 1;
+      }
+
+      #server-stats, #bot-stats {
+        flex-direction: column;
+      }
+
+      #ping-statistic {
+        flex-direction: column;
+      }
+
+      #ping-statistic canvas {
+        flex: 1;
+        width: 100%;
+        border-radius: var(--radius-sm);
+      }
+
+      #logs {
+        flex-direction: column;
+      }
+
+      #console {
+        flex: 1;
+        background: var(--bg-input);
+        border-radius: var(--radius-sm);
+        padding: 10px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+        overflow-y: auto;
+        border: 1px solid var(--border);
+      }
+
+      #functions-used {
+        grid-column: 1 / -1;
+        flex-direction: column;
+      }
+
+      #functions-used .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      footer {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 0 24px;
+        height: 44px;
+        background: var(--bg-surface);
+        border-top: 1px solid var(--border);
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        flex-shrink: 0;
+      }
+
+      footer span {
+        color: var(--text-secondary);
+        font-weight: 600;
+      }
+
+      footer .sep {
+        color: var(--border);
+      }
     </style>
-</head>
-<body>
-    <div class="center">
-        <img src="icon.png" alt="Kekse Bot" style="width:90px;height:90px;image-rendering:pixelated;border-radius:20px;">
-        <div>
-            <div style="font-size:26px;font-weight:900;letter-spacing:-0.5px;">Kekse Bot</div>
-            <div style="font-size:15px;color:#6b7280;margin-top:6px;">Ich mag Kekse :3</div>
+  </head>
+  <body>
+    <header>
+      <div class="dot"></div>
+      <h1>Kekse Bot</h1>
+      <h1>Dashboard</h1>
+    </header>
+    <main>
+      <article id="server-stats">
+        <h3>Server Stats</h3>
+        <div class="stats-grid">
+          <ol>
+            <li>Server <p id="server">—</p></li>
+            <li>Server ID <p id="server-id">—</p></li>
+            <li>Owner <p id="owner">—</p></li>
+          </ol>
+          <ol>
+            <li>Users <p id="users">—</p></li>
+            <li>Bots <p id="bots">—</p></li>
+            <li>Channels <p id="channels">—</p></li>
+          </ol>
         </div>
-        <a href="https://discord.gg/pU9zyJRFGn" target="_blank" class="btn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
-            Keksegang beitreten
-        </a>
-        <div style="font-size:10px;color:#1f2937;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;">© 2026 Kekse Bot</div>
-    </div>
-</body>
+      </article>
+
+      <article id="bot-stats">
+        <h3>Bot Stats</h3>
+        <div class="stats-grid">
+          <ol>
+            <li>Current Ping <p id="ping">—</p></li>
+            <li>Average Ping <p id="avg-ping">—</p></li>
+            <li>Highest Ping <p id="max-ping">—</p></li>
+          </ol>
+          <ol>
+            <li>Uptime <p id="uptime">—</p></li>
+            <li>Version <p id="version">—</p></li>
+            <li>Last Restart <p id="last-restart">—</p></li>
+          </ol>
+        </div>
+      </article>
+
+      <article id="ping-statistic">
+        <h3>Ping Statistic</h3>
+        <canvas id="ping-chart"></canvas>
+      </article>
+
+      <article id="logs">
+        <h3>Console</h3>
+        <div id="console"></div>
+      </article>
+
+      <article id="functions-used">
+        <h3>Functions Used</h3>
+        <div class="stats-grid">
+          <ol>
+            <li>Tickets created <p id="tickets-created">—</p></li>
+            <li>Polls created <p id="polls-created">—</p></li>
+            <li>Giveaways created <p id="giveaways-created">—</p></li>
+          </ol>
+          <ol>
+            <li>Commands used <p id="commands-used">—</p></li>
+            <li>Scams prevented <p id="scams-prevented">—</p></li>
+            <li>Messages deleted <p id="messages-deleted">—</p></li>
+          </ol>
+        </div>
+      </article>
+    </main>
+    <footer>
+      <span>Kekse Bot Dashboard</span>
+      <span class="sep">|</span>
+      Version: <span id="Version">—</span>
+      <span class="sep">|</span>
+      Uptime: <span id="uptime-foot">—</span>
+      <span class="sep">|</span>
+      Ping: <span id="ping-foot">—</span>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+    <script>
+      const $ = id => document.getElementById(id);
+      const set = (id, v) => { const el = $(id); if (el) el.textContent = v ?? "—"; };
+
+      const fmtUptime = s => {
+        const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600),
+              m = Math.floor((s % 3600) / 60);
+        return d ? `${d}d ${h}h ${m}m` : h ? `${h}h ${m}m` : `${m}m`;
+      };
+      const fmtDate = iso => new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
+      const fmtPing = ms => ms < 0 ? "—" : `${ms}ms`;
+
+      const pingHistory = { labels: [], data: [] };
+      const MAX_POINTS = 20;
+
+      const chart = new Chart($("ping-chart"), {
+        type: "line",
+        data: {
+          labels: pingHistory.labels,
+          datasets: [{
+            data: pingHistory.data,
+            borderColor: "#ffffff",
+            backgroundColor: "rgba(255,255,255,0.05)",
+            borderWidth: 1.5,
+            pointRadius: 2,
+            fill: true,
+            tension: 0.4,
+          }]
+        },
+        options: {
+          animation: false,
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { display: false },
+            y: {
+              ticks: { color: "#888", font: { size: 10 }, callback: v => v + "ms" },
+              grid: { color: "#1a1a1a" },
+              border: { display: false },
+            }
+          }
+        }
+      });
+
+      async function fetchStats() {
+        try {
+          const res = await fetch("/api/stats");
+          if (!res.ok) return;
+          const d = await res.json();
+
+          if (d.guild) {
+            set("server", d.guild.name);
+            set("server-id", d.guild.id);
+            set("owner", d.guild.owner);
+            set("channels", d.guild.channels);
+          }
+          set("users", d.users);
+          set("bots", d.bots);
+
+          set("ping", fmtPing(d.ping.now));
+          set("avg-ping", fmtPing(d.ping.avg));
+          set("max-ping", fmtPing(d.ping.max));
+          set("uptime", fmtUptime(d.uptime));
+          set("version", d.version);
+          set("last-restart", fmtDate(d.lastRestart));
+
+          set("tickets-created", d.stats.tickets);
+          set("polls-created", d.stats.polls);
+          set("giveaways-created", d.stats.giveaways);
+          set("commands-used", d.stats.commands);
+          set("scams-prevented", d.stats.scams);
+          set("messages-deleted", d.stats.deleted);
+
+          set("Version", d.version);
+          set("uptime-foot", fmtUptime(d.uptime));
+          set("ping-foot", fmtPing(d.ping.now));
+
+          if (d.logs?.length) {
+            const con = $("console");
+            con.innerHTML = d.logs.map(l => {
+              const t = new Date(l.t).toLocaleTimeString("de-DE");
+              return `<div><span style="color:var(--text-muted)">[${t}]</span> ${l.m}</div>`;
+            }).join("");
+            con.scrollTop = con.scrollHeight;
+          }
+
+          const now = new Date().toLocaleTimeString("de-DE", { timeStyle: "short" });
+          pingHistory.labels.push(now);
+          pingHistory.data.push(d.ping.now < 0 ? null : d.ping.now);
+          if (pingHistory.labels.length > MAX_POINTS) {
+            pingHistory.labels.shift();
+            pingHistory.data.shift();
+          }
+          chart.update();
+        } catch {}
+      }
+
+      fetchStats();
+      setInterval(fetchStats, 5000);
+    </script>
+  </body>
 </html>
