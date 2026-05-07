@@ -139,10 +139,17 @@
       #ping-statistic {
         flex-direction: column;
       }
-
-      #ping-statistic canvas {
+      #ping-statistic .chart-wrap {
         flex: 1;
+        position: relative;
+        min-height: 0;
         width: 100%;
+      }
+      #ping-statistic canvas {
+        position: absolute;
+        inset: 0;
+        width: 100% !important;
+        height: 100% !important;
         border-radius: var(--radius-sm);
       }
 
@@ -235,7 +242,9 @@
 
       <article id="ping-statistic">
         <h3>Ping Statistic</h3>
-        <canvas id="ping-chart"></canvas>
+        <div class="chart-wrap">
+          <canvas id="ping-chart"></canvas>
+        </div>
       </article>
 
       <article id="logs">
