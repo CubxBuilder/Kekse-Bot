@@ -2092,6 +2092,46 @@ export async function initStatistics(client) {
     }
   }, 60000);
 }
+export async function initDashboard(app, client, stats) {
+  const logs = [];
+  const _log = console.log.bind(console);
+  console.log = (...a) => {
+    _log(...a);
+    logs.push({ t: Date.now(), m: a.join(" ") });
+    if (logs.length > 100) logs.shift();
+  };
+
+  app.get("/api/stats", async (req, res) => {
+    try {
+      const guild = client.guilds.cache.first();
+      let members = guild?.members.cache;
+      const bots = [...members.values()].filter(m => m.user.bot).length;
+      const users = members.size - bots;
+      let ownerTag = "—";
+      try { const o = await client.users.fetch(guild.ownerId); ownerTag = o.tag || o.username; } catch {}
+
+      res.json({
+        guild: guild ? { name: guild.name, id: guild.id, owner: ownerTag, channels: guild.channels.cache.size } : null,
+        users, bots,
+        ping: { now: client.ws.ping, avg: stats.pingAverage ?? 0, max: stats.pingMaximum ?? 0 },
+        uptime: process.uptime(),
+        version: process.env.npm_package_version || "1.0.0",
+        lastRestart: new Date(Date.now() - process.uptime() * 1000).toISOString(),
+        stats: {
+          tickets: stats.ticketsCreated ?? 0,
+          polls: stats.pollsCreated ?? 0,
+          giveaways: stats.giveawaysCreated ?? 0,
+          commands: stats.commandsRunned ?? 0,
+          scams: stats.scamsPrevented ?? 0,
+          deleted: stats.messagesDeleted ?? 0,
+        },
+        logs: logs.slice(-50),
+      });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+}
 client.once("ready", async () => {
     await initCounting(client);
     registerMessageCommands(client);
@@ -2113,6 +2153,7 @@ client.once("ready", async () => {
     initModSend(client);
     await violations(client);
     await initStatistics(client);
+    await initDashboard(app, client, stats)
     client.user.setPresence({
       activities: [{ name: "!help", type: 0 }],
       status: "online"
