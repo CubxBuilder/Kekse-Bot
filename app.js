@@ -2088,7 +2088,8 @@ export async function initStatistics(client) {
       const user = await client.users.fetch("1151971830983311441");
       await user.send(getStatsMessage());
       Object.keys(stats).forEach(key => stats[key] = 0);
-      console.log("Stats zurückgesetzt.");
+      condole.log(`Tägliche Statistik gesendet`);
+      console.log(`Stats zurückgesetzt`);
     }
   }, 60000);
 }
