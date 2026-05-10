@@ -2083,8 +2083,12 @@ export async function initStatistics(client) {
     }
   });
   setInterval(async () => {
-    const now = new Date();
-    if (now.getHours() === 0 && now.getMinutes() === 0) {
+    const now = new Date(
+    new Date().toLocaleString("en-US", {
+        timeZone: "Europe/Berlin"
+        })
+      )
+      if (now.getHours() === 6 && now.getMinutes() === 0){
       const user = await client.users.fetch("1151971830983311441");
       await user.send(getStatsMessage());
       Object.keys(stats).forEach(key => stats[key] = 0);
