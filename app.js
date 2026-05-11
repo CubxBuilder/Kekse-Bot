@@ -2038,6 +2038,7 @@ export function initVoiceChannels(client) {
 export async function initStatistics(client) {
   const getStatsMessage = () => {
     const uptime = Math.round(client.uptime / 60000);
+
     return `
 ============================================
 **Statistiken**
@@ -2061,39 +2062,76 @@ export async function initStatistics(client) {
 - Uptime: ${uptime} Minuten
 ============================================`;
   };
+
   setInterval(() => {
     const ping = client.ws.ping;
+
     stats.pingNow = ping;
-    stats.pingAverage = stats.pingAverage === 0 ? ping : (stats.pingAverage + ping) / 2;
+    stats.pingAverage =
+      stats.pingAverage === 0
+        ? ping
+        : (stats.pingAverage + ping) / 2;
+
     stats.pingMaximum = Math.max(stats.pingMaximum, ping);
-    stats.pingMinimum = stats.pingMinimum === 0 ? ping : Math.min(stats.pingMinimum, ping);
+
+    stats.pingMinimum =
+      stats.pingMinimum === 0
+        ? ping
+        : Math.min(stats.pingMinimum, ping);
   }, 60000);
+
   client.on("messageCreate", async (message) => {
-    if (message.content.startsWith("!")) {
-      const args = message.content.slice(1).split(/\s+/);
-      const cmd = args.shift().toLowerCase();
-      if (cmd === "stats") {
-        if (message.author.id !== '1151971830983311441') return;
-          if (!message.channel.type === 1) {
-              await message.channel.send(getStatsMessage());
-          } else {
-              await message.send(getStatsMessage());
-          }
+    if (message.author.bot) return;
+    if (!message.content.startsWith("!")) return;
+
+    const args = message.content.slice(1).trim().split(/\s+/);
+    const cmd = args.shift()?.toLowerCase();
+
+    if (cmd === "stats") {
+      if (message.author.id !== "1151971830983311441") return;
+
+      if (message.channel.type !== 1) {
+        await message.channel.send(getStatsMessage());
+      } else {
+        await message.author.send(getStatsMessage());
       }
     }
   });
+
+  let lastSentDay = null;
+
   setInterval(async () => {
-    const now = new Date(
-    new Date().toLocaleString("en-US", {
-        timeZone: "Europe/Berlin"
+    try {
+      const now = new Date(
+        new Date().toLocaleString("en-US", {
+          timeZone: "Europe/Berlin"
         })
-      )
-      if (now.getHours() === 6 && now.getMinutes() === 0){
-      const user = await client.users.fetch("1151971830983311441");
-      await user.send(getStatsMessage());
-      Object.keys(stats).forEach(key => stats[key] = 0);
-      condole.log(`Tägliche Statistik gesendet`);
-      console.log(`Stats zurückgesetzt`);
+      );
+
+      const currentDay = now.toDateString();
+
+      if (
+        now.getHours() === 6 &&
+        now.getMinutes() === 0 &&
+        lastSentDay !== currentDay
+      ) {
+        lastSentDay = currentDay;
+
+        const user = await client.users.fetch("1151971830983311441");
+
+        await user.send(getStatsMessage());
+
+        Object.keys(stats).forEach((key) => {
+          if (typeof stats[key] === "number") {
+            stats[key] = 0;
+          }
+        });
+
+        console.log("Tägliche Statistik gesendet");
+        console.log("Stats zurückgesetzt");
+      }
+    } catch (err) {
+      console.error("Fehler beim Senden der Statistik:", err);
     }
   }, 60000);
 }
