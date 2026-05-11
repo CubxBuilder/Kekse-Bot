@@ -88,8 +88,14 @@ export async function setGivData(key, value) {
 export async function getPollData(key) {
   return await dbGet("polls", key);
 }
-export async function setPollData(key, value) {
+export async function setPollData(key) {
   await dbSet("polls", key, value);
+}
+export async function setScammData(key, value) {
+    return await dbGet("scamm", key);
+}
+export async function getScammData(key) {
+    await dbSet("scamm", key, value);
 }
 export function initAuditLogs(client) {
     const sendLog = async (title, user, text, color = "#ffffff", thumb = null, channelId = null) => {
