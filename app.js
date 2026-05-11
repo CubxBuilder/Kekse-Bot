@@ -2135,6 +2135,376 @@ export async function initStatistics(client) {
     }
   }, 60000);
 }
+export async function initScamProtection(client, mongo) {
+    const {
+        EmbedBuilder,
+        ActionRowBuilder,
+        ButtonBuilder,
+        ButtonStyle,
+        AttachmentBuilder,
+        Events
+    } = await import("discord.js")
+
+    const sharp = (await import("sharp")).default
+    const { imageHash } = await import("image-hash")
+    const fs = await import("fs")
+    const https = await import("https")
+
+    const CONFIG = {
+        logChannelId: "LOG_CHANNEL_ID",
+        modRoleId: "MOD_ROLE_ID",
+        scoreThreshold: 70,
+        tempTimeout: 10 * 60 * 1000,
+        confirmTimeout: 7 * 24 * 60 * 60 * 1000,
+        rejectRemoveTimeout: true
+    }
+
+    const collection = mongo.collection("scam_events")
+    const hashCollection = mongo.collection("hash_index")
+
+    const suspiciousWords = [
+        "wallet",
+        "claim",
+        "airdrop",
+        "crypto",
+        "nft",
+        "verify",
+        "free"
+    ]
+
+    function hamming(a, b) {
+        let dist = 0
+
+        for (let i = 0; i < Math.min(a.length, b.length); i++) {
+            if (a[i] !== b[i]) dist++
+        }
+
+        return dist
+    }
+
+    function download(url, path) {
+        return new Promise(resolve => {
+            https.get(url, res => {
+                const file = fs.createWriteStream(path)
+
+                res.pipe(file)
+
+                file.on("finish", () => {
+                    file.close(resolve)
+                })
+            })
+        })
+    }
+
+    function createHash(path) {
+        return new Promise(resolve => {
+            imageHash(path, 16, true, (err, hash) => {
+                resolve(hash || "")
+            })
+        })
+    }
+
+    async function fakeOCR() {
+        return []
+    }
+
+    async function fakeQR() {
+        return {
+            detected: false,
+            data: null
+        }
+    }
+
+    async function sanitizeImage(input, output) {
+        await sharp(input)
+            .blur(1)
+            .resize(800)
+            .png()
+            .toFile(output)
+    }
+
+    client.on(Events.MessageCreate, async message => {
+        try {
+            if (!message.guild) return
+            if (message.author.bot) return
+
+            const images = [...message.attachments.values()]
+                .filter(a => a.contentType?.startsWith("image/"))
+
+            if (images.length !== 3) return
+
+            const processedImages = []
+
+            for (const img of images) {
+                const temp = `tmp_${Date.now()}_${Math.random()}.png`
+                const safe = `safe_${Date.now()}_${Math.random()}.png`
+
+                await download(img.url, temp)
+
+                const hash = await createHash(temp)
+                const ocr = await fakeOCR(temp)
+                const qr = await fakeQR(temp)
+
+                await sanitizeImage(temp, safe)
+
+                processedImages.push({
+                    temp,
+                    safe,
+                    hash,
+                    ocr,
+                    qr
+                })
+            }
+
+            let score = 20
+
+            score += 20
+
+            const allOCR = processedImages.flatMap(i => i.ocr)
+
+            if (allOCR.some(t =>
+                suspiciousWords.some(w =>
+                    t.toLowerCase().includes(w)
+                )
+            )) {
+                score += 40
+            }
+
+            if (processedImages.some(i => i.qr.detected)) {
+                score += 30
+            }
+
+            const existingHashes = await hashCollection.find({}).toArray()
+
+            for (const known of existingHashes) {
+                for (const img of processedImages) {
+                    const dist = hamming(known.hash, img.hash)
+
+                    if (dist <= 5) {
+                        score += 50
+                    }
+                }
+            }
+
+            if (score < CONFIG.scoreThreshold) {
+                for (const img of processedImages) {
+                    await fs.promises.unlink(img.temp).catch(() => {})
+                    await fs.promises.unlink(img.safe).catch(() => {})
+                }
+
+                return
+            }
+
+            await message.delete().catch(() => {})
+
+            const member = await message.guild.members.fetch(message.author.id).catch(() => null)
+
+            if (member) {
+                await member.timeout(
+                    CONFIG.tempTimeout,
+                    "Automatische Scam Erkennung"
+                ).catch(() => {})
+            }
+
+            const doc = {
+                guildId: message.guild.id,
+                userId: message.author.id,
+                messageId: message.id,
+                score,
+                status: "pending",
+                createdAt: new Date(),
+                images: processedImages.map(i => ({
+                    hash: i.hash,
+                    ocr: i.ocr,
+                    qr: i.qr
+                }))
+            }
+
+            const inserted = await collection.insertOne(doc)
+
+            const logChannel = client.channels.cache.get(CONFIG.logChannelId)
+
+            if (!logChannel) return
+
+            const files = []
+
+            for (const img of processedImages) {
+                files.push(
+                    new AttachmentBuilder(img.safe)
+                )
+            }
+
+            const row = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`scam_confirm_${inserted.insertedId}`)
+                        .setLabel("Bestätigen")
+                        .setStyle(ButtonStyle.Danger),
+
+                    new ButtonBuilder()
+                        .setCustomId(`scam_reject_${inserted.insertedId}`)
+                        .setLabel("Ablehnen")
+                        .setStyle(ButtonStyle.Success)
+                )
+
+            const embed = new EmbedBuilder()
+                .setColor("#ff0000")
+                .setTitle("Scam Verdacht")
+                .setDescription(
+                    `User: <@${message.author.id}>\n` +
+                    `Score: ${score}\n` +
+                    `3 PNG Muster erkannt`
+                )
+                .setFooter({
+                    text: "Automatische Scam Analyse"
+                })
+                .setTimestamp()
+
+            await logChannel.send({
+                content: `<@&${CONFIG.modRoleId}>`,
+                embeds: [embed],
+                files,
+                components: [row]
+            })
+
+            for (const img of processedImages) {
+                await fs.promises.unlink(img.temp).catch(() => {})
+                await fs.promises.unlink(img.safe).catch(() => {})
+            }
+
+        } catch (err) {
+            console.error(err)
+        }
+    })
+
+    client.on(Events.InteractionCreate, async interaction => {
+        try {
+            if (!interaction.isButton()) return
+
+            if (
+                !interaction.customId.startsWith("scam_confirm_") &&
+                !interaction.customId.startsWith("scam_reject_")
+            ) return
+
+            const isConfirm = interaction.customId.startsWith("scam_confirm_")
+
+            const id = interaction.customId
+                .split("_")
+                .slice(2)
+                .join("_")
+
+            const entry = await collection.findOne({
+                _id: id
+            })
+
+            if (!entry) {
+                return interaction.reply({
+                    content: "Eintrag nicht gefunden.",
+                    ephemeral: true
+                })
+            }
+
+            const guild = interaction.guild
+
+            const member = await guild.members
+                .fetch(entry.userId)
+                .catch(() => null)
+
+            if (isConfirm) {
+                if (member) {
+                    await member.timeout(
+                        CONFIG.confirmTimeout,
+                        "Bestätigter Scam"
+                    ).catch(() => {})
+                }
+
+                for (const img of entry.images) {
+                    await hashCollection.updateOne(
+                        {
+                            hash: img.hash
+                        },
+                        {
+                            $inc: {
+                                confirmedCount: 1
+                            },
+                            $set: {
+                                hash: img.hash,
+                                updatedAt: new Date()
+                            }
+                        },
+                        {
+                            upsert: true
+                        }
+                    )
+                }
+
+                await collection.updateOne(
+                    {
+                        _id: entry._id
+                    },
+                    {
+                        $set: {
+                            status: "confirmed",
+                            confirmedBy: interaction.user.id
+                        }
+                    }
+                )
+
+                await interaction.reply({
+                    content: "Scam bestätigt.",
+                    ephemeral: true
+                })
+
+            } else {
+                if (member && CONFIG.rejectRemoveTimeout) {
+                    await member.timeout(
+                        null,
+                        "False Positive"
+                    ).catch(() => {})
+                }
+
+                for (const img of entry.images) {
+                    await hashCollection.updateOne(
+                        {
+                            hash: img.hash
+                        },
+                        {
+                            $inc: {
+                                rejectedCount: 1
+                            },
+                            $set: {
+                                hash: img.hash,
+                                updatedAt: new Date()
+                            }
+                        },
+                        {
+                            upsert: true
+                        }
+                    )
+                }
+
+                await collection.updateOne(
+                    {
+                        _id: entry._id
+                    },
+                    {
+                        $set: {
+                            status: "rejected",
+                            rejectedBy: interaction.user.id
+                        }
+                    }
+                )
+
+                await interaction.reply({
+                    content: "False Positive markiert.",
+                    ephemeral: true
+                })
+            }
+        } catch (err) {
+            console.error(err)
+        }
+    })
+}
 export async function initDashboard(app, client, stats) {
   const logs = [];
   const _log = console.log.bind(console);
@@ -2196,7 +2566,8 @@ client.once("ready", async () => {
     initModSend(client);
     await violations(client);
     await initStatistics(client);
-    await initDashboard(app, client, stats)
+    await initDashboard(app, client, stats);
+    await initScamProtection(client, mongo);
     client.user.setPresence({
       activities: [{ name: "!help", type: 0 }],
       status: "online"
