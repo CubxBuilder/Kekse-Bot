@@ -2498,7 +2498,7 @@ client.once("ready", async () => {
     await violations(client);
     await initStatistics(client);
     await initDashboard(app, client, stats);
-    await initScamProtection(client, mongo);
+    await initScammProtection(client, mongo);
     client.user.setPresence({
       activities: [{ name: "!help", type: 0 }],
       status: "online"
