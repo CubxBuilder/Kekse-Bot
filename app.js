@@ -92,10 +92,10 @@ export async function setPollData(key) {
   await dbSet("polls", key, value);
 }
 export async function setScammData(key, value) {
-    return await dbGet("scamm", key);
+  return await dbGet("scamm", key);
 }
 export async function getScammData(key) {
-    await dbSet("scamm", key, value);
+  await dbSet("scamm", key, value);
 }
 export function initAuditLogs(client) {
     const sendLog = async (title, user, text, color = "#ffffff", thumb = null, channelId = null) => {
@@ -2141,14 +2141,14 @@ export async function initStatistics(client) {
     }
   }, 60000);
 }
-export async function initScamProtection(client, mongo) {
+export async function initScammProtection(client) {
     const {
+        Events,
         EmbedBuilder,
         ActionRowBuilder,
         ButtonBuilder,
         ButtonStyle,
-        AttachmentBuilder,
-        Events
+        AttachmentBuilder
     } = await import("discord.js")
 
     const sharp = (await import("sharp")).default
@@ -2157,35 +2157,11 @@ export async function initScamProtection(client, mongo) {
     const https = await import("https")
 
     const CONFIG = {
-        logChannelId: "LOG_CHANNEL_ID",
-        modRoleId: "MOD_ROLE_ID",
-        scoreThreshold: 70,
-        tempTimeout: 10 * 60 * 1000,
-        confirmTimeout: 7 * 24 * 60 * 60 * 1000,
-        rejectRemoveTimeout: true
-    }
-
-    const collection = mongo.collection("scam_events")
-    const hashCollection = mongo.collection("hash_index")
-
-    const suspiciousWords = [
-        "wallet",
-        "claim",
-        "airdrop",
-        "crypto",
-        "nft",
-        "verify",
-        "free"
-    ]
-
-    function hamming(a, b) {
-        let dist = 0
-
-        for (let i = 0; i < Math.min(a.length, b.length); i++) {
-            if (a[i] !== b[i]) dist++
-        }
-
-        return dist
+        logChannel: "LOG_CHANNEL_ID",
+        modRole: "MOD_ROLE_ID",
+        minScore: 70,
+        autoTimeout: 10 * 60 * 1000,
+        confirmTimeout: 7 * 24 * 60 * 60 * 1000
     }
 
     function download(url, path) {
@@ -2210,21 +2186,20 @@ export async function initScamProtection(client, mongo) {
         })
     }
 
-    async function fakeOCR() {
-        return []
-    }
+    function hamming(a, b) {
+        let dist = 0
 
-    async function fakeQR() {
-        return {
-            detected: false,
-            data: null
+        for (let i = 0; i < Math.min(a.length, b.length); i++) {
+            if (a[i] !== b[i]) dist++
         }
+
+        return dist
     }
 
     async function sanitizeImage(input, output) {
         await sharp(input)
-            .blur(1)
-            .resize(800)
+            .blur(2)
+            .resize(900)
             .png()
             .toFile(output)
     }
@@ -2239,63 +2214,48 @@ export async function initScamProtection(client, mongo) {
 
             if (images.length !== 3) return
 
-            const processedImages = []
-
-            for (const img of images) {
-                const temp = `tmp_${Date.now()}_${Math.random()}.png`
-                const safe = `safe_${Date.now()}_${Math.random()}.png`
-
-                await download(img.url, temp)
-
-                const hash = await createHash(temp)
-                const ocr = await fakeOCR(temp)
-                const qr = await fakeQR(temp)
-
-                await sanitizeImage(temp, safe)
-
-                processedImages.push({
-                    temp,
-                    safe,
-                    hash,
-                    ocr,
-                    qr
-                })
-            }
+            const knownHashes = await getScammData("hashes") || []
 
             let score = 20
+            const imageData = []
+            const safeFiles = []
 
-            score += 20
+            for (const img of images) {
+                const tempPath = `temp_${Date.now()}_${Math.random()}.png`
+                const safePath = `safe_${Date.now()}_${Math.random()}.png`
 
-            const allOCR = processedImages.flatMap(i => i.ocr)
+                await download(img.url, tempPath)
 
-            if (allOCR.some(t =>
-                suspiciousWords.some(w =>
-                    t.toLowerCase().includes(w)
-                )
-            )) {
-                score += 40
-            }
+                const hash = await createHash(tempPath)
 
-            if (processedImages.some(i => i.qr.detected)) {
-                score += 30
-            }
-
-            const existingHashes = await hashCollection.find({}).toArray()
-
-            for (const known of existingHashes) {
-                for (const img of processedImages) {
-                    const dist = hamming(known.hash, img.hash)
+                for (const known of knownHashes) {
+                    const dist = hamming(hash, known.hash)
 
                     if (dist <= 5) {
                         score += 50
                     }
                 }
+
+                await sanitizeImage(tempPath, safePath)
+
+                imageData.push({
+                    hash
+                })
+
+                safeFiles.push(
+                    new AttachmentBuilder(safePath)
+                )
+
+                await fs.promises.unlink(tempPath).catch(() => {})
             }
 
-            if (score < CONFIG.scoreThreshold) {
-                for (const img of processedImages) {
-                    await fs.promises.unlink(img.temp).catch(() => {})
-                    await fs.promises.unlink(img.safe).catch(() => {})
+            if (images.length === 3) {
+                score += 20
+            }
+
+            if (score < CONFIG.minScore) {
+                for (const file of safeFiles) {
+                    await fs.promises.unlink(file.attachment).catch(() => {})
                 }
 
                 return
@@ -2303,55 +2263,35 @@ export async function initScamProtection(client, mongo) {
 
             await message.delete().catch(() => {})
 
-            const member = await message.guild.members.fetch(message.author.id).catch(() => null)
+            const member = await message.guild.members
+                .fetch(message.author.id)
+                .catch(() => null)
 
             if (member) {
                 await member.timeout(
-                    CONFIG.tempTimeout,
+                    CONFIG.autoTimeout,
                     "Automatische Scam Erkennung"
                 ).catch(() => {})
             }
 
-            const doc = {
-                guildId: message.guild.id,
+            const scamData = await getScammData("events") || {}
+
+            const caseId = Date.now().toString()
+
+            scamData[caseId] = {
                 userId: message.author.id,
-                messageId: message.id,
+                guildId: message.guild.id,
                 score,
                 status: "pending",
-                createdAt: new Date(),
-                images: processedImages.map(i => ({
-                    hash: i.hash,
-                    ocr: i.ocr,
-                    qr: i.qr
-                }))
+                images: imageData,
+                createdAt: Date.now()
             }
 
-            const inserted = await collection.insertOne(doc)
+            await setScammData("events", scamData)
 
-            const logChannel = client.channels.cache.get(CONFIG.logChannelId)
+            const logChannel = client.channels.cache.get(CONFIG.logChannel)
 
             if (!logChannel) return
-
-            const files = []
-
-            for (const img of processedImages) {
-                files.push(
-                    new AttachmentBuilder(img.safe)
-                )
-            }
-
-            const row = new ActionRowBuilder()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(`scam_confirm_${inserted.insertedId}`)
-                        .setLabel("Bestätigen")
-                        .setStyle(ButtonStyle.Danger),
-
-                    new ButtonBuilder()
-                        .setCustomId(`scam_reject_${inserted.insertedId}`)
-                        .setLabel("Ablehnen")
-                        .setStyle(ButtonStyle.Success)
-                )
 
             const embed = new EmbedBuilder()
                 .setColor("#ff0000")
@@ -2362,24 +2302,32 @@ export async function initScamProtection(client, mongo) {
                     `3 PNG Muster erkannt`
                 )
                 .setFooter({
-                    text: "Automatische Scam Analyse"
+                    text: `Case ID: ${caseId}`
                 })
                 .setTimestamp()
 
+            const row = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`scam_confirm_${caseId}`)
+                        .setLabel("Bestätigen")
+                        .setStyle(ButtonStyle.Danger),
+
+                    new ButtonBuilder()
+                        .setCustomId(`scam_reject_${caseId}`)
+                        .setLabel("Ablehnen")
+                        .setStyle(ButtonStyle.Success)
+                )
+
             await logChannel.send({
-                content: `<@&${CONFIG.modRoleId}>`,
+                content: `<@&${CONFIG.modRole}>`,
                 embeds: [embed],
-                files,
+                files: safeFiles,
                 components: [row]
             })
 
-            for (const img of processedImages) {
-                await fs.promises.unlink(img.temp).catch(() => {})
-                await fs.promises.unlink(img.safe).catch(() => {})
-            }
-
         } catch (err) {
-            console.error(err)
+            console.error("[SCAM]", err)
         }
     })
 
@@ -2392,31 +2340,26 @@ export async function initScamProtection(client, mongo) {
                 !interaction.customId.startsWith("scam_reject_")
             ) return
 
-            const isConfirm = interaction.customId.startsWith("scam_confirm_")
+            const confirm = interaction.customId.startsWith("scam_confirm_")
 
-            const id = interaction.customId
-                .split("_")
-                .slice(2)
-                .join("_")
+            const caseId = interaction.customId.split("_")[2]
 
-            const entry = await collection.findOne({
-                _id: id
-            })
+            const events = await getScammData("events") || {}
 
-            if (!entry) {
+            const data = events[caseId]
+
+            if (!data) {
                 return interaction.reply({
-                    content: "Eintrag nicht gefunden.",
+                    content: "Fall nicht gefunden.",
                     ephemeral: true
                 })
             }
 
-            const guild = interaction.guild
-
-            const member = await guild.members
-                .fetch(entry.userId)
+            const member = await interaction.guild.members
+                .fetch(data.userId)
                 .catch(() => null)
 
-            if (isConfirm) {
+            if (confirm) {
                 if (member) {
                     await member.timeout(
                         CONFIG.confirmTimeout,
@@ -2424,37 +2367,29 @@ export async function initScamProtection(client, mongo) {
                     ).catch(() => {})
                 }
 
-                for (const img of entry.images) {
-                    await hashCollection.updateOne(
-                        {
-                            hash: img.hash
-                        },
-                        {
-                            $inc: {
-                                confirmedCount: 1
-                            },
-                            $set: {
-                                hash: img.hash,
-                                updatedAt: new Date()
-                            }
-                        },
-                        {
-                            upsert: true
-                        }
-                    )
+                let hashes = await getScammData("hashes") || []
+
+                for (const img of data.images) {
+                    const exists = hashes.find(h => h.hash === img.hash)
+
+                    if (!exists) {
+                        hashes.push({
+                            hash: img.hash,
+                            confirmed: 1,
+                            rejected: 0,
+                            createdAt: Date.now()
+                        })
+                    } else {
+                        exists.confirmed++
+                    }
                 }
 
-                await collection.updateOne(
-                    {
-                        _id: entry._id
-                    },
-                    {
-                        $set: {
-                            status: "confirmed",
-                            confirmedBy: interaction.user.id
-                        }
-                    }
-                )
+                await setScammData("hashes", hashes)
+
+                data.status = "confirmed"
+                data.confirmedBy = interaction.user.id
+
+                await setScammData("events", events)
 
                 await interaction.reply({
                     content: "Scam bestätigt.",
@@ -2462,44 +2397,33 @@ export async function initScamProtection(client, mongo) {
                 })
 
             } else {
-                if (member && CONFIG.rejectRemoveTimeout) {
-                    await member.timeout(
-                        null,
-                        "False Positive"
-                    ).catch(() => {})
+                if (member) {
+                    await member.timeout(null).catch(() => {})
                 }
 
-                for (const img of entry.images) {
-                    await hashCollection.updateOne(
-                        {
-                            hash: img.hash
-                        },
-                        {
-                            $inc: {
-                                rejectedCount: 1
-                            },
-                            $set: {
-                                hash: img.hash,
-                                updatedAt: new Date()
-                            }
-                        },
-                        {
-                            upsert: true
-                        }
-                    )
-                }
+                let hashes = await getScammData("hashes") || []
 
-                await collection.updateOne(
-                    {
-                        _id: entry._id
-                    },
-                    {
-                        $set: {
-                            status: "rejected",
-                            rejectedBy: interaction.user.id
-                        }
+                for (const img of data.images) {
+                    const exists = hashes.find(h => h.hash === img.hash)
+
+                    if (!exists) {
+                        hashes.push({
+                            hash: img.hash,
+                            confirmed: 0,
+                            rejected: 1,
+                            createdAt: Date.now()
+                        })
+                    } else {
+                        exists.rejected++
                     }
-                )
+                }
+
+                await setScammData("hashes", hashes)
+
+                data.status = "rejected"
+                data.rejectedBy = interaction.user.id
+
+                await setScammData("events", events)
 
                 await interaction.reply({
                     content: "False Positive markiert.",
@@ -2507,7 +2431,7 @@ export async function initScamProtection(client, mongo) {
                 })
             }
         } catch (err) {
-            console.error(err)
+            console.error("[SCAM BUTTON]", err)
         }
     })
 }
