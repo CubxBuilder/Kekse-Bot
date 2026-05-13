@@ -2445,6 +2445,7 @@ export async function initDashboard(app, client, stats) {
     logs.push({ t: Date.now(), m: a.join(" ") });
     if (logs.length > 100) logs.shift();
   };
+}
  export async function initTicketArchive(app) {
   const archives = [];
   app.get("/api/tickets", (req, res) => res.json(archives));
@@ -2462,13 +2463,10 @@ export async function initDashboard(app, client, stats) {
             content: msg.content || null,
             timestamp: msg.createdTimestamp,
             attachments: [...msg.attachments.values()].map(a => ({
-              name: a.name,
-              url: a.url,
-              type: a.contentType || "unknown",
+              name: a.name, url: a.url, type: a.contentType || "unknown",
             })),
             stickers: [...(msg.stickers?.values() ?? [])].map(s => ({
-              name: s.name,
-              url: s.url,
+              name: s.name, url: s.url,
             })),
             embeds: msg.embeds.map(e => ({ title: e.title, description: e.description })),
           });
@@ -2495,26 +2493,26 @@ export async function initDashboard(app, client, stats) {
   app.get("/api/stats", async (req, res) => {
     try {
       const guild = client.guilds.cache.first();
-      let members = guild?.members.cache;
+      const members = guild?.members.cache;
       const bots = [...members.values()].filter(m => m.user.bot).length;
       const users = members.size - bots;
       let ownerTag = "—";
       try { const o = await client.users.fetch(guild.ownerId); ownerTag = o.tag || o.username; } catch {}
-
-      res.json({
+        const uptimeSec = Math.floor((client.uptime ?? 0) / 1000);
+        res.json({
         guild: guild ? { name: guild.name, id: guild.id, owner: ownerTag, channels: guild.channels.cache.size } : null,
         users, bots,
         ping: { now: client.ws.ping, avg: stats.pingAverage ?? 0, max: stats.pingMaximum ?? 0 },
-        uptime: process.uptime(),
+        uptime: uptimeSec,
         version: process.env.npm_package_version || "1.0.0",
-        lastRestart: new Date(Date.now() - process.uptime() * 1000).toISOString(),
+        lastRestart: new Date(Date.now() - uptimeSec * 1000).toISOString(),
         stats: {
-          tickets: stats.ticketsCreated ?? 0,
-          polls: stats.pollsCreated ?? 0,
-          giveaways: stats.giveawaysCreated ?? 0,
-          commands: stats.commandsRunned ?? 0,
-          scams: stats.scamsPrevented ?? 0,
-          deleted: stats.messagesDeleted ?? 0,
+          tickets:  stats.ticketsCreated  ?? 0,
+          polls:    stats.pollsCreated    ?? 0,
+          giveaways:stats.giveawaysCreated?? 0,
+          commands: stats.commandsRunned  ?? 0,
+          scams:    stats.scamsPrevented  ?? 0,
+          deleted:  stats.messagesDeleted ?? 0,
         },
         logs: logs.slice(-50),
       });
@@ -2546,7 +2544,6 @@ client.once("ready", async () => {
     await initStatistics(client);
     await initDashboard(app, client, stats);
     await initScammProtection(client);
-    await initDashboard(app, client, stats);
     const { archiveTicket } = initTicketArchive(app);
     client.user.setPresence({
       activities: [{ name: "!help", type: 0 }],
