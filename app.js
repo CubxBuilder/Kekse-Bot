@@ -2445,7 +2445,7 @@ export async function initDashboard(app, client, stats) {
     logs.push({ t: Date.now(), m: a.join(" ") });
     if (logs.length > 100) logs.shift();
   };
- export function initTicketArchive(app) {
+ export async function initTicketArchive(app) {
   const archives = [];
   app.get("/api/tickets", (req, res) => res.json(archives));
   async function archiveTicket({ name, closedBy, channel }) {
@@ -2546,7 +2546,7 @@ client.once("ready", async () => {
     await initStatistics(client);
     await initDashboard(app, client, stats);
     await initScammProtection(client);
-    initDashboard(app, client, stats);
+    await initDashboard(app, client, stats);
     const { archiveTicket } = initTicketArchive(app);
     client.user.setPresence({
       activities: [{ name: "!help", type: 0 }],
