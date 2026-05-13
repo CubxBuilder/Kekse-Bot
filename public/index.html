@@ -177,7 +177,150 @@
       #functions-used .stats-grid {
         grid-template-columns: repeat(3, 1fr);
       }
-
+      #ticket-archive {
+        grid-column: 1 / -1;
+        flex-direction: column;
+        max-height: 420px;
+      }
+      .ticket-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        overflow-y: auto;
+        flex: 1;
+      }
+      .ticket-entry {}
+      .ticket-btn {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        text-align: left;
+        gap: 10px;
+      }
+      .ticket-btn:hover { background: #222; }
+      .ticket-btn .ticket-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+        overflow: hidden;
+      }
+      .ticket-btn .ticket-name {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .ticket-btn .ticket-info {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+      }
+      .ticket-btn .ticket-count {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        white-space: nowrap;
+      }
+      .ticket-btn .chevron {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        transition: transform 0.2s;
+        flex-shrink: 0;
+      }
+      .ticket-entry.open .chevron { transform: rotate(180deg); }
+      .ticket-body {
+        display: none;
+        flex-direction: column;
+        gap: 4px;
+        margin-top: 4px;
+        padding: 10px;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      .ticket-entry.open .ticket-body { display: flex; }
+      .msg-row {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        padding: 4px 0;
+        border-bottom: 1px solid #1a1a1a;
+      }
+      .msg-row:last-child { border-bottom: none; }
+      .msg-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        object-fit: cover;
+        background: var(--bg-elevated);
+      }
+      .msg-body { flex: 1; min-width: 0; }
+      .msg-header {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        margin-bottom: 2px;
+      }
+      .msg-author {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .msg-time {
+        font-size: 0.68rem;
+        color: var(--text-muted);
+      }
+      .msg-content {
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+        word-break: break-word;
+        white-space: pre-wrap;
+      }
+      .msg-attachments {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 4px;
+      }
+      .msg-attachments img {
+        max-width: 180px;
+        max-height: 120px;
+        border-radius: 4px;
+        object-fit: cover;
+        border: 1px solid var(--border);
+        cursor: pointer;
+      }
+      .msg-attachments a {
+        font-size: 0.75rem;
+        color: #6a9fd8;
+        text-decoration: none;
+        padding: 3px 6px;
+        background: var(--bg-elevated);
+        border-radius: 4px;
+        border: 1px solid var(--border);
+      }
+      .msg-stickers img {
+        width: 48px;
+        height: 48px;
+        margin-top: 4px;
+        image-rendering: pixelated;
+      }
+      .no-tickets {
+        color: var(--text-muted);
+        font-size: 0.82rem;
+        text-align: center;
+        padding: 20px 0;
+      }
       footer {
         display: flex;
         align-items: center;
