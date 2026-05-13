@@ -2520,7 +2520,6 @@ export async function initDashboard(app, client, stats) {
       res.status(500).json({ error: e.message });
     }
   });
-}
 client.once("ready", async () => {
     await initCounting(client);
     registerMessageCommands(client);
