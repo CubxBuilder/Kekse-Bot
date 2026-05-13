@@ -2444,7 +2444,53 @@ export async function initDashboard(app, client, stats) {
     logs.push({ t: Date.now(), m: a.join(" ") });
     if (logs.length > 100) logs.shift();
   };
-
+ export function initTicketArchive(app) {
+  const archives = [];
+  app.get("/api/tickets", (req, res) => res.json(archives));
+  async function archiveTicket({ name, closedBy, channel }) {
+    try {
+      const messages = [];
+      let lastId;
+      while (true) {
+        const batch = await channel.messages.fetch({ limit: 100, ...(lastId ? { before: lastId } : {}) });
+        if (!batch.size) break;
+        for (const msg of batch.values()) {
+          messages.push({
+            id: msg.id,
+            author: { name: msg.author.username, avatar: msg.author.displayAvatarURL({ size: 64 }) },
+            content: msg.content || null,
+            timestamp: msg.createdTimestamp,
+            attachments: [...msg.attachments.values()].map(a => ({
+              name: a.name,
+              url: a.url,
+              type: a.contentType || "unknown",
+            })),
+            stickers: [...(msg.stickers?.values() ?? [])].map(s => ({
+              name: s.name,
+              url: s.url,
+            })),
+            embeds: msg.embeds.map(e => ({ title: e.title, description: e.description })),
+          });
+          lastId = msg.id;
+        }
+        if (batch.size < 100) break;
+      }
+      messages.reverse();
+      archives.unshift({
+        id: Date.now(),
+        name,
+        closedBy: closedBy?.username ?? "System",
+        closedAt: new Date().toISOString(),
+        messageCount: messages.length,
+        messages,
+      });
+      if (archives.length > 100) archives.pop();
+    } catch (e) {
+      console.log(`[TicketArchive] Fehler beim Archivieren von "${name}": ${e.message}`);
+    }
+  }
+  return { archiveTicket };
+}
   app.get("/api/stats", async (req, res) => {
     try {
       const guild = client.guilds.cache.first();
