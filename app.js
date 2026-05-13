@@ -1896,13 +1896,14 @@ export async function initTickets(client) {
       console.log("Gesuchte Channel-ID:", channel.id);
       return channel.send("❌ Kein aktives Ticket in der Datenbank gefunden.");
     }
-    await channel.setParent(ARCHIVE_CATEGORY_ID, { lockPermissions: true });
     await channel.permissionOverwrites.delete(ticket.userId).catch(() => {});
     await channel.send({ 
       content: `✅ **Ticket archiviert.**\nErstellt von: ${ticket.username}\nID: ${ticket.idString}`
     });
     delete stored.tickets[ticket.idString];
+    await archiveTicket({ name: ticket.name, closedBy: member.user, channel: ticketChannel });
     await setTickData("tickets", stored);
+    setTimeout(() => channel.delete().catch(() => {}), 3000);
   } catch (err) {
     console.error("[TICKET] Fehler:", err);
   }
@@ -2545,6 +2546,8 @@ client.once("ready", async () => {
     await initStatistics(client);
     await initDashboard(app, client, stats);
     await initScammProtection(client);
+    initDashboard(app, client, stats);
+    const { archiveTicket } = initTicketArchive(app);
     client.user.setPresence({
       activities: [{ name: "!help", type: 0 }],
       status: "online"
