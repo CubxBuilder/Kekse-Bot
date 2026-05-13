@@ -38,6 +38,7 @@ const client = new Client({
     Partials.GuildMember, Partials.User, Partials.ThreadMember
     ]
 });
+export let archiveTicket = async () => {};
 async function startStorages() {
     console.log("✅ Alle MongoDB-Storages sind einsatzbereit!");
 }
