@@ -1901,7 +1901,7 @@ export async function initTickets(client) {
       content: `✅ **Ticket archiviert.**\nErstellt von: ${ticket.username}\nID: ${ticket.idString}`
     });
     delete stored.tickets[ticket.idString];
-    await archiveTicket({ name: ticket.name, closedBy: member.user, channel: ticketChannel });
+    await archiveTicket({ name: channel.name, closedBy: moderator, channel });
     await setTickData("tickets", stored);
     setTimeout(() => channel.delete().catch(() => {}), 3000);
   } catch (err) {
@@ -2446,8 +2446,14 @@ export async function initDashboard(app, client, stats) {
     if (logs.length > 100) logs.shift();
   };
 }
- export async function initTicketArchive(app) {
-  const archives = [];
+ export async function initTicketArchive(app, getTickData, setTickData) {
+     let archives = [];
+  try {
+    const stored = await getTickData("tickets") || {};
+    archives = stored.archive || [];
+  } catch (e) {
+    console.log("[TicketArchive] Fehler beim Laden des Archivs:", e.message);
+  }
   app.get("/api/tickets", (req, res) => res.json(archives));
   async function archiveTicket({ name, closedBy, channel }) {
     try {
@@ -2475,17 +2481,22 @@ export async function initDashboard(app, client, stats) {
         if (batch.size < 100) break;
       }
       messages.reverse();
-      archives.unshift({
+      const entry = {
         id: Date.now(),
         name,
         closedBy: closedBy?.username ?? "System",
         closedAt: new Date().toISOString(),
         messageCount: messages.length,
         messages,
-      });
+      };
+        archives.unshift(entry);
       if (archives.length > 100) archives.pop();
+        const stored = await getTickData("tickets") || {};
+      stored.archive = archives;
+      await setTickData("tickets", stored);
+      console.log(`[TicketArchive] ✅ Ticket "${name}" archiviert — ${messages.length} Nachrichten, geschlossen von ${closedBy?.username ?? "System"}`);
     } catch (e) {
-      console.log(`[TicketArchive] Fehler beim Archivieren von "${name}": ${e.message}`);
+      console.log(`[TicketArchive] ❌ Fehler beim Archivieren von "${name}": ${e.message}`);
     }
   }
   return { archiveTicket };
@@ -2543,7 +2554,7 @@ client.once("ready", async () => {
     await initStatistics(client);
     await initDashboard(app, client, stats);
     await initScammProtection(client);
-    const { archiveTicket } = initTicketArchive(app);
+    const { archiveTicket } = await initTicketArchive(app, getTickData, setTickData);
     client.user.setPresence({
       activities: [{ name: "!help", type: 0 }],
       status: "online"
