@@ -2561,8 +2561,8 @@ client.once("ready", async () => {
     initModSend(client);
     await violations(client);
     await initStatistics(client);
-    await initDashboard(app, client, stats);                  │
-    await initScammProtection(client);                        │
+    await initDashboard(app, client, stats);
+    await initScammProtection(client);
     ({ archiveTicket } = await initTicketArchive(app, getTickData, setTickData));
     client.user.setPresence({
       activities: [{ name: "!help", type: 0 }],
