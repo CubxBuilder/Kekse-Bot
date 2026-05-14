@@ -20,7 +20,8 @@ const stats = {
   ticketsCreated: 0, giveawaysCreated: 0, pollsCreated: 0, remindersCreated: 0,
   voiceChannelsCreated: 0, voiceChannelsDeleted: 0, countingMessagesSent: 0,
   countingMessagesFailed: 0, countingMessagesRecovered: 0,
-  pingNow: 0, pingAverage: 0, pingMaximum: 0, pingMinimum: 0
+  pingNow: 0, pingAverage: 0, pingMaximum: 0, pingMinimum: 0,
+ usersVerified: 0
 };
 const client = new Client({
     intents: [
@@ -64,10 +65,10 @@ export async function setVData(key, value) {
   await dbSet("violations", key, value);
 }
 export async function getTickData(key) {
-  return await dbGet("tickets", "tickets"); 
+ return await dbGet("tickets", key); 
 }
 export async function setTickData(key, value) {
-  await dbSet("tickets", "tickets", value);
+ await dbSet("tickets", key, value);
 }
 export async function getRData(key) {
   return await dbGet("reminders", key);
@@ -88,16 +89,16 @@ export async function setGivData(key, value) {
   await dbSet("giveaways", key, value);
 }
 export async function getPollData(key) {
-  return await dbGet("polls", key);
+ return await dbGet("polls", key);
 }
-export async function setPollData(key) {
-  await dbSet("polls", key, value);
+export async function setPollData(key, value) {
+ await dbSet("polls", key, value);
 }
 export async function setScammData(key, value) {
-  return await dbGet("scamm", key);
+  await dbSet("scamm", key, value);
 }
 export async function getScammData(key) {
-  await dbSet("scamm", key, value);
+  return await dbGet("scamm", key);
 }
 export function initAuditLogs(client) {
     const sendLog = async (title, user, text, color = "#ffffff", thumb = null, channelId = null) => {
@@ -542,7 +543,8 @@ export function initModeration(client) {
 
       const match = durationStr.match(/^(\d+)([smhd])$/);
       if (!match) return msg.reply({ content: "❌ Format: 10s, 5m, 2h, 1d", ephemeral: true });
-      const durationMs = parseTimDuration(match[1], match[2]);
+        const durationMs = parseTimDuration(match[1], match[2]);
+
 
       try {
         const member = await msg.guild.members.fetch(user.id);
@@ -1899,12 +1901,11 @@ export async function initTickets(client) {
     }
     await channel.permissionOverwrites.delete(ticket.userId).catch(() => {});
     await channel.send({ 
-      content: `✅ **Ticket archiviert.**\nErstellt von: ${ticket.username}\nID: ${ticket.idString}`
+      content: `⏳ **Ticket wird archiviert...**\nErstellt von: ${ticket.username}\nID: ${ticket.idString}`
     });
     delete stored.tickets[ticket.idString];
-    await archiveTicket({ name: channel.name, closedBy: moderator, channel });
     await setTickData("tickets", stored);
-    setTimeout(() => channel.delete().catch(() => {}), 3000);
+    await archiveTicket({ name: channel.name, closedBy: moderator, channel });
   } catch (err) {
     console.error("[TICKET] Fehler:", err);
   }
@@ -2448,16 +2449,16 @@ export async function initDashboard(app, client, stats) {
   };
 }
 export async function initTicketArchive(app, getTickData, setTickData) {
-     let archives = [];
+  let archives = [];
   try {
-    const stored = await getTickData("tickets") || {};
+    const stored = await getTickData("archive_list") || {};
     archives = Array.isArray(stored.archive) ? stored.archive : [];
     console.log(`[TicketArchive] ${archives.length} archivierte Tickets geladen.`);
   } catch (e) {
     console.log("[TicketArchive] Fehler beim Laden:", e.message);
   }
   app.get("/api/tickets", (req, res) => res.json(archives));
-  async function _archiveTicket({ name, closedBy, channel }) {
+  archiveTicket = async ({ name, closedBy, channel }) => {
     try {
       const messages = [];
       let lastId;
@@ -2483,6 +2484,7 @@ export async function initTicketArchive(app, getTickData, setTickData) {
         if (batch.size < 100) break;
       }
       messages.reverse();
+
       archives.unshift({
         id: Date.now(),
         name,
@@ -2491,17 +2493,23 @@ export async function initTicketArchive(app, getTickData, setTickData) {
         messageCount: messages.length,
         messages,
       });
+
       if (archives.length > 100) archives.pop();
-        const stored = await getTickData("tickets") || {};
-      stored.archive = archives;
-      await setTickData("tickets", stored);
-      console.log(`[TicketArchive] ✅ "${name}" archiviert — ${messages.length} Nachrichten, geschlossen von ${closedBy?.username ?? "System"}`);
+      await setTickData("archive_list", { archive: archives });
+      console.log(`[TicketArchive] ✅ "${name}" archiviert — ${messages.length} Nachrichten.`);
+      setTimeout(async () => {
+        await channel.delete().catch(() => {});
+      }, 2000);
+
+      
     } catch (e) {
       console.log(`[TicketArchive] ❌ Fehler bei "${name}": ${e.message}`);
     }
-  }
-  return { archiveTicket: _archiveTicket };
+  };
+
+  return { archiveTicket };
 }
+
   app.get("/api/stats", async (req, res) => {
     try {
       const guild = client.guilds.cache.first();
