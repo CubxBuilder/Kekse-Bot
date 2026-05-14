@@ -14,6 +14,7 @@ const port = process.env.PORT || 5000
 app.listen(port, "0.0.0.0", () => {
     console.log(`Server läuft auf Port ${port}`)
 })
+export let archiveTicket = async () => {};
 const stats = {
   messagesSent: 0, membersJoined: 0, membersLeft: 0, commandsRunned: 0,
   ticketsCreated: 0, giveawaysCreated: 0, pollsCreated: 0, remindersCreated: 0,
@@ -38,7 +39,6 @@ const client = new Client({
     Partials.GuildMember, Partials.User, Partials.ThreadMember
     ]
 });
-export let archiveTicket = async () => {};
 async function startStorages() {
     console.log("✅ Alle MongoDB-Storages sind einsatzbereit!");
 }
@@ -98,61 +98,6 @@ export async function setScammData(key, value) {
 }
 export async function getScammData(key) {
   await dbSet("scamm", key, value);
-}
-export async function initTicketArchive(app, getTickData, setTickData) {
-     let archives = [];
-  try {
-    const stored = await getTickData("tickets") || {};
-    archives = Array.isArray(stored.archive) ? stored.archive : [];
-    console.log(`[TicketArchive] ${archives.length} archivierte Tickets geladen.`);
-  } catch (e) {
-    console.log("[TicketArchive] Fehler beim Laden:", e.message);
-  }
-  app.get("/api/tickets", (req, res) => res.json(archives));
-  async function _archiveTicket({ name, closedBy, channel }) {
-    try {
-      const messages = [];
-      let lastId;
-      while (true) {
-        const batch = await channel.messages.fetch({ limit: 100, ...(lastId ? { before: lastId } : {}) });
-        if (!batch.size) break;
-        for (const msg of batch.values()) {
-          messages.push({
-            id: msg.id,
-            author: { name: msg.author.username, avatar: msg.author.displayAvatarURL({ size: 64 }) },
-            content: msg.content || null,
-            timestamp: msg.createdTimestamp,
-            attachments: [...msg.attachments.values()].map(a => ({
-              name: a.name, url: a.url, type: a.contentType || "unknown",
-            })),
-            stickers: [...(msg.stickers?.values() ?? [])].map(s => ({
-              name: s.name, url: s.url,
-            })),
-            embeds: msg.embeds.map(e => ({ title: e.title, description: e.description })),
-          });
-          lastId = msg.id;
-        }
-        if (batch.size < 100) break;
-      }
-      messages.reverse();
-      archives.unshift({
-        id: Date.now(),
-        name,
-        closedBy: closedBy?.username ?? "System",
-        closedAt: new Date().toISOString(),
-        messageCount: messages.length,
-        messages,
-      });
-      if (archives.length > 100) archives.pop();
-        const stored = await getTickData("tickets") || {};
-      stored.archive = archives;
-      await setTickData("tickets", stored);
-      console.log(`[TicketArchive] ✅ "${name}" archiviert — ${messages.length} Nachrichten, geschlossen von ${closedBy?.username ?? "System"}`);
-    } catch (e) {
-      console.log(`[TicketArchive] ❌ Fehler bei "${name}": ${e.message}`);
-    }
-  }
-  return { archiveTicket: _archiveTicket };
 }
 export function initAuditLogs(client) {
     const sendLog = async (title, user, text, color = "#ffffff", thumb = null, channelId = null) => {
@@ -2502,6 +2447,61 @@ export async function initDashboard(app, client, stats) {
     if (logs.length > 100) logs.shift();
   };
 }
+export async function initTicketArchive(app, getTickData, setTickData) {
+     let archives = [];
+  try {
+    const stored = await getTickData("tickets") || {};
+    archives = Array.isArray(stored.archive) ? stored.archive : [];
+    console.log(`[TicketArchive] ${archives.length} archivierte Tickets geladen.`);
+  } catch (e) {
+    console.log("[TicketArchive] Fehler beim Laden:", e.message);
+  }
+  app.get("/api/tickets", (req, res) => res.json(archives));
+  async function _archiveTicket({ name, closedBy, channel }) {
+    try {
+      const messages = [];
+      let lastId;
+      while (true) {
+        const batch = await channel.messages.fetch({ limit: 100, ...(lastId ? { before: lastId } : {}) });
+        if (!batch.size) break;
+        for (const msg of batch.values()) {
+          messages.push({
+            id: msg.id,
+            author: { name: msg.author.username, avatar: msg.author.displayAvatarURL({ size: 64 }) },
+            content: msg.content || null,
+            timestamp: msg.createdTimestamp,
+            attachments: [...msg.attachments.values()].map(a => ({
+              name: a.name, url: a.url, type: a.contentType || "unknown",
+            })),
+            stickers: [...(msg.stickers?.values() ?? [])].map(s => ({
+              name: s.name, url: s.url,
+            })),
+            embeds: msg.embeds.map(e => ({ title: e.title, description: e.description })),
+          });
+          lastId = msg.id;
+        }
+        if (batch.size < 100) break;
+      }
+      messages.reverse();
+      archives.unshift({
+        id: Date.now(),
+        name,
+        closedBy: closedBy?.username ?? "System",
+        closedAt: new Date().toISOString(),
+        messageCount: messages.length,
+        messages,
+      });
+      if (archives.length > 100) archives.pop();
+        const stored = await getTickData("tickets") || {};
+      stored.archive = archives;
+      await setTickData("tickets", stored);
+      console.log(`[TicketArchive] ✅ "${name}" archiviert — ${messages.length} Nachrichten, geschlossen von ${closedBy?.username ?? "System"}`);
+    } catch (e) {
+      console.log(`[TicketArchive] ❌ Fehler bei "${name}": ${e.message}`);
+    }
+  }
+  return { archiveTicket: _archiveTicket };
+}
   app.get("/api/stats", async (req, res) => {
     try {
       const guild = client.guilds.cache.first();
@@ -2553,9 +2553,9 @@ client.once("ready", async () => {
     initModSend(client);
     await violations(client);
     await initStatistics(client);
-    await initDashboard(app, client, stats);
-    await initScammProtection(client);
-    const { archiveTicket } = await initTicketArchive(app, getTickData, setTickData);
+    await initDashboard(app, client, stats);                  │
+    await initScammProtection(client);                        │
+    ({ archiveTicket } = await initTicketArchive(app, getTickData, setTickData));
     client.user.setPresence({
       activities: [{ name: "!help", type: 0 }],
       status: "online"
