@@ -594,28 +594,34 @@
     }
     async function fetchTickets() {
         try {
-          const urlParams = new URLSearchParams(window.location.search);
-          const token = urlParams.get('t');
-          if (!token) {
-              window.location.href = "/permission";
-              return;
-          }
-          const res = await fetch(`/api/tickets?token=${token}`);
-          if (!res.ok) {
-              window.location.href = "/err605"; 
-              return;
-          }
-          const data = await res.json();
-          renderTickets(data);
-          if (window.location.hash && window.location.hash.startsWith("#ticket-")) {
-            checkUrlHash(); 
-          }
-          checkUrlHash(); 
-        } catch (err) {
-          window.location.href = "/err612";
+        const urlParams = new URLSearchParams(window.location.search);
+        let token = urlParams.get('t');
+        if (!token) {
+            token = sessionStorage.getItem("admin_token");
+        } else {
+            sessionStorage.setItem("admin_token", token);
+            window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
         }
-      }
-      fetchTickets();
-    </script>
-  </body>
+        if (!token) {
+            window.location.href = window.location.origin + "/401.html";
+            return;
+        }
+        const res = await fetch(`/api/tickets?token=${token}`);
+        if (!res.ok) {
+            window.location.href = "/err605"; 
+             return;
+        }
+        const data = await res.json();
+        renderTickets(data);
+        if (window.location.hash && window.location.hash.startsWith("#ticket-")) {
+          checkUrlHash(); 
+        }
+        checkUrlHash(); 
+      } catch (err) {
+        window.location.href = "/err612";
+       }
+    }
+    fetchTickets();
+  </script>
+</body>
 </html>
