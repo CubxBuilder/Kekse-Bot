@@ -2529,37 +2529,56 @@ export async function initDashboard(app, client, globalBotStats) {
     if (logs.length > 100) logs.shift();
   };
 }
-
   app.get("/api/stats", async (req, res) => {
     try {
-      const guild = client.guilds.cache.first();
-      const members = guild?.members.cache;
-      const bots = [...members.values()].filter(m => m.user.bot).length;
-      const users = members.size - bots;
-      let ownerTag = "—";
-      try { const o = await client.users.fetch(guild.ownerId); ownerTag = o.tag || o.username; } catch {}
+        const guild = client.guilds.cache.first();
+        const membersMap = guild?.members.cache || new Map();
+        const totalMembers = guild?.memberCount || membersMap.size || 0;
+        const bots = membersMap.size > 0 ? [...membersMap.values()].filter(m => m?.user?.bot).length : 0;
+        const users = totalMembers - bots;
+        let ownerTag = "—";
+        if (guild?.ownerId) {
+            try { 
+                const o = await client.users.fetch(guild.ownerId); 
+                ownerTag = o.tag || o.username || "—"; 
+            } catch (err) {
+                console.log("[Dashboard API] Konnte Server-Besitzer nicht abrufen:", err.message);
+            }
+        }
         const uptimeSec = Math.floor((client.uptime ?? 0) / 1000);
+        const activeLogs = typeof logs !== "undefined" && Array.isArray(logs) ? logs.slice(-50) : [];
         res.json({
-        guild: guild ? { name: guild.name, id: guild.id, owner: ownerTag, channels: guild.channels.cache.size } : null,
-        users, bots,
-        ping: { now: client.ws.ping, avg: globalBotStats.pingAverage ?? 0, max: globalBotStats.pingMaximum ?? 0 },
-        uptime: uptimeSec,
-        version: process.env.npm_package_version || "1.0.0",
-        lastRestart: new Date(Date.now() - uptimeSec * 1000).toISOString(),
-        stats: {
-          tickets:  globalBotStats.ticketsCreated  ?? 0,
-          polls:    globalBotStats.pollsCreated    ?? 0,
-          giveaways:globalBotStats.giveawaysCreated?? 0,
-          commands: globalBotStats.commandsRunned  ?? 0,
-          scams:    globalBotStats.scamsPrevented  ?? 0,
-          deleted:  globalBotStats.messagesDeleted ?? 0,
-        },
-        logs: logs.slice(-50),
-      });
+            guild: guild ? { 
+                name: guild.name, 
+                id: guild.id, 
+                owner: ownerTag, 
+                channels: guild.channels.cache.size 
+            } : { name: "Nicht verbunden", id: "—", owner: "—", channels: "—" },
+            users: users >= 0 ? users : "—",
+            bots: bots,
+            ping: { 
+                now: client.ws.ping !== null && client.ws.ping >= 0 ? `${client.ws.ping}ms` : "—", 
+                avg: globalBotStats.pingAverage ? `${globalBotStats.pingAverage}ms` : "—", 
+                max: globalBotStats.pingMaximum ? `${globalBotStats.pingMaximum}ms` : "—" 
+            },
+            uptime: uptimeSec,
+            version: process.env.npm_package_version || "1.0.0",
+            lastRestart: new Date(Date.now() - uptimeSec * 1000).toISOString(),
+            stats: {
+                tickets:   globalBotStats.ticketsCreated   ?? 0,
+                polls:     globalBotStats.pollsCreated     ?? 0,
+                giveaways: globalBotStats.giveawaysCreated ?? 0,
+                commands:  globalBotStats.commandsRunned   ?? 0,
+                scams:     globalBotStats.scamsPrevented   ?? 0,
+                deleted:   globalBotStats.messagesDeleted  ?? 0,
+            },
+            logs: activeLogs,
+        });
     } catch (e) {
-      res.status(500).json({ error: e.message });
+        console.error("[Dashboard API] Fataler Fehler im Stats-Endpunkt:", e);
+        res.status(500).json({ error: e.message });
     }
-  });
+});
 client.once("ready", async () => {
     await initCounting(client);
     registerMessageCommands(client);
