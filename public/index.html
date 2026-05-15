@@ -438,46 +438,70 @@
       };
       const fmtDate = iso => new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
       const fmtPing = ms => ms < 0 ? "—" : `${ms}`;
+const pingHistory = { labels: [], data: [] };
+const MAX_POINTS = 20;
+function formatTimeSince(restartTimestamp) {
+  if (!restartTimestamp) return "";
+  const diffMs = Date.now() - new Date(restartTimestamp).getTime();
+  const diffSec = Math.floor(Math.max(0, diffMs) / 1000);
+  const hrs = Math.floor(diffSec / 3600);
+  const mins = Math.floor((diffSec % 3600) / 60);
+  const secs = diffSec % 60;
+  const mStr = mins.toString().padStart(2, '0');
+  const sStr = secs.toString().padStart(2, '0');
+  return hrs > 0 ? `${hrs}:${mStr}:${sStr}` : `${mStr}:${sStr}`;
+}
+const chart = new Chart($("ping-chart"), {
+  type: "line",
+  data: {
+    labels: pingHistory.labels,
+    datasets: [{
+      data: pingHistory.data,
+      borderColor: "#ffffff",
+      backgroundColor: "rgba(255,255,255,0.05)",
+      borderWidth: 1.5,
+      pointRadius: 2,
+      fill: true,
+      tension: 0.4,
+    }]
+  },
+  options: {
+    animation: false,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { 
+        display: true, 
+        ticks: { color: "#888", font: { size: 9 }, maxRotation: 0 },
+        grid: { display: false }
+      },
+      y: {
+        ticks: { color: "#888", font: { size: 10 }, callback: v => v + "ms" },
+        grid: { color: "#1a1a1a" },
+        border: { display: false },
+      }
+    }
+  }
+});
+function updatePingChart(pingValue, lastRestart) {
+  const timeLabel = formatTimeSince(lastRestart);
+  
+  pingHistory.labels.push(timeLabel);
+  pingHistory.data.push(pingValue);
 
-      const pingHistory = { labels: [], data: [] };
-      const MAX_POINTS = 20;
-
-      const chart = new Chart($("ping-chart"), {
-        type: "line",
-        data: {
-          labels: pingHistory.labels,
-          datasets: [{
-            data: pingHistory.data,
-            borderColor: "#ffffff",
-            backgroundColor: "rgba(255,255,255,0.05)",
-            borderWidth: 1.5,
-            pointRadius: 2,
-            fill: true,
-            tension: 0.4,
-          }]
-        },
-        options: {
-          animation: false,
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { display: false },
-            y: {
-              ticks: { color: "#888", font: { size: 10 }, callback: v => v + "ms" },
-              grid: { color: "#1a1a1a" },
-              border: { display: false },
-            }
-          }
-        }
-      });
-
+  if (pingHistory.labels.length > MAX_POINTS) {
+    pingHistory.labels.shift();
+    pingHistory.data.shift();
+  }
+  chart.update();
+}
       async function fetchStats() {
         try {
           const res = await fetch("/api/stats");
           if (!res.ok) return;
           const d = await res.json();
-
+          updatePingChart(d.ping, d.lastRestart);
           if (d.guild) {
             set("server", d.guild.name);
             set("server-id", d.guild.id);
