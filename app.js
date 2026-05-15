@@ -50,7 +50,7 @@ export async function archiveTicket({ name, closedBy, channel }, setTickData) {
     }
     messages.reverse();
     const match = name.match(/\d{4}$/);
-    const ticketIdNum = match ? match[0] : Date.now().toString();
+    const ticketIdNum = (match && match[0]) ? match[0] : name.replace(/[^0-9]/g, "").slice(-4) || "0000";
     archives.unshift({
       id: ticketIdNum,
       name,
