@@ -24,7 +24,7 @@ export async function initTicketArchive(app, getTickData, setTickData) {
     console.log("[TicketArchive] Fehler beim Laden:", e.message);
   }
   app.get("/api/tickets", (req, res) => res.json(archives));
-  archiveTicket = async ({ name, closedBy, channel }) => {
+  export async function archiveTicket({ name, closedBy, channel }){
     try {
       const messages = [];
       let lastId;
