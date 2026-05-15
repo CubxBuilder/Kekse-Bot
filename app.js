@@ -72,8 +72,7 @@ export async function initTicketArchive(app, getTickData, setTickData) {
     } catch (e) {
       console.log(`[TicketArchive] ❌ Fehler bei "${name}": ${e.message}`);
     }
-  };
-}
+  }
 const globalBotStats = {
  messagesSent: 0, membersJoined: 0, membersLeft: 0, commandsRunned: 0,
  ticketsCreated: 0, giveawaysCreated: 0, pollsCreated: 0, remindersCreated: 0,
