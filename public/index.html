@@ -559,7 +559,7 @@
           return;
         }
         list.innerHTML = tickets.map(t => `
-          <div class="ticket-entry" data-id="${t.id}">
+          <div class="ticket-entry" data-id="${t.id}" id="ticket-${t.id}">
             <button class="ticket-btn" onclick="toggleTicket(${t.id})">
               <div class="ticket-meta">
                 <span class="ticket-name">${t.name}</span>
@@ -578,11 +578,26 @@
         const entry = document.querySelector(`.ticket-entry[data-id="${id}"]`);
         if (entry) entry.classList.toggle("open");
       };
+      function checkUrlHash() {
+        const hash = window.location.hash;
+        if (!hash || !hash.startsWith("#ticket-")) return;
+
+        const targetElement = document.querySelector(hash);
+        if (targetElement) {
+            if (!targetElement.classList.contains("open")) {
+                targetElement.classList.add("open");
+            }
+            setTimeout(() => {
+                targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 300);
+        }
+    }
       async function fetchTickets() {
         try {
           const res = await fetch("/api/tickets");
           if (!res.ok) return;
           renderTickets(await res.json());
+          checkUrlHash(); 
         } catch {}
       }
       fetchTickets();
