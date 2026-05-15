@@ -592,13 +592,25 @@
             }, 300);
         }
     }
-      async function fetchTickets() {
+    async function fetchTickets() {
         try {
-          const res = await fetch("/api/tickets");
-          if (!res.ok) return;
-          renderTickets(await res.json());
+          const urlParams = new URLSearchParams(window.location.search);
+          const token = urlParams.get('t');
+          if (!token) {
+              window.location.href = "https://google.com";
+              return;
+          }
+          const res = await fetch(`/api/tickets?token=${token}`);
+          if (!res.ok) {
+              window.location.href = "https://google.com"; 
+              return;
+          }
+          const data = await res.json();
+          renderTickets(data);
           checkUrlHash(); 
-        } catch {}
+        } catch (err) {
+          window.location.href = "https://google.com";
+        }
       }
       fetchTickets();
     </script>
