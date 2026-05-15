@@ -494,24 +494,25 @@
           set("version", d.version);
           set("last-restart", fmtDate(d.lastRestart));
 
-          set("tickets-created", d.globalBotStats.tickets);
-          set("polls-created", d.globalBotStats.polls);
-          set("giveaways-created", d.globalBotStats.giveaways);
-          set("commands-used", d.globalBotStats.commands);
-          set("scams-prevented", d.globalBotStats.scams);
-          set("messages-deleted", d.globalBotStats.deleted);
+          set("tickets-created", d.stats.tickets);
+          set("polls-created", d.stats.polls);
+          set("giveaways-created", d.stats.giveaways);
+          set("commands-used", d.stats.commands);
+          set("scams-prevented", d.stats.scams);
+          set("messages-deleted", d.stats.deleted);
 
           set("Version", d.version);
           set("uptime-foot", fmtUptime(d.uptime));
           set("ping-foot", fmtPing(d.ping.now));
 
-          if (d.logs?.length) {
-            const con = $("console");
-            con.innerHTML = d.logs.map(l => {
-              const t = new Date(l.t).toLocaleTimeString("de-DE");
-              return `<div><span style="color:var(--text-muted)">[${t}]</span> ${l.m}</div>`;
-            }).join("");
-            con.scrollTop = con.scrollHeight;
+         if (d.logs?.length) {
+          const con = $("console");
+          con.innerHTML = d.logs.map(l => {
+            const timeStr = l.t ? new Date(l.t).toLocaleTimeString("de-DE") : new Date().toLocaleTimeString("de-DE");
+            const msgStr = l.m || l;
+            return `<div><span style="color:var(--text-muted)">[${timeStr}]</span> ${msgStr}</div>`;
+          }).join("");
+          con.scrollTop = con.scrollHeight;
           }
 
           const now = new Date().toLocaleTimeString("de-DE", { timeStyle: "short" });
