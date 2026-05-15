@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import express from "express"
 import { fileURLToPath } from "url"
 import fs from "fs"
+import crypto from 'crypto';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express()
@@ -23,7 +24,17 @@ export async function initTicketArchive(app, getTickData, setTickData) {
   } catch (e) {
     dashboardLog("[TicketArchive] Fehler beim Laden: " + e.message);
   }
-  app.get("/api/tickets", (req, res) => res.json(archives));
+  app.get("/api/tickets", (req, res) => {
+      const userToken = req.query.token;
+        if (!userToken) {
+            return res.status(401).json({ error: "Kein Token angegeben" });
+        }
+        const allowedTicket = archives.find(t => t.token === userToken);
+        if (!allowedTicket) {
+            return res.status(403).json({ error: "Ungültiger Token" });
+        }
+        res.json(archives)
+    });
 }
 export async function archiveTicket({ name, closedBy, channel }, setTickData) {
   try {
@@ -51,6 +62,7 @@ export async function archiveTicket({ name, closedBy, channel }, setTickData) {
     messages.reverse();
     const match = name.match(/\d{4}$/);
     const ticketIdNum = (match && match[0]) ? match[0] : name.replace(/[^0-9]/g, "").slice(-4) || "0000";
+    const sessionToken = crypto.randomBytes(8).toString('hex');
     archives.unshift({
       id: ticketIdNum,
       name,
@@ -58,6 +70,7 @@ export async function archiveTicket({ name, closedBy, channel }, setTickData) {
       closedAt: new Date().toISOString(),
       messageCount: messages.length,
       messages,
+      token: sessionToken
     });
     if (archives.length > 100) archives.pop();
     await setTickData("archive_list", { archive: archives });
@@ -65,7 +78,7 @@ export async function archiveTicket({ name, closedBy, channel }, setTickData) {
     const sendKekseLog = async (ticketName, ticketMessages) => {
         const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
         if (!logChannel) return;
-        const ticketUrl = `https://kekse-clan-bot.onrender.com/#ticket-${ticketIdNum}`;
+        const ticketUrl = `https://kekse-clan-bot.onrender.com/?t={sessionToken}#ticket-${ticketIdNum}`;
         const logEmbed = new EmbedBuilder()
             .setColor('#ffffff')
             .setAuthor({ 
@@ -93,8 +106,6 @@ const globalBotStats = {
  pingNow: 0, pingAverage: 0, pingMaximum: 0, pingMinimum: 0,
  usersVerified: 0
 };
-
-// Einheitliche Hilfsfunktion für Zeitrahmen im gesamten Skript
 function parseTimeframe(tf) {
  const match = tf.match(/^(\d+)([smhd])$/);
  if (!match) return 0;
