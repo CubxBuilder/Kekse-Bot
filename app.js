@@ -12,16 +12,16 @@ const app = express()
 app.use("/", express.static(path.join(__dirname, "public")))
 const port = process.env.PORT || 5000
 app.listen(port, "0.0.0.0", () => {
-    console.log(`Server läuft auf Port ${port}`)
+    dashboardLog(`Server läuft auf Port ${port}`)
 })
 let archives = [];
 export async function initTicketArchive(app, getTickData, setTickData) {
   try {
     const stored = await getTickData("archive_list") || {};
     archives = Array.isArray(stored.archive) ? stored.archive : [];
-    console.log(`[TicketArchive] ${archives.length} archivierte Tickets geladen.`);
+    dashboardLog(`[TicketArchive] ${archives.length} archivierte Tickets geladen.`);
   } catch (e) {
-    console.log("[TicketArchive] Fehler beim Laden:", e.message);
+    dashboardLog("[TicketArchive] Fehler beim Laden:", e.message);
   }
   app.get("/api/tickets", (req, res) => res.json(archives));
 }
@@ -63,14 +63,14 @@ export async function initTicketArchive(app, getTickData, setTickData) {
 
       if (archives.length > 100) archives.pop();
       await setTickData("archive_list", { archive: archives });
-      console.log(`[TicketArchive] ✅ "${name}" archiviert — ${messages.length} Nachrichten.`);
+      dashboardLog(`[TicketArchive] ✅ "${name}" archiviert — ${messages.length} Nachrichten.`);
       setTimeout(async () => {
         await channel.delete().catch(() => {});
       }, 2000);
 
       
     } catch (e) {
-      console.log(`[TicketArchive] ❌ Fehler bei "${name}": ${e.message}`);
+      dashboardLog(`[TicketArchive] ❌ Fehler bei "${name}": ${e.message}`);
     }
   }
 const globalBotStats = {
@@ -95,7 +95,12 @@ function parseTimeframe(tf) {
  default: return 0;
  }
 }
-
+global.logs = [];
+function dashboardLog(message) {
+    logs.push({ t: Date.now(), m: message });
+    if (logs.length > 100) logs.shift();
+    dashboardLog(message);
+}
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -114,7 +119,7 @@ const client = new Client({
     ]
 });
 async function startStorages() {
-    console.log("✅ Alle MongoDB-Storages sind einsatzbereit!");
+    dashboardLog("✅ Alle MongoDB-Storages sind einsatzbereit!");
 }
 const TEAM_ROLE = "1457906448234319922";
 const LOG_CHANNEL_ID = "1423413348220796991";
@@ -449,7 +454,7 @@ Grund: ${reason}${sectionTitle ? ` (${sectionTitle})` : ""}${durationText}${rule
 
 Um sicherzustellen, dass unsere Community sicher und freundlich bleibt, befolge bitte unsere Regeln. Die vollständigen Regeln findest du hier: https://discord.com/channels/1423413347168157718/1423413348065611949`;
 
-  await user.send(message).catch(() => console.log(`Konnte DM an ${user.tag} nicht senden.`));
+  await user.send(message).catch(() => dashboardLog(`Konnte DM an ${user.tag} nicht senden.`));
 }
 export async function initInvites(client) {
  const inviteCache = new Map();
@@ -1192,7 +1197,7 @@ export async function initCounting(client) {
   };
 
   const runSync = async () => {
-    console.log("🔄 Starte Counting-Synchronisation...");
+    dashboardLog("🔄 Starte Counting-Synchronisation...");
     await loadCounting();
     const channel = await client.channels.fetch(COUNTING_CHANNEL).catch(() => null);
     if (!channel || !channel.isTextBased()) return;
@@ -1202,7 +1207,7 @@ export async function initCounting(client) {
       const lastMsg = await channel.messages.fetch({ limit: 1 });
       countingData.lastMessageId = lastMsg.first()?.id;
       await saveCounting();
-      console.log("📍 Keine Referenz-ID gefunden. Starte ab der aktuellsten Nachricht.");
+      dashboardLog("📍 Keine Referenz-ID gefunden. Starte ab der aktuellsten Nachricht.");
       return;
     }
     try {
@@ -1225,10 +1230,10 @@ export async function initCounting(client) {
         }
       }
       if (totalRecovered > 0) {
-        console.log(`✅ Synchronisation abgeschlossen. ${totalRecovered} Nachrichten nachgeholt.`);
+        dashboardLog(`✅ Synchronisation abgeschlossen. ${totalRecovered} Nachrichten nachgeholt.`);
         globalBotStats.countingMessagesRecovered += totalRecovered;
       } else {
-        console.log("✨ Alles aktuell. Keine verpassten Zahlen gefunden.");
+        dashboardLog("✨ Alles aktuell. Keine verpassten Zahlen gefunden.");
       }
     } catch (err) {
       console.error("❌ Fehler bei der Synchronisation:", err);
@@ -1419,7 +1424,7 @@ export function initHelp(client) {
 
     if (cmd !== "help") return;
 
-    console.log(`[HELP] Von ${msg.author.username}`);
+    dashboardLog(`[HELP] Von ${msg.author.username}`);
     await msg.channel.send(
       "Erstelle ein <#1423413348493430905>. Ein Moderator wird sich so schnell wie möglich um dein Anliegen kümmern."
     );
@@ -1719,7 +1724,7 @@ export function initReactions(client) {
         message.type === MessageType.GuildBoostTier2 || 
         message.type === MessageType.GuildBoostTier3) {
       try {
-        console.log(`[BOOST] Boost erkannt von ${message.author.username}. Sende Herz-Nachricht.`);
+        dashboardLog(`[BOOST] Boost erkannt von ${message.author.username}. Sende Herz-Nachricht.`);
         await message.react("❤️");
       } catch (err) {
         console.error("[BOOST] Fehler beim Senden der Herz-Antwort:", err);
@@ -1731,19 +1736,19 @@ export function initReactions(client) {
 
     if (message.content.includes("🍪")) {
       try {
-        console.log(`[REACTION] Keks-Reaktion für ${message.author.username}`);
+        dashboardLog(`[REACTION] Keks-Reaktion für ${message.author.username}`);
         await message.channel.send("<:pepecookie:1453796363442585660>");
       } catch {}
     }
 
     if (message.mentions.everyone) {
       try {
-        console.log(`[REACTION] Everyone-Ping-Reaktion für ${message.author.username}`);
+        dashboardLog(`[REACTION] Everyone-Ping-Reaktion für ${message.author.username}`);
         await message.channel.send("<a:pingeveryone:1453800508329558218>");
       } catch {}
     } else if (message.mentions.has(client.user.id)) {
       try {
-        console.log(`[REACTION] Bot-Ping-Reaktion für ${message.author.username}`);
+        dashboardLog(`[REACTION] Bot-Ping-Reaktion für ${message.author.username}`);
         await message.channel.send("<:ping:1453799622303813714>");
       } catch {}
     }
@@ -1973,7 +1978,7 @@ export async function initTickets(client) {
       t => typeof t === 'object' && t.channelId === channel.id
     );
     if (!ticket) {
-      console.log("Gesuchte Channel-ID:", channel.id);
+      dashboardLog("Gesuchte Channel-ID:", channel.id);
       return channel.send("❌ Kein aktives Ticket in der Datenbank gefunden.");
     }
     await channel.permissionOverwrites.delete(ticket.userId).catch(() => {});
@@ -2218,8 +2223,8 @@ export async function initStatistics(client) {
           }
         });
 
-        console.log("Tägliche Statistik gesendet");
-        console.log("Stats zurückgesetzt");
+        dashboardLog("Tägliche Statistik gesendet");
+        dashboardLog("Stats zurückgesetzt");
       }
     } catch (err) {
       console.error("Fehler beim Senden der Statistik:", err);
@@ -2542,7 +2547,7 @@ export async function initDashboard(app, client, globalBotStats) {
                 const o = await client.users.fetch(guild.ownerId); 
                 ownerTag = o.tag || o.username || "—"; 
             } catch (err) {
-                console.log("[Dashboard API] Konnte Server-Besitzer nicht abrufen:", err.message);
+                dashboardLog("[Dashboard API] Konnte Server-Besitzer nicht abrufen:", err.message);
             }
         }
         const uptimeSec = Math.floor((client.uptime ?? 0) / 1000);
@@ -2607,7 +2612,7 @@ client.once("ready", async () => {
       activities: [{ name: "!help", type: 0 }],
       status: "online"
     });
-    console.log(`Bot online: ${client.user.tag}`);
+    dashboardLog(`Bot online: ${client.user.tag}`);
 })
 app.get("/api/stats_internal", (req, res) => {
     const totalSeconds = (client.uptime / 1000);
@@ -2627,7 +2632,7 @@ client.on("error", console.error)
 client.on("warn", console.warn)
 mongoose.connect(process.env.MONGODB_URI)
   .then(async () => {
-    console.log('🍃 MongoDB verbunden!');
+    dashboardLog('🍃 MongoDB verbunden!');
     await startStorages();
     client.login(process.env.BOT_TOKEN);
   })
