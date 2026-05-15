@@ -430,7 +430,6 @@
     <script>
       const $ = id => document.getElementById(id);
       const set = (id, v) => { const el = $(id); if (el) el.textContent = v ?? "—"; };
-
       const fmtUptime = s => {
         const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600),
               m = Math.floor((s % 3600) / 60);
@@ -473,10 +472,18 @@ const chart = new Chart($("ping-chart"), {
     scales: {
       x: { 
         display: true, 
-        ticks: { color: "#888", font: { size: 9 }, maxRotation: 0 },
+        ticks: { 
+          color: "#888", 
+          font: { size: 9 }, 
+          maxRotation: 0,
+          callback: function(val, index) {
+            return index % 3 === 0 ? this.getLabelForValue(val) : '';
+          }
+        },
         grid: { display: false }
       },
       y: {
+        min: 0,
         ticks: { color: "#888", font: { size: 10 }, callback: v => v + "ms" },
         grid: { color: "#1a1a1a" },
         border: { display: false },
@@ -485,15 +492,15 @@ const chart = new Chart($("ping-chart"), {
   }
 });
 function updatePingChart(pingValue, lastRestart) {
-  const timeLabel = formatTimeSince(lastRestart);
-  
+  const timeLabel = formatTimeSince(lastRestart); 
   pingHistory.labels.push(timeLabel);
-  pingHistory.data.push(pingValue);
+  pingHistory.data.push(Number(pingValue));
 
   if (pingHistory.labels.length > MAX_POINTS) {
     pingHistory.labels.shift();
     pingHistory.data.shift();
   }
+
   chart.update();
 }
       async function fetchStats() {
