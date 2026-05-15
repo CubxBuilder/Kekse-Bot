@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login | Kekse Clan</title>
+    <style>
+        :root {
+            --bg-main: #0f1115;
+            --bg-card: #181b22;
+            --bg-input: #101216;
+            --text-primary: #ffffff;
+            --text-muted: #72767d;
+            --color-primary: #5865f2;
+            --color-primary-hover: #4752c4;
+            --color-error: #f04747;
+            --font-main: 'gg sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .login-container {
+            background-color: var(--bg-card);
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        .login-title {
+            font-size: 1.6rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .login-subtitle {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+        }
+        .form-group {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 4px;
+            border: 1px solid rgba(0,0,0,0.3);
+            background-color: var(--bg-input);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus {
+            border-color: var(--color-primary);
+        }
+        .captcha-container {
+            background-color: var(--bg-input);
+            padding: 12px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .captcha-question {
+            font-weight: 600;
+            font-size: 1.1rem;
+            letter-spacing: 2px;
+            user-select: none;
+        }
+        .captcha-input {
+            width: 80px;
+            text-align: center;
+            padding: 8px;
+        }
+        .login-btn {
+            width: 100%;
+            background-color: var(--color-primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .login-btn:hover {
+            background-color: var(--color-primary-hover);
+        }
+        .error-msg {
+            color: var(--color-error);
+            font-size: 0.85rem;
+            margin-top: 15px;
+            display: none;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-title">Willkommen zurück!</div>
+        <div class="login-subtitle">Melde dich an, um das Admin-Dashboard einzusehen.</div>
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label for="password">Admin-Passwort</label>
+                <input type="password" id="password" required autocomplete="current-password">
+            </div>
+            <label>Mensch-Abfrage</label>
+            <div class="captcha-container">
+                <span id="captchaText" class="captcha-question">Berechne...</span>
+                <input type="number" id="captchaAnswer" class="captcha-input" required placeholder="?">
+            </div>
+            <button type="submit" class="login-btn">Einloggen</button>
+            <div id="errorMsg" class="error-msg"></div>
+        </form>
+    </div>
+    <script>
+        let num1, num2, correctCaptchaResult;
+        function generateCaptcha() {
+            num1 = Math.floor(Math.random() * 9) + 2;
+            num2 = Math.floor(Math.random() * 9) + 2;
+            correctCaptchaResult = num1 + num2;
+            document.getElementById("captchaText").innerText = `${num1} + ${num2} =`;
+            document.getElementById("captchaAnswer").value = "";
+        }
+        async function sha256(string) {
+            const utf8 = new TextEncoder().encode(string);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', utf8);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+        async function handleLogin(event) {
+            event.preventDefault();
+            const passwordInput = document.getElementById("password").value;
+            const captchaInput = parseInt(document.getElementById("captchaAnswer").value);
+            const errorElement = document.getElementById("errorMsg");
+            if (captchaInput !== correctCaptchaResult) {
+                errorElement.innerText = "❌ Mensch-Abfrage inkorrekt. Bitte versuche es erneut.";
+                errorElement.style.display = "block";
+                generateCaptcha();
+                return;
+            }
+            try {
+                const token = passwordInput;
+                const res = await fetch(`/api/tickets?token=${token}`);
+                if (res.ok) {
+                    window.location.href = `https://kekse-clan-bot.onrender.com/?t=${encodeURIComponent(token)}`;
+                } else {
+                    errorElement.innerText = "❌ Passwort inkorrekt. Zugriff verweigert.";
+                    errorElement.style.display = "block";
+                    generateCaptcha();
+                }
+            } catch (err) {
+                window.location.href = "https://kekse-clan-bot.onrender.com/612.html";
+            }
+        }
+        generateCaptcha();
+    </script>
+</body>
+</html>
