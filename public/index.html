@@ -437,7 +437,7 @@
         return d ? `${d}d ${h}h ${m}m` : h ? `${h}h ${m}m` : `${m}m`;
       };
       const fmtDate = iso => new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
-      const fmtPing = ms => ms < 0 ? "—" : `${ms}ms`;
+      const fmtPing = ms => ms < 0 ? "—" : `${ms}`;
 
       const pingHistory = { labels: [], data: [] };
       const MAX_POINTS = 20;
