@@ -15,14 +15,30 @@ app.listen(port, "0.0.0.0", () => {
     console.log(`Server läuft auf Port ${port}`)
 })
 export let archiveTicket = async () => {};
-const stats = {
-  messagesSent: 0, membersJoined: 0, membersLeft: 0, commandsRunned: 0,
-  ticketsCreated: 0, giveawaysCreated: 0, pollsCreated: 0, remindersCreated: 0,
-  voiceChannelsCreated: 0, voiceChannelsDeleted: 0, countingMessagesSent: 0,
-  countingMessagesFailed: 0, countingMessagesRecovered: 0,
-  pingNow: 0, pingAverage: 0, pingMaximum: 0, pingMinimum: 0,
+// Eindeutiger Name für globale Statistiken, um Namenskonflikte (Shadowing) zu vermeiden
+const globalBotStats = {
+ messagesSent: 0, membersJoined: 0, membersLeft: 0, commandsRunned: 0,
+ ticketsCreated: 0, giveawaysCreated: 0, pollsCreated: 0, remindersCreated: 0,
+ voiceChannelsCreated: 0, voiceChannelsDeleted: 0, countingMessagesSent: 0,
+ countingMessagesFailed: 0, countingMessagesRecovered: 0,
+ pingNow: 0, pingAverage: 0, pingMaximum: 0, pingMinimum: 0,
  usersVerified: 0
 };
+
+// Einheitliche Hilfsfunktion für Zeitrahmen im gesamten Skript
+function parseTimeframe(tf) {
+ const match = tf.match(/^(\d+)([smhd])$/);
+ if (!match) return 0;
+ const num = parseInt(match[1]);
+ switch (match[2]) {
+ case "s": return num * 1000;
+ case "m": return num * 60000;
+ case "h": return num * 3600000;
+ case "d": return num * 86400000;
+ default: return 0;
+ }
+}
+
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
