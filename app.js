@@ -14,8 +14,8 @@ const port = process.env.PORT || 5000
 app.listen(port, "0.0.0.0", () => {
     console.log(`Server läuft auf Port ${port}`)
 })
+let archives = [];
 export async function initTicketArchive(app, getTickData, setTickData) {
-  let archives = [];
   try {
     const stored = await getTickData("archive_list") || {};
     archives = Array.isArray(stored.archive) ? stored.archive : [];
@@ -24,7 +24,8 @@ export async function initTicketArchive(app, getTickData, setTickData) {
     console.log("[TicketArchive] Fehler beim Laden:", e.message);
   }
   app.get("/api/tickets", (req, res) => res.json(archives));
-  export async function archiveTicket({ name, closedBy, channel }){
+}
+  export async function archiveTicket({ name, closedBy, channel }, setTickData){
     try {
       const messages = [];
       let lastId;
@@ -72,10 +73,7 @@ export async function initTicketArchive(app, getTickData, setTickData) {
       console.log(`[TicketArchive] ❌ Fehler bei "${name}": ${e.message}`);
     }
   };
-
-  return { archiveTicket };
 }
-// Eindeutiger Name für globale Statistiken, um Namenskonflikte (Shadowing) zu vermeiden
 const globalBotStats = {
  messagesSent: 0, membersJoined: 0, membersLeft: 0, commandsRunned: 0,
  ticketsCreated: 0, giveawaysCreated: 0, pollsCreated: 0, remindersCreated: 0,
