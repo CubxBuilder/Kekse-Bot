@@ -603,7 +603,7 @@
             window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
         }
         if (!token) {
-            window.location.href = window.location.origin + "/401.html";
+            window.location.href = window.location.origin + "/permission";
             return;
         }
         const res = await fetch(`/api/tickets?token=${token}`);
