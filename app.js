@@ -72,7 +72,7 @@ export async function archiveTicket({ name, closedBy, channel }, setTickData) {
                 name: closedBy?.username ?? "System", 
                 iconURL: closedBy?.displayAvatarURL({ size: 512 }) || client.user.displayAvatarURL() 
             })
-            .setDescription(`**Kanal:** \`${ticketName}\` wurde erfolgreich archiviert.\n**Nachrichten:** ${ticketMessages.length}\n\n👉 [**Dashboard Transcript öffnen**](${ticketUrl})`)
+            .setDescription(`**Kanal:** \`${ticketName}\` wurde erfolgreich archiviert.\n**Nachrichten:** ${ticketMessages.length}\n\n**Transcript:** [**${ticketName}**](${ticketUrl})`)
             .setFooter({ text: 'Kekse Clan | Ticket-Archive' })
             .setTimestamp();  
         await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
