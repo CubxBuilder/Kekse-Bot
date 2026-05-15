@@ -2204,10 +2204,8 @@ export async function initStatistics(client) {
     const ping = client.ws.ping;
 
     globalBotStats.pingNow = ping;
-    globalBotStats.pingAverage =
-      globalBotStats.pingAverage === 0
-        ? ping
-        : (globalBotStats.pingAverage + ping) / 2;
+    globalBotStats.pingAverage = globalBotStats.pingAverage === 0 ? ping : Math.round((globalBotStats.pingAverage * globalBotStats.pingCount + ping) / (globalBotStats.pingCount + 1));
+
 
    globalBotStats.pingMaximum = Math.max(globalBotStats.pingMaximum, ping);
 
