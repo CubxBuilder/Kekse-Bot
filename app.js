@@ -1982,7 +1982,11 @@ export async function initTickets(client) {
     });
     delete stored.tickets[ticket.idString];
     await setTickData("tickets", stored);
-    await archiveTicket({ name: channel.name, closedBy: moderator, channel });
+    await archiveTicket({ 
+        name: channel.name, 
+        closedBy: moderator,
+        channel: channel 
+    }, setTickData);
   } catch (err) {
     console.error("[TICKET] Fehler:", err);
   }
@@ -2579,7 +2583,7 @@ client.once("ready", async () => {
     await initStatistics(client);
     await initDashboard(app, client, globalBotStats);
     await initScammProtection(client);
-    ({ archiveTicket } = await initTicketArchive(app, getTickData, setTickData));
+    await initTicketArchive(app, getTickData, setTickData);
     client.user.setPresence({
       activities: [{ name: "!help", type: 0 }],
       status: "online"
