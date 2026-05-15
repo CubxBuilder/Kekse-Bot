@@ -21,75 +21,70 @@ export async function initTicketArchive(app, getTickData, setTickData) {
     archives = Array.isArray(stored.archive) ? stored.archive : [];
     dashboardLog(`[TicketArchive] ${archives.length} archivierte Tickets geladen.`);
   } catch (e) {
-    dashboardLog("[TicketArchive] Fehler beim Laden:", e.message);
+    dashboardLog("[TicketArchive] Fehler beim Laden: " + e.message);
   }
   app.get("/api/tickets", (req, res) => res.json(archives));
 }
-  export async function archiveTicket({ name, closedBy, channel }, setTickData){
-    try {
-      const messages = [];
-      let lastId;
-      while (true) {
-        const batch = await channel.messages.fetch({ limit: 100, ...(lastId ? { before: lastId } : {}) });
-        if (!batch.size) break;
-        for (const msg of batch.values()) {
-          messages.push({
-            id: msg.id,
-            author: { name: msg.author.username, avatar: msg.author.displayAvatarURL({ size: 64 }) },
-            content: msg.content || null,
-            timestamp: msg.createdTimestamp,
-            attachments: [...msg.attachments.values()].map(a => ({
-              name: a.name, url: a.url, type: a.contentType || "unknown",
-            })),
-            stickers: [...(msg.stickers?.values() ?? [])].map(s => ({
-              name: s.name, url: s.url,
-            })),
-            embeds: msg.embeds.map(e => ({ title: e.title, description: e.description })),
-          });
-          lastId = msg.id;
-        }
-        if (batch.size < 100) break;
-      }
-      messages.reverse();
-      if (archives.length > 100) archives.pop();
-      await setTickData("archive_list", { archive: archives });
-      dashboardLog(`[TicketArchive] ✅ "${name}" archiviert — ${messages.length} Nachrichten.`);
-      const match = name.match(/\d{4}$/);
-      const ticketIdNum = match ? match[0] : Date.now().toString();
-        archives.unshift({
-          id: ticketIdNum,
-          name,
-          closedBy: closedBy?.username ?? "System",
-          closedAt: new Date().toISOString(),
-          messageCount: messages.length,
-          messages,
+export async function archiveTicket({ name, closedBy, channel }, setTickData) {
+  try {
+    const messages = [];
+    let lastId;
+    while (true) {
+      const batch = await channel.messages.fetch({ limit: 100, ...(lastId ? { before: lastId } : {}) });
+      if (!batch.size) break;
+      for (const msg of batch.values()) {
+        messages.push({
+          id: msg.id,
+          author: { name: msg.author.username, avatar: msg.author.displayAvatarURL({ size: 64 }) },
+          content: msg.content || null,
+          timestamp: msg.createdTimestamp,
+          attachments: [...msg.attachments.values()].map(a => ({
+            name: a.name, url: a.url, type: a.contentType || "unknown",
+          })),
+          stickers: [...(msg.stickers?.values() ?? [])].map(s => ({ name: s.name, url: s.url })),
+          embeds: msg.embeds.map(e => ({ title: e.title, description: e.description })),
         });
-        const sendKekseLog = async (name, messages) => {
-            const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
-            if (!logChannel) return;
-            const ticketUrl = `https://kekse-clan-bot.onrender.com/#ticket-${ticketIdNum}`;
-            const logEmbed = new EmbedBuilder()
-                .setColor('#ffffff')
-                .setAuthor({ 
-                    name: closedBy?.username ?? "System", 
-                    iconURL: closedBy?.displayAvatarURL({ size: 512 }) || client.user.displayAvatarURL() 
-                })
-                .setDescription(`**Kanal:** \`${name}\` wurde erfolgreich archiviert.\n**Nachrichten:** ${messages.length}\n\n👉 [**Dashboard Transcript öffnen**](${ticketUrl})`)
-                .setFooter({ text: 'Kekse Clan | Ticket-Archive' })
-                .setTimestamp();
-            await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
-        };
-        await sendKekseLog(name, messages);
-      };
-      setTimeout(async () => {
-        await channel.delete().catch(() => {});
-      }, 2000);
-
-      
-    } catch (e) {
-      dashboardLog(`[TicketArchive] ❌ Fehler bei "${name}": ${e.message}`);
+        lastId = msg.id;
+      }
+      if (batch.size < 100) break;
     }
+    messages.reverse();
+    const match = name.match(/\d{4}$/);
+    const ticketIdNum = match ? match[0] : Date.now().toString();
+    archives.unshift({
+      id: ticketIdNum,
+      name,
+      closedBy: closedBy?.username ?? "System",
+      closedAt: new Date().toISOString(),
+      messageCount: messages.length,
+      messages,
+    });
+    if (archives.length > 100) archives.pop();
+    await setTickData("archive_list", { archive: archives });
+    dashboardLog(`[TicketArchive] ✅ "${name}" archiviert — ${messages.length} Nachrichten.`);
+    const sendKekseLog = async (ticketName, ticketMessages) => {
+        const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+        if (!logChannel) return;
+        const ticketUrl = `https://kekse-clan-bot.onrender.com/#ticket-${ticketIdNum}`;
+        const logEmbed = new EmbedBuilder()
+            .setColor('#ffffff')
+            .setAuthor({ 
+                name: closedBy?.username ?? "System", 
+                iconURL: closedBy?.displayAvatarURL({ size: 512 }) || client.user.displayAvatarURL() 
+            })
+            .setDescription(`**Kanal:** \`${ticketName}\` wurde erfolgreich archiviert.\n**Nachrichten:** ${ticketMessages.length}\n\n👉 [**Dashboard Transcript öffnen**](${ticketUrl})`)
+            .setFooter({ text: 'Kekse Clan | Ticket-Archive' })
+            .setTimestamp();  
+        await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
+    };
+    await sendKekseLog(name, messages);
+    setTimeout(async () => {
+        await channel.delete().catch(() => {});
+    }, 2000);      
+  } catch (e) {
+    dashboardLog(`[TicketArchive] ❌ Fehler bei "${name}": ${e.message}`);
   }
+}
 const globalBotStats = {
  messagesSent: 0, membersJoined: 0, membersLeft: 0, commandsRunned: 0,
  ticketsCreated: 0, giveawaysCreated: 0, pollsCreated: 0, remindersCreated: 0,
