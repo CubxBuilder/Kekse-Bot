@@ -167,7 +167,7 @@
                 const res = await fetch(`/api/tickets?token=${token}`);
                 if (res.ok) {
                     sessionStorage.setItem("admin_token", token);
-                    window.location.href = window.location.origin + "/";
+                    window.location.replace(window.location.origin + "/");
                 } else {
                     errorElement.innerText = "❌ Passwort inkorrekt. Zugriff verweigert.";
                     errorElement.style.display = "block";
