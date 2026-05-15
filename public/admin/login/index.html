@@ -166,10 +166,17 @@
                 const token = passwordInput; 
                 const apiUrl = window.location.origin + "/api/tickets?token=" + encodeURIComponent(token);
                 const res = await fetch(apiUrl);
-                if (res.ok) {
-                    sessionStorage.setItem("admin_token", token);
-                    window.location.replace(window.location.origin + "/");
-                } else {
+                        if (res.ok) {
+                            sessionStorage.setItem("admin_token", token);
+                            const loginBtn = document.querySelector(".login-btn");
+                            if (loginBtn) {
+                                loginBtn.innerText = "⏳ Erstelle Admin-Sitzung...";
+                                loginBtn.style.backgroundColor = "#43b581";
+                            }
+                            setTimeout(() => {
+                                window.location.replace(window.location.origin + "/");
+                            }, 250);
+                        } else {
                     errorElement.innerText = "❌ Passwort inkorrekt. Zugriff verweigert.";
                     errorElement.style.display = "block";
                     generateCaptcha();
