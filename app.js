@@ -14,7 +14,67 @@ const port = process.env.PORT || 5000
 app.listen(port, "0.0.0.0", () => {
     console.log(`Server läuft auf Port ${port}`)
 })
-export let archiveTicket = async () => {};
+export async function initTicketArchive(app, getTickData, setTickData) {
+  let archives = [];
+  try {
+    const stored = await getTickData("archive_list") || {};
+    archives = Array.isArray(stored.archive) ? stored.archive : [];
+    console.log(`[TicketArchive] ${archives.length} archivierte Tickets geladen.`);
+  } catch (e) {
+    console.log("[TicketArchive] Fehler beim Laden:", e.message);
+  }
+  app.get("/api/tickets", (req, res) => res.json(archives));
+  archiveTicket = async ({ name, closedBy, channel }) => {
+    try {
+      const messages = [];
+      let lastId;
+      while (true) {
+        const batch = await channel.messages.fetch({ limit: 100, ...(lastId ? { before: lastId } : {}) });
+        if (!batch.size) break;
+        for (const msg of batch.values()) {
+          messages.push({
+            id: msg.id,
+            author: { name: msg.author.username, avatar: msg.author.displayAvatarURL({ size: 64 }) },
+            content: msg.content || null,
+            timestamp: msg.createdTimestamp,
+            attachments: [...msg.attachments.values()].map(a => ({
+              name: a.name, url: a.url, type: a.contentType || "unknown",
+            })),
+            stickers: [...(msg.stickers?.values() ?? [])].map(s => ({
+              name: s.name, url: s.url,
+            })),
+            embeds: msg.embeds.map(e => ({ title: e.title, description: e.description })),
+          });
+          lastId = msg.id;
+        }
+        if (batch.size < 100) break;
+      }
+      messages.reverse();
+
+      archives.unshift({
+        id: Date.now(),
+        name,
+        closedBy: closedBy?.username ?? "System",
+        closedAt: new Date().toISOString(),
+        messageCount: messages.length,
+        messages,
+      });
+
+      if (archives.length > 100) archives.pop();
+      await setTickData("archive_list", { archive: archives });
+      console.log(`[TicketArchive] ✅ "${name}" archiviert — ${messages.length} Nachrichten.`);
+      setTimeout(async () => {
+        await channel.delete().catch(() => {});
+      }, 2000);
+
+      
+    } catch (e) {
+      console.log(`[TicketArchive] ❌ Fehler bei "${name}": ${e.message}`);
+    }
+  };
+
+  return { archiveTicket };
+}
 // Eindeutiger Name für globale Statistiken, um Namenskonflikte (Shadowing) zu vermeiden
 const globalBotStats = {
  messagesSent: 0, membersJoined: 0, membersLeft: 0, commandsRunned: 0,
@@ -407,70 +467,85 @@ Um sicherzustellen, dass unsere Community sicher und freundlich bleibt, befolge 
   await user.send(message).catch(() => console.log(`Konnte DM an ${user.tag} nicht senden.`));
 }
 export async function initInvites(client) {
-  const inviteCache = new Map();
-  const cacheInvites = async () => {
-    for (const g of client.guilds.cache.values()) {
-      const invs = await g.invites.fetch().catch(() => null);
-      if (invs) inviteCache.set(g.id, new Map(invs.map(i => [i.code, i.uses])));
-    }
-  };
-  client.on("ready", cacheInvites);
-  client.on("messageCreate", async (msg) => {
-    if (msg.author.bot || !msg.content.startsWith("!")) return;
-    const args = msg.content.slice(1).split(/\s+/);
-    const cmd = args.shift().toLowerCase();
-    if (cmd === "invite_leaderboard" || cmd === "invites") {
-      const stats = await getIData("invite_stats") || {};
-      const leaderboard = Object.entries(stats).map(([id, s]) => ({ id, ...s, total: (s.regular || 0) - (s.left || 0) - (s.fake || 0) + (s.bonus || 0) })).sort((a, b) => b.total - a.total).slice(0, 10);
-      if (leaderboard.length === 0) return msg.reply("Keine Daten.");
-      let desc = "";
-      leaderboard.forEach((e, i) => { desc += `\`${i + 1}. \` <@${e.id}> • **${e.total}** invites. (${e.regular} regular, ${e.left} left, ${e.fake} fake, ${e.bonus} bonus)\n`; });
-      const embed = new EmbedBuilder().setTitle("<:statistiques:1467246038497886311> Invite Leaderboard").setDescription(desc).setColor(0xffffff);
-      await msg.reply({ embeds: [embed] });
-      stats.commandsRunned += 1
-    }
-    if (cmd === "addbonus" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
-      const target = msg.mentions.users.first() || await client.users.fetch(args[0]).catch(() => null);
-      const amount = parseInt(args[1]);
-      if (!target || isNaN(amount)) return msg.reply("❌ !addbonus @user 10");
-      const stats = await getIData("invite_stats") || {};
-      stats[target.id] = stats[target.id] || { regular: 0, left: 0, fake: 0, bonus: 0 };
-      stats[target.id].bonus = (stats[target.id].bonus || 0) + amount;
-      await setIData("invite_stats", stats);
-      msg.reply(`✅ +${amount} für ${target.username}`);
-      stats.commandsRunned += 1;
-    }
-  });
-  client.on("guildMemberAdd", async (m) => {
-    const cached = inviteCache.get(m.guild.id);
-    const current = await m.guild.invites.fetch().catch(() => null);
-    if (!current || !cached) return;
-    const used = current.find(i => i.uses > (cached.get(i.code) || 0));
-    inviteCache.set(m.guild.id, new Map(current.map(i => [i.code, i.uses])));
-    if (used) {
-      const stats = await getIData("invite_stats") || {};
-      const rels = await getIData("invite_relations") || {};
-      const inviterId = used.inviter.id;
-      stats[inviterId] = stats[inviterId] || { regular: 0, left: 0, fake: 0, bonus: 0 };
-      rels[m.id] = inviterId;
-      const isFake = (Date.now() - m.user.createdTimestamp) < 86400000;
-      isFake ? stats[inviterId].fake++ : stats[inviterId].regular++;
-      await setIData("invite_stats", stats);
-      await setIData("invite_relations", rels);
-    }
-    stats.membersJoined += 1;
-  });
-  client.on("guildMemberRemove", async (m) => {
-    const rels = await getIData("invite_relations") || {};
-    const inviterId = rels[m.id];
-    if (inviterId) {
-      const stats = await getIData("invite_stats") || {};
-      if (stats[inviterId]) { stats[inviterId].left++; await setIData("invite_stats", stats); }
-      delete rels[m.id];
-      await setIData("invite_relations", rels);
-    }
-    stats.membersLeft += 1;
-  });
+ const inviteCache = new Map();
+ const cacheInvites = async () => {
+ for (const g of client.guilds.cache.values()) {
+ const invs = await g.invites.fetch().catch(() => null);
+ if (invs) inviteCache.set(g.id, new Map(invs.map(i => [i.code, i.uses])));
+ }
+ };
+ client.on("ready", cacheInvites);
+ client.on("messageCreate", async (msg) => {
+ if (msg.author.bot || !msg.content.startsWith("!")) return;
+ const args = msg.content.slice(1).split(/\s+/);
+ const cmd = args.shift().toLowerCase();
+ 
+ if (cmd === "invite_leaderboard" || cmd === "invites") {
+ // Variable von 'stats' in 'dbInviteStats' umbenannt, um Crash zu verhindern
+ const dbInviteStats = await getIData("invite_stats") || {};
+ const leaderboard = Object.entries(dbInviteStats).map(([id, s]) => ({ 
+  id, ...s, total: (s.regular || 0) - (s.left || 0) - (s.fake || 0) + (s.bonus || 0) 
+ })).sort((a, b) => b.total - a.total).slice(0, 10);
+
+ if (leaderboard.length === 0) return msg.reply("Keine Daten.");
+ let desc = "";
+ leaderboard.forEach((e, i) => { 
+  desc += `\`${i + 1}. \` <@${e.id}> • **${e.total}** invites. (${e.regular} regular, ${e.left} left, ${e.fake} fake, ${e.bonus} bonus)\n`; 
+ });
+ const embed = new EmbedBuilder()
+  .setTitle("<:statistiques:1467246038497886311> Invite Leaderboard")
+  .setDescription(desc)
+  .setColor(0xffffff);
+ await msg.reply({ embeds: [embed] });
+ globalBotStats.commandsRunned += 1;
+ }
+
+ if (cmd === "addbonus" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
+ const target = msg.mentions.users.first() || await client.users.fetch(args[0]).catch(() => null);
+ const amount = parseInt(args[1]);
+ if (!target || isNaN(amount)) return msg.reply(" !addbonus @user 10");
+ 
+ const dbInviteStats = await getIData("invite_stats") || {};
+ dbInviteStats[target.id] = dbInviteStats[target.id] || { regular: 0, left: 0, fake: 0, bonus: 0 };
+ dbInviteStats[target.id].bonus = (dbInviteStats[target.id].bonus || 0) + amount;
+ await setIData("invite_stats", dbInviteStats);
+ 
+ msg.reply(` +${amount} für ${target.username}`);
+ globalBotStats.commandsRunned += 1;
+ }
+ });
+
+ client.on("guildMemberAdd", async (m) => {
+ const cached = inviteCache.get(m.guild.id);
+ const current = await m.guild.invites.fetch().catch(() => null);
+ if (!current || !cached) return;
+ const used = current.find(i => i.uses > (cached.get(i.code) || 0));
+ inviteCache.set(m.guild.id, new Map(current.map(i => [i.code, i.uses])));
+ if (used) {
+ const dbInviteStats = await getIData("invite_stats") || {};
+ const rels = await getIData("invite_relations") || {};
+ const inviterId = used.inviter.id;
+ dbInviteStats[inviterId] = dbInviteStats[inviterId] || { regular: 0, left: 0, fake: 0, bonus: 0 };
+ rels[m.id] = inviterId;
+ const isFake = (Date.now() - m.user.createdTimestamp) < 86400000;
+ isFake ? dbInviteStats[inviterId].fake++ : dbInviteStats[inviterId].regular++;
+ await setIData("invite_stats", dbInviteStats);
+ await setIData("invite_relations", rels);
+ }
+ globalBotStats.membersJoined += 1;
+ });
+
+ client.on("guildMemberRemove", async (m) => {
+ const rels = await getIData("invite_relations") || {};
+ const inviterId = rels[m.id];
+ if (inviterId) {
+ const dbInviteStats = await getIData("invite_stats") || {};
+ if (dbInviteStats[inviterId]) { dbInviteStats[inviterId].left++; await setIData("invite_stats", dbInviteStats); }
+ delete rels[m.id];
+ await setIData("invite_relations", rels);
+ }
+ globalBotStats.membersLeft += 1;
+ });
 }
 export function initModSend(client) {
   client.on("guildAuditLogEntryCreate", async (entry, guild) => {
@@ -551,28 +626,29 @@ export function initModeration(client) {
       await logChannel.send({ embeds: [kekseEmbed] }).catch(() => {});
     };
 
-    if (cmd === "timeout") {
-      const user = await getUser(args[0]);
-      const durationStr = args[1];
-      const reason = args.slice(2).join(" ") || "Kein Grund";
-      if (!user || !durationStr) return msg.reply({ content: "❌ Syntax: `!timeout @user 10m Grund`.", ephemeral: true });
-
-      const match = durationStr.match(/^(\d+)([smhd])$/);
-      if (!match) return msg.reply({ content: "❌ Format: 10s, 5m, 2h, 1d", ephemeral: true });
-        const durationMs = parseTimDuration(match[1], match[2]);
-
-
-      try {
-        const member = await msg.guild.members.fetch(user.id);
-        await member.timeout(durationMs, reason);
-        await sendModLog("Timeout", user, reason, `Dauer: ${durationStr}`);
-        await msg.reply({ content: `✅ **Timeout**: <@${user.id}> für ${durationStr}.`, ephemeral: true });
-      } catch (err) { 
-        await msg.reply({ content: "❌ Fehler: User nicht auf Server oder fehlende Rechte.", ephemeral: true }); 
-      }
-      stats.commandsRunned += 1;
-    }
-
+     if (cmd === "timeout") {
+ const user = await getUser(args[0]);
+ const durationStr = args[1];
+ const reason = args.slice(2).join(" ") || "Kein Grund";
+ if (!user || !durationStr) return msg.reply({ content: " Syntax: `!timeout @user 10m Grund`.", ephemeral: true });
+ 
+ const match = durationStr.match(/^(\d+)([smhd])$/);
+ if (!match) return msg.reply({ content: " Format: 10s, 5m, 2h, 1d", ephemeral: true });
+ 
+ // Auf die vereinheitlichte Funktion 'parseTimeframe' umgestellt
+ const durationMs = parseTimeframe(durationStr);
+ if (durationMs === 0) return msg.reply({ content: " Ungültige Zeitangabe.", ephemeral: true });
+ 
+ try {
+ const member = await msg.guild.members.fetch(user.id);
+ await member.timeout(durationMs, reason);
+ await sendModLog("Timeout", user, reason, `Dauer: ${durationStr}`);
+ await msg.reply({ content: ` **Timeout**: <@${user.id}> für ${durationStr}.`, ephemeral: true });
+ } catch (err) { 
+ await msg.reply({ content: " Fehler: User nicht auf Server oder fehlende Rechte.", ephemeral: true }); 
+ }
+ globalBotStats.commandsRunned += 1;
+ }
     if (cmd === "untimeout") {
       const user = await getUser(args[0]);
       const reason = args.slice(1).join(" ") || "Kein Grund";
@@ -2463,67 +2539,6 @@ export async function initDashboard(app, client, stats) {
     logs.push({ t: Date.now(), m: a.join(" ") });
     if (logs.length > 100) logs.shift();
   };
-}
-export async function initTicketArchive(app, getTickData, setTickData) {
-  let archives = [];
-  try {
-    const stored = await getTickData("archive_list") || {};
-    archives = Array.isArray(stored.archive) ? stored.archive : [];
-    console.log(`[TicketArchive] ${archives.length} archivierte Tickets geladen.`);
-  } catch (e) {
-    console.log("[TicketArchive] Fehler beim Laden:", e.message);
-  }
-  app.get("/api/tickets", (req, res) => res.json(archives));
-  archiveTicket = async ({ name, closedBy, channel }) => {
-    try {
-      const messages = [];
-      let lastId;
-      while (true) {
-        const batch = await channel.messages.fetch({ limit: 100, ...(lastId ? { before: lastId } : {}) });
-        if (!batch.size) break;
-        for (const msg of batch.values()) {
-          messages.push({
-            id: msg.id,
-            author: { name: msg.author.username, avatar: msg.author.displayAvatarURL({ size: 64 }) },
-            content: msg.content || null,
-            timestamp: msg.createdTimestamp,
-            attachments: [...msg.attachments.values()].map(a => ({
-              name: a.name, url: a.url, type: a.contentType || "unknown",
-            })),
-            stickers: [...(msg.stickers?.values() ?? [])].map(s => ({
-              name: s.name, url: s.url,
-            })),
-            embeds: msg.embeds.map(e => ({ title: e.title, description: e.description })),
-          });
-          lastId = msg.id;
-        }
-        if (batch.size < 100) break;
-      }
-      messages.reverse();
-
-      archives.unshift({
-        id: Date.now(),
-        name,
-        closedBy: closedBy?.username ?? "System",
-        closedAt: new Date().toISOString(),
-        messageCount: messages.length,
-        messages,
-      });
-
-      if (archives.length > 100) archives.pop();
-      await setTickData("archive_list", { archive: archives });
-      console.log(`[TicketArchive] ✅ "${name}" archiviert — ${messages.length} Nachrichten.`);
-      setTimeout(async () => {
-        await channel.delete().catch(() => {});
-      }, 2000);
-
-      
-    } catch (e) {
-      console.log(`[TicketArchive] ❌ Fehler bei "${name}": ${e.message}`);
-    }
-  };
-
-  return { archiveTicket };
 }
 
   app.get("/api/stats", async (req, res) => {
