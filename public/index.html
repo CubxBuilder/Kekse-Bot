@@ -607,6 +607,9 @@
           }
           const data = await res.json();
           renderTickets(data);
+          if (window.location.hash && window.location.hash.startsWith("#ticket-")) {
+            checkUrlHash(); 
+          }
           checkUrlHash(); 
         } catch (err) {
           window.location.href = "/err612";
