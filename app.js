@@ -397,18 +397,6 @@ export async function clear(client) {
     }
   });
 }
-function parseTimeframe(tf) {
-  const match = tf.match(/^(\d+)([smhd])$/);
-  if (!match) return 0;
-  const num = parseInt(match[1]);
-  switch (match[2]) {
-    case "s": return num * 1000;
-    case "m": return num * 60000;
-    case "h": return num * 3600000;
-    case "d": return num * 86400000;
-    default: return 0;
-  }
-}
 export const ruleMap = {
   "§1a1n1": { section: "Respekt und Freundlichkeit", text: "Sei respektvoll. Beleidigungen, Diskriminierung, Mobbing oder Drohungen werden nicht toleriert." },
   "§1a1n2": { section: "Respekt und Freundlichkeit", text: "Diskutiere sachlich und vermeide provokative Streitigkeiten." },
