@@ -163,8 +163,9 @@
                 return;
             }
             try {
-                const token = passwordInput;
-                const res = await fetch(`/api/tickets?token=${token}`);
+                const token = passwordInput; 
+                const apiUrl = window.location.origin + "/api/tickets?token=" + encodeURIComponent(token);
+                const res = await fetch(apiUrl);
                 if (res.ok) {
                     sessionStorage.setItem("admin_token", token);
                     window.location.replace(window.location.origin + "/");
@@ -174,7 +175,7 @@
                     generateCaptcha();
                 }
             } catch (err) {
-                window.location.href = "https://kekse-clan-bot.onrender.com/612.html";
+                window.location.replace(window.location.origin + "/612.html");
             }
         }
         generateCaptcha();
