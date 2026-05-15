@@ -494,12 +494,12 @@
           set("version", d.version);
           set("last-restart", fmtDate(d.lastRestart));
 
-          set("tickets-created", d.stats.tickets);
-          set("polls-created", d.stats.polls);
-          set("giveaways-created", d.stats.giveaways);
-          set("commands-used", d.stats.commands);
-          set("scams-prevented", d.stats.scams);
-          set("messages-deleted", d.stats.deleted);
+          set("tickets-created", d.globalBotStats.tickets);
+          set("polls-created", d.globalBotStats.polls);
+          set("giveaways-created", d.globalBotStats.giveaways);
+          set("commands-used", d.globalBotStats.commands);
+          set("scams-prevented", d.globalBotStats.scams);
+          set("messages-deleted", d.globalBotStats.deleted);
 
           set("Version", d.version);
           set("uptime-foot", fmtUptime(d.uptime));
