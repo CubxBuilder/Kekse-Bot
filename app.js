@@ -51,19 +51,36 @@ export async function initTicketArchive(app, getTickData, setTickData) {
         if (batch.size < 100) break;
       }
       messages.reverse();
-
-      archives.unshift({
-        id: Date.now(),
-        name,
-        closedBy: closedBy?.username ?? "System",
-        closedAt: new Date().toISOString(),
-        messageCount: messages.length,
-        messages,
-      });
-
       if (archives.length > 100) archives.pop();
       await setTickData("archive_list", { archive: archives });
       dashboardLog(`[TicketArchive] ✅ "${name}" archiviert — ${messages.length} Nachrichten.`);
+      const match = name.match(/\d{4}$/);
+      const ticketIdNum = match ? match[0] : Date.now().toString();
+        archives.unshift({
+          id: ticketIdNum,
+          name,
+          closedBy: closedBy?.username ?? "System",
+          closedAt: new Date().toISOString(),
+          messageCount: messages.length,
+          messages,
+        });
+        const sendKekseLog = async (name, messages) => {
+            const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+            if (!logChannel) return;
+            const ticketUrl = `https://kekse-clan-bot.onrender.com/#ticket-${ticketIdNum}`;
+            const logEmbed = new EmbedBuilder()
+                .setColor('#ffffff')
+                .setAuthor({ 
+                    name: closedBy?.username ?? "System", 
+                    iconURL: closedBy?.displayAvatarURL({ size: 512 }) || client.user.displayAvatarURL() 
+                })
+                .setDescription(`**Kanal:** \`${name}\` wurde erfolgreich archiviert.\n**Nachrichten:** ${messages.length}\n\n👉 [**Dashboard Transcript öffnen**](${ticketUrl})`)
+                .setFooter({ text: 'Kekse Clan | Ticket-Archive' })
+                .setTimestamp();
+            await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
+        };
+        await sendKekseLog(name, messages);
+      };
       setTimeout(async () => {
         await channel.delete().catch(() => {});
       }, 2000);
