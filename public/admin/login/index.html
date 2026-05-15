@@ -166,7 +166,8 @@
                 const token = passwordInput;
                 const res = await fetch(`/api/tickets?token=${token}`);
                 if (res.ok) {
-                    window.location.href = `https://kekse-clan-bot.onrender.com/?t=${encodeURIComponent(token)}`;
+                    sessionStorage.setItem("admin_token", token);
+                    window.location.href = window.location.origin + "/";
                 } else {
                     errorElement.innerText = "❌ Passwort inkorrekt. Zugriff verweigert.";
                     errorElement.style.display = "block";
