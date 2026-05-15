@@ -1,1 +1,95 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>401 - Keine Berechtigung | Kekse Clan</title>
+    <style>
+        :root {
+            --bg-main: #0f1115;
+            --bg-card: #181b22;
+            --text-primary: #ffffff;
+            --text-muted: #72767d;
+            --color-error: #f04747;
+            --font-main: 'gg sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .error-container {
+            background-color: var(--bg-card);
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            max-width: 450px;
+            width: 90%;
+            border-top: 4px solid var(--color-error);
+        }
+
+        .error-code {
+            font-size: 5rem;
+            font-weight: 800;
+            color: var(--color-error);
+            margin: 0;
+            line-height: 1;
+        }
+
+        .error-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+        }
+
+        .error-message {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 30px;
+        }
+
+        .discord-btn {
+            background-color: #5865f2;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .discord-btn:hover {
+            background-color: #4752c4;
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="error-container">
+        <div class="error-code">401</div>
+        <div class="error-title">Keine Berechtigung</div>
+        <div class="error-message">
+            Der Zugriff auf dieses Ticket-Archiv wurde verweigert. Es wurde kein 
+            Sicherheits-Token in der URL übergeben. Bitte nutze den Transcript-Link aus dem Log-Channel.
+        </div>
+        <a href="https://discord.com" class="discord-btn">Zurück zu Discord</a>
+    </div>
+
+</body>
+</html>
