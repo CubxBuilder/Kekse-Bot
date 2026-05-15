@@ -560,7 +560,7 @@
         }
         list.innerHTML = tickets.map(t => `
           <div class="ticket-entry" data-id="${t.id}" id="ticket-${t.id}">
-            <button class="ticket-btn" onclick="toggleTicket(${t.id})">
+            <button class="ticket-btn" onclick="toggleTicket('${t.id}')">
               <div class="ticket-meta">
                 <span class="ticket-name">${t.name}</span>
                 <span class="ticket-info">Geschlossen von ${t.closedBy} · ${fmtDate(t.closedAt)}</span>
@@ -575,7 +575,7 @@
         ).join("");
       }
       window.toggleTicket = id => {
-        const entry = document.querySelector(`.ticket-entry[data-id="${id}"]`);
+        const entry = document.getElementById(`ticket-${id}`);
         if (entry) entry.classList.toggle("open");
       };
       function checkUrlHash() {
