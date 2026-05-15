@@ -597,7 +597,7 @@
           const urlParams = new URLSearchParams(window.location.search);
           const token = urlParams.get('t');
           if (!token) {
-              window.location.href = "https://google.com";
+              window.location.href = "/permission";
               return;
           }
           const res = await fetch(`/api/tickets?token=${token}`);
