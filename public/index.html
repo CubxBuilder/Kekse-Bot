@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
     <link rel="icon" href="icon.png" type="image/png">
+    <script src="https://jsdelivr.net"></script>
     <style>
       :root {
         --bg-base:        #0a0a0a;
@@ -442,21 +443,19 @@ const fmtDate = iso => new Date(iso).toLocaleString("de-DE", { dateStyle: "short
 
 const fmtPing = ms => ms < 0 ? "—" : `${ms}`;
 
-const STORAGE_KEY = "kekse_bot_ping_history";
-let pingHistory = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { labels: [], data: [], timestamps: [] };
-
-if (!pingHistory.timestamps) pingHistory.timestamps = pingHistory.labels.map(() => Date.now());
+const STORAGE_KEY = "kekse_bot_ping_history_v2";
+let pingHistory = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 
 const chart = new Chart($("ping-chart"), {
   type: "line",
   data: {
-    labels: pingHistory.labels,
     datasets: [{
-      data: pingHistory.data,
+      data: pingHistory,
       borderColor: "#ffffff",
       backgroundColor: "rgba(255,255,255,0.05)",
       borderWidth: 1.5,
-      pointRadius: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
       fill: true,
       tension: 0.4,
     }]
@@ -467,9 +466,17 @@ const chart = new Chart($("ping-chart"), {
     maintainAspectRatio: false,
     plugins: { legend: { display: false } },
     scales: {
-      x: { 
-        display: true, 
-        ticks: { color: "#888", font: { size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 6 },
+      x: {
+        type: "time",
+        time: {
+          tooltipFormat: "HH:mm:ss",
+          displayFormats: {
+            minute: "HH:mm",
+            hour: "HH:mm",
+            day: "MMM d, HH:mm"
+          }
+        },
+        ticks: { color: "#888", font: { size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 4 },
         grid: { display: false }
       },
       y: {
@@ -486,57 +493,7 @@ const chart = new Chart($("ping-chart"), {
   }
 });
 
-function formatTimeSince(restartTimestamp) {
-  if (!restartTimestamp) return "";
-  const diffMs = Date.now() - new Date(restartTimestamp).getTime();
-  const diffSec = Math.floor(Math.max(0, diffMs) / 1000);
-  const hrs = Math.floor(diffSec / 3600);
-  const mins = Math.floor((diffSec % 3600) / 60);
-  const mStr = mins.toString().padStart(2, '0');
-  return hrs > 0 ? `${hrs}h ${mStr}m` : `${mins}m`;
-}
-
-function optimizeHistory(restartTimestamp) {
-  const filteredLabels = [];
-  const filteredData = [];
-  const filteredTimestamps = [];
-
-  let lastMinuteBucket = -1;
-  let lastFiveMinBucket = -1;
-
-  for (let i = 0; i < pingHistory.data.length; i++) {
-    const ts = pingHistory.timestamps[i];
-    const ping = pingHistory.data[i];
-    
-    const diffMsFromStart = ts - new Date(restartTimestamp).getTime();
-    const minsFromStart = Math.floor(diffMsFromStart / 60000);
-
-    if (minsFromStart <= 10) {
-      if (minsFromStart !== lastMinuteBucket) {
-        filteredLabels.push(formatTimeSince(restartTimestamp));
-        filteredData.push(ping);
-        filteredTimestamps.push(ts);
-        lastMinuteBucket = minsFromStart;
-      }
-    } else {
-      const fiveMinBucket = Math.floor(minsFromStart / 5);
-      if (fiveMinBucket !== lastFiveMinBucket) {
-        filteredLabels.push(formatTimeSince(restartTimestamp));
-        filteredData.push(ping);
-        filteredTimestamps.push(ts);
-        lastFiveMinBucket = fiveMinBucket;
-      }
-    }
-  }
-
-  pingHistory.labels = filteredLabels;
-  pingHistory.data = filteredData;
-  pingHistory.timestamps = filteredTimestamps;
-}
-
 function updatePingChart(pingValue, lastRestart) {
-  if (!lastRestart) return;
-
   let cleanValue = pingValue;
   if (typeof pingValue === 'string') {
     cleanValue = pingValue.replace(/[^\d.]/g, '');
@@ -545,19 +502,17 @@ function updatePingChart(pingValue, lastRestart) {
   if (isNaN(numericPing)) return;
 
   const now = Date.now();
-  pingHistory.labels.push(formatTimeSince(lastRestart));
-  pingHistory.data.push(numericPing);
-  pingHistory.timestamps.push(now);
+  
+  pingHistory.push({ x: now, y: numericPing });
 
-  optimizeHistory(lastRestart);
+  const oneDayAgo = now - 24 * 60 * 60 * 1000;
+  pingHistory = pingHistory.filter(p => p.x >= oneDayAgo);
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(pingHistory));
 
-  chart.data.labels = pingHistory.labels;
-  chart.data.datasets[0].data = pingHistory.data;
+  chart.data.datasets[0].data = pingHistory;
   chart.update();
 }
-
       async function fetchStats() {
         try {
           const res = await fetch("/api/stats");
