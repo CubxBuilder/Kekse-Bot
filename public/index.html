@@ -429,31 +429,30 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
     <script>
       const $ = id => document.getElementById(id);
+
 const set = (id, v) => { 
   const el = $(id); 
   if (el) el.textContent = v ?? "—"; 
 };
+
 const fmtUptime = s => {
   const d = Math.floor(s / 86400), 
         h = Math.floor((s % 86400) / 3600),
         m = Math.floor((s % 3600) / 60);
   return d ? `${d}d ${h}h ${m}m` : h ? `${h}h ${m}m` : `${m}m`;
 };
+
 const fmtDate = iso => new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
+
 const fmtPing = ms => ms < 0 ? "—" : `${ms}`;
+
 const pingHistory = { labels: [], data: [] };
 const MAX_POINTS = 20;
-function formatTimeSince(restartTimestamp) {
-  if (!restartTimestamp) return "";
-  const diffMs = Date.now() - new Date(restartTimestamp).getTime();
-  const diffSec = Math.floor(Math.max(0, diffMs) / 1000);
-  const hrs = Math.floor(diffSec / 3600);
-  const mins = Math.floor((diffSec % 3600) / 60);
-  const secs = diffSec % 60;
-  const mStr = mins.toString().padStart(2, '0');
-  const sStr = secs.toString().padStart(2, '0');
-  return hrs > 0 ? `${hrs}:${mStr}:${sStr}` : `${mStr}:${sStr}`;
+function getRealTimeLabel() {
+  const now = new Date();
+  return now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
+
 const chart = new Chart($("ping-chart"), {
   type: "line",
   data: {
@@ -484,7 +483,7 @@ const chart = new Chart($("ping-chart"), {
         ticks: { 
           color: "#888", 
           font: { size: 10 }, 
-          callback: v => Math.round(v) + "ms"
+          callback: v => v < 10 ? v.toFixed(1) + "ms" : Math.round(v) + "ms"
         },
         grid: { color: "#1a1a1a" },
         border: { display: false },
@@ -493,13 +492,15 @@ const chart = new Chart($("ping-chart"), {
   }
 });
 
-function updatePingChart(pingValue, lastRestart) {
-  const timeLabel = formatTimeSince(lastRestart);
+function updatePingChart(pingValue) {
+  const timeLabel = getRealTimeLabel();
+  
   let cleanValue = pingValue;
   if (typeof pingValue === 'string') {
     cleanValue = pingValue.replace(/[^\d.]/g, '');
   }
   const numericPing = parseFloat(cleanValue);
+  
   if (!isNaN(numericPing)) {
     pingHistory.labels.push(timeLabel);
     pingHistory.data.push(numericPing);
@@ -508,9 +509,8 @@ function updatePingChart(pingValue, lastRestart) {
       pingHistory.labels.shift();
       pingHistory.data.shift();
     }
+
     chart.update();
-  } else {
-    console.error("Ungültiger Ping-Wert empfangen:", pingValue);
   }
 }
       async function fetchStats() {
@@ -545,6 +545,7 @@ function updatePingChart(pingValue, lastRestart) {
           set("Version", d.version);
           set("uptime-foot", fmtUptime(d.uptime));
           set("ping-foot", fmtPing(d.ping.now));
+          updatePingChart(d.ping); 
 
          if (d.logs?.length) {
           const con = $("console");
