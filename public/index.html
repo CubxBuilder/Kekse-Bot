@@ -428,7 +428,21 @@
     </footer>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
     <script>
-      const STORAGE_KEY = "kekse_bot_ping_history";
+      const $ = id => document.getElementById(id);
+
+const set = (id, v) => { const el = $(id); if (el) el.textContent = v ?? "—"; };
+
+const fmtUptime = s => {
+  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600),
+        m = Math.floor((s % 3600) / 60);
+  return d ? `${d}d ${h}h ${m}m` : h ? `${h}h ${m}m` : `${m}m`;
+};
+
+const fmtDate = iso => new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
+
+const fmtPing = ms => ms < 0 ? "—" : `${ms}`;
+
+const STORAGE_KEY = "kekse_bot_ping_history";
 let pingHistory = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { labels: [], data: [], timestamps: [] };
 
 if (!pingHistory.timestamps) pingHistory.timestamps = pingHistory.labels.map(() => Date.now());
@@ -483,7 +497,6 @@ function formatTimeSince(restartTimestamp) {
 }
 
 function optimizeHistory(restartTimestamp) {
-  const now = Date.now();
   const filteredLabels = [];
   const filteredData = [];
   const filteredTimestamps = [];
@@ -544,6 +557,7 @@ function updatePingChart(pingValue, lastRestart) {
   chart.data.datasets[0].data = pingHistory.data;
   chart.update();
 }
+
       async function fetchStats() {
         try {
           const res = await fetch("/api/stats");
