@@ -428,28 +428,10 @@
     </footer>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
     <script>
-const $ = id => document.getElementById(id);
+const STORAGE_KEY = "kekse_bot_ping_history";
+let pingHistory = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { labels: [], data: [], timestamps: [] };
 
-const set = (id, v) => { 
-  const el = $(id); 
-  if (el) el.textContent = v ?? "—"; 
-};
-
-const fmtUptime = s => {
-  const d = Math.floor(s / 86400), 
-        h = Math.floor((s % 86400) / 3600),
-        m = Math.floor((s % 3600) / 60);
-  return d ? `${d}d ${h}h ${m}m` : h ? `${h}h ${m}m` : `${m}m`;
-};
-
-const fmtDate = iso => new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
-
-const fmtPing = ms => ms < 0 ? "—" : `${ms}`;
-
-// Das Daten-Array fürs Chart
-const pingHistory = { labels: [], data: [] };
-const MAX_POINTS = 20;
-let dataCounter = 1; // Einfacher Zähler für die X-Achse
+if (!pingHistory.timestamps) pingHistory.timestamps = pingHistory.labels.map(() => Date.now());
 
 const chart = new Chart($("ping-chart"), {
   type: "line",
@@ -459,8 +441,8 @@ const chart = new Chart($("ping-chart"), {
       data: pingHistory.data,
       borderColor: "#ffffff",
       backgroundColor: "rgba(255,255,255,0.05)",
-      borderWidth: 2,         // Etwas dickere Linie, damit man sie besser sieht
-      pointRadius: 3,         // Größere Punkte
+      borderWidth: 1.5,
+      pointRadius: 2,
       fill: true,
       tension: 0.4,
     }]
@@ -473,15 +455,15 @@ const chart = new Chart($("ping-chart"), {
     scales: {
       x: { 
         display: true, 
-        ticks: { color: "#888", font: { size: 10 } },
+        ticks: { color: "#888", font: { size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 6 },
         grid: { display: false }
       },
       y: {
         beginAtZero: true,
         ticks: { 
           color: "#888", 
-          font: { size: 10 }, 
-          callback: v => v + "ms" // Zeigt die echten Werte wie 18ms oder 15ms sauber an
+          font: { size: 10 },
+          callback: v => Math.round(v) + "ms" 
         },
         grid: { color: "#1a1a1a" },
         border: { display: false },
@@ -490,29 +472,77 @@ const chart = new Chart($("ping-chart"), {
   }
 });
 
-function updatePingChart(pingValue) {
-  // Generiert einfach eine fortlaufende Nummer: "1", "2", "3"...
-  const label = String(dataCounter++);
-  
+function formatTimeSince(restartTimestamp) {
+  if (!restartTimestamp) return "";
+  const diffMs = Date.now() - new Date(restartTimestamp).getTime();
+  const diffSec = Math.floor(Math.max(0, diffMs) / 1000);
+  const hrs = Math.floor(diffSec / 3600);
+  const mins = Math.floor((diffSec % 3600) / 60);
+  const mStr = mins.toString().padStart(2, '0');
+  return hrs > 0 ? `${hrs}h ${mStr}m` : `${mins}m`;
+}
+
+function optimizeHistory(restartTimestamp) {
+  const now = Date.now();
+  const filteredLabels = [];
+  const filteredData = [];
+  const filteredTimestamps = [];
+
+  let lastMinuteBucket = -1;
+  let lastFiveMinBucket = -1;
+
+  for (let i = 0; i < pingHistory.data.length; i++) {
+    const ts = pingHistory.timestamps[i];
+    const ping = pingHistory.data[i];
+    
+    const diffMsFromStart = ts - new Date(restartTimestamp).getTime();
+    const minsFromStart = Math.floor(diffMsFromStart / 60000);
+
+    if (minsFromStart <= 10) {
+      if (minsFromStart !== lastMinuteBucket) {
+        filteredLabels.push(formatTimeSince(restartTimestamp));
+        filteredData.push(ping);
+        filteredTimestamps.push(ts);
+        lastMinuteBucket = minsFromStart;
+      }
+    } else {
+      const fiveMinBucket = Math.floor(minsFromStart / 5);
+      if (fiveMinBucket !== lastFiveMinBucket) {
+        filteredLabels.push(formatTimeSince(restartTimestamp));
+        filteredData.push(ping);
+        filteredTimestamps.push(ts);
+        lastFiveMinBucket = fiveMinBucket;
+      }
+    }
+  }
+
+  pingHistory.labels = filteredLabels;
+  pingHistory.data = filteredData;
+  pingHistory.timestamps = filteredTimestamps;
+}
+
+function updatePingChart(pingValue, lastRestart) {
+  if (!lastRestart) return;
+
   let cleanValue = pingValue;
   if (typeof pingValue === 'string') {
     cleanValue = pingValue.replace(/[^\d.]/g, '');
   }
   const numericPing = parseFloat(cleanValue);
-  
-  if (!isNaN(numericPing)) {
-    pingHistory.labels.push(label);
-    pingHistory.data.push(numericPing);
+  if (isNaN(numericPing)) return;
 
-    if (pingHistory.labels.length > MAX_POINTS) {
-      pingHistory.labels.shift();
-      pingHistory.data.shift();
-    }
+  const now = Date.now();
+  pingHistory.labels.push(formatTimeSince(lastRestart));
+  pingHistory.data.push(numericPing);
+  pingHistory.timestamps.push(now);
 
-    chart.update();
-  }
+  optimizeHistory(lastRestart);
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(pingHistory));
+  chart.data.labels = pingHistory.labels;
+  chart.data.datasets[0].data = pingHistory.data;
+  chart.update();
 }
-
       async function fetchStats() {
         try {
           const res = await fetch("/api/stats");
@@ -545,7 +575,7 @@ function updatePingChart(pingValue) {
           set("Version", d.version);
           set("uptime-foot", fmtUptime(d.uptime));
           set("ping-foot", fmtPing(d.ping.now));
-          updatePingChart(d.ping); 
+          updatePingChart(d.ping, d.lastRestart);
 
          if (d.logs?.length) {
           const con = $("console");
