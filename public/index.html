@@ -341,6 +341,83 @@
       footer .sep {
         color: var(--border);
       }
+      @media (max-width: 900px) {
+        main {
+          grid-template-columns: 1fr;
+          grid-template-rows: none;
+          overflow: auto;
+        }
+        #functions-used,
+        #ticket-archive {
+          grid-column: 1;
+        }
+        #functions-used .stats-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        #ping-statistic .chart-wrap {
+          min-height: 180px;
+          position: relative;
+        }
+        #ping-statistic canvas {
+          position: absolute;
+        }
+      }
+      @media (max-width: 600px) {
+        header {
+          padding: 0 14px;
+          height: 50px;
+          gap: 8px;
+        }
+        header h1 {
+          font-size: 1rem;
+        }
+        main {
+          padding: 10px;
+          gap: 10px;
+        }
+        article {
+          padding: 12px;
+          gap: 8px;
+        }
+        article h3 {
+          font-size: 0.7rem;
+        }
+        .stats-grid {
+          grid-template-columns: 1fr;
+        }
+        #functions-used .stats-grid {
+          grid-template-columns: 1fr;
+        }
+        article ol li {
+          font-size: 0.78rem;
+        }
+        #ticket-archive {
+          max-height: none;
+        }
+        footer {
+          flex-wrap: wrap;
+          height: auto;
+          padding: 8px 14px;
+          gap: 6px;
+          font-size: 0.72rem;
+        }
+        footer .sep {
+          display: none;
+        }
+      }
+      @media (min-width: 1400px) {
+        main {
+          max-width: 1600px;
+          margin: 0 auto;
+          width: 100%;
+        }
+        article h3 {
+          font-size: 0.8rem;
+        }
+        article ol li {
+          font-size: 0.88rem;
+        }
+      }
     </style>
   </head>
   <body>
