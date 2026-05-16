@@ -480,11 +480,11 @@ const chart = new Chart($("ping-chart"), {
         grid: { display: false }
       },
       y: {
-        min: 0,
+        beginAtZero: true,
         ticks: { 
           color: "#888", 
           font: { size: 10 }, 
-          callback: v => v + "ms"
+          callback: v => Math.round(v) + "ms"
         },
         grid: { color: "#1a1a1a" },
         border: { display: false },
@@ -492,6 +492,7 @@ const chart = new Chart($("ping-chart"), {
     }
   }
 });
+
 function updatePingChart(pingValue, lastRestart) {
   const timeLabel = formatTimeSince(lastRestart);
   let cleanValue = pingValue;
