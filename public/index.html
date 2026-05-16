@@ -428,7 +428,7 @@
     </footer>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
     <script>
-      const $ = id => document.getElementById(id);
+const $ = id => document.getElementById(id);
 
 const set = (id, v) => { 
   const el = $(id); 
@@ -446,12 +446,10 @@ const fmtDate = iso => new Date(iso).toLocaleString("de-DE", { dateStyle: "short
 
 const fmtPing = ms => ms < 0 ? "—" : `${ms}`;
 
+// Das Daten-Array fürs Chart
 const pingHistory = { labels: [], data: [] };
 const MAX_POINTS = 20;
-function getRealTimeLabel() {
-  const now = new Date();
-  return now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-}
+let dataCounter = 1; // Einfacher Zähler für die X-Achse
 
 const chart = new Chart($("ping-chart"), {
   type: "line",
@@ -461,8 +459,8 @@ const chart = new Chart($("ping-chart"), {
       data: pingHistory.data,
       borderColor: "#ffffff",
       backgroundColor: "rgba(255,255,255,0.05)",
-      borderWidth: 1.5,
-      pointRadius: 2,
+      borderWidth: 2,         // Etwas dickere Linie, damit man sie besser sieht
+      pointRadius: 3,         // Größere Punkte
       fill: true,
       tension: 0.4,
     }]
@@ -475,7 +473,7 @@ const chart = new Chart($("ping-chart"), {
     scales: {
       x: { 
         display: true, 
-        ticks: { color: "#888", font: { size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 5 },
+        ticks: { color: "#888", font: { size: 10 } },
         grid: { display: false }
       },
       y: {
@@ -483,7 +481,7 @@ const chart = new Chart($("ping-chart"), {
         ticks: { 
           color: "#888", 
           font: { size: 10 }, 
-          callback: v => v < 10 ? v.toFixed(1) + "ms" : Math.round(v) + "ms"
+          callback: v => v + "ms" // Zeigt die echten Werte wie 18ms oder 15ms sauber an
         },
         grid: { color: "#1a1a1a" },
         border: { display: false },
@@ -493,7 +491,8 @@ const chart = new Chart($("ping-chart"), {
 });
 
 function updatePingChart(pingValue) {
-  const timeLabel = getRealTimeLabel();
+  // Generiert einfach eine fortlaufende Nummer: "1", "2", "3"...
+  const label = String(dataCounter++);
   
   let cleanValue = pingValue;
   if (typeof pingValue === 'string') {
@@ -502,7 +501,7 @@ function updatePingChart(pingValue) {
   const numericPing = parseFloat(cleanValue);
   
   if (!isNaN(numericPing)) {
-    pingHistory.labels.push(timeLabel);
+    pingHistory.labels.push(label);
     pingHistory.data.push(numericPing);
 
     if (pingHistory.labels.length > MAX_POINTS) {
@@ -513,6 +512,7 @@ function updatePingChart(pingValue) {
     chart.update();
   }
 }
+
       async function fetchStats() {
         try {
           const res = await fetch("/api/stats");
