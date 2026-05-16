@@ -167,7 +167,7 @@
                 const apiUrl = window.location.origin + "/api/tickets?token=" + encodeURIComponent(token);
                 const res = await fetch(apiUrl);
                         if (res.ok) {
-                            sessionStorage.setItem("admin_token", token);
+                            localStorage.setItem("admin_token", token);
                             const loginBtn = document.querySelector(".login-btn");
                             if (loginBtn) {
                                 loginBtn.innerText = "⏳ Erstelle Admin-Sitzung...";
