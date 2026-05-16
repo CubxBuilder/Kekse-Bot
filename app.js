@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Partials, ChannelType, PermissionFlagsBits, EmbedBuilder, Events, AuditLogEvent, MessageFlags, MessageType, PermissionsBitField, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js"
+import { Client, REST, Routes, GatewayIntentBits, Partials, ChannelType, PermissionFlagsBits, EmbedBuilder, Events, AuditLogEvent, MessageFlags, MessageType, PermissionsBitField, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js"
 import https from "https";
 import "dotenv/config"
 import path from "path"
@@ -2652,6 +2652,14 @@ client.once("ready", async () => {
       status: "online"
     });
     dashboardLog(`Bot online: ${client.user.tag}`);
+    try {
+        console.log('Bereinige alte globale Slash-Commands...');
+        await client.application.commands.set([]);
+        
+        console.log('Alle globalen Befehle erfolgreich gelöscht!');
+    } catch (error) {
+        console.error('Fehler beim Löschen der Befehle:', error);
+    }
 })
 app.get("/api/stats_internal", (req, res) => {
     const totalSeconds = (client.uptime / 1000);
