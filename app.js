@@ -1623,7 +1623,7 @@ export function initPing(client) {
     }, 10000);
   });
 }
-export function initPoll(client) {
+export async function initPoll(client) {
   const sendKekseLog = async (action, user, details) => {
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
     if (!logChannel) return;
@@ -1637,6 +1637,64 @@ export function initPoll(client) {
       .setFooter({ text: 'Kekse Clan | Poll System' })
       .setTimestamp();
     await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
+  };
+  const createPollText = (q, d, opts, end, count, id, author) => {
+    return `## ${q}\n${d}\n\n` +
+      opts.map(o => `${o.emoji} ${o.text}`).join("\n") + `\n\n` +
+      `<:info:1467246059561685238> Endet am: <t:${Math.floor(end / 1000)}:R>\n` +
+      `<:profil:1467246030998343733> Erstellt von: ${author}\n` +
+      `<:statistiques:1467246038497886311> Teilnehmer: **${count}**\n` +
+      `<:identifiant:1467246041668780227> ID: \`${id}\``;
+  };
+  const createPollButtons = (pollId, opts) => {
+    const rows = [];
+    let currentRow = new ActionRowBuilder();
+    opts.forEach((o, i) => {
+      if (i > 0 && i % 5 === 0) {
+        rows.push(currentRow);
+        currentRow = new ActionRowBuilder();
+      }
+      currentRow.addComponents(
+        new ButtonBuilder()
+          .setCustomId(`poll_vote_${pollId}_${i}`)
+          .setEmoji(o.emoji)
+          .setStyle(ButtonStyle.Secondary)
+      );
+    });
+    if (currentRow.components.length > 0) rows.push(currentRow);
+    return rows;
+  };
+  const closePoll = async (poll, polls, closer) => {
+    poll.closed = true;
+    const channel = await client.channels.fetch(poll.channelId).catch(() => null);
+    const pollMsg = await channel?.messages.fetch(poll.messageId).catch(() => null);
+    if (pollMsg) {
+      await pollMsg.edit({ components: [] }).catch(() => {});
+    }
+    const total = poll.voters.length;
+    let resultsText = `## <:statistiques:1467246038497886311> Ergebnisse: ${poll.question}\n\n`;
+    if (total === 0) {
+      resultsText += "Keine Teilnehmer.";
+    } else {
+      const winnerVotes = Math.max(...poll.options.map(o => o.votes));
+      poll.options.forEach(o => {
+        const perc = Math.round((o.votes / total) * 100);
+        resultsText += `${o.emoji} **${o.text}**\n**${o.votes} Stimmen** (${perc}%)${o.votes === winnerVotes && total > 0 ? " <:checkmark:1467245996584210554>" : ""}\n\n`;
+      });
+    }
+    if (channel) await channel.send(resultsText).catch(() => {});
+    const logChannel = client.channels.cache.get("1423413348220796991");
+    if (logChannel) {
+      const logEmbed = new EmbedBuilder()
+        .setColor('#ffffff')
+        .setAuthor({ name: closer.username, iconURL: closer.displayAvatarURL() })
+        .setDescription(`**Aktion:** \`Umfrage beendet\`\n**Frage:** ${poll.question}\n**Teilnehmer:** ${total}\n**ID:** \`${poll.id}\``)
+        .setFooter({ text: 'Kekse Clan | Poll System' })
+        .setTimestamp();
+      await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
+    }
+    const updatedPolls = polls.filter(p => p.id !== poll.id);
+    await setPollData("polls_data", updatedPolls);
   };
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot || !msg.content.startsWith("!")) return; 
@@ -1654,10 +1712,8 @@ export function initPoll(client) {
       const pollOptions = options.map((opt, i) => ({ text: opt, emoji: emojis[i], votes: 0 }));
       const endTime = Date.now() + time * 60000;
       const pollContent = createPollText(question, description, pollOptions, endTime, 0, pollId, msg.author);
-      const pollMsg = await msg.channel.send(pollContent);
-      for (let i = 0; i < pollOptions.length; i++) {
-        await pollMsg.react(pollOptions[i].emoji).catch(() => {});
-      }
+      const components = createPollButtons(pollId, pollOptions);
+      const pollMsg = await msg.channel.send({ content: pollContent, components: components });
       const polls = await getPollData("polls_data") || [];
       polls.push({
         id: pollId, messageId: pollMsg.id, channelId: msg.channel.id,
@@ -1671,89 +1727,55 @@ export function initPoll(client) {
     if (cmd === "closepoll") {
       if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) return;
       const pollId = args[0];
-      const polls = getPollData("polls_data") || [];
+      const polls = await getPollData("polls_data") || [];
       const poll = polls.find(p => p.id === pollId && !p.closed);
-      
       if (!poll) return msg.reply("❌ Poll nicht gefunden.");
-      await closePoll(client, poll, polls, msg.author);
+      await closePoll(poll, polls, msg.author);
       globalBotStats.commandsRunned += 1;
     }
     if (cmd === "listpolls") {
-      const polls = getPollData("polls_data") || [];
+      const polls = await getPollData("polls_data") || [];
       const activePolls = polls.filter(p => !p.closed);
       if (activePolls.length === 0) return msg.reply("Keine aktiven Polls.");
+    
       const list = activePolls.map(p => `ID: \`${p.id}\` | ${p.question}`).join("\n");
       msg.reply(`**Aktive Polls:**\n${list}`);
       globalBotStats.commandsRunned += 1;
     }
   });
-  client.on("messageReactionAdd", async (reaction, user) => {
-    if (user.bot) return;
-    if (reaction.partial) await reaction.fetch();
-    let polls = getPollData("polls_data") || [];
-    const poll = polls.find(p => p.messageId === reaction.message.id && !p.closed);
-    if (!poll) return;
-    const option = poll.options.find(o => o.emoji === reaction.emoji.name);
-    if (!option || poll.voters.includes(user.id)) return reaction.users.remove(user.id).catch(() => {});
-    poll.voters.push(user.id);
-    option.votes++;
+  client.on("interactionCreate", async (interaction) => {
+    if (!interaction.isButton() || !interaction.customId.startsWith("poll_vote_")) return;
+    const parts = interaction.customId.split("_");
+    const pollId = parts[2];
+    const optionIndex = parseInt(parts[3]);
+    let polls = await getPollData("polls_data") || [];
+    const poll = polls.find(p => p.id === pollId && !p.closed);
+    if (!poll) {
+      return interaction.reply({ content: "❌ Diese Umfrage existiert nicht mehr oder ist bereits beendet.", ephemeral: true });
+    }
+    if (poll.voters.includes(interaction.user.id)) {
+      return interaction.reply({ content: "❌ Du hast bereits für diese Umfrage abgestimmt!", ephemeral: true });
+    }
+    poll.voters.push(interaction.user.id);
+    poll.options[optionIndex].votes++;
     await setPollData("polls_data", polls);
     const creator = await client.users.fetch(poll.creatorId).catch(() => ({ toString: () => "Unknown" }));
-    await reaction.message.edit(createPollText(poll.question, poll.description, poll.options, poll.endTime, poll.voters.length, poll.id, creator)).catch(() => {});
-    await reaction.users.remove(user.id).catch(() => {});
+    await interaction.message.edit({
+      content: createPollText(poll.question, poll.description, poll.options, poll.endTime, poll.voters.length, poll.id, creator)
+    }).catch(() => {});
+    await interaction.reply({ content: "✅ Deine Stimme wurde gezählt!", ephemeral: true });
   });
   setInterval(async () => {
-    const data = await getPollData("polls") || { polls_data: [] };
-    const polls = data.polls_data || [];
+    const polls = await getPollData("polls_data") || [];
     const now = Date.now();
     for (const poll of polls) {
       if (!poll.closed && poll.endTime <= now) {
         const creator = await client.users.fetch(poll.creatorId).catch(() => client.user);
-        await closePoll(client, poll, polls, creator);
+        await closePoll(poll, polls, creator);
       }
     }
   }, 30000);
 }
-function createPollText(q, d, opts, end, count, id, author) {
-  return `## ${q}\n${d}\n\n` +
-    opts.map(o => `${o.emoji} ${o.text}`).join("\n") + `\n\n` +
-    `<:info:1467246059561685238> Endet am: <t:${Math.floor(end / 1000)}:R>\n` +
-    `<:profil:1467246030998343733> Erstellt von: ${author}\n` +
-    `<:statistiques:1467246038497886311> Teilnehmer: **${count}**\n` +
-    `<:identifiant:1467246041668780227> ID: \`${id}\``;
-}
-async function closePoll(client, poll, polls, closer) {
-  poll.closed = true;
-  await setPollData("polls_data", polls);
-  const channel = await client.channels.fetch(poll.channelId).catch(() => null);
-  const pollMsg = await channel?.messages.fetch(poll.messageId).catch(() => null);
-  if (!pollMsg) return;
-  await pollMsg.reactions.removeAll().catch(() => {});
-  const total = poll.voters.length;
-  let resultsText = `## <:statistiques:1467246038497886311> Ergebnisse: ${poll.question}\n\n`;
-  if (total === 0) resultsText += "Keine Teilnehmer.";
-  else {
-    const winnerVotes = Math.max(...poll.options.map(o => o.votes));
-    poll.options.forEach(o => {
-      const perc = Math.round((o.votes / total) * 100);
-      resultsText += `${o.emoji} **${o.text}**\n**${o.votes} Stimmen** (${perc}%)${o.votes === winnerVotes && total > 0 ? " <:checkmark:1467245996584210554>" : ""}\n\n`;
-    });
-  }
-  await channel.send(resultsText);
-  const logChannel = client.channels.cache.get("1423413348220796991");
-  if (logChannel) {
-    const logEmbed = new EmbedBuilder()
-      .setColor('#ffffff')
-      .setAuthor({ name: closer.username, iconURL: closer.displayAvatarURL() })
-      .setDescription(`**Aktion:** \`Umfrage beendet\`\n**Frage:** ${poll.question}\n**Teilnehmer:** ${total}\n**ID:** \`${poll.id}\``)
-      .setFooter({ text: 'Kekse Clan | Poll System' })
-      .setTimestamp();
-    await logChannel.send({ embeds: [logEmbed] });
-  }
-  const updatedPolls = (getPollData("polls_data") || []).filter(p => p.id !== poll.id);
-  await setPollData("polls_data", updatedPolls);
-}
-
 export function initReactions(client) {
   const userContext = new Map();
 
