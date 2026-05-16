@@ -429,16 +429,19 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
     <script>
       const $ = id => document.getElementById(id);
-      const set = (id, v) => { const el = $(id); if (el) el.textContent = v ?? "—"; };
-      const fmtUptime = s => {
-        const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600),
-              m = Math.floor((s % 3600) / 60);
-        return d ? `${d}d ${h}h ${m}m` : h ? `${h}h ${m}m` : `${m}m`;
-      };
-      const fmtDate = iso => new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
-      const fmtPing = ms => ms < 0 ? "—" : `${ms}`;
-      const pingHistory = { labels: [], data: [] };
-      const pingHistory = { labels: [], data: [] };
+const set = (id, v) => { 
+  const el = $(id); 
+  if (el) el.textContent = v ?? "—"; 
+};
+const fmtUptime = s => {
+  const d = Math.floor(s / 86400), 
+        h = Math.floor((s % 86400) / 3600),
+        m = Math.floor((s % 3600) / 60);
+  return d ? `${d}d ${h}h ${m}m` : h ? `${h}h ${m}m` : `${m}m`;
+};
+const fmtDate = iso => new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
+const fmtPing = ms => ms < 0 ? "—" : `${ms}`;
+const pingHistory = { labels: [], data: [] };
 const MAX_POINTS = 20;
 function formatTimeSince(restartTimestamp) {
   if (!restartTimestamp) return "";
@@ -481,7 +484,7 @@ const chart = new Chart($("ping-chart"), {
         ticks: { 
           color: "#888", 
           font: { size: 10 }, 
-          callback: v => v.toFixed(1) + "ms" 
+          callback: v => v + "ms"
         },
         grid: { color: "#1a1a1a" },
         border: { display: false },
@@ -504,7 +507,6 @@ function updatePingChart(pingValue, lastRestart) {
       pingHistory.labels.shift();
       pingHistory.data.shift();
     }
-
     chart.update();
   } else {
     console.error("Ungültiger Ping-Wert empfangen:", pingValue);
