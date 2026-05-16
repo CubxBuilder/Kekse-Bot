@@ -701,9 +701,9 @@ async function fetchTickets() {
     const urlParams = new URLSearchParams(window.location.search);
     let token = urlParams.get('t');
     if (!token) {
-      token = sessionStorage.getItem("admin_token");
+      token = localStorage.getItem("admin_token");
     } else {
-      sessionStorage.setItem("admin_token", token);
+      localStorage.setItem("admin_token", token);
       window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
     }
     if (!token) {
