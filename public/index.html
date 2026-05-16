@@ -429,7 +429,7 @@
     </footer>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
     <script>
-      const $ = id => document.getElementById(id);
+const $ = id => document.getElementById(id);
 
 const set = (id, v) => { const el = $(id); if (el) el.textContent = v ?? "—"; };
 
@@ -451,8 +451,8 @@ const chart = new Chart($("ping-chart"), {
   data: {
     datasets: [{
       data: pingHistory,
-      borderColor: "#ffffff",
-      backgroundColor: "rgba(255,255,255,0.05)",
+      borderColor: "#2ecc71",
+      backgroundColor: "rgba(46,204,113,0.05)",
       borderWidth: 1.5,
       pointRadius: 0,
       pointHoverRadius: 4,
@@ -473,7 +473,7 @@ const chart = new Chart($("ping-chart"), {
           displayFormats: {
             minute: "HH:mm",
             hour: "HH:mm",
-            day: "MMM d, HH:mm"
+            day: "dd.MM. HH:mm"
           }
         },
         ticks: { color: "#888", font: { size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 4 },
@@ -513,6 +513,7 @@ function updatePingChart(pingValue, lastRestart) {
   chart.data.datasets[0].data = pingHistory;
   chart.update();
 }
+
       async function fetchStats() {
         try {
           const res = await fetch("/api/stats");
