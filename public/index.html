@@ -428,7 +428,7 @@
     </footer>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
     <script>
-const STORAGE_KEY = "kekse_bot_ping_history";
+      const STORAGE_KEY = "kekse_bot_ping_history";
 let pingHistory = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { labels: [], data: [], timestamps: [] };
 
 if (!pingHistory.timestamps) pingHistory.timestamps = pingHistory.labels.map(() => Date.now());
@@ -463,7 +463,7 @@ const chart = new Chart($("ping-chart"), {
         ticks: { 
           color: "#888", 
           font: { size: 10 },
-          callback: v => Math.round(v) + "ms" 
+          callback: v => Math.round(v) + "ms"
         },
         grid: { color: "#1a1a1a" },
         border: { display: false },
@@ -539,6 +539,7 @@ function updatePingChart(pingValue, lastRestart) {
   optimizeHistory(lastRestart);
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(pingHistory));
+
   chart.data.labels = pingHistory.labels;
   chart.data.datasets[0].data = pingHistory.data;
   chart.update();
