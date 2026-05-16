@@ -438,7 +438,7 @@ const fmtUptime = s => {
 };
 
 const fmtDate = iso => new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
-const fmtPing = ms => (ms == null || ms < 0) ? "—" : `${ms}ms`;
+const fmtPing = ms => (ms == null || ms < 0) ? "—" : `${ms}`;
 
 const STORAGE_KEY = "kekse_bot_ping_history_v2";
 let pingHistory = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
