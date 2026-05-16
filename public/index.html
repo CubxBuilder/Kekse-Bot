@@ -438,12 +438,11 @@
       const fmtDate = iso => new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
       const fmtPing = ms => ms < 0 ? "—" : `${ms}`;
       const pingHistory = { labels: [], data: [] };
+      const pingHistory = { labels: [], data: [] };
 const MAX_POINTS = 20;
 function formatTimeSince(restartTimestamp) {
   if (!restartTimestamp) return "";
-  const now = Date.now();
-  const restartTime = new Date(restartTimestamp).getTime();
-  const diffMs = now - restartTime;
+  const diffMs = Date.now() - new Date(restartTimestamp).getTime();
   const diffSec = Math.floor(Math.max(0, diffMs) / 1000);
   const hrs = Math.floor(diffSec / 3600);
   const mins = Math.floor((diffSec % 3600) / 60);
@@ -467,41 +466,49 @@ const chart = new Chart($("ping-chart"), {
     }]
   },
   options: {
-  animation: false,
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { legend: { display: false } },
-  scales: {
-    x: { 
-      display: true, 
-      ticks: { color: "#888", font: { size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 5 },
-      grid: { display: false }
-    },
-    y: {
-      min: 0,
-      max: 1,
-      ticks: { 
-        color: "#888", 
-        font: { size: 10 }, 
-        stepSize: 0.2,
-        callback: v => v.toFixed(1) + "ms"
+    animation: false,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { 
+        display: true, 
+        ticks: { color: "#888", font: { size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 5 },
+        grid: { display: false }
       },
-      grid: { color: "#1a1a1a" },
-      border: { display: false },
+      y: {
+        min: 0,
+        ticks: { 
+          color: "#888", 
+          font: { size: 10 }, 
+          callback: v => v.toFixed(1) + "ms" 
+        },
+        grid: { color: "#1a1a1a" },
+        border: { display: false },
+      }
     }
   }
-}
 });
 function updatePingChart(pingValue, lastRestart) {
   const timeLabel = formatTimeSince(lastRestart);
-  pingHistory.labels.push(timeLabel);
-  pingHistory.data.push(parseFloat(pingValue)); 
-
-  if (pingHistory.labels.length > MAX_POINTS) {
-    pingHistory.labels.shift();
-    pingHistory.data.shift();
+  let cleanValue = pingValue;
+  if (typeof pingValue === 'string') {
+    cleanValue = pingValue.replace(/[^\d.]/g, '');
   }
-  chart.update();
+  const numericPing = parseFloat(cleanValue);
+  if (!isNaN(numericPing)) {
+    pingHistory.labels.push(timeLabel);
+    pingHistory.data.push(numericPing);
+
+    if (pingHistory.labels.length > MAX_POINTS) {
+      pingHistory.labels.shift();
+      pingHistory.data.shift();
+    }
+
+    chart.update();
+  } else {
+    console.error("Ungültiger Ping-Wert empfangen:", pingValue);
+  }
 }
       async function fetchStats() {
         try {
