@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
     <link rel="icon" href="icon.png" type="image/png">
-    <script src="https://jsdelivr.net"></script>
     <style>
       :root {
         --bg-base:        #0a0a0a;
@@ -190,7 +189,6 @@
         overflow-y: auto;
         flex: 1;
       }
-      .ticket-entry {}
       .ticket-btn {
         width: 100%;
         display: flex;
@@ -428,9 +426,9 @@
       Ping: <span id="ping-foot">—</span>
     </footer>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script>
 const $ = id => document.getElementById(id);
-
 const set = (id, v) => { const el = $(id); if (el) el.textContent = v ?? "—"; };
 
 const fmtUptime = s => {
@@ -440,11 +438,10 @@ const fmtUptime = s => {
 };
 
 const fmtDate = iso => new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
-
-const fmtPing = ms => ms < 0 ? "—" : `${ms}`;
+const fmtPing = ms => (ms == null || ms < 0) ? "—" : `${ms}ms`;
 
 const STORAGE_KEY = "kekse_bot_ping_history_v2";
-let pingHistory = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+let pingHistory = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
 
 const chart = new Chart($("ping-chart"), {
   type: "line",
@@ -470,19 +467,15 @@ const chart = new Chart($("ping-chart"), {
         type: "time",
         time: {
           tooltipFormat: "HH:mm:ss",
-          displayFormats: {
-            minute: "HH:mm",
-            hour: "HH:mm",
-            day: "dd.MM. HH:mm"
-          }
+          displayFormats: { minute: "HH:mm", hour: "HH:mm", day: "dd.MM. HH:mm" }
         },
         ticks: { color: "#888", font: { size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 4 },
         grid: { display: false }
       },
       y: {
         beginAtZero: true,
-        ticks: { 
-          color: "#888", 
+        ticks: {
+          color: "#888",
           font: { size: 10 },
           callback: v => Math.round(v) + "ms"
         },
@@ -493,178 +486,160 @@ const chart = new Chart($("ping-chart"), {
   }
 });
 
-function updatePingChart(pingValue, lastRestart) {
-  let cleanValue = pingValue;
-  if (typeof pingValue === 'string') {
-    cleanValue = pingValue.replace(/[^\d.]/g, '');
-  }
-  const numericPing = parseFloat(cleanValue);
-  if (isNaN(numericPing)) return;
-
+function updatePingChart(pingValue) {
+  const numericPing = parseFloat(pingValue);
+  if (isNaN(numericPing) || numericPing < 0) return;
   const now = Date.now();
-  
   pingHistory.push({ x: now, y: numericPing });
-
   const oneDayAgo = now - 24 * 60 * 60 * 1000;
   pingHistory = pingHistory.filter(p => p.x >= oneDayAgo);
-
   localStorage.setItem(STORAGE_KEY, JSON.stringify(pingHistory));
-
   chart.data.datasets[0].data = pingHistory;
   chart.update();
 }
 
-      async function fetchStats() {
-        try {
-          const res = await fetch("/api/stats");
-          if (!res.ok) return;
-          const d = await res.json();
-          updatePingChart(d.ping, d.lastRestart);
-          if (d.guild) {
-            set("server", d.guild.name);
-            set("server-id", d.guild.id);
-            set("owner", d.guild.owner);
-            set("channels", d.guild.channels);
-          }
-          set("users", d.users);
-          set("bots", d.bots);
+async function fetchStats() {
+  try {
+    const res = await fetch("/api/stats");
+    if (!res.ok) return;
+    const d = await res.json();
 
-          set("ping", fmtPing(d.ping.now));
-          set("avg-ping", fmtPing(d.ping.avg));
-          set("max-ping", fmtPing(d.ping.max));
-          set("uptime", fmtUptime(d.uptime));
-          set("version", d.version);
-          set("last-restart", fmtDate(d.lastRestart));
-
-          set("tickets-created", d.stats.tickets);
-          set("polls-created", d.stats.polls);
-          set("giveaways-created", d.stats.giveaways);
-          set("commands-used", d.stats.commands);
-          set("scams-prevented", d.stats.scams);
-          set("messages-deleted", d.stats.deleted);
-
-          set("Version", d.version);
-          set("uptime-foot", fmtUptime(d.uptime));
-          set("ping-foot", fmtPing(d.ping.now));
-          updatePingChart(d.ping, d.lastRestart);
-
-         if (d.logs?.length) {
-          const con = $("console");
-          con.innerHTML = d.logs.map(l => {
-            const timeStr = l.t ? new Date(l.t).toLocaleTimeString("de-DE") : new Date().toLocaleTimeString("de-DE");
-            const msgStr = l.m || l;
-            return `<div><span style="color:var(--text-muted)">[${timeStr}]</span> ${msgStr}</div>`;
-          }).join("");
-          con.scrollTop = con.scrollHeight;
-          }
-
-          const now = new Date().toLocaleTimeString("de-DE", { timeStyle: "short" });
-          pingHistory.labels.push(now);
-          pingHistory.data.push(d.ping.now < 0 ? null : d.ping.now);
-          if (pingHistory.labels.length > MAX_POINTS) {
-            pingHistory.labels.shift();
-            pingHistory.data.shift();
-          }
-          chart.update();
-        } catch {}
-      }
-
-      fetchStats();
-      setInterval(fetchStats, 5000);
-      const isImg = url => /\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(url);
-      const fmtTs = ms => new Date(ms).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
-      function renderMsg(msg) {
-        const attachHtml = msg.attachments?.length ? `<div class="msg-attachments">${
-          msg.attachments.map(a => isImg(a.url)
-            ? `<img src="${a.url}" alt="${a.name}" loading="lazy" onclick="window.open('${a.url}')">`
-            : `<a href="${a.url}" target="_blank">📎 ${a.name}</a>`
-          ).join("")
-        }</div>` : "";
-        const stickerHtml = msg.stickers?.length ? `<div class="msg-stickers">${
-          msg.stickers.map(s => `<img src="${s.url}" alt="${s.name}" title="${s.name}">`).join("")
-        }</div>` : "";
-        return `<div class="msg-row">
-          <img class="msg-avatar" src="${msg.author.avatar}" alt="" onerror="this.style.display='none'">
-          <div class="msg-body">
-            <div class="msg-header">
-              <span class="msg-author">${msg.author.name}</span>
-              <span class="msg-time">${fmtTs(msg.timestamp)}</span>
-            </div>
-            ${msg.content ? `<div class="msg-content">${msg.content.replace(/</g,"&lt;")}</div>` : ""}
-            ${attachHtml}${stickerHtml}
-          </div>
-        </div>`;
-      }
-      function renderTickets(tickets) {
-        const list = $("ticket-list");
-        if (!tickets.length) {
-          list.innerHTML = `<div class="no-tickets">Keine archivierten Tickets.</div>`;
-          return;
-        }
-        list.innerHTML = tickets.map(t => `
-          <div class="ticket-entry" data-id="${t.id}" id="ticket-${t.id}">
-            <button class="ticket-btn" onclick="toggleTicket('${t.id}')">
-              <div class="ticket-meta">
-                <span class="ticket-name">${t.name}</span>
-                <span class="ticket-info">Geschlossen von ${t.closedBy} · ${fmtDate(t.closedAt)}</span>
-              </div>
-              <span class="ticket-count">${t.messageCount} Nachrichten</span>
-              <span class="chevron">▼</span>
-            </button>
-            <div class="ticket-body">
-              ${t.messages.map(renderMsg).join("") || `<div class="no-tickets">Keine Nachrichten.</div>`}
-            </div>
-          </div>`
-        ).join("");
-      }
-      window.toggleTicket = id => {
-        const entry = document.getElementById(`ticket-${id}`);
-        if (entry) entry.classList.toggle("open");
-      };
-      function checkUrlHash() {
-        const hash = window.location.hash;
-        if (!hash || !hash.startsWith("#ticket-")) return;
-
-        const targetElement = document.querySelector(hash);
-        if (targetElement) {
-            if (!targetElement.classList.contains("open")) {
-                targetElement.classList.add("open");
-            }
-            setTimeout(() => {
-                targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
-            }, 300);
-        }
+    if (d.guild) {
+      set("server", d.guild.name);
+      set("server-id", d.guild.id);
+      set("owner", d.guild.owner);
+      set("channels", d.guild.channels);
     }
-    async function fetchTickets() {
-        try {
-        const urlParams = new URLSearchParams(window.location.search);
-        let token = urlParams.get('t');
-        if (!token) {
-            token = sessionStorage.getItem("admin_token");
-        } else {
-            sessionStorage.setItem("admin_token", token);
-            window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
-        }
-        if (!token) {
-            window.location.href = window.location.origin + "/permission";
-            return;
-        }
-        const res = await fetch(`/api/tickets?token=${token}`);
-        if (!res.ok) {
-            window.location.href = "/err605"; 
-             return;
-        }
-        const data = await res.json();
-        renderTickets(data);
-        if (window.location.hash && window.location.hash.startsWith("#ticket-")) {
-          checkUrlHash(); 
-        }
-        checkUrlHash(); 
-      } catch (err) {
-        window.location.href = "/err612";
-       }
+    set("users", d.users);
+    set("bots", d.bots);
+
+    set("ping", fmtPing(d.ping?.now));
+    set("avg-ping", fmtPing(d.ping?.avg));
+    set("max-ping", fmtPing(d.ping?.max));
+    set("uptime", fmtUptime(d.uptime));
+    set("version", d.version);
+    set("last-restart", fmtDate(d.lastRestart));
+
+    set("tickets-created", d.stats?.tickets);
+    set("polls-created", d.stats?.polls);
+    set("giveaways-created", d.stats?.giveaways);
+    set("commands-used", d.stats?.commands);
+    set("scams-prevented", d.stats?.scams);
+    set("messages-deleted", d.stats?.deleted);
+
+    set("Version", d.version);
+    set("uptime-foot", fmtUptime(d.uptime));
+    set("ping-foot", fmtPing(d.ping?.now));
+
+    updatePingChart(d.ping?.now);
+
+    if (d.logs?.length) {
+      const con = $("console");
+      con.innerHTML = d.logs.map(l => {
+        const timeStr = l.t ? new Date(l.t).toLocaleTimeString("de-DE") : new Date().toLocaleTimeString("de-DE");
+        const msgStr = l.m || l;
+        return `<div><span style="color:var(--text-muted)">[${timeStr}]</span> ${msgStr}</div>`;
+      }).join("");
+      con.scrollTop = con.scrollHeight;
     }
-    fetchTickets();
-  </script>
-</body>
+  } catch {}
+}
+
+fetchStats();
+setInterval(fetchStats, 5000);
+
+const isImg = url => /\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(url);
+const fmtTs = ms => new Date(ms).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
+
+function renderMsg(msg) {
+  const attachHtml = msg.attachments?.length ? `<div class="msg-attachments">${
+    msg.attachments.map(a => isImg(a.url)
+      ? `<img src="${a.url}" alt="${a.name}" loading="lazy" onclick="window.open('${a.url}')">`
+      : `<a href="${a.url}" target="_blank">📎 ${a.name}</a>`
+    ).join("")
+  }</div>` : "";
+  const stickerHtml = msg.stickers?.length ? `<div class="msg-stickers">${
+    msg.stickers.map(s => `<img src="${s.url}" alt="${s.name}" title="${s.name}">`).join("")
+  }</div>` : "";
+  return `<div class="msg-row">
+    <img class="msg-avatar" src="${msg.author.avatar}" alt="" onerror="this.style.display='none'">
+    <div class="msg-body">
+      <div class="msg-header">
+        <span class="msg-author">${msg.author.name}</span>
+        <span class="msg-time">${fmtTs(msg.timestamp)}</span>
+      </div>
+      ${msg.content ? `<div class="msg-content">${msg.content.replace(/</g,"&lt;")}</div>` : ""}
+      ${attachHtml}${stickerHtml}
+    </div>
+  </div>`;
+}
+
+function renderTickets(tickets) {
+  const list = $("ticket-list");
+  if (!tickets.length) {
+    list.innerHTML = `<div class="no-tickets">Keine archivierten Tickets.</div>`;
+    return;
+  }
+  list.innerHTML = tickets.map(t => `
+    <div class="ticket-entry" data-id="${t.id}" id="ticket-${t.id}">
+      <button class="ticket-btn" onclick="toggleTicket('${t.id}')">
+        <div class="ticket-meta">
+          <span class="ticket-name">${t.name}</span>
+          <span class="ticket-info">Geschlossen von ${t.closedBy} · ${fmtDate(t.closedAt)}</span>
+        </div>
+        <span class="ticket-count">${t.messageCount} Nachrichten</span>
+        <span class="chevron">▼</span>
+      </button>
+      <div class="ticket-body">
+        ${t.messages.map(renderMsg).join("") || `<div class="no-tickets">Keine Nachrichten.</div>`}
+      </div>
+    </div>`
+  ).join("");
+}
+
+window.toggleTicket = id => {
+  const entry = document.getElementById(`ticket-${id}`);
+  if (entry) entry.classList.toggle("open");
+};
+
+function checkUrlHash() {
+  const hash = window.location.hash;
+  if (!hash || !hash.startsWith("#ticket-")) return;
+  const targetElement = document.querySelector(hash);
+  if (targetElement) {
+    if (!targetElement.classList.contains("open")) targetElement.classList.add("open");
+    setTimeout(() => targetElement.scrollIntoView({ behavior: "smooth", block: "center" }), 300);
+  }
+}
+
+async function fetchTickets() {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    let token = urlParams.get('t');
+    if (!token) {
+      token = sessionStorage.getItem("admin_token");
+    } else {
+      sessionStorage.setItem("admin_token", token);
+      window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+    }
+    if (!token) {
+      window.location.href = window.location.origin + "/permission";
+      return;
+    }
+    const res = await fetch(`/api/tickets?token=${token}`);
+    if (!res.ok) {
+      window.location.href = "/err605";
+      return;
+    }
+    const data = await res.json();
+    renderTickets(data);
+    checkUrlHash();
+  } catch {
+    window.location.href = "/err612";
+  }
+}
+
+fetchTickets();
+    </script>
+  </body>
 </html>
