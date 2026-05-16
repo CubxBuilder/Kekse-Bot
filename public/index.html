@@ -437,11 +437,13 @@
       };
       const fmtDate = iso => new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
       const fmtPing = ms => ms < 0 ? "—" : `${ms}`;
-const pingHistory = { labels: [], data: [] };
+      const pingHistory = { labels: [], data: [] };
 const MAX_POINTS = 20;
 function formatTimeSince(restartTimestamp) {
   if (!restartTimestamp) return "";
-  const diffMs = Date.now() - new Date(restartTimestamp).getTime();
+  const now = Date.now();
+  const restartTime = new Date(restartTimestamp).getTime();
+  const diffMs = now - restartTime;
   const diffSec = Math.floor(Math.max(0, diffMs) / 1000);
   const hrs = Math.floor(diffSec / 3600);
   const mins = Math.floor((diffSec % 3600) / 60);
@@ -476,15 +478,18 @@ const chart = new Chart($("ping-chart"), {
           color: "#888", 
           font: { size: 9 }, 
           maxRotation: 0,
-          callback: function(val, index) {
-            return index % 3 === 0 ? this.getLabelForValue(val) : '';
-          }
+          autoSkip: true,
+          maxTicksLimit: 5
         },
         grid: { display: false }
       },
       y: {
-        min: 0,
-        ticks: { color: "#888", font: { size: 10 }, callback: v => v + "ms" },
+        min: 0, 
+        ticks: { 
+          color: "#888", 
+          font: { size: 10 }, 
+          callback: v => v + "ms" 
+        },
         grid: { color: "#1a1a1a" },
         border: { display: false },
       }
@@ -492,15 +497,14 @@ const chart = new Chart($("ping-chart"), {
   }
 });
 function updatePingChart(pingValue, lastRestart) {
-  const timeLabel = formatTimeSince(lastRestart); 
+  const timeLabel = formatTimeSince(lastRestart);
   pingHistory.labels.push(timeLabel);
-  pingHistory.data.push(Number(pingValue));
+  pingHistory.data.push(parseFloat(pingValue)); 
 
   if (pingHistory.labels.length > MAX_POINTS) {
     pingHistory.labels.shift();
     pingHistory.data.shift();
   }
-
   chart.update();
 }
       async function fetchStats() {
