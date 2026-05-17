@@ -1290,7 +1290,7 @@ const GIVEAWAY_EMOJI = "🎉";
 const BOOSTER_ROLE_ID = "1464202435638722621";
 const REPORT_CHANNEL_ID = LOG_CHANNEL_ID;
 const EMBED_COLOR = 0xffffff;
-export function initGiveaway(client) {
+export async function initGiveaway(client) {
   const sendKekseLog = async (action, user, details) => {
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
     if (!logChannel) return;
