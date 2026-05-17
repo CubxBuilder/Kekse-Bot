@@ -11,6 +11,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express()
 app.use(express.static('public'))
+app.get("/permission", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "permission", "index.html"));
+});
+app.get("/err605", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "err605", "index.html"));
+});
+app.get("/err612", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "err612", "index.html"));
+});
+
 const port = process.env.PORT || 5000
 app.listen(port, "0.0.0.0", () => {
     dashboardLog(`Server läuft auf Port ${port}`)
