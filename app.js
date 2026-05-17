@@ -478,7 +478,7 @@ export async function clear(client) {
       );
       globalBotStats.commandsRunned += 1;
       setTimeout(() => finishMsg.delete().catch(() => {}), 15000);
-  }
+  });
 }
 export const ruleMap = {
   "§1a1n1": { section: "Respekt und Freundlichkeit", text: "Sei respektvoll. Beleidigungen, Diskriminierung, Mobbing oder Drohungen werden nicht toleriert." },
