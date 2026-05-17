@@ -1184,123 +1184,193 @@ async function saveCounting() {
   await setCouData("counting", countingData);
 }
 export async function initCounting(client) {
-  const sendKekseLog = async (action, user, details) => {
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
-    if (!logChannel) return;
+  const sendKekseLog = async (action, user, details) => { 
+    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID); 
+    if (!logChannel) return; 
+    
     const logEmbed = new EmbedBuilder()
-      .setColor('#ffffff')
-      .setAuthor({ 
-          name: user.username, 
-          iconURL: user.displayAvatarURL({ size: 512 }) 
-      })
-      .setDescription(`**Aktion:** \`${action}\`\n${details}`)
-      .setFooter({ text: 'Kekse Clan | Counting System' })
-      .setTimestamp();
-    await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
-  };
+      .setColor('#ffffff') 
+      .setAuthor({ name: user.username, iconURL: user.displayAvatarURL({ size: 512 }) }) 
+      .setDescription(`**Aktion:** \`${action}\`\n${details}`) 
+      .setFooter({ text: 'Kekse Clan | Counting System' }) 
+      .setTimestamp(); 
+      
+    await logChannel.send({ embeds: [logEmbed] }).catch(() => {}); 
+  }; 
 
-  const handleCounting = async (msg, syncMode = false) => {
-    if (!syncMode && msg.author.bot) return;
-    if (msg.channel.id !== COUNTING_CHANNEL) return;
-    await loadCounting();
-    if (!syncMode && msg.content === "!top") {
-      const sorted = Object.entries(countingData.scoreboard)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10);
-      const embed = new EmbedBuilder()
-        .setTitle("🏆 Top 10 Counter")
-        .setDescription(sorted.map(([id, s], i) => `${i + 1}. <@${id}> • ${s}`).join("\n") || "Keine Daten")
-        .setColor('#ffffff')
-        .setFooter({ text: 'Kekse Clan' });
-      await msg.reply({ embeds: [embed] });
-      globalBotStats.commandsRunned += 1;
-      return;
-    }
-     const match = msg.content.trim().match(/^-?\d+/);
- if (!match) return;
- const inputNumber = parseInt(match[0]);
- const nextCorrectNumber = countingData.currentNumber + countingData.direction;
- if (msg.author.id === countingData.lastUserId && !syncMode) {
- await msg.react("❌").catch(() => {});
- await msg.reply("Du darfst nicht zweimal hintereinander zählen! Das Spiel wurde zurückgesetzt.").catch(() => {});
- countingData.currentNumber = 1;
- countingData.lastUserId = null;
- await saveCounting();
- globalBotStats.countingMessagesFailed += 1;
- return;
- }
- if (inputNumber !== nextCorrectNumber && !syncMode) {
- await msg.react("❌").catch(() => {});
- await msg.reply(`Falsche Zahl! Die richtige Zahl gewesen wäre ${nextCorrectNumber}. Das Spiel wurde auf 1 zurückgesetzt.`).catch(() => {});
- countingData.currentNumber = 1;
- countingData.lastUserId = null;
- await saveCounting();
- globalBotStats.countingMessagesFailed += 1;
- return;
- }
- countingData.currentNumber = inputNumber;
- countingData.lastUserId = msg.author.id;
- countingData.lastCountingTime = Date.now();
- if (!countingData.scoreboard[msg.author.id]) {
- countingData.scoreboard[msg.author.id] = 0;
- }
- countingData.scoreboard[msg.author.id] += 1;
- await saveCounting();
- if (!syncMode) {
- await msg.react("✅").catch(() => {});
- globalBotStats.countingMessagesSent += 1;
- }
-  const runSync = async () => {
-    dashboardLog("🔄 Starte Counting-Synchronisation...");
-    await loadCounting();
-    const channel = await client.channels.fetch(COUNTING_CHANNEL).catch(() => null);
-    if (!channel || !channel.isTextBased()) return;
-    let lastId = countingData.lastMessageId;
-    let totalRecovered = 0;
-    if (!lastId) {
-      const lastMsg = await channel.messages.fetch({ limit: 1 });
-      countingData.lastMessageId = lastMsg.first()?.id;
-      await saveCounting();
-      dashboardLog("📍 Keine Referenz-ID gefunden. Starte ab der aktuellsten Nachricht.");
-      return;
-    }
+  const handleCounting = async (msg, syncMode = false) => { 
+    if (!syncMode && msg.author.bot) return; 
+    if (msg.channel.id !== COUNTING_CHANNEL) return; 
+    
+    await loadCounting(); 
+    
+    // Top-Befehl (wird bei der Synchronisation ignoriert)
+    if (!syncMode && msg.content === "!top") { 
+      const sorted = Object.entries(countingData.scoreboard) 
+        .sort((a, b) => b[1] - a[1]) 
+        .slice(0, 10); 
+        
+      const embed = new EmbedBuilder() 
+        .setTitle(" Top 10 Counter") 
+        .setDescription(sorted.map(([id, s], i) => `${i + 1}. • ${s}`).join("\n") || "Keine Daten") 
+        .setColor('#ffffff') 
+        .setFooter({ text: 'Kekse Clan' }); 
+        
+      await msg.reply({ embeds: [embed] }); 
+      return; 
+    } 
+
+    const match = msg.content.trim().match(/^-?\d+/); 
+    
+    // Admin-Reset-Befehl (wird bei der Synchronisation ignoriert)
+    if (!match && !syncMode && msg.content.startsWith("!set_number")) { 
+      if (msg.author.id !== "1151971830983311441") return; 
+      const args = msg.content.split(" "); 
+      const newNum = parseInt(args[1]); 
+      if (isNaN(newNum)) return; 
+      
+      countingData.currentNumber = newNum; 
+      countingData.direction = newNum < 0 ? -1 : 1; 
+      await saveCounting(); 
+      
+      await sendKekseLog("Counting Reset (Admin)", msg.author, `Die Zahl wurde manuell auf **${newNum}** gesetzt.`); 
+      return msg.reply(` Die nächste Zahl wurde auf **${newNum}** gesetzt.`); 
+    } 
+
+    if (!match) return; 
+    const num = parseInt(match[0]); 
+
+    // Erster Zähler-Einstieg (Start bei 1 oder -1)
+    if (countingData.currentNumber === 1 && countingData.lastUserId === null) { 
+      if (num === 1 || num === -1) { 
+        countingData.direction = num; 
+        countingData.currentNumber = num + countingData.direction; 
+        countingData.lastUserId = msg.author.id; 
+        countingData.lastCountingTime = msg.createdTimestamp; 
+        
+        const excludedUsers = ["1151971830983311441", "1274320881585356892"]; 
+        if (!excludedUsers.includes(msg.author.id)) { 
+          countingData.scoreboard[msg.author.id] ??= 0; 
+          countingData.scoreboard[msg.author.id]++; 
+        } 
+        
+        countingData.lastMessageId = msg.id;
+        await saveCounting(); 
+        
+        // REAKTION: Wird jetzt im Live-Betrieb UND bei der Synchronisation gesetzt
+        await msg.react("✅").catch(() => {}); 
+        return; 
+      } 
+    } 
+
+    // FEHLER: Falsche Zahl oder Doppelpost
+    if (num !== countingData.currentNumber || msg.author.id === countingData.lastUserId) { 
+      const reason = num !== countingData.currentNumber ? `Falsche Zahl (${num} statt ${countingData.currentNumber})` : "Doppel-Post"; 
+      
+      // Logs werden bei Sync unterdrückt, um Spam zu verhindern
+      if (!syncMode) {
+        await sendKekseLog("Counting Fehler", msg.author, `**Grund:** ${reason}\n**Reset auf:** 1 / 1`); 
+      }
+
+      countingData.currentNumber = 1; 
+      countingData.direction = 1; 
+      countingData.lastUserId = null; 
+      countingData.lastCountingTime = msg.createdTimestamp; 
+      countingData.lastMessageId = msg.id;
+      await saveCounting(); 
+      
+      // REAKTION: Fehler-Kreuz wird jetzt auch im SyncMode gesetzt
+      await msg.react("❌").catch(() => {}); 
+      
+      if (!syncMode) { 
+        const replyContent = msg.author.id === countingData.lastUserId 
+          ? ` , nicht zwei mal nacheinander! Zurück auf den Start (1 oder -1).` 
+          : ` hat falsch gezählt! Zurück auf den Start (1 oder -1).`; 
+        return msg.reply(replyContent); 
+      } 
+      return; 
+    } 
+
+    // ERFOLG: Richtige Zahl gezählt
+    countingData.currentNumber = num + (countingData.direction || 1); 
+    countingData.lastUserId = msg.author.id; 
+    countingData.lastCountingTime = msg.createdTimestamp; 
+    
+    const excludedUsers = ["1151971830983311441", "1274320881585356892"]; 
+    if (!excludedUsers.includes(msg.author.id)) { 
+      countingData.scoreboard[msg.author.id] ??= 0; 
+      countingData.scoreboard[msg.author.id]++; 
+    } 
+    
+    countingData.lastMessageId = msg.id; 
+    await saveCounting(); 
+    
+    // REAKTION: Hinzugefügt für Live-Betrieb UND Synchronisation
+    await msg.react("✅").catch(() => {}); 
+  }; 
+
+  const runSync = async () => { 
+    console.log(" Starte Counting-Synchronisation..."); 
+    await loadCounting(); 
+    
+    const channel = await client.channels.fetch(COUNTING_CHANNEL).catch(err => {
+      console.error(" Fehler beim Abrufen des Counting-Kanals:", err);
+      return null;
+    }); 
+    if (!channel || !channel.isTextBased()) return; 
+
     try {
-      let hasMore = true;
-      while (hasMore) {
-        const missedMessages = await channel.messages.fetch({ 
-          after: lastId, 
-          limit: 100 
-        });
-        if (missedMessages.size === 0) {
-          hasMore = false;
-        } else {
-          const sorted = [...missedMessages.values()].reverse();
-          for (const msg of sorted) {
-            await handleCounting(msg, true);
-          }
-          lastId = sorted[sorted.length - 1].id;
-          totalRecovered += missedMessages.size;
-          if (missedMessages.size === 100) await new Promise(r => setTimeout(r, 1000));
-        }
-      }
-      if (totalRecovered > 0) {
-        dashboardLog(`✅ Synchronisation abgeschlossen. ${totalRecovered} Nachrichten nachgeholt.`);
-        globalBotStats.countingMessagesRecovered += totalRecovered;
-      } else {
-        dashboardLog("✨ Alles aktuell. Keine verpassten Zahlen gefunden.");
-      }
-    } catch (err) {
-      console.error("❌ Fehler bei der Synchronisation:", err);
-    }
-  };
+      let lastId = countingData.lastMessageId; 
+      let totalRecovered = 0; 
 
-  if (client.isReady()) runSync(); else client.once(Events.ClientReady, runSync);
-  client.on(Events.MessageCreate, async msg => {
-    await handleCounting(msg, false);
-  });
+      if (!lastId) { 
+        const lastMsg = await channel.messages.fetch({ limit: 1 }); 
+        countingData.lastMessageId = lastMsg.first()?.id; 
+        await saveCounting(); 
+        console.log(" Keine Referenz-ID gefunden. Starte ab der aktuellsten Nachricht."); 
+        return; 
+      } 
+      let hasMore = true; 
+      while (hasMore) { 
+        const missedMessages = await channel.messages.fetch({ after: lastId, limit: 100 }); 
+        if (missedMessages.size === 0) { 
+          hasMore = false; 
+        } else { 
+          const sorted = [...missedMessages.values()].reverse(); 
+          for (const msg of sorted) { 
+            await handleCounting(msg, true); 
+          } 
+          lastId = sorted[sorted.length - 1].id; 
+          totalRecovered += missedMessages.size; 
+          if (missedMessages.size === 100) {
+            await new Promise(r => setTimeout(r, 1000)); 
+          }
+        } 
+      } 
+      if (totalRecovered > 0) { 
+        console.log(` Synchronisation abgeschlossen. ${totalRecovered} Nachrichten nachgeholt.`); 
+      } else { 
+        console.log(" Alles aktuell. Keine verpassten Zahlen gefunden."); 
+      } 
+    } catch (err) {
+      console.error(" Fehler bei der Synchronisation:", err);
+    } finally {
+      registerLiveListener();
+    }
+  }; 
+  const registerLiveListener = () => {
+    client.on(Events.MessageCreate, async msg => { 
+      await handleCounting(msg, false); 
+    });
+    console.log(" Live-Zähler aktiv. System bereit!");
+  };
+  if (client.isReady()) {
+    runSync(); 
+  } else {
+    client.once(Events.ClientReady, runSync); 
+  }
+  await loadCounting();
 }
-}
-await loadCounting();
 const GIVEAWAY_EMOJI = "🎉";
 const BOOSTER_ROLE_ID = "1464202435638722621";
 const REPORT_CHANNEL_ID = LOG_CHANNEL_ID;
