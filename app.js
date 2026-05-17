@@ -2629,16 +2629,17 @@ export async function getBotVersion() {
             "User-Agent": "Bot-Backend-Version-Fetcher"
         };
         if (process.env.GITHUB_TOKEN) {
-            headers["Authorization"] = `token ${process.env.GITHUB_TOKEN}`;
+            headers["Authorization"] = `Bearer ${process.env.GITHUB_TOKEN.trim()}`;
         } else {
             console.warn("Warnung: GITHUB_TOKEN ist nicht in den Umgebungsvariablen gesetzt!");
         }
         const response = await fetch(URL, { headers });
         if (!response.ok) {
-            throw new Error(`GitHub-API antwortete mit Status ${response.status}`);
+            const errText = await response.text();
+            throw new Error(`GitHub-API HTTP ${response.status}: ${errText}`);
         }
         let totalCommits = 0;
-        const linkHeader = response.headers.get("link");
+        const linkHeader = response.headers.get("link") || reponse.headers.get("Link");
         if (linkHeader) {
             const match = linkHeader.match(/&page=(\d+)>; rel="last"/);
             if (match) {
@@ -2663,7 +2664,7 @@ export async function getBotVersion() {
         lastFetchTime = now;
         return cachedVersion;
     } catch (error) {
-        console.error("Fehler beim Abrufen der Version von GitHub:", error.message);
+        console.error("[Version] Fehler beim Abrufen:", error.message);
         return cachedVersion || "0.0.1"; 
     }
 }
