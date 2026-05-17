@@ -569,19 +569,18 @@ const chart = new Chart($("ping-chart"), {
     }
   }
 });
-
 function updatePingChart(pingValue) {
-  const numericPing = parseFloat(pingValue);
-  if (isNaN(numericPing) || numericPing < 0) return;
-  const now = Date.now();
-  pingHistory.push({ x: now, y: numericPing });
-  const oneDayAgo = now - 24 * 60 * 60 * 1000;
-  pingHistory = pingHistory.filter(p => p.x >= oneDayAgo);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(pingHistory));
-  chart.data.datasets[0].data = pingHistory;
-  chart.update();
+ const numericPing = parseFloat(pingValue);
+ if (isNaN(numericPing) || numericPing < 0) return;
+ const now = Date.now();
+ pingHistory.push({ x: now, y: numericPing });
+ const oneDayAgo = now - 24 * 60 * 60 * 1000;
+ pingHistory = pingHistory.filter(p => p.x >= oneDayAgo);
+ localStorage.setItem(STORAGE_KEY, JSON.stringify(pingHistory));
+ chart.data.datasets[0].data = [];
+ chart.data.datasets[0].data.push(...pingHistory);
+ chart.update("none");
 }
-
 async function fetchStats() {
   try {
     const res = await fetch("/api/stats");
