@@ -189,21 +189,6 @@ function parseTimeframe(tf) {
  default: return 0;
  }
 }
-let isLogging = false; 
-export function dashboardLog(message) {
-    if (isLogging) return; 
-    isLogging = true;
-    try {
-        if (typeof logs !== "undefined" && Array.isArray(logs)) {
-            logs.push({ t: Date.now(), m: message });
-            if (logs.length > 100) logs.shift();
-        }
-        process.stdout.write(message + "\n");
-    } catch (err) {
-    } finally {
-        isLogging = false; 
-    }
-}
 async function startStorages() {
     dashboardLog("✅ Alle MongoDB-Storages sind einsatzbereit!");
 }
