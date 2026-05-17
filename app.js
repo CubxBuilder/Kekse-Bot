@@ -16,6 +16,7 @@ app.listen(port, "0.0.0.0", () => {
     dashboardLog(`Server läuft auf Port ${port}`)
 })
 let archives = [];
+let logs = [];
 export async function initTicketArchive(app, getTickData, setTickData) {
   try {
     const stored = await getTickData("archive_list") || {};
@@ -42,8 +43,8 @@ export async function initTicketArchive(app, getTickData, setTickData) {
         if (!allowedTicket) {
             return res.status(403).json({ error: "Ungültiger Token" });
         }
-        res.json(archives)
-    });
+        res.json([allowedTicket]);
+    }
 }
 export async function archiveTicket({ name, closedBy, channel }, setTickData) {
   try {
@@ -512,7 +513,6 @@ export async function initInvites(client) {
  const cmd = args.shift().toLowerCase();
  
  if (cmd === "invite_leaderboard" || cmd === "invites") {
- // Variable von 'stats' in 'dbInviteStats' umbenannt, um Crash zu verhindern
  const dbInviteStats = await getIData("invite_stats") || {};
  const leaderboard = Object.entries(dbInviteStats).map(([id, s]) => ({ 
   id, ...s, total: (s.regular || 0) - (s.left || 0) - (s.fake || 0) + (s.bonus || 0) 
@@ -2595,55 +2595,48 @@ export async function initDashboard(app, client, globalBotStats) {
     if (logs.length > 100) logs.shift();
   };
 }
-  app.get("/api/stats", async (req, res) => {
-    try {
-        const guild = client.guilds.cache.first();
-        const membersMap = guild?.members.cache || new Map();
-        const totalMembers = guild?.memberCount || membersMap.size || 0;
-        const bots = membersMap.size > 0 ? [...membersMap.values()].filter(m => m?.user?.bot).length : 0;
-        const users = totalMembers - bots;
-        let ownerTag = "—";
-        if (guild?.ownerId) {
-            try { 
-                const o = await client.users.fetch(guild.ownerId); 
-                ownerTag = o.tag || o.username || "—"; 
-            } catch (err) {
-                dashboardLog("[Dashboard API] Konnte Server-Besitzer nicht abrufen:", err.message);
-            }
-        }
-        const uptimeSec = Math.floor((client.uptime ?? 0) / 1000);
-        const activeLogs = typeof logs !== "undefined" && Array.isArray(logs) ? logs.slice(-50) : [];
-        res.json({
-            guild: guild ? { 
-                name: guild.name, 
-                id: guild.id, 
-                owner: ownerTag, 
-                channels: guild.channels.cache.size 
-            } : { name: "Nicht verbunden", id: "—", owner: "—", channels: "—" },
-            users: users >= 0 ? users : "—",
-            bots: bots,
-            ping: { 
-                now: client.ws.ping !== null && client.ws.ping >= 0 ? `${client.ws.ping}ms` : "—", 
-                avg: globalBotStats.pingAverage ? `${globalBotStats.pingAverage}ms` : "—", 
-                max: globalBotStats.pingMaximum ? `${globalBotStats.pingMaximum}ms` : "—" 
-            },
-            uptime: uptimeSec,
-            version: process.env.npm_package_version || "1.0.0",
-            lastRestart: new Date(Date.now() - uptimeSec * 1000).toISOString(),
-            stats: {
-                tickets:   globalBotStats.ticketsCreated   ?? 0,
-                polls:     globalBotStats.pollsCreated     ?? 0,
-                giveaways: globalBotStats.giveawaysCreated ?? 0,
-                commands:  globalBotStats.commandsRunned   ?? 0,
-                scams:     globalBotStats.scamsPrevented   ?? 0,
-                deleted:   globalBotStats.messagesDeleted  ?? 0,
-            },
-            logs: activeLogs,
-        });
-    } catch (e) {
-        console.error("[Dashboard API] Fataler Fehler im Stats-Endpunkt:", e);
-        res.status(500).json({ error: e.message });
+app.get("/api/stats", (req, res) => {
+  try {
+    if (!client || !client.isReady()) {
+      return res.json({ users: 0, bots: 0, uptime: 0, version: "1.0.0", stats: {} });
     }
+    const guild = client.guilds.cache.first();
+    const guildData = guild ? {
+      name: guild.name,
+      id: guild.id,
+      owner: "Admin System",
+      channels: guild.channels.cache.size
+    } : null;
+
+    const totalMembers = guild ? guild.memberCount : 0;
+    const botCount = guild ? guild.members.cache.filter(m => m.user.bot).size : 0;
+    const userCount = totalMembers - botCount;
+    const currentPing = client.ws.ping;
+    res.json({
+      guild: guildData,
+      users: userCount,
+      bots: botCount,
+      uptime: Math.floor(client.uptime / 1000),
+      version: "1.4.6",
+      lastRestart: new Date(Date.now() - client.uptime).toISOString(),
+      ping: {
+        now: currentPing >= 0 ? currentPing : 0,
+        avg: currentPing >= 0 ? currentPing : 0,
+        max: currentPing >= 0 ? currentPing : 0
+      },
+      stats: {
+        tickets: globalBotStats.ticketsCreated,
+        polls: globalBotStats.pollsCreated,
+        giveaways: globalBotStats.giveawaysCreated,
+        commands: globalBotStats.commandsRunned,
+        scams: globalBotStats.usersVerified,
+        deleted: globalBotStats.countingMessagesFailed
+      },
+      logs: typeof logs !== "undefined" ? logs : [] 
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Fehler beim Laden der Statistiken" });
+  }
 });
 client.once("ready", async () => {
     await initCounting(client);
