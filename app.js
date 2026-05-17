@@ -2614,7 +2614,7 @@ app.get("/api/stats", (req, res) => {
         users: 0, 
         bots: 0, 
         uptime: 0, 
-        version: "1.0.0", 
+        version: "1.4.7", 
         lastRestart: new Date().toISOString(),
         ping: { now: 0, avg: 0, max: 0 },
         stats: { tickets: 0, polls: 0, giveaways: 0, commands: 0, scams: 0, deleted: 0 },
@@ -2627,7 +2627,7 @@ app.get("/api/stats", (req, res) => {
     const guildData = guild ? {
       name: guild.name,
       id: guild.id,
-      owner: "Admin System",
+      owner: "cubxbuilder",
       channels: guild.channels.cache.size
     } : null;
 
