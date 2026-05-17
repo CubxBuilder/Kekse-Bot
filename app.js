@@ -1285,6 +1285,7 @@ export async function initCounting(client) {
     await handleCounting(msg, false);
   });
 }
+}
 await loadCounting();
 const GIVEAWAY_EMOJI = "🎉";
 const BOOSTER_ROLE_ID = "1464202435638722621";
