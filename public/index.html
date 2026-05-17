@@ -628,36 +628,41 @@ async function fetchStats() {
     }
   } catch {}
 }
-
 fetchStats();
 setInterval(fetchStats, 5000);
-
+const escapeHTML = str => {
+  if (!str) return "";
+  return str.toString()
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
 const isImg = url => /\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(url);
 const fmtTs = ms => new Date(ms).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
-
 function renderMsg(msg) {
   const attachHtml = msg.attachments?.length ? `<div class="msg-attachments">${
     msg.attachments.map(a => isImg(a.url)
-      ? `<img src="${a.url}" alt="${a.name}" loading="lazy" onclick="window.open('${a.url}')">`
-      : `<a href="${a.url}" target="_blank">📎 ${a.name}</a>`
+      ? `<img src="${encodeURI(a.url)}" alt="${escapeHTML(a.name)}" loading="lazy" onclick="window.open('${encodeURI(a.url)}')">`
+      : `<a href="${encodeURI(a.url)}" target="_blank">${escapeHTML(a.name)}</a>`
     ).join("")
   }</div>` : "";
   const stickerHtml = msg.stickers?.length ? `<div class="msg-stickers">${
-    msg.stickers.map(s => `<img src="${s.url}" alt="${s.name}" title="${s.name}">`).join("")
+    msg.stickers.map(s => `<img src="${encodeURI(s.url)}" alt="${escapeHTML(s.name)}" title="${escapeHTML(s.name)}">`).join("")
   }</div>` : "";
   return `<div class="msg-row">
-    <img class="msg-avatar" src="${msg.author.avatar}" alt="" onerror="this.style.display='none'">
+    <img class="msg-avatar" src="${encodeURI(msg.author.avatar)}" alt="" onerror="this.style.display='none'">
     <div class="msg-body">
       <div class="msg-header">
-        <span class="msg-author">${msg.author.name}</span>
+        <span class="msg-author">${escapeHTML(msg.author.name)}</span>
         <span class="msg-time">${fmtTs(msg.timestamp)}</span>
       </div>
-      ${msg.content ? `<div class="msg-content">${msg.content.replace(/</g,"&lt;")}</div>` : ""}
+      ${msg.content ? `<div class="msg-content">${escapeHTML(msg.content)}</div>` : ""}
       ${attachHtml}${stickerHtml}
     </div>
   </div>`;
 }
-
 function renderTickets(tickets) {
   const list = $("ticket-list");
   if (!tickets.length) {
