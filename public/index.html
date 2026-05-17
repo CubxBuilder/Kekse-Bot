@@ -669,7 +669,19 @@ function renderConsoleLogs(logs) {
   consoleContainer.innerHTML = logs.map(log => {
     const time = new Date(log.timestamp).toLocaleTimeString("de-DE");
     const logClass = log.type === "error" ? "log-item error" : "log-item";
-    return `<div class="${logClass}">[${time}] ${escapeHTML(log.message)}</div>`;
+    
+    let displayMessage = log.message;
+    if (typeof displayMessage === "object" && displayMessage !== null) {
+      try {
+        displayMessage = JSON.stringify(displayMessage);
+      } catch (e) {
+        displayMessage = "[Komplexes Objekt]";
+      }
+    } else if (String(displayMessage) === "[object Object]") {
+      displayMessage = "System-Ereignis (Datenstruktur)";
+    }
+
+    return `<div class="${logClass}">[${time}] ${escapeHTML(displayMessage)}</div>`;
   }).join("");
 
   consoleContainer.scrollTop = consoleContainer.scrollHeight;
