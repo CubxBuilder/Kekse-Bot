@@ -416,7 +416,6 @@ export async function clear(client) {
       if (/^\d+$/.test(args[0])) amount = Math.min(parseInt(args.shift()), 500);
       else timeframe = args.shift();
     }
-     const statusMsg = await message.channel.send("🔍 Suche Nachrichten...");
      const statusMsg = await message.channel.send(" Suche Nachrichten...");
      let messagesToDelete = [];
      let lastId = null;
