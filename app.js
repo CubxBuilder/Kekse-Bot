@@ -189,9 +189,6 @@ function parseTimeframe(tf) {
  default: return 0;
  }
 }
-async function startStorages() {
-    dashboardLog("✅ Alle MongoDB-Storages sind einsatzbereit!");
-}
 const TEAM_ROLE = "1457906448234319922";
 const LOG_CHANNEL_ID = "1423413348220796991";
 import { dbGet, dbSet } from './database.js';
