@@ -47,7 +47,18 @@ let logs = [];
 const originalLog = console.log;
 const originalError = console.error;
 function captureLog(type, args) {
-  const message = args.map(arg => typeof arg === "object" ? JSON.stringify(arg) : arg).join(" ");
+  const message = args.map(arg => {
+    if (arg instanceof Error) return arg.stack || arg.message;
+    if (typeof arg === "object" && arg !== null) {
+      try {
+        return JSON.stringify(arg, null, 2);
+      } catch (e) {
+        return "[Zirkuläres Objekt]";
+      }
+    }
+    return String(arg);
+  }).join(" ");
+
   const logEntry = {
     timestamp: Date.now(),
     type: type,
