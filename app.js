@@ -51,9 +51,12 @@ function captureLog(type, args) {
     if (arg instanceof Error) return arg.stack || arg.message;
     if (typeof arg === "object" && arg !== null) {
       try {
-        return JSON.stringify(arg, null, 2);
+        if (arg.embeds || arg.content) {
+          return `[Bot-Nachricht] ${arg.content || ""} ${arg.embeds ? JSON.stringify(arg.embeds) : ""}`;
+        }
+        return JSON.stringify(arg);
       } catch (e) {
-        return "[Zirkuläres Objekt]";
+        return "[Komplexes Objekt]";
       }
     }
     return String(arg);
