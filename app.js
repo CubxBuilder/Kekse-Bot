@@ -709,20 +709,15 @@ export function initModeration(client) {
 
       await logChannel.send({ embeds: [kekseEmbed] }).catch(() => {});
     };
-
      if (cmd === "timeout") {
  const user = await getUser(args[0]);
  const durationStr = args[1];
  const reason = args.slice(2).join(" ") || "Kein Grund";
  if (!user || !durationStr) return msg.reply({ content: " Syntax: `!timeout @user 10m Grund`.", ephemeral: true });
- 
  const match = durationStr.match(/^(\d+)([smhd])$/);
  if (!match) return msg.reply({ content: " Format: 10s, 5m, 2h, 1d", ephemeral: true });
- 
- // Auf die vereinheitlichte Funktion 'parseTimeframe' umgestellt
  const durationMs = parseTimeframe(durationStr);
  if (durationMs === 0) return msg.reply({ content: " Ungültige Zeitangabe.", ephemeral: true });
- 
  try {
  const member = await msg.guild.members.fetch(user.id);
  await member.timeout(durationMs, reason);
@@ -809,13 +804,11 @@ export function initModeration(client) {
       await msg.reply({ content: `⚠️ **Warn**: <@${user.id}> (Gesamt: ${data.warns[user.id].length})`, ephemeral: true });
       globalBotStats.commandsRunned += 1;
     }
-
     if (cmd === "warns") {
       const user = await getUser(args[0]);
       if (!user) return msg.reply({ content: "❌ User nicht gefunden.", ephemeral: true });
       const userWarns = data.warns[user.id] || [];
       if (userWarns.length === 0) return msg.reply({ content: "✅ Keine Warnungen.", ephemeral: true });
-
       const embed = new EmbedBuilder()
         .setTitle(`Warnungen: ${user.username}`)
         .setColor('#ffffff')
@@ -824,12 +817,10 @@ export function initModeration(client) {
       await msg.reply({ embeds: [embed] });
       globalBotStats.commandsRunned += 1;
     }
-
     if (cmd === "warn_remove") {
       const user = await getUser(args[0]);
       const index = parseInt(args[1]) - 1;
       if (!user || isNaN(index) || !data.warns[user.id]?.[index]) return msg.reply({ content: "❌ Ungültiger Index.", ephemeral: true });
-
       const removed = data.warns[user.id].splice(index, 1);
       await setMData("moderation", data);
       await sendModLog("Warn entfernt", user, `Grund war: ${removed[0].reason}`);
@@ -838,7 +829,6 @@ export function initModeration(client) {
     }
   });
 }
-
 function parseTimDuration(amount, unit) {
   const map = { s: 1000, m: 60000, h: 3600000, d: 86400000 };
   return parseInt(amount) * map[unit];
@@ -1043,17 +1033,14 @@ export async function warning(client) {
  }
  });
 }
-
 function isProcessable(message) {
  return !message.author.bot && message.guild && message.content;
 }
-
 function isIgnoredCategory(message) {
  const channel = message.channel;
  const parentId = channel.parentId || channel.parent?.parentId;
  return parentId && CONFIG.ignoredCategories.includes(parentId);
 }
-
 function detectViolation(msg) {
  const lower = msg.toLowerCase();
  const emailPattern = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
@@ -1201,85 +1188,61 @@ export async function initCounting(client) {
   const handleCounting = async (msg, syncMode = false) => { 
     if (!syncMode && msg.author.bot) return; 
     if (msg.channel.id !== COUNTING_CHANNEL) return; 
-    
     await loadCounting(); 
-    
-    // Top-Befehl (wird bei der Synchronisation ignoriert)
     if (!syncMode && msg.content === "!top") { 
       const sorted = Object.entries(countingData.scoreboard) 
         .sort((a, b) => b[1] - a[1]) 
-        .slice(0, 10); 
-        
+        .slice(0, 10);    
       const embed = new EmbedBuilder() 
         .setTitle(" Top 10 Counter") 
         .setDescription(sorted.map(([id, s], i) => `${i + 1}. • ${s}`).join("\n") || "Keine Daten") 
         .setColor('#ffffff') 
         .setFooter({ text: 'Kekse Clan' }); 
-        
       await msg.reply({ embeds: [embed] }); 
       return; 
     } 
-
     const match = msg.content.trim().match(/^-?\d+/); 
-    
-    // Admin-Reset-Befehl (wird bei der Synchronisation ignoriert)
     if (!match && !syncMode && msg.content.startsWith("!set_number")) { 
       if (msg.author.id !== "1151971830983311441") return; 
       const args = msg.content.split(" "); 
       const newNum = parseInt(args[1]); 
       if (isNaN(newNum)) return; 
-      
       countingData.currentNumber = newNum; 
       countingData.direction = newNum < 0 ? -1 : 1; 
       await saveCounting(); 
-      
       await sendKekseLog("Counting Reset (Admin)", msg.author, `Die Zahl wurde manuell auf **${newNum}** gesetzt.`); 
       return msg.reply(` Die nächste Zahl wurde auf **${newNum}** gesetzt.`); 
     } 
-
     if (!match) return; 
     const num = parseInt(match[0]); 
-
-    // Erster Zähler-Einstieg (Start bei 1 oder -1)
     if (countingData.currentNumber === 1 && countingData.lastUserId === null) { 
       if (num === 1 || num === -1) { 
         countingData.direction = num; 
         countingData.currentNumber = num + countingData.direction; 
         countingData.lastUserId = msg.author.id; 
         countingData.lastCountingTime = msg.createdTimestamp; 
-        
         const excludedUsers = ["1151971830983311441", "1274320881585356892"]; 
         if (!excludedUsers.includes(msg.author.id)) { 
           countingData.scoreboard[msg.author.id] ??= 0; 
           countingData.scoreboard[msg.author.id]++; 
         } 
-        
         countingData.lastMessageId = msg.id;
         await saveCounting(); 
-        
-        // REAKTION: Wird jetzt im Live-Betrieb UND bei der Synchronisation gesetzt
         await msg.react("✅").catch(() => {}); 
         return; 
       } 
     } 
-
-    // FEHLER: Falsche Zahl oder Doppelpost
     if (num !== countingData.currentNumber || msg.author.id === countingData.lastUserId) { 
       const reason = num !== countingData.currentNumber ? `Falsche Zahl (${num} statt ${countingData.currentNumber})` : "Doppel-Post"; 
-      
-      // Logs werden bei Sync unterdrückt, um Spam zu verhindern
       if (!syncMode) {
         await sendKekseLog("Counting Fehler", msg.author, `**Grund:** ${reason}\n**Reset auf:** 1 / 1`); 
       }
-
       countingData.currentNumber = 1; 
       countingData.direction = 1; 
       countingData.lastUserId = null; 
       countingData.lastCountingTime = msg.createdTimestamp; 
       countingData.lastMessageId = msg.id;
       await saveCounting(); 
-      
-      // REAKTION: Fehler-Kreuz wird jetzt auch im SyncMode gesetzt
       await msg.react("❌").catch(() => {}); 
       
       if (!syncMode) { 
@@ -1290,8 +1253,6 @@ export async function initCounting(client) {
       } 
       return; 
     } 
-
-    // ERFOLG: Richtige Zahl gezählt
     countingData.currentNumber = num + (countingData.direction || 1); 
     countingData.lastUserId = msg.author.id; 
     countingData.lastCountingTime = msg.createdTimestamp; 
@@ -1301,28 +1262,21 @@ export async function initCounting(client) {
       countingData.scoreboard[msg.author.id] ??= 0; 
       countingData.scoreboard[msg.author.id]++; 
     } 
-    
     countingData.lastMessageId = msg.id; 
     await saveCounting(); 
-    
-    // REAKTION: Hinzugefügt für Live-Betrieb UND Synchronisation
     await msg.react("✅").catch(() => {}); 
   }; 
-
   const runSync = async () => { 
     console.log(" Starte Counting-Synchronisation..."); 
     await loadCounting(); 
-    
     const channel = await client.channels.fetch(COUNTING_CHANNEL).catch(err => {
       console.error(" Fehler beim Abrufen des Counting-Kanals:", err);
       return null;
     }); 
     if (!channel || !channel.isTextBased()) return; 
-
     try {
       let lastId = countingData.lastMessageId; 
       let totalRecovered = 0; 
-
       if (!lastId) { 
         const lastMsg = await channel.messages.fetch({ limit: 1 }); 
         countingData.lastMessageId = lastMsg.first()?.id; 
