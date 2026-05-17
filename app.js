@@ -2609,20 +2609,35 @@ export async function initDashboard(app, client, globalBotStats) {
 app.get("/api/stats", (req, res) => {
   try {
     if (!client || !client.isReady()) {
-      return res.json({ users: 0, bots: 0, uptime: 0, version: "1.0.0", stats: {} });
+      return res.json({ 
+        guild: null, 
+        users: 0, 
+        bots: 0, 
+        uptime: 0, 
+        version: "1.0.0", 
+        lastRestart: new Date().toISOString(),
+        ping: { now: 0, avg: 0, max: 0 },
+        stats: { tickets: 0, polls: 0, giveaways: 0, commands: 0, scams: 0, deleted: 0 },
+        logs: [] 
+      });
     }
+
     const guild = client.guilds.cache.first();
+    
     const guildData = guild ? {
       name: guild.name,
       id: guild.id,
-      owner: "cubxbuilder",
+      owner: "Admin System",
       channels: guild.channels.cache.size
     } : null;
 
     const totalMembers = guild ? guild.memberCount : 0;
     const botCount = guild ? guild.members.cache.filter(m => m.user.bot).size : 0;
     const userCount = totalMembers - botCount;
+
     const currentPing = client.ws.ping;
+    const validPing = currentPing >= 0 ? currentPing : 0;
+    
     res.json({
       guild: guildData,
       users: userCount,
@@ -2631,19 +2646,19 @@ app.get("/api/stats", (req, res) => {
       version: "1.4.6",
       lastRestart: new Date(Date.now() - client.uptime).toISOString(),
       ping: {
-        now: currentPing >= 0 ? currentPing : 0,
-        avg: currentPing >= 0 ? currentPing : 0,
-        max: currentPing >= 0 ? currentPing : 0
+        now: validPing,
+        avg: validPing,
+        max: validPing
       },
       stats: {
-        tickets: globalBotStats.ticketsCreated,
-        polls: globalBotStats.pollsCreated,
-        giveaways: globalBotStats.giveawaysCreated,
-        commands: globalBotStats.commandsRunned,
-        scams: globalBotStats.usersVerified,
-        deleted: globalBotStats.countingMessagesFailed
+        tickets: globalBotStats.ticketsCreated || 0,
+        polls: globalBotStats.pollsCreated || 0,
+        giveaways: globalBotStats.giveawaysCreated || 0,
+        commands: globalBotStats.commandsRunned || 0,
+        scams: globalBotStats.usersVerified || 0,
+        deleted: globalBotStats.countingMessagesFailed || 0
       },
-      logs: typeof logs !== "undefined" ? logs : [] 
+      logs: typeof logs !== "undefined" ? logs : []
     });
   } catch (error) {
     res.status(500).json({ error: "Fehler beim Laden der Statistiken" });
