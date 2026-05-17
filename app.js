@@ -2658,7 +2658,7 @@ export async function initDashboard(app, client, globalBotStats) {
     if (logs.length > 100) logs.shift();
   };
 }
-app.get("/api/stats", (req, res) => {
+app.get("/api/stats", async (req, res) => {
   try {
     const currentVersion = await getBotVersion();
     if (!client || !client.isReady()) {
@@ -2696,7 +2696,7 @@ app.get("/api/stats", (req, res) => {
       users: userCount,
       bots: botCount,
       uptime: Math.floor(client.uptime / 1000),
-      version: getBotVersion(),
+      version: await getBotVersion(),
       lastRestart: new Date(Date.now() - client.uptime).toISOString(),
       ping: {
         now: validPing,
