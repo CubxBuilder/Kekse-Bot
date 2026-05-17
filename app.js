@@ -2615,7 +2615,7 @@ app.get("/api/stats", (req, res) => {
     const guildData = guild ? {
       name: guild.name,
       id: guild.id,
-      owner: "Admin System",
+      owner: "cubxbuilder",
       channels: guild.channels.cache.size
     } : null;
 
