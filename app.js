@@ -94,7 +94,7 @@ export async function initTicketArchive(app, getTickData, setTickData) {
             return res.status(403).json({ error: "Ungültiger Token" });
         }
         res.json([allowedTicket]);
-    }
+    });
 }
 export async function archiveTicket({ name, closedBy, channel }, setTickData) {
   try {
