@@ -381,46 +381,50 @@ export async function clear(client) {
       if (/^\d+$/.test(args[0])) amount = Math.min(parseInt(args.shift()), 500);
       else timeframe = args.shift();
     }
-    const statusMsg = await message.channel.send("🔍 Suche Nachrichten...");
-    let messagesToDelete = [];
-    let lastId = null;
-    try {
-      while (messagesToDelete.length < amount) {
-        const fetched = await targetChannel.messages.fetch({ limit: 100, before: lastId });
-        if (fetched.size === 0) break;
-        for (const msg of fetched.values()) {
-          if (userIds.length > 0 && !userIds.includes(msg.author.id)) continue;
-          if (timeframe) {
-            const ms = parseTimeframe(timeframe);
-            if (Date.now() - msg.createdTimestamp > ms) continue;
-          }
-          messagesToDelete.push(msg);
-          if (messagesToDelete.length >= amount) break;
-        }
-        lastId = fetched.last().id;
-        if (fetched.size < 100) break;
-      }
-      if (messagesToDelete.length === 0) {
-        return statusMsg.edit("❌ Keine Nachrichten gefunden, die den Kriterien entsprechen.").then(m => setTimeout(() => m.delete(), 5000));
-      }
-      let deletedCount = 0;
-      const fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
-      const youngMsgs = messagesToDelete.filter(m => m.createdTimestamp > fourteenDaysAgo);
-      const oldMsgs = messagesToDelete.filter(m => m.createdTimestamp <= fourteenDaysAgo);
-      if (youngMsgs.length > 0) {
-        await statusMsg.edit(`🚀 Bulk-Löschung von ${youngMsgs.length} Nachrichten...`);
-        const deletedBulk = await targetChannel.bulkDelete(youngMsgs, true);
-        deletedCount += deletedBulk.size;
-      }
-      if (oldMsgs.length > 0) {
-        for (let i = 0; i < oldMsgs.length; i++) {
-          await oldMsgs[i].delete().catch(() => {});
-          deletedCount++;
-          if (deletedCount % 5 === 0) await statusMsg.edit(`⏳ Lösche alte Nachrichten: **${deletedCount}/${messagesToDelete.length}**...`);
-          await new Promise(r => setTimeout(r, 1200)); 
-        }
-      }
-      const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+     const statusMsg = await message.channel.send("🔍 Suche Nachrichten...");
+     const statusMsg = await message.channel.send(" Suche Nachrichten...");
+     let messagesToDelete = [];
+     let lastId = null;
+     try {
+         while (messagesToDelete.length < amount) {
+             const fetched = await targetChannel.messages.fetch({ limit: 100, before: lastId || undefined });
+             if (!fetched || fetched.size === 0) break;
+             for (const msg of fetched.values()) {
+                 if (userIds.length > 0 && !userIds.includes(msg.author.id)) continue;
+                 if (timeframe) {
+                     const ms = parseTimeframe(timeframe);
+                     if (Date.now() - msg.createdTimestamp > ms) continue;
+                 }
+                 messagesToDelete.push(msg);
+                 if (messagesToDelete.length >= amount) break;
+            }
+             const lastMsg = fetched.last();
+             if (!lastMsg) break;
+             lastId = lastMsg.id;
+             if (fetched.size < 100) break;
+         }
+         if (messagesToDelete.length === 0) {
+             return statusMsg.edit(" Keine Nachrichten gefunden, die den Kriterien entsprechen.").then(m => setTimeout(() => m.delete().catch(() => {}), 5000));
+         }
+         let deletedCount = 0;
+         const fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
+         const youngMsgs = messagesToDelete.filter(m => m.createdTimestamp > fourteenDaysAgo);
+         const oldMsgs = messagesToDelete.filter(m => m.createdTimestamp <= fourteenDaysAgo);
+         if (youngMsgs.length > 0) {
+             await statusMsg.edit(` Bulk-Löschung von ${youngMsgs.length} Nachrichten...`);
+             const deletedBulk = await targetChannel.bulkDelete(youngMsgs, true).catch(() => new Map());
+             deletedCount += deletedBulk.size;
+         }
+         if (oldMsgs.length > 0) {
+             for (let i = 0; i < oldMsgs.length; i++) {
+                 await oldMsgs[i].delete().catch(() => {});
+                 deletedCount++;
+                 if (deletedCount % 5 === 0) await statusMsg.edit(` Lösche alte Nachrichten: **${deletedCount}/${messagesToDelete.length}**...`).catch(() => {});
+                 await new Promise(r => setTimeout(r, 1200)); 
+              }
+         }
+     }
+ const duration = ((Date.now() - startTime) / 1000).toFixed(2);
       await statusMsg.delete().catch(() => {});
       const finishMsg = await message.channel.send(
         `✅ **Abschlussbericht:**\n- Gelöscht: **${deletedCount}**\n- Dauer: **${duration}s**\n- Kanal: <#${targetChannel.id}>`
