@@ -2614,39 +2614,57 @@ export async function initScammProtection(client) {
         }
     })
 }
+let cachedVersion = null;
+let lastFetchTime = 0;
+const CACHE_DURATION = 15 * 60 * 1000;
+
 export async function getBotVersion() {
+    const now = Date.now();
+    if (cachedVersion && (now - lastFetchTime < CACHE_DURATION)) {
+        return cachedVersion;
+    }
     const URL = "https://api.github.com/repos/CubxBuilder/Kekse-Bot/commits?per_page=1";
     try {
-        const response = await fetch(URL, {
-            headers: {
-                "User-Agent": "Bot-Backend-Version-Fetcher"
-            }
-        });
-        if (!response.ok) {
-            throw new Error(`GitHub-API Fehler: ${response.status} ${response.statusText}`);
+        const headers = {
+            "User-Agent": "Bot-Backend-Version-Fetcher"
+        };
+        if (process.env.GITHUB_TOKEN) {
+            headers["Authorization"] = `token ${process.env.GITHUB_TOKEN}`;
+        } else {
+            console.warn("Warnung: GITHUB_TOKEN ist nicht in den Umgebungsvariablen gesetzt!");
         }
-        let totalCommits = 1;
+        const response = await fetch(URL, { headers });
+        if (!response.ok) {
+            throw new Error(`GitHub-API antwortete mit Status ${response.status}`);
+        }
+        let totalCommits = 0;
         const linkHeader = response.headers.get("link");
-
         if (linkHeader) {
             const match = linkHeader.match(/&page=(\d+)>; rel="last"/);
             if (match) {
                 totalCommits = parseInt(match, 10);
             }
-        } else {
+        } 
+        if (!totalCommits || isNaN(totalCommits)) {
             const commits = await response.json();
-            totalCommits = commits.length;
+            if (Array.isArray(commits)) {
+                totalCommits = commits.length;
+            }
+        }
+        if (!totalCommits || isNaN(totalCommits)) {
+            throw new Error("Ungültige Commit-Anzahl empfangen.");
         }
         const z3 = totalCommits % 10;
         const totalTens = Math.floor(totalCommits / 10);
         const z2 = totalTens % 25;
         const z1 = Math.floor(totalTens / 25);
 
-        return `${z1}.${z2}.${z3}`;
-
+        cachedVersion = `${z1}.${z2}.${z3}`;
+        lastFetchTime = now;
+        return cachedVersion;
     } catch (error) {
         console.error("Fehler beim Abrufen der Version von GitHub:", error.message);
-        return "0.0.0";
+        return cachedVersion || "0.0.1"; 
     }
 }
 export async function initDashboard(app, client, globalBotStats) {
