@@ -2287,19 +2287,9 @@ export async function initStatistics(client) {
         lastSentDay !== currentDay
       ) {
         lastSentDay = currentDay;
-
         const user = await client.users.fetch("1151971830983311441");
-
         await user.send(getStatsMessage());
-
-        Object.keys(stats).forEach((key) => {
-          if (typeof stats[key] === "number") {
-            stats[key] = 0;
-          }
-        });
-
         dashboardLog("Tägliche Statistik gesendet");
-        dashboardLog("Stats zurückgesetzt");
       }
     } catch (err) {
       console.error("Fehler beim Senden der Statistik:", err);
