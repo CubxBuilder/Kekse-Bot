@@ -158,7 +158,7 @@ export async function archiveTicket({ name, closedBy, channel }, setTickData) {
     dashboardLog(`[TicketArchive] ❌ Fehler bei "${name}": ${e.message}`);
   }
 }
-const globalBotStats = {
+export let globalBotStats = {
  messagesSent: 0, membersJoined: 0, membersLeft: 0, commandsRunned: 0,
  ticketsCreated: 0, giveawaysCreated: 0, pollsCreated: 0, remindersCreated: 0,
  voiceChannelsCreated: 0, voiceChannelsDeleted: 0, countingMessagesSent: 0,
