@@ -177,58 +177,67 @@ const TEAM_ROLE = "1457906448234319922";
 const LOG_CHANNEL_ID = "1423413348220796991";
 import { dbGet, dbSet } from './database.js';
 export async function getIData(key) {
-  return await dbGet("invites", key);
+ const data = await dbGet("invites", key);
+ return data || {};
 }
 export async function setIData(key, value) {
-  await dbSet("invites", key, value);
+ await dbSet("invites", key, value);
 }
 export async function getMData(key) {
-  return await dbGet("moderation", key);
+ const data = await dbGet("moderation", key);
+ return data || { warns: {} };
 }
 export async function setMData(key, value) {
-  await dbSet("moderation", key, value);
+ await dbSet("moderation", key, value);
 }
 export async function getVData(key) {
-  return await dbGet("violations", key);
+ const data = await dbGet("violations", key);
+ return data || {};
 }
 export async function setVData(key, value) {
-  await dbSet("violations", key, value);
+ await dbSet("violations", key, value);
 }
 export async function getTickData(key) {
- return await dbGet("tickets", key); 
+ const data = await dbGet("tickets", key); 
+ return data || {};
 }
 export async function setTickData(key, value) {
  await dbSet("tickets", key, value);
 }
 export async function getRData(key) {
-  return await dbGet("reminders", key);
+ const data = await dbGet("reminders", key);
+ return data || { reminders: [] };
 }
 export async function setRData(key, value) {
-  await dbSet("reminders", key, value);
+ await dbSet("reminders", key, value);
 }
 export async function getCouData(key) {
-  return await dbGet("counting", key);
+ const data = await dbGet("counting", key);
+ return data || null;
 }
 export async function setCouData(key, value) {
-  await dbSet("counting", key, value);
+ await dbSet("counting", key, value);
 }
 export async function getGivData(key) {
-  return await dbGet("giveaways", key);
+ const data = await dbGet("giveaways", key);
+ return data || {};
 }
 export async function setGivData(key, value) {
-  await dbSet("giveaways", key, value);
+ await dbSet("giveaways", key, value);
 }
 export async function getPollData(key) {
- return await dbGet("polls", key);
+ const data = await dbGet("polls", key);
+ return data || {};
 }
 export async function setPollData(key, value) {
  await dbSet("polls", key, value);
 }
 export async function setScammData(key, value) {
-  await dbSet("scamm", key, value);
+ await dbSet("scamm", key, value);
 }
 export async function getScammData(key) {
-  return await dbGet("scamm", key);
+ const data = await dbGet("scamm", key);
+ return data || {};
 }
 export function initAuditLogs(client) {
     const sendLog = async (title, user, text, color = "#ffffff", thumb = null, channelId = null) => {
@@ -1187,70 +1196,40 @@ export async function initCounting(client) {
       globalBotStats.commandsRunned += 1;
       return;
     }
-    const match = msg.content.trim().match(/^-?\d+/);
-    if (!match && !syncMode && msg.content.startsWith("!set_number")) {
-        if (msg.author.id !== "1151971830983311441") return;
-        const args = msg.content.split(" ");
-        const newNum = parseInt(args[1]);
-        if (isNaN(newNum)) return;
-        countingData.currentNumber = newNum;
-        countingData.direction = newNum < 0 ? -1 : 1;
-        await saveCounting();
-        await sendKekseLog("Counting Reset (Admin)", msg.author, `Die Zahl wurde manuell auf **${newNum}** gesetzt.`);
-        globalBotStats.commandsRunned += 1;
-        return msg.reply(`✅ Die nächste Zahl wurde auf **${newNum}** gesetzt.`);
-    }
-    if (!match) return;
-    const num = parseInt(match[0]);
-    if (countingData.currentNumber === 1 && countingData.lastUserId === null) {
-      if (num === 1 || num === -1) {
-        countingData.direction = num;
-        countingData.currentNumber = num + countingData.direction;
-        countingData.lastUserId = msg.author.id;
-        countingData.lastCountingTime = msg.createdTimestamp;
-        const excludedUsers = ["1151971830983311441", "1274320881585356892"];
-        if (!excludedUsers.includes(msg.author.id)) {
-          countingData.scoreboard[msg.author.id] ??= 0;
-          countingData.scoreboard[msg.author.id]++;
-        }
-        await saveCounting();
-        if (!syncMode) return await msg.react("✅");
-        return;
-      }
-    }
-    if (num !== countingData.currentNumber || msg.author.id === countingData.lastUserId) {
-      if (!syncMode) {
-        const reason = num !== countingData.currentNumber ? `Falsche Zahl (${num} statt ${countingData.currentNumber})` : "Doppel-Post";     
-        await sendKekseLog("Counting Fehler", msg.author, `**Grund:** ${reason}\n**Reset auf:** 1 / -1`);
-        countingData.currentNumber = 1;
-        countingData.direction = 1;
-        countingData.lastUserId = null;
-        countingData.lastCountingTime = msg.createdTimestamp;
-        await saveCounting();
-        await msg.react("❌");
-        const replyContent = msg.author.id === countingData.lastUserId
-          ? `❌ <@${msg.author.id}>, nicht zwei mal nacheinander! Zurück auf den Start (1 oder -1).`
-          : `❌ <@${msg.author.id}> hat falsch gezählt! Zurück auf den Start (1 oder -1).`;
-        globalBotStats.countingMessagesFailed += 1;
-        return msg.reply(replyContent);
-      }
-      return;
-    }
-    countingData.currentNumber = num + (countingData.direction || 1);
-    countingData.lastUserId = msg.author.id;
-    countingData.lastCountingTime = msg.createdTimestamp;
-    const excludedUsers = ["1151971830983311441", "1274320881585356892"];
-    if (!excludedUsers.includes(msg.author.id)) {
-      countingData.scoreboard[msg.author.id] ??= 0;
-      countingData.scoreboard[msg.author.id]++;
-      globalBotStats.countingMessagesSent += 1;
-    }
-    await saveCounting();
-    if (!syncMode) await msg.react("✅");
-    countingData.lastMessageId = msg.id;
-    await saveCounting();
-  };
-
+     const match = msg.content.trim().match(/^-?\d+/);
+ if (!match) return;
+ const inputNumber = parseInt(match[0]);
+ const nextCorrectNumber = countingData.currentNumber + countingData.direction;
+ if (msg.author.id === countingData.lastUserId && !syncMode) {
+ await msg.react("❌").catch(() => {});
+ await msg.reply("Du darfst nicht zweimal hintereinander zählen! Das Spiel wurde zurückgesetzt.").catch(() => {});
+ countingData.currentNumber = 1;
+ countingData.lastUserId = null;
+ await saveCounting();
+ globalBotStats.countingMessagesFailed += 1;
+ return;
+ }
+ if (inputNumber !== nextCorrectNumber && !syncMode) {
+ await msg.react("❌").catch(() => {});
+ await msg.reply(`Falsche Zahl! Die richtige Zahl gewesen wäre ${nextCorrectNumber}. Das Spiel wurde auf 1 zurückgesetzt.`).catch(() => {});
+ countingData.currentNumber = 1;
+ countingData.lastUserId = null;
+ await saveCounting();
+ globalBotStats.countingMessagesFailed += 1;
+ return;
+ }
+ countingData.currentNumber = inputNumber;
+ countingData.lastUserId = msg.author.id;
+ countingData.lastCountingTime = Date.now();
+ if (!countingData.scoreboard[msg.author.id]) {
+ countingData.scoreboard[msg.author.id] = 0;
+ }
+ countingData.scoreboard[msg.author.id] += 1;
+ await saveCounting();
+ if (!syncMode) {
+ await msg.react("✅").catch(() => {});
+ globalBotStats.countingMessagesSent += 1;
+ }
   const runSync = async () => {
     dashboardLog("🔄 Starte Counting-Synchronisation...");
     await loadCounting();
