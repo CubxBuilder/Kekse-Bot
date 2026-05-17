@@ -44,6 +44,29 @@ const client = new Client({
 });
 let archives = [];
 let logs = [];
+const originalLog = console.log;
+const originalError = console.error;
+function captureLog(type, args) {
+  const message = args.map(arg => typeof arg === "object" ? JSON.stringify(arg) : arg).join(" ");
+  const logEntry = {
+    timestamp: Date.now(),
+    type: type,
+    message: message
+  };
+  logs.push(logEntry);
+  if (logs.length > 100) logs.shift();
+}
+console.log = function(...args) {
+  originalLog.apply(console, args);
+  captureLog("info", args);
+};
+console.error = function(...args) {
+  originalError.apply(console, args);
+  captureLog("error", args);
+};
+export function dashboardLog(text) {
+  console.log(`[Dashboard] ${text}`);
+}
 export async function initTicketArchive(app, getTickData, setTickData) {
   try {
     const stored = await getTickData("archive_list") || {};
@@ -143,6 +166,17 @@ const globalBotStats = {
  pingNow: 0, pingAverage: 0, pingMaximum: 0, pingMinimum: 0,
  usersVerified: 0
 };
+async function startStorages() {
+  try {
+    const stats = await getTickData("global_stats");
+    if (stats) {
+      globalBotStats = { ...globalBotStats, ...stats };
+    }
+    dashboardLog("[Storage] Globale Statistiken erfolgreich geladen.");
+  } catch (error) {
+    dashboardLog(`[Storage] Fehler beim Laden der Statistiken: ${error.message}`);
+  }
+}
 function parseTimeframe(tf) {
  const match = tf.match(/^(\d+)([smhd])$/);
  if (!match) return 0;
@@ -965,91 +999,95 @@ const CONFIG = {
   ticketChannel: "1423413348493430905"
 };
 export async function warning(client) {
-  const sendKekseLog = async (action, user, details) => {
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
-    if (!logChannel) return;
-    const logEmbed = new EmbedBuilder()
-      .setColor('#ffffff')
-      .setAuthor({ 
-          name: user.username, 
-          iconURL: user.displayAvatarURL({ size: 512 }) 
-      })
-      .setDescription(`**Aktion:** \`${action}\`\n${details}`)
-      .setFooter({ text: 'Kekse Clan | Security System' })
-      .setTimestamp();
-    await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
-  };
-  client.on("messageCreate", async (message) => {
-    if (!isProcessable(message) || isIgnoredCategory(message)) return;
-    const result = detectViolation(message.content);
-    if (!result) return;
-    const userId = message.author.id;
-    const now = Date.now();
-    const violations = await getVData("violations") || {};
-    if (!violations[userId]) {
-      violations[userId] = { name: message.author.username, count: 0, last: 0 };
-    }
-    if (now - violations[userId].last < CONFIG.cooldown) return;
-    violations[userId].count += 1;
-    violations[userId].name = message.author.username;
-    violations[userId].last = now;
-    await setVData("violations", violations);
-    if (message.deletable) {
-      const originalContent = message.content;
-      await message.delete().catch(() => {});
-      await sendKekseLog("Sicherheits-Verstoß", message.author, 
-        `**Erkannt:** ${result}\n` +
-        `**Kanal:** ${message.channel}\n` +
-        `**Verstöße gesamt:** ${violations[userId].count}\n` +
-        `**Inhalt (zensiert):** \`\`\`${originalContent.substring(0, 15)}...\`\`\``
-      );
-    }
-    const warnMsg = await message.channel.send({
-      content: `⚠️ <@${userId}>, unser System hat einen **${result}** erkannt. Bitte poste keine sensiblen Daten öffentlich. Bei Missverständnissen erstelle ein Ticket in <#${CONFIG.ticketChannel}>`
-    }).catch(() => {});
-    if (warnMsg) {
-      setTimeout(() => warnMsg.delete().catch(() => {}), CONFIG.warnDeleteAfter);
-    }
-  });
+ const sendKekseLog = async (action, user, details) => {
+ const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+ if (!logChannel) return;
+ const logEmbed = new EmbedBuilder()
+ .setColor('#ffffff')
+ .setAuthor({ 
+ name: user.username, 
+ iconURL: user.displayAvatarURL({ size: 512 }) 
+ })
+ .setDescription(`**Aktion:** \`${action}\`\n${details}`)
+ .setFooter({ text: 'Kekse Clan | Security System' })
+ .setTimestamp();
+ await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
+ };
+
+ client.on("messageCreate", async (message) => {
+ if (!isProcessable(message) || isIgnoredCategory(message)) return;
+ const result = detectViolation(message.content);
+ if (!result) return;
+ const userId = message.author.id;
+ const now = Date.now();
+ const violations = await getVData("violations") || {};
+ if (!violations[userId]) {
+ violations[userId] = { name: message.author.username, count: 0, last: 0 };
+ }
+ if (now - violations[userId].last < CONFIG.cooldown) return;
+ violations[userId].count += 1;
+ violations[userId].name = message.author.username;
+ violations[userId].last = now;
+ await setVData("violations", violations);
+ if (message.deletable) {
+ const originalContent = message.content;
+ await message.delete().catch(() => {});
+ await sendKekseLog("Sicherheits-Verstoß", message.author, 
+ `**Erkannt:** ${result}\n` +
+ `**Kanal:** ${message.channel}\n` +
+ `**Verstöße gesamt:** ${violations[userId].count}\n` +
+ `**Inhalt (zensiert):** \`\`\`${originalContent.substring(0, 15)}...\`\`\``
+ );
+ }
+ const warnMsg = await message.channel.send({
+ content: ` <@${userId}>, unser System hat einen **${result}** erkannt. Bitte poste keine sensiblen Daten öffentlich. Bei Missverständnissen erstelle ein Ticket in <#${CONFIG.ticketChannel}>`
+ }).catch(() => {});
+ if (warnMsg) {
+ setTimeout(() => warnMsg.delete().catch(() => {}), CONFIG.warnDeleteAfter);
+ }
+ });
 }
+
 function isProcessable(message) {
-  return !message.author.bot && message.guild && message.content;
+ return !message.author.bot && message.guild && message.content;
 }
+
 function isIgnoredCategory(message) {
-  const channel = message.channel;
-  const parentId = channel.parentId || channel.parent?.parentId;
-  return parentId && CONFIG.ignoredCategories.includes(parentId);
+ const channel = message.channel;
+ const parentId = channel.parentId || channel.parent?.parentId;
+ return parentId && CONFIG.ignoredCategories.includes(parentId);
 }
+
 function detectViolation(msg) {
-  const lower = msg.toLowerCase();
-  const emailPattern = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
-  if (emailPattern.test(msg)) return "E-Mail Adresse";
-  const cleanMsg = msg
-    .replace(/<a?:[a-zA-Z0-9_]+:\d{17,20}>/g, "") 
-    .replace(/<[#@&]!?\d{17,20}>/g, "");
-  const words = cleanMsg.split(/\s+/);
-  for (const word of words) {
-    if (word.startsWith("http") || (word.startsWith(":") && word.endsWith(":"))) continue;
-    const clean = word.replace(/[^a-z0-9-]/gi, "");
-    if (clean.length < 8) continue;
-    if (/^\d+$/.test(clean)) continue; 
-    const whitelist = ["windows", "download", "installer", "x86_64", "64-bit"];
-    if (whitelist.includes(clean.toLowerCase())) continue;
-    const isGiftCardFormat = /^([A-Z0-9]{4,6}-){2,}[A-Z0-9]{4,6}$/i.test(clean);
-    if (isGiftCardFormat) return "Gutschein Code";
-    const hasNumbers = /\d/.test(clean);
-    const hasLetters = /[a-z]/i.test(clean);
-    if (hasNumbers && hasLetters) {
-      const hasKeyword = CONFIG.suspiciousKeywords.some(k => lower.includes(k)) || 
-                         /\b(code|key|free|gratis|geschenk|redeem|nitro)\b/.test(lower);
-      if (clean.length >= 10 && hasKeyword) return "Gutschein Code";
-      const numberCount = (clean.match(/\d/g) || []).length;
-      if (clean.length >= 18 && numberCount >= 4) {
-        return "sensiblen Key / Token";
-      }
-    }
-  }
-  return null;
+ const lower = msg.toLowerCase();
+ const emailPattern = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
+ if (emailPattern.test(msg)) return "E-Mail Adresse";
+ const cleanMsg = msg
+ .replace(/<a?:[a-zA-Z0-9_]+:\d{17,20}>/g, "") 
+ .replace(/<[#@&]!?\d{17,20}>/g, "");
+ const words = cleanMsg.split(/\s+/);
+ for (const word of words) {
+ if (word.startsWith("http") || (word.startsWith(":") && word.endsWith(":"))) continue;
+ const clean = word.replace(/[^a-z0-9-]/gi, "");
+ if (clean.length < 8) continue;
+ if (/^\d+$/.test(clean)) continue; 
+ const whitelist = ["windows", "download", "installer", "x86_64", "64-bit"];
+ if (whitelist.includes(clean.toLowerCase())) continue;
+ const isGiftCardFormat = /^([A-Z0-9]{4,6}-){2,}[A-Z0-9]{4,6}$/i.test(clean);
+ if (isGiftCardFormat) return "Gutschein Code";
+ const hasNumbers = /\d/.test(clean);
+ const hasLetters = /[a-z]/i.test(clean);
+ if (hasNumbers && hasLetters) {
+ const hasKeyword = CONFIG.suspiciousKeywords.some(k => lower.includes(k)) || 
+ /\b(code|key|free|gratis|geschenk|redeem|nitro)\b/.test(lower);
+ if (clean.length >= 10 && hasKeyword) return "Gutschein Code";
+ const numberCount = (clean.match(/\d/g) || []).length;
+ if (clean.length >= 18 && numberCount >= 4) {
+ return "sensiblen Key / Token";
+ }
+ }
+ }
+ return null;
 }
 function initReminder(client) {
   const sendKekseLog = async (action, user, details) => {
@@ -1081,67 +1119,53 @@ function initReminder(client) {
     const [dd, MM, YYYY] = datePart.split(".").map(Number);
     return new Date(YYYY, MM - 1, dd, hh, mm, 0).getTime();
   }
-  async function checkReminders() {
-    const data = await getRData("reminders") || { reminders: [] };
-    if (data.reminders.length === 0) return;
+    async function checkReminders() {
     const now = Date.now();
-    const remaining = [];
-    let changed = false;
-    for (const r of data.reminders) {
-      if (now >= r.triggerAt) {
-        changed = true;
-        const user = await client.users.fetch(r.userId).catch(() => null);
-        try {
-          if (r.dm && user) {
-            await user.send(`🔔 **Erinnerung:** ${r.text}`);
-          } else {
-            const channel = await client.channels.fetch(r.channelId).catch(() => null);
-            if (channel) await channel.send(`🔔 <@${r.userId}> **Erinnerung:** ${r.text}`);
-          }
-          if (user) await sendKekseLog("Erinnerung ausgelöst", user, `**Inhalt:** ${r.text}\n**Typ:** ${r.dm ? "DM" : "Channel"}`);
-        } catch (err) {
-          console.error("[REMINDER] Fehler beim Senden:", err);
+    const reminderData = await getRData("reminders") || { reminders: [] };
+    if (!reminderData.reminders || reminderData.reminders.length === 0) return;
+    const dueReminders = reminderData.reminders.filter(r => r.time <= now);
+    if (dueReminders.length === 0) return;
+    reminderData.reminders = reminderData.reminders.filter(r => r.time > now);
+    await setRData("reminders", reminderData);
+    for (const r of dueReminders) {
+      try {
+        const channel = await client.channels.fetch(r.channelId).catch(() => null);
+        if (channel && channel.isTextBased()) {
+          await channel.send(`⏰ <@${r.userId}>, Erinnerung: ${r.reason}`);
+          continue;
         }
-      } else {
-        remaining.push(r);
+        const user = await client.users.fetch(r.userId).catch(() => null);
+        if (user) {
+          await user.send(`⏰ Erinnerung aus einem gelöschten Kanal: ${r.reason}`).catch(() => {});
+        }
+      } catch (err) {
+        dashboardLog(`[Reminder] Fehler beim Senden einer Erinnerung: ${err.message}`);
       }
-    }
-    if (changed) {
-      data.reminders = remaining;
-      await setRData("reminders", data);
     }
   }
-  setInterval(checkReminders, 60000);
-  client.on("messageCreate", async msg => {
-    if (msg.author.bot || !msg.content.startsWith("!")) return;
-    const args = msg.content.slice(1).split(/\s+/);
-    const cmd = args.shift().toLowerCase();
-    if (cmd === "remind") {
-      if (args.length < 2) return msg.channel.send({ content: "❌ Nutzung: `!remind <Zeit/Dauer> <Text> [dm]`", ephemeral: true });
-      const timeArg = args.shift();
-      const dmFlag = args[args.length - 1]?.toLowerCase() === "dm";
-      if (dmFlag) args.pop();
-      const text = args.join(" ");
-      let triggerAt = timeArg.includes(";") ? parseAbsoluteTime(timeArg) : (Date.now() + parseRemDuration(timeArg));
-      if (!triggerAt || isNaN(triggerAt) || triggerAt <= Date.now()) {
-        return msg.channel.send({ content: "❌ Ungültiger Zeitpunkt.", ephemeral: true });
-      }
-      const reminder = {
-        id: Date.now() + Math.floor(Math.random() * 1000),
-        userId: msg.author.id,
-        channelId: msg.channel.id,
-        triggerAt,
-        text,
-        dm: dmFlag
-      };
-      const data = await getRData("reminders") || { reminders: [] };
-      data.reminders.push(reminder);
-      await setRData("reminders", data);
-      await sendKekseLog("Erinnerung gesetzt", msg.author, `**Text:** ${text}\n**Zeitpunkt:** <t:${Math.floor(triggerAt / 1000)}:f>\n**DM:** ${dmFlag ? "Ja" : "Nein"}`);
-      msg.channel.send({ content: `✅ Erinnerung gesetzt für <t:${Math.floor(triggerAt / 1000)}:R>!`, ephemeral: true });
-      globalBotStats.remindersCreated += 1;
-      globalBotStats.commandsRunned += 1;
+  setInterval(checkReminders, 10000);
+  client.on("messageCreate", async (message) => {
+    if (message.author.bot || !message.content.startsWith("!remind")) return;
+    const args = message.content.slice(7).trim().split(/ +/);
+    const timeStr = args.shift();
+    const reason = args.join(" ");
+    if (!timeStr || !reason) {
+      return message.reply("❌ Nutzung: `!remind <Zeit(m/h/d)> <Grund>` (z.B. `!remind 10m Keks essen`)").catch(() => {});
     }
+    const ms = parseTimeframe(timeStr);
+    if (!ms || ms < 10000) {
+      return message.reply("❌ Ungültige Zeitangabe. Mindestens 10 Sekunden (z.B. 10s, 5m, 1h, 2d).").catch(() => {});
+    }
+    const reminderData = await getRData("reminders") || { reminders: [] };
+    const newReminder = {
+      userId: message.author.id,
+      channelId: message.channel.id,
+      time: Date.now() + ms,
+      reason: reason
+    };
+    reminderData.reminders.push(newReminder);
+    await setRData("reminders", reminderData);
+    message.reply(`✅ Ich werde dich in **${timeStr}** an folgendes erinnern: ${reason}`).catch(() => {});
   });
 }
 const COUNTING_CHANNEL = "1423434079390535730";
@@ -2660,6 +2684,7 @@ client.once("ready", async () => {
       status: "online"
     });
     dashboardLog(`Bot online: ${client.user.tag}`);
+    await startStorages();  
 })
 app.get("/api/stats_internal", (req, res) => {
     const totalSeconds = (client.uptime / 1000);
