@@ -15,6 +15,23 @@ const port = process.env.PORT || 5000
 app.listen(port, "0.0.0.0", () => {
     dashboardLog(`Server läuft auf Port ${port}`)
 })
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.GuildMessageReactions,
+        GatewayIntentBits.GuildInvites,
+        GatewayIntentBits.GuildPresences,
+        GatewayIntentBits.DirectMessages,
+    ],
+    partials: [
+        Partials.Channel, Partials.Message, Partials.Reaction, 
+    Partials.GuildMember, Partials.User, Partials.ThreadMember
+    ]
+});
 let archives = [];
 let logs = [];
 export async function initTicketArchive(app, getTickData, setTickData) {
@@ -143,23 +160,6 @@ export function dashboardLog(message) {
         isLogging = false; 
     }
 }
-const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.GuildVoiceStates,
-        GatewayIntentBits.GuildMessageReactions,
-        GatewayIntentBits.GuildInvites,
-        GatewayIntentBits.GuildPresences,
-        GatewayIntentBits.DirectMessages,
-    ],
-    partials: [
-        Partials.Channel, Partials.Message, Partials.Reaction, 
-    Partials.GuildMember, Partials.User, Partials.ThreadMember
-    ]
-});
 async function startStorages() {
     dashboardLog("✅ Alle MongoDB-Storages sind einsatzbereit!");
 }
