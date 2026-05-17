@@ -2614,6 +2614,41 @@ export async function initScammProtection(client) {
         }
     })
 }
+export async function getBotVersion() {
+    const URL = "https://api.github.com/repos/CubxBuilder/Kekse-Bot/commits?per_page=1";
+    try {
+        const response = await fetch(URL, {
+            headers: {
+                "User-Agent": "Bot-Backend-Version-Fetcher"
+            }
+        });
+        if (!response.ok) {
+            throw new Error(`GitHub-API Fehler: ${response.status} ${response.statusText}`);
+        }
+        let totalCommits = 1;
+        const linkHeader = response.headers.get("link");
+
+        if (linkHeader) {
+            const match = linkHeader.match(/&page=(\d+)>; rel="last"/);
+            if (match) {
+                totalCommits = parseInt(match, 10);
+            }
+        } else {
+            const commits = await response.json();
+            totalCommits = commits.length;
+        }
+        const z3 = totalCommits % 10;
+        const totalTens = Math.floor(totalCommits / 10);
+        const z2 = totalTens % 25;
+        const z1 = Math.floor(totalTens / 25);
+
+        return `${z1}.${z2}.${z3}`;
+
+    } catch (error) {
+        console.error("Fehler beim Abrufen der Version von GitHub:", error.message);
+        return "0.0.0";
+    }
+}
 export async function initDashboard(app, client, globalBotStats) {
   const logs = [];
   const _log = console.log.bind(console);
@@ -2625,13 +2660,14 @@ export async function initDashboard(app, client, globalBotStats) {
 }
 app.get("/api/stats", (req, res) => {
   try {
+    const currentVersion = await getBotVersion();
     if (!client || !client.isReady()) {
       return res.json({ 
         guild: null, 
         users: 0, 
         bots: 0, 
         uptime: 0, 
-        version: "1.4.7", 
+        version: currentVersion, 
         lastRestart: new Date().toISOString(),
         ping: { now: 0, avg: 0, max: 0 },
         stats: { tickets: 0, polls: 0, giveaways: 0, commands: 0, scams: 0, deleted: 0 },
@@ -2660,7 +2696,7 @@ app.get("/api/stats", (req, res) => {
       users: userCount,
       bots: botCount,
       uptime: Math.floor(client.uptime / 1000),
-      version: "1.4.6",
+      version: getBotVersion(),
       lastRestart: new Date(Date.now() - client.uptime).toISOString(),
       ping: {
         now: validPing,
