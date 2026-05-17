@@ -662,6 +662,18 @@ function renderMsg(msg) {
     </div>
   </div>`;
 }
+function renderConsoleLogs(logs) {
+  const consoleContainer = document.getElementById("console-logs");
+  if (!consoleContainer || !Array.isArray(logs)) return;
+
+  consoleContainer.innerHTML = logs.map(log => {
+    const time = new Date(log.timestamp).toLocaleTimeString("de-DE");
+    const logClass = log.type === "error" ? "log-item error" : "log-item";
+    return `<div class="${logClass}">[${time}] ${escapeHTML(log.message)}</div>`;
+  }).join("");
+
+  consoleContainer.scrollTop = consoleContainer.scrollHeight;
+}
 function renderTickets(tickets) {
   const list = $("ticket-list");
   if (!tickets.length) {
