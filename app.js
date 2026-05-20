@@ -1,4 +1,4 @@
-import { Client, REST, Routes, GatewayIntentBits, Partials, ChannelType, PermissionFlagsBits, EmbedBuilder, Events, AuditLogEvent, MessageFlags, MessageType, PermissionsBitField, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js"
+import { Client, ModalBuilder, REST, Routes, GatewayIntentBits, Partials, ChannelType, PermissionFlagsBits, EmbedBuilder, Events, AuditLogEvent, MessageFlags, MessageType, PermissionsBitField, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, TextInputBuilder, TextInputStyle} from "discord.js"
 import https from "https";
 import "dotenv/config"
 import path from "path"
@@ -20,7 +20,6 @@ app.get("/err605", (req, res) => {
 app.get("/err612", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "err612", "index.html"));
 });
-
 const port = process.env.PORT || 5000
 app.listen(port, "0.0.0.0", () => {
     dashboardLog(`Server läuft auf Port ${port}`)
@@ -268,6 +267,129 @@ export async function setScammData(key, value) {
 export async function getScammData(key) {
  const data = await dbGet("scamm", key);
  return data || {};
+}
+export async function setEcoData(key, value) {
+ await dbSet("economy", key, value);
+}
+export async function getEcoData(key) {
+ const data = await dbGet("economy", key);
+ return data || {};
+}
+export async function initEconomySystem(client) {
+  client.on("messageCreate", async (msg) => {
+    if (msg.author.bot || !msg.member) return;
+
+    const args = msg.content.trim().split(/ +/);
+    const command = args[0].toLowerCase();
+    const subCommand = args[1]?.toLowerCase();
+
+    if (command !== "!bank") return;
+
+    const hasEcoRole = msg.member.roles.cache.has("1506732560837771284");
+
+    if (subCommand === "create") {
+      if (hasEcoRole) {
+        return msg.reply({ 
+          content: "Du besitzt bereits ein registriertes Bankkonto." 
+        });
+      }
+
+      const modal = new ModalBuilder()
+        .setCustomId(`bank_create_${msg.author.id}`)
+        .setTitle("Bankkonto erstellen");
+
+      const mcInput = new TextInputBuilder()
+        .setCustomId("mc_username")
+        .setLabel("Minecraft Benutzername")
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true)
+        .setPlaceholder("Dein exakter Name im Spiel");
+
+      const noteInput = new TextInputBuilder()
+        .setCustomId("note_info")
+        .setLabel("WICHTIGER HINWEIS (Bitte lesen)")
+        .setStyle(TextInputStyle.Paragraph)
+        .setRequired(false)
+        .setValue("Dein Minecraft-Username kann nachträglich nur gegen eine Gebühr im System geändert werden.");
+
+      modal.addComponents(
+        new ActionRowBuilder().addComponents(mcInput),
+        new ActionRowBuilder().addComponents(noteInput)
+      );
+
+      return msg.reply({
+        content: "Ich habe dir das Registrierungsformular gesendet. Bitte fülle es aus.",
+        ephemeral: true
+      }).then(() => msg.channel.sendModal(modal).catch(() => {}));
+    }
+
+    if (subCommand === "help") {
+      const helpEmbed = new EmbedBuilder()
+        .setTitle("🏦 Bank-System Hilfe")
+        .setColor(0x00AAFF)
+        .setDescription("Hier findest du alle verfügbaren Befehle:")
+        .addFields(
+          { name: "`!bank create`", value: "Erstellt dein persönliches Bankkonto (Erfordert Minecraft-Namen)." },
+          { name: "`!bank`", value: "Zeigt dir deinen aktuellen Kontostand (Privat für dich)." },
+          { name: "⚠️ Wichtiger Hinweis", value: "Für Änderungen am Konto oder Auszahlungen eröffne bitte ein Ticket in <#1423413348493430905>." }
+        );
+
+      return msg.reply({ embeds: [helpEmbed] });
+    }
+
+    if (!subCommand) {
+      if (!hasEcoRole) {
+        return msg.reply({ 
+          content: "Du hast noch kein Konto. Nutze `!bank create`, um dich zu registrieren." 
+        });
+      }
+
+      const userData = await getEcoData(msg.author.id);
+      
+      if (userData.blocked) {
+        return msg.reply({ 
+          content: "Dein Konto ist aktuell gesperrt. Bitte wende dich an den Support.", 
+          ephemeral: true 
+        });
+      }
+
+      const balance = userData.balance || 0;
+      return msg.reply({ 
+        content: `Dein aktueller Kontostand beträgt: **${balance} Münzen**.\nℹ️ Für Auszahlungen öffne bitte ein Ticket in <#1423413348493430905>.`, 
+        ephemeral: true 
+      });
+    }
+  });
+
+  client.on("interactionCreate", async (interaction) => {
+    if (!interaction.isModalSubmit()) return;
+    if (!interaction.customId.startsWith("bank_create_")) return;
+
+    const userId = interaction.customId.replace("bank_create_", "");
+    if (interaction.user.id !== userId) return;
+
+    const mcUsername = interaction.fields.getTextInputValue("mc_username");
+
+    const accountData = {
+      userId: interaction.user.id,
+      username: interaction.user.username,
+      mcUsername: mcUsername,
+      balance: 0,
+      blocked: false
+    };
+
+    await setEcoData(interaction.user.id, accountData);
+
+    const member = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+    if (member) {
+      await member.roles.add("1506732560837771284").catch(() => {});
+    }
+
+    return interaction.reply({
+      content: `Dein Konto wurde erfolgreich angelegt!\n**Minecraft-Name:** ${mcUsername}\n**Startguthaben:** 0 Münzen\nDu hast nun Zugriff auf dein Konto mit \`!bank\`.`,
+      ephemeral: true
+    });
+  });
 }
 export function initAuditLogs(client) {
     const sendLog = async (title, user, text, color = "#ffffff", thumb = null, channelId = null) => {
