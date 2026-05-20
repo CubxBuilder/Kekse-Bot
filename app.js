@@ -283,28 +283,114 @@ export async function initEconomySystem(client) {
     const command = args[0].toLowerCase();
     const subCommand = args[1]?.toLowerCase();
 
+    if (command === "!daily_setup") {
+      if (msg.author.id !== "1151971830983311441") return;
+
+      const setupId = args[1] || "default";
+      const description = args.slice(2).join(" ") || "Hole dir hier deine täglichen Kekse ab!";
+
+      const embed = new EmbedBuilder()
+        .setTitle("🍪 Tägliche Kekse")
+        .setDescription(`${description}\n\nKlicke auf den Button unten, um 10 Kekse zu erhalten.`)
+        .setColor(0x00AAFF);
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`daily_claim_${setupId}`)
+          .setLabel("Kekse abholen")
+          .setStyle(ButtonStyle.Success)
+          .setEmoji("🍪")
+      );
+
+      await msg.channel.send({ embeds: [embed], components: [row] });
+      return msg.delete().catch(() => {});
+    }
+
     if (command !== "!bank") return;
 
     const hasEcoRole = msg.member.roles.cache.has("1506732560837771284");
+    const isAdmin = msg.author.id === "1151971830983311441";
+
+    if (isAdmin && (subCommand === "add" || subCommand === "remove" || subCommand === "see")) {
+      const targetUser = msg.mentions.users.first();
+      let amount = 0;
+      let targetId = msg.author.id;
+
+      if (subCommand === "see") {
+        if (!targetUser) return msg.reply({ content: "Bitte erwähne einen Nutzer.", ephemeral: true });
+        const data = await getEcoData(targetUser.id);
+        const dmEmbed = new EmbedBuilder()
+          .setTitle(`Konto-Details von ${targetUser.username}`)
+          .setColor(0x00AAFF)
+          .addFields(
+            { name: "User ID", value: data.userId || targetUser.id },
+            { name: "Discord Name", value: data.username || "Kein Name" },
+            { name: "Minecraft Name", value: data.mcUsername || "Nicht registriert" },
+            { name: "Kontostand", value: `${data.balance || 0} Kekse` },
+            { name: "Gesperrt?", value: data.blocked ? "Ja" : "Nein" }
+          );
+        await msg.author.send({ embeds: [dmEmbed] }).catch(() => {});
+        return msg.delete().catch(() => {});
+      }
+
+      if (targetUser) {
+        targetId = targetUser.id;
+        amount = parseInt(args[3]);
+      } else {
+        amount = parseInt(args[2]);
+      }
+
+      if (isNaN(amount) || amount <= 0) {
+        return msg.reply({ content: "Bitte gib eine gültige Anzahl an Keksen an.", ephemeral: true });
+      }
+
+      const targetData = await getEcoData(targetId);
+      let currentBalance = targetData.balance || 0;
+
+      if (subCommand === "add") {
+        currentBalance += amount;
+      } else {
+        currentBalance = Math.max(0, currentBalance - amount);
+      }
+
+      targetData.balance = currentBalance;
+      await setEcoData(targetId, targetData);
+
+      const logEmbed = new EmbedBuilder()
+        .setTitle("Konto-Aktualisierung")
+        .setDescription(`Konto von <@${targetId}> wurde aktualisiert.`)
+        .addFields(
+          { name: "Aktion", value: subCommand === "add" ? `+${amount} Kekse` : `-${amount} Kekse` },
+          { name: "Neuer Kontostand", value: `${currentBalance} Kekse` }
+        )
+        .setColor(0x00FF00);
+
+      await msg.author.send({ embeds: [logEmbed] }).catch(() => {});
+      return msg.delete().catch(() => {});
+    }
 
     if (subCommand === "create") {
       if (hasEcoRole) {
-        return msg.reply({ 
-          content: "Du besitzt bereits ein registriertes Bankkonto." 
-        });
+        return msg.reply({ content: "Du besitzt bereits ein registriertes Bankkonto.", ephemeral: true });
       }
 
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-          .setCustomId("open_bank_modal")
+          .setCustomId(`open_bank_modal_${msg.author.id}`)
           .setLabel("Registrierungsformular öffnen")
           .setStyle(ButtonStyle.Primary)
       );
 
-      return msg.reply({
-        content: "Klicke auf den Button unten, um dein Konto zu erstellen:",
+      const reply = await msg.reply({
+        content: "Klicke auf den Button unten, um dein Konto zu erstellen. Dieser Button funktioniert nur für dich.",
         components: [row]
       });
+
+      setTimeout(() => {
+        reply.delete().catch(() => {});
+        msg.delete().catch(() => {});
+      }, 30000);
+      return;
     }
 
     if (subCommand === "help") {
@@ -318,64 +404,91 @@ export async function initEconomySystem(client) {
           { name: "⚠️ Wichtiger Hinweis", value: "Für Änderungen am Konto oder Auszahlungen eröffne bitte ein Ticket in <#1423413348493430905>." }
         );
 
-      return msg.reply({ embeds: [helpEmbed] });
+      return msg.reply({ embeds: [helpEmbed], ephemeral: true });
     }
 
     if (!subCommand) {
       if (!hasEcoRole) {
-        return msg.reply({ 
-          content: "Du hast noch kein Konto. Nutze `!bank create`, um dich zu registrieren." 
-        });
+        return msg.reply({ content: "Du hast noch kein Konto. Nutze `!bank create`, um dich zu registrieren.", ephemeral: true });
       }
 
       const userData = await getEcoData(msg.author.id);
       
       if (userData.blocked) {
-        return msg.reply({ 
-          content: "Dein Konto ist aktuell gesperrt. Bitte wende dich an den Support.", 
-          ephemeral: true 
-        });
+        return msg.reply({ content: "Dein Konto ist aktuell gesperrt. Bitte wende dich an den Support.", ephemeral: true });
       }
 
       const balance = userData.balance || 0;
       return msg.reply({ 
-        content: `Dein aktueller Kontostand beträgt: **${balance} Münzen**.\nℹ️ Für Auszahlungen öffne bitte ein Ticket in <#1423413348493430905>.`, 
+        content: `Dein aktueller Kontostand beträgt: **${balance} Kekse**.\nℹ️ Für Auszahlungen öffne bitte ein Ticket in <#1423413348493430905>.`, 
         ephemeral: true 
       });
     }
   });
 
   client.on("interactionCreate", async (interaction) => {
-    if (interaction.isButton() && interaction.customId === "open_bank_modal") {
-      const hasEcoRole = interaction.member.roles.cache.has("1506732560837771284");
-      if (hasEcoRole) {
-        return interaction.reply({ content: "Du besitzt bereits ein registriertes Bankkonto.", ephemeral: true });
+    if (interaction.isButton()) {
+      if (interaction.customId.startsWith("open_bank_modal_")) {
+        const allowedUserId = interaction.customId.replace("open_bank_modal_", "");
+        if (interaction.user.id !== allowedUserId) {
+          return interaction.reply({ content: "Du kannst diesen Button nicht nutzen, da du den Befehl nicht eingegeben hast.", ephemeral: true });
+        }
+
+        const hasEcoRole = interaction.member.roles.cache.has("1506732560837771284");
+        if (hasEcoRole) {
+          return interaction.reply({ content: "Du besitzt bereits ein registriertes Bankkonto.", ephemeral: true });
+        }
+
+        const modal = new ModalBuilder()
+          .setCustomId(`bank_create_${interaction.user.id}`)
+          .setTitle("Bankkonto erstellen");
+
+        const mcInput = new TextInputBuilder()
+          .setCustomId("mc_username")
+          .setLabel("Minecraft Benutzername")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+          .setPlaceholder("Dein exakter Name im Spiel");
+
+        const noteInput = new TextInputBuilder()
+          .setCustomId("note_info")
+          .setLabel("WICHTIGER HINWEIS (Bitte lesen)")
+          .setStyle(TextInputStyle.Paragraph)
+          .setRequired(false)
+          .setValue("Dein Minecraft-Username kann nachträglich nur gegen eine Gebühr im System geändert werden.");
+
+        modal.addComponents(
+          new ActionRowBuilder().addComponents(mcInput),
+          new ActionRowBuilder().addComponents(noteInput)
+        );
+
+        return interaction.showModal(modal);
       }
 
-      const modal = new ModalBuilder()
-        .setCustomId(`bank_create_${interaction.user.id}`)
-        .setTitle("Bankkonto erstellen");
+      if (interaction.customId.startsWith("daily_claim_")) {
+        const hasEcoRole = interaction.member.roles.cache.has("1506732560837771284");
+        if (!hasEcoRole) {
+          return interaction.reply({ content: "Du benötigst zuerst ein registriertes Bankkonto (`!bank create`).", ephemeral: true });
+        }
 
-      const mcInput = new TextInputBuilder()
-        .setCustomId("mc_username")
-        .setLabel("Minecraft Benutzername")
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true)
-        .setPlaceholder("Dein exakter Name im Spiel");
+        const setupId = interaction.customId.replace("daily_claim_", "");
+        const todayUtcStr = new Date().toISOString().split('T')[0];
 
-      const noteInput = new TextInputBuilder()
-        .setCustomId("note_info")
-        .setLabel("WICHTIGER HINWEIS (Bitte lesen)")
-        .setStyle(TextInputStyle.Paragraph)
-        .setRequired(false)
-        .setValue("Dein Minecraft-Username kann nachträglich nur gegen eine Gebühr im System geändert werden.");
+        const userData = await getEcoData(interaction.user.id);
+        if (!userData.claimedDailies) {
+          userData.claimedDailies = {};
+        }
 
-      modal.addComponents(
-        new ActionRowBuilder().addComponents(mcInput),
-        new ActionRowBuilder().addComponents(noteInput)
-      );
+        if (userData.claimedDailies[setupId] === todayUtcStr) {
+          return interaction.reply({ content: "Du hast deine Kekse für dieses tägliche Event heute bereits abgeholt! Versuche es nach 00:00 Uhr UTC erneut.", ephemeral: true });
+        }
 
-      return interaction.showModal(modal);
+        userData.balance = (userData.balance || 0) + 10;
+        userData.claimedDailies[setupId] = todayUtcStr;
+        await setEcoData(interaction.user.id, userData);
+
+        return interaction.reply({ content: "Erfolgreich! Dir wurden 10 Kekse auf dein Bankkonto gutgeschrieben. 🍪", ephemeral: true });
+      }
     }
 
     if (!interaction.isModalSubmit()) return;
@@ -391,7 +504,8 @@ export async function initEconomySystem(client) {
       username: interaction.user.username,
       mcUsername: mcUsername,
       balance: 0,
-      blocked: false
+      blocked: false,
+      claimedDailies: {}
     };
 
     await setEcoData(interaction.user.id, accountData);
@@ -401,10 +515,14 @@ export async function initEconomySystem(client) {
       await member.roles.add("1506732560837771284").catch(() => {});
     }
 
-    return interaction.reply({
-      content: `Dein Konto wurde erfolgreich angelegt!\n**Minecraft-Name:** ${mcUsername}\n**Startguthaben:** 0 Münzen\nDu hast nun Zugriff auf dein Konto mit \`!bank\`.`,
+    await interaction.reply({
+      content: `Dein Konto wurde erfolgreich angelegt!\n**Minecraft-Name:** ${mcUsername}\n**Startguthaben:** 0 Kekse\nDu hast nun Zugriff auf dein Konto mit \`!bank\`.`,
       ephemeral: true
     });
+
+    if (interaction.message) {
+      await interaction.message.delete().catch(() => {});
+    }
   });
 }
 export function initAuditLogs(client) {
