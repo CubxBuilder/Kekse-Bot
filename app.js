@@ -292,7 +292,7 @@ export async function initEconomySystem(client) {
       const embed = new EmbedBuilder()
         .setTitle("🍪 Tägliche Kekse")
         .setDescription(`${description}\n\nKlicke auf den Button unten, um 10 Kekse zu erhalten.`)
-        .setColor(0x00AAFF);
+        .setColor(0xFFFFFF);
 
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
@@ -321,7 +321,7 @@ export async function initEconomySystem(client) {
         const data = await getEcoData(targetUser.id);
         const dmEmbed = new EmbedBuilder()
           .setTitle(`Konto-Details von ${targetUser.username}`)
-          .setColor(0x00AAFF)
+          .setColor(0xFFFFFF)
           .addFields(
             { name: "User ID", value: data.userId || targetUser.id },
             { name: "Discord Name", value: data.username || "Kein Name" },
@@ -363,7 +363,7 @@ export async function initEconomySystem(client) {
           { name: "Aktion", value: subCommand === "add" ? `+${amount} Kekse` : `-${amount} Kekse` },
           { name: "Neuer Kontostand", value: `${currentBalance} Kekse` }
         )
-        .setColor(0x00FF00);
+        .setColor(0xFFFFFF);
 
       await msg.author.send({ embeds: [logEmbed] }).catch(() => {});
       return msg.delete().catch(() => {});
@@ -396,7 +396,7 @@ export async function initEconomySystem(client) {
     if (subCommand === "help") {
       const helpEmbed = new EmbedBuilder()
         .setTitle("🏦 Bank-System Hilfe")
-        .setColor(0x00AAFF)
+        .setColor(0xFFFFFF)
         .setDescription("Hier findest du alle verfügbaren Befehle:")
         .addFields(
           { name: "`!bank create`", value: "Erstellt dein persönliches Bankkonto (Erfordert Minecraft-Namen)." },
@@ -419,10 +419,10 @@ export async function initEconomySystem(client) {
       }
 
       const balance = userData.balance || 0;
-      return msg.reply({ 
-        content: `Dein aktueller Kontostand beträgt: **${balance} Kekse**.\nℹ️ Für Auszahlungen öffne bitte ein Ticket in <#1423413348493430905>.`, 
-        ephemeral: true 
-      });
+      await msg.author.send({ 
+        content: `Dein aktueller Kontostand beträgt: **${balance} Kekse**.\nFür Auszahlungen öffne bitte ein Ticket in <#1423413348493430905>.`
+      }).catch(() => {});
+      return msg.delete().catch(() => {});
     }
   });
 
@@ -449,17 +449,8 @@ export async function initEconomySystem(client) {
           .setStyle(TextInputStyle.Short)
           .setRequired(true)
           .setPlaceholder("Dein exakter Name im Spiel");
-
-        const noteInput = new TextInputBuilder()
-          .setCustomId("note_info")
-          .setLabel("WICHTIGER HINWEIS (Bitte lesen)")
-          .setStyle(TextInputStyle.Paragraph)
-          .setRequired(false)
-          .setValue("Dein Minecraft-Username kann nachträglich nur gegen eine Gebühr im System geändert werden.");
-
         modal.addComponents(
           new ActionRowBuilder().addComponents(mcInput),
-          new ActionRowBuilder().addComponents(noteInput)
         );
 
         return interaction.showModal(modal);
@@ -480,7 +471,7 @@ export async function initEconomySystem(client) {
         }
 
         if (userData.claimedDailies[setupId] === todayUtcStr) {
-          return interaction.reply({ content: "Du hast deine Kekse für dieses tägliche Event heute bereits abgeholt! Versuche es nach 00:00 Uhr UTC erneut.", ephemeral: true });
+          return interaction.reply({ content: "Du hast deine Kekse für dieses tägliche Event heute bereits abgeholt! Versuche es nach 00:00 Uhr erneut.", ephemeral: true });
         }
 
         userData.balance = (userData.balance || 0) + 10;
