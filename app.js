@@ -294,33 +294,17 @@ export async function initEconomySystem(client) {
         });
       }
 
-      const modal = new ModalBuilder()
-        .setCustomId(`bank_create_${msg.author.id}`)
-        .setTitle("Bankkonto erstellen");
-
-      const mcInput = new TextInputBuilder()
-        .setCustomId("mc_username")
-        .setLabel("Minecraft Benutzername")
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true)
-        .setPlaceholder("Dein exakter Name im Spiel");
-
-      const noteInput = new TextInputBuilder()
-        .setCustomId("note_info")
-        .setLabel("WICHTIGER HINWEIS (Bitte lesen)")
-        .setStyle(TextInputStyle.Paragraph)
-        .setRequired(false)
-        .setValue("Dein Minecraft-Username kann nachträglich nur gegen eine Gebühr im System geändert werden.");
-
-      modal.addComponents(
-        new ActionRowBuilder().addComponents(mcInput),
-        new ActionRowBuilder().addComponents(noteInput)
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("open_bank_modal")
+          .setLabel("Registrierungsformular öffnen")
+          .setStyle(ButtonStyle.Primary)
       );
 
       return msg.reply({
-        content: "Ich habe dir das Registrierungsformular gesendet. Bitte fülle es aus.",
-        ephemeral: true
-      }).then(() => msg.channel.sendModal(modal).catch(() => {}));
+        content: "Klicke auf den Button unten, um dein Konto zu erstellen:",
+        components: [row]
+      });
     }
 
     if (subCommand === "help") {
@@ -362,6 +346,38 @@ export async function initEconomySystem(client) {
   });
 
   client.on("interactionCreate", async (interaction) => {
+    if (interaction.isButton() && interaction.customId === "open_bank_modal") {
+      const hasEcoRole = interaction.member.roles.cache.has("1506732560837771284");
+      if (hasEcoRole) {
+        return interaction.reply({ content: "Du besitzt bereits ein registriertes Bankkonto.", ephemeral: true });
+      }
+
+      const modal = new ModalBuilder()
+        .setCustomId(`bank_create_${interaction.user.id}`)
+        .setTitle("Bankkonto erstellen");
+
+      const mcInput = new TextInputBuilder()
+        .setCustomId("mc_username")
+        .setLabel("Minecraft Benutzername")
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true)
+        .setPlaceholder("Dein exakter Name im Spiel");
+
+      const noteInput = new TextInputBuilder()
+        .setCustomId("note_info")
+        .setLabel("WICHTIGER HINWEIS (Bitte lesen)")
+        .setStyle(TextInputStyle.Paragraph)
+        .setRequired(false)
+        .setValue("Dein Minecraft-Username kann nachträglich nur gegen eine Gebühr im System geändert werden.");
+
+      modal.addComponents(
+        new ActionRowBuilder().addComponents(mcInput),
+        new ActionRowBuilder().addComponents(noteInput)
+      );
+
+      return interaction.showModal(modal);
+    }
+
     if (!interaction.isModalSubmit()) return;
     if (!interaction.customId.startsWith("bank_create_")) return;
 
