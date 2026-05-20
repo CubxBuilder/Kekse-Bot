@@ -2882,6 +2882,7 @@ client.once("ready", async () => {
     await initDashboard(app, client, globalBotStats);
     await initScammProtection(client);
     await initTicketArchive(app, getTickData, setTickData);
+    await initEconomySystem(client);
     client.user.setPresence({
       activities: [{ name: "!help", type: 0 }],
       status: "online"
