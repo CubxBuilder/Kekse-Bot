@@ -276,9 +276,36 @@ export async function getEcoData(key) {
  return data || {};
 }
 export async function initEconomySystem(client) {
+  const crashGames = new Map();
+  const hlGames = new Map();
+  const resetJackpot = () => ({ entries: [], totalPool: 0, countdownTimer: null, countdownEndTime: null, announceMessage: null });
+  let jackpotState = resetJackpot();
+
+  const runJackpotDraw = async (channel) => {
+    if (jackpotState.entries.length === 0) { jackpotState = resetJackpot(); return; }
+    const entries = [...jackpotState.entries];
+    const totalPool = jackpotState.totalPool;
+    let rand = Math.random() * totalPool;
+    let winner = entries[entries.length - 1];
+    for (const entry of entries) { rand -= entry.betAmount; if (rand <= 0) { winner = entry; break; } }
+    const winnerData = await getEcoData(winner.userId);
+    winnerData.balance = (winnerData.balance || 0) + totalPool;
+    await setEcoData(winner.userId, winnerData);
+    const winEmbed = new EmbedBuilder()
+      .setTitle('Jackpot — Gewinner!')
+      .setDescription(`<@${winner.userId}> hat den Jackpot gewonnen!\n\n**Gewinn: ${totalPool} Kekse** 🍪\nGewinnchance war: **${((winner.betAmount / totalPool) * 100).toFixed(1)}%**`)
+      .addFields({ name: 'Teilnehmer', value: entries.map(e => `<@${e.userId}> — ${e.betAmount} Kekse (${((e.betAmount/totalPool)*100).toFixed(1)}%)`).join('\n') })
+      .setColor(0xFFFFFF).setFooter({ text: 'Kekse Clan Casino | Jackpot' }).setTimestamp();
+    const savedMsg = jackpotState.announceMessage;
+    jackpotState = resetJackpot();
+    if (savedMsg) await savedMsg.edit({ embeds: [winEmbed], components: [] }).catch(() => {});
+    else await channel.send({ embeds: [winEmbed] }).catch(() => {});
+  };
+
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot || !msg.member) return;
 
+    if (!msg.content.startsWith("!")) return;
     const args = msg.content.trim().split(/ +/);
     const command = args[0].toLowerCase();
     const subCommand = args[1]?.toLowerCase();
@@ -305,8 +332,498 @@ export async function initEconomySystem(client) {
       await msg.channel.send({ embeds: [embed], components: [row] });
       return msg.delete().catch(() => {});
     }
+    if (command === "!casino") {
+      const hasEcoRole = msg.member.roles.cache.has("1506732560837771284");
+      if (!hasEcoRole) {
+        return msg.reply({ content: "Du benötigst ein Bankkonto, um am Casino teilzunehmen. Nutze `!bank create`.", ephemeral: true });
+      }
 
-    if (command !== "!bank") return;
+      const userData = await getEcoData(msg.author.id);
+      if (userData.blocked) {
+        return msg.reply({ content: "Dein Konto ist gesperrt. Bitte wende dich an den Support.", ephemeral: true });
+      }
+      if (subCommand === "roulette") {
+        const betAmount = parseInt(args[2]);
+        const betType = args[3]?.toLowerCase();
+        if (isNaN(betAmount) || betAmount <= 0) {
+          return msg.reply({ content: "Nutzung: `!casino roulette <Einsatz> <red|black|even|odd|0-36|1-18|19-36>`", ephemeral: true });
+        }
+        if (!betType) {
+          return msg.reply({ content: "Bitte gib eine Wettart an: `red`, `black`, `even`, `odd`, eine Zahl `0`-`36`, `1-18` oder `19-36`.", ephemeral: true });
+        }
+        if (betAmount > (userData.balance || 0)) {
+          return msg.reply({ content: "Du hast nicht genug Kekse für diesen Einsatz.", ephemeral: true });
+        }
+
+        const redNumbers = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+        const spin = Math.floor(Math.random() * 37);
+        const spinColor = spin === 0 ? 'green' : redNumbers.has(spin) ? 'red' : 'black';
+        const spinEmoji = spin === 0 ? '🟢' : spinColor === 'red' ? '🔴' : '⚫';
+
+        let won = false;
+        let payout = 0;
+        let betDesc = betType;
+
+        const numBet = parseInt(betType);
+        if (!isNaN(numBet) && numBet >= 0 && numBet <= 36) {
+          won = spin === numBet;
+          payout = won ? betAmount * 35 : -betAmount;
+          betDesc = `Zahl ${numBet}`;
+        } else if (betType === 'red') {
+          won = spinColor === 'red';
+          payout = won ? betAmount : -betAmount;
+          betDesc = '🔴 Rot';
+        } else if (betType === 'black') {
+          won = spinColor === 'black';
+          payout = won ? betAmount : -betAmount;
+          betDesc = '⚫ Schwarz';
+        } else if (betType === 'even') {
+          won = spin !== 0 && spin % 2 === 0;
+          payout = won ? betAmount : -betAmount;
+          betDesc = 'Gerade';
+        } else if (betType === 'odd') {
+          won = spin % 2 !== 0;
+          payout = won ? betAmount : -betAmount;
+          betDesc = 'Ungerade';
+        } else if (betType === '1-18') {
+          won = spin >= 1 && spin <= 18;
+          payout = won ? betAmount : -betAmount;
+          betDesc = '1–18';
+        } else if (betType === '19-36') {
+          won = spin >= 19 && spin <= 36;
+          payout = won ? betAmount : -betAmount;
+          betDesc = '19–36';
+        } else {
+          return msg.reply({ content: "Ungültige Wettart. Nutze: `red`, `black`, `even`, `odd`, eine Zahl (0–36), `1-18` oder `19-36`.", ephemeral: true });
+        }
+
+        userData.balance = (userData.balance || 0) + payout;
+        await setEcoData(msg.author.id, userData);
+
+        const roulEmbed = new EmbedBuilder()
+          .setTitle('Roulette')
+          .setDescription(`Die Kugel landet auf: **${spinEmoji} ${spin}**\n\nDeine Wette: **${betDesc}** | Einsatz: **${betAmount} Kekse**`)
+          .addFields({ name: won ? '✅ Gewonnen!' : '❌ Verloren!', value: `${payout >= 0 ? '+' : ''}${payout} Kekse\nNeuer Kontostand: **${userData.balance} Kekse**` })
+          .setColor(won ? 0x333333 : 0x333333);
+
+        return msg.reply({ embeds: [roulEmbed] });
+      }
+      if (subCommand === "coinflip") {
+        const betAmount = parseInt(args[2]);
+        const choice = args[3]?.toLowerCase();
+        if (isNaN(betAmount) || betAmount <= 0) {
+          return msg.reply({ content: "Nutzung: `!casino coinflip <Einsatz> <heads|tails>`", ephemeral: true });
+        }
+        if (choice !== 'heads' && choice !== 'tails') {
+          return msg.reply({ content: "Bitte wähle `heads` (Kopf) oder `tails` (Zahl).", ephemeral: true });
+        }
+        if (betAmount > (userData.balance || 0)) {
+          return msg.reply({ content: "Du hast nicht genug Kekse für diesen Einsatz.", ephemeral: true });
+        }
+
+        const flip = Math.random() < 0.5 ? 'heads' : 'tails';
+        const won = flip === choice;
+        userData.balance = (userData.balance || 0) + (won ? betAmount : -betAmount);
+        await setEcoData(msg.author.id, userData);
+
+        const cfEmbed = new EmbedBuilder()
+          .setTitle(`Coinflip`)
+          .setDescription(`Die Münze zeigt: **${flip === 'heads' ? 'Kopf (Heads)' : 'Zahl (Tails)'}**\n\nDu hast auf **${choice === 'heads' ? 'Kopf' : 'Zahl'}** gesetzt.`)
+          .addFields({ name: won ? '✅ Gewonnen!' : '❌ Verloren!', value: `${won ? '+' : '-'}${betAmount} Kekse\nNeuer Kontostand: **${userData.balance} Kekse**` })
+          .setColor(won ? 0x333333 : 0x333333);
+
+        return msg.reply({ embeds: [cfEmbed] });
+      }
+      if (subCommand === "jackpot") {
+        const betAmount = parseInt(args[2]);
+        if (isNaN(betAmount) || betAmount <= 0) {
+          return msg.reply({ content: "Nutzung: `!casino jackpot <Einsatz>`", ephemeral: true });
+        }
+        if (betAmount > (userData.balance || 0)) {
+          return msg.reply({ content: "Du hast nicht genug Kekse für diesen Einsatz.", ephemeral: true });
+        }
+        if (jackpotState.entries.find(e => e.userId === msg.author.id)) {
+          return msg.reply({ content: "Du bist bereits im Jackpot! Warte auf die Ziehung.", ephemeral: true });
+        }
+
+        userData.balance -= betAmount;
+        await setEcoData(msg.author.id, userData);
+        jackpotState.entries.push({ userId: msg.author.id, username: msg.author.username, betAmount });
+        jackpotState.totalPool += betAmount;
+
+        const buildJackpotEmbed = (extra = '') => {
+          const list = jackpotState.entries.map(e => {
+            const pct = ((e.betAmount / jackpotState.totalPool) * 100).toFixed(1);
+            return `<@${e.userId}> — **${e.betAmount} Kekse** (${pct}%)`;
+          }).join('\n');
+          return new EmbedBuilder()
+            .setTitle('Jackpot')
+            .setDescription(`**Pool: ${jackpotState.totalPool} Kekse**\n\n${extra}`)
+            .addFields({ name: `Teilnehmer (${jackpotState.entries.length})`, value: list || 'Keine' })
+            .setColor(0xFFFFFF)
+            .setFooter({ text: 'Je mehr du einsetzt, desto höher deine Gewinnchance!' });
+        };
+
+        const userChance = ((betAmount / jackpotState.totalPool) * 100).toFixed(1);
+
+        if (jackpotState.entries.length === 1) {
+          const jMsg = await msg.channel.send({ embeds: [buildJackpotEmbed('Warte auf weitere Teilnehmer…')] });
+          jackpotState.announceMessage = jMsg;
+          return msg.reply({ content: `Du bist dem Jackpot beigetreten! Einsatz: **${betAmount} Kekse** (${userChance}% Chance)`, ephemeral: true });
+        }
+
+        if (jackpotState.announceMessage) {
+          const extra = jackpotState.countdownEndTime ? `Ziehung <t:${Math.floor(jackpotState.countdownEndTime / 1000)}:R>` : '';
+          await jackpotState.announceMessage.edit({ embeds: [buildJackpotEmbed(extra)] }).catch(() => {});
+        }
+
+        if (!jackpotState.countdownTimer) {
+          const drawTime = Date.now() + 5 * 60 * 1000;
+          jackpotState.countdownEndTime = drawTime;
+          if (jackpotState.announceMessage) {
+            await jackpotState.announceMessage.edit({ embeds: [buildJackpotEmbed(`⏳ Ziehung <t:${Math.floor(drawTime / 1000)}:R>`)] }).catch(() => {});
+          }
+          jackpotState.countdownTimer = setTimeout(() => runJackpotDraw(msg.channel), 5 * 60 * 1000);
+        }
+        return msg.reply({ content: `Du bist dem Jackpot beigetreten! Einsatz: **${betAmount} Kekse** (${userChance}% Chance)\nPool: **${jackpotState.totalPool} Kekse**`, ephemeral: true });
+      }
+      if (subCommand === "crash") {
+        const betAmount = parseInt(args[2]);
+        if (isNaN(betAmount) || betAmount <= 0) {
+          return msg.reply({ content: "Nutzung: `!casino crash <Einsatz>`", ephemeral: true });
+        }
+        if (betAmount > (userData.balance || 0)) {
+          return msg.reply({ content: "Du hast nicht genug Kekse für diesen Einsatz.", ephemeral: true });
+        }
+        if (crashGames.has(msg.author.id)) {
+          return msg.reply({ content: "Du hast bereits ein aktives Crash-Spiel!", ephemeral: true });
+        }
+        userData.balance -= betAmount;
+        await setEcoData(msg.author.id, userData);
+        const crashPoint = parseFloat(Math.max(1.01, 0.97 / (1 - Math.random())).toFixed(2));
+        let multiplier = 1.00;
+        const cashoutRow = () => new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`crash_cashout_${msg.author.id}`)
+            .setLabel(`Cash Out (${Math.floor(betAmount * multiplier)} Kekse)`)
+            .setStyle(ButtonStyle.Success)
+        );
+
+        const crashEmbed = (crashed = false, cashedAt = null) => {
+          if (crashed) return new EmbedBuilder().setTitle('💥 CRASH!').setDescription(`Gecrasht bei **${crashPoint.toFixed(2)}x**!\n\nEinsatz: **${betAmount} Kekse** — **Verloren!**\nNeuer Kontostand: **${userData.balance} Kekse**`).setColor(0x333333);
+          if (cashedAt !== null) {
+            const win = Math.floor(betAmount * cashedAt);
+            return new EmbedBuilder().setTitle('✅ Cash Out!').setDescription(`Ausgecasht bei **${cashedAt.toFixed(2)}x**!\n\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${userData.balance + win} Kekse**`).setColor(0x333333);
+          }
+          return new EmbedBuilder().setTitle('Crash').setDescription(`**${multiplier.toFixed(2)}x** — Steigt noch…\n\nEinsatz: **${betAmount} Kekse**\nMöglicher Gewinn: **${Math.floor(betAmount * multiplier)} Kekse**\n\nDrücke **Cash Out** bevor die Rakete crasht!`).setColor(0xFFFFFF);
+        };
+
+        const gameMsg = await msg.reply({ embeds: [crashEmbed()], components: [cashoutRow()] });
+        crashGames.set(msg.author.id, { betAmount, crashPoint, cashedOut: false });
+
+        const collector = gameMsg.createMessageComponentCollector({
+          filter: i => i.user.id === msg.author.id && i.customId === `crash_cashout_${msg.author.id}`,
+          componentType: ComponentType.Button,
+          time: 120000
+        });
+
+        collector.on('collect', async (interaction) => {
+          await interaction.deferUpdate();
+          const game = crashGames.get(msg.author.id);
+          if (game && !game.cashedOut) game.cashedOut = true;
+        });
+
+        const interval = setInterval(async () => {
+          const game = crashGames.get(msg.author.id);
+          if (!game) { clearInterval(interval); return; }
+
+          multiplier = parseFloat((multiplier + 0.08).toFixed(2));
+
+          if (game.cashedOut) {
+            clearInterval(interval);
+            crashGames.delete(msg.author.id);
+            collector.stop('cashout');
+            const win = Math.floor(betAmount * multiplier);
+            const fresh = await getEcoData(msg.author.id);
+            fresh.balance = (fresh.balance || 0) + win;
+            await setEcoData(msg.author.id, fresh);
+            await gameMsg.edit({ embeds: [crashEmbed(false, multiplier)], components: [] }).catch(() => {});
+            return;
+          }
+
+          if (multiplier >= game.crashPoint) {
+            clearInterval(interval);
+            crashGames.delete(msg.author.id);
+            collector.stop('crashed');
+            await gameMsg.edit({ embeds: [crashEmbed(true)], components: [] }).catch(() => {});
+            return;
+          }
+
+          await gameMsg.edit({ embeds: [crashEmbed()], components: [cashoutRow()] }).catch(() => {});
+        }, 600);
+
+        collector.on('end', async (collected, reason) => {
+          if (reason === 'time') {
+            clearInterval(interval);
+            const game = crashGames.get(msg.author.id);
+            if (game) {
+              crashGames.delete(msg.author.id);
+              await gameMsg.edit({ embeds: [crashEmbed(true)], components: [] }).catch(() => {});
+            }
+          }
+        });
+
+        return;
+      }
+      if (subCommand === "highlow" || subCommand === "hl") {
+        const betAmount = parseInt(args[2]);
+        if (isNaN(betAmount) || betAmount <= 0) {
+          return msg.reply({ content: "Nutzung: `!casino highlow <Einsatz>`", ephemeral: true });
+        }
+        if (betAmount > (userData.balance || 0)) {
+          return msg.reply({ content: "Du hast nicht genug Kekse für diesen Einsatz.", ephemeral: true });
+        }
+        if (hlGames.has(msg.author.id)) {
+          return msg.reply({ content: "Du hast bereits ein aktives Higher/Lower-Spiel!", ephemeral: true });
+        }
+
+        userData.balance -= betAmount;
+        await setEcoData(msg.author.id, userData);
+        hlGames.set(msg.author.id, true);
+
+        const cardNames = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+        const cardVals = { '2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,'J':11,'Q':12,'K':13,'A':14 };
+        const suits = ['♠️','♥️','♦️','♣️'];
+        const getCard = () => { const n = cardNames[Math.floor(Math.random()*cardNames.length)]; return { display: `${n}${suits[Math.floor(Math.random()*4)]}`, value: cardVals[n] }; };
+
+        let currentCard = getCard();
+        let streak = 0;
+        let multiplier = 1.0;
+
+        const hlRow = (disabled = false) => new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId(`hl_higher_${msg.author.id}`).setLabel('⬆️ Higher').setStyle(ButtonStyle.Primary).setDisabled(disabled),
+          new ButtonBuilder().setCustomId(`hl_lower_${msg.author.id}`).setLabel('⬇️ Lower').setStyle(ButtonStyle.Danger).setDisabled(disabled),
+          new ButtonBuilder().setCustomId(`hl_cashout_${msg.author.id}`).setLabel(`Cash Out (${Math.floor(betAmount * multiplier)} Kekse)`).setStyle(ButtonStyle.Success).setDisabled(disabled || streak === 0)
+        );
+
+        const hlEmbed = (desc, color = 0xFFFFFF) => new EmbedBuilder()
+          .setTitle('Higher or Lower')
+          .setDescription(desc)
+          .setColor(color);
+
+        const gameMsg = await msg.reply({
+          embeds: [hlEmbed(`Aktuelle Karte: **${currentCard.display}**\n\nStreak: **0** | Multiplikator: **1.00x**\nMöglicher Gewinn: **${betAmount} Kekse**\n\nIst die nächste Karte höher oder niedriger?`)],
+          components: [hlRow()]
+        });
+
+        const collector = gameMsg.createMessageComponentCollector({
+          filter: i => i.user.id === msg.author.id,
+          componentType: ComponentType.Button,
+          time: 90000
+        });
+
+        collector.on('collect', async (interaction) => {
+          await interaction.deferUpdate();
+          const id = interaction.customId;
+          if (id === `hl_cashout_${msg.author.id}`) { collector.stop('cashout'); return; }
+
+          const nextCard = getCard();
+          const choice = id.startsWith(`hl_higher`) ? 'higher' : 'lower';
+          const isTie = nextCard.value === currentCard.value;
+          const correct = !isTie && ((choice === 'higher' && nextCard.value > currentCard.value) || (choice === 'lower' && nextCard.value < currentCard.value));
+
+          if (isTie) {
+            currentCard = nextCard;
+            await gameMsg.edit({ embeds: [hlEmbed(`🟡 Unentschieden! Neue Karte: **${nextCard.display}**\nStreak: **${streak}** | Multiplikator: **${multiplier.toFixed(2)}x**`)], components: [hlRow()] }).catch(() => {});
+            return;
+          }
+
+          if (correct) {
+            streak++;
+            multiplier = parseFloat((multiplier + 0.5).toFixed(2));
+            currentCard = nextCard;
+            await gameMsg.edit({
+              embeds: [hlEmbed(`✅ Richtig! Nächste Karte war **${nextCard.display}**\n\nAktuelle Karte: **${currentCard.display}**\nStreak: **${streak}** | Multiplikator: **${multiplier.toFixed(2)}x**\nMöglicher Gewinn: **${Math.floor(betAmount * multiplier)} Kekse**`, 0xFFFFFF)],
+              components: [hlRow()]
+            }).catch(() => {});
+          } else {
+            collector.stop('wrong');
+          }
+        });
+
+        collector.on('end', async (collected, reason) => {
+          hlGames.delete(msg.author.id);
+          const fresh = await getEcoData(msg.author.id);
+
+          if (reason === 'cashout') {
+            const win = Math.floor(betAmount * multiplier);
+            fresh.balance = (fresh.balance || 0) + win;
+            await setEcoData(msg.author.id, fresh);
+            await gameMsg.edit({ embeds: [hlEmbed(`Cash Out bei **${multiplier.toFixed(2)}x**!\n\n**+${win - betAmount} Kekse** Gewinn\nNeuer Kontostand: **${fresh.balance} Kekse**`, 0x333333)], components: [] }).catch(() => {});
+          } else if (reason === 'wrong') {
+            await gameMsg.edit({ embeds: [hlEmbed(`❌ Falsch! Du hast **${betAmount} Kekse** verloren.\nNeuer Kontostand: **${fresh.balance} Kekse**`, 0x333333)], components: [] }).catch(() => {});
+          } else {
+            if (streak > 0) {
+              const win = Math.floor(betAmount * multiplier);
+              fresh.balance = (fresh.balance || 0) + win;
+              await setEcoData(msg.author.id, fresh);
+              await gameMsg.edit({ embeds: [hlEmbed(`Zeit abgelaufen! Auto Cash-Out bei **${multiplier.toFixed(2)}x**\n**+${win - betAmount} Kekse**\nNeuer Kontostand: **${fresh.balance} Kekse**`, 0x333333)], components: [] }).catch(() => {});
+            } else {
+              await gameMsg.edit({ embeds: [hlEmbed(`Zeit abgelaufen! **${betAmount} Kekse** verloren.\nNeuer Kontostand: **${fresh.balance} Kekse**`, 0x333333)], components: [] }).catch(() => {});
+            }
+          }
+        });
+
+        return;
+      }
+      if (subCommand === "blackjack") {
+        const betAmount = parseInt(args[2]);
+        if (isNaN(betAmount) || betAmount <= 0) {
+          return msg.reply({ content: "Bitte gib einen gültigen Einsatz an (z.B. `!casino blackjack 10`).", ephemeral: true });
+        }
+        if (betAmount > (userData.balance || 0)) {
+          return msg.reply({ content: "Du hast nicht genug Kekse für diesen Einsatz.", ephemeral: true });
+        }
+
+        const suits = ['♠️', '♥️', '♦️', '♣️'];
+        const values = [
+          { n: '2', v: 2 }, { n: '3', v: 3 }, { n: '4', v: 4 }, { n: '5', v: 5 },
+          { n: '6', v: 6 }, { n: '7', v: 7 }, { n: '8', v: 8 }, { n: '9', v: 9 },
+          { n: '10', v: 10 }, { n: 'J', v: 10 }, { n: 'Q', v: 10 }, { n: 'K', v: 10 },
+          { n: 'A', v: 11 }
+        ];
+
+        let deck = [];
+        for (const suit of suits) {
+          for (const val of values) {
+            deck.push({ name: `${val.n}${suit}`, value: val.v });
+          }
+        }
+        deck = deck.sort(() => Math.random() - 0.5);
+
+        const playerHand = [deck.pop(), deck.pop()];
+        const dealerHand = [deck.pop(), deck.pop()];
+
+        const calculateScore = (hand) => {
+          let score = hand.reduce((sum, card) => sum + card.value, 0);
+          let aces = hand.filter(card => card.name.startsWith('A')).length;
+          while (score > 21 && aces > 0) {
+            score -= 10;
+            aces--;
+          }
+          return score;
+        };
+
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('bj_hit').setLabel('Karte ziehen (Hit)').setStyle(ButtonStyle.Primary),
+          new ButtonBuilder().setCustomId('bj_stand').setLabel('Halten (Stand)').setStyle(ButtonStyle.Secondary)
+        );
+
+        const createEmbed = (title, color, showAllDealer = false) => {
+          const pScore = calculateScore(playerHand);
+          const dScore = showAllDealer ? calculateScore(dealerHand) : dealerHand[0].value;
+          const pCards = playerHand.map(c => c.name).join(' ');
+          const dCards = showAllDealer ? dealerHand.map(c => c.name).join(' ') : `${dealerHand[0].name} 🎴`;
+
+          return new EmbedBuilder()
+            .setTitle(title)
+            .setColor(color)
+            .setDescription(`Dein Einsatz: **${betAmount} Kekse**`)
+            .addFields(
+              { name: `Deine Hand (${pScore})`, value: pCards, inline: true },
+              { name: `Dealer Hand (${showAllDealer ? dScore : dScore + ' + ?'})`, value: dCards, inline: true }
+            );
+        };
+        if (calculateScore(playerHand) === 21) {
+          let dScore = calculateScore(dealerHand);
+          let status = "";
+          let finalColor = 0x333333;
+
+          if (dScore === 21) {
+            status = "Beide haben Blackjack! Unentschieden.";
+            finalColor = 0x333333;
+          } else {
+            status = "Echter Blackjack! Du gewinnst das 1.5-fache!";
+            userData.balance += Math.floor(betAmount * 1.5);
+          }
+
+          await setEcoData(msg.author.id, userData);
+          const finalEmbed = createEmbed(`Blackjack - ${status}`, finalColor, true)
+            .setFooter({ text: `Neuer Kontostand: ${userData.balance} Kekse` });
+          return msg.reply({ embeds: [finalEmbed] });
+        }
+
+        const gameMessage = await msg.reply({ 
+          embeds: [createEmbed("Blackjack", 0xFFFFFF)], 
+          components: [row] 
+        });
+
+        const collector = gameMessage.createMessageComponentCollector({
+          filter: i => i.user.id === msg.author.id,
+          componentType: ComponentType.Button,
+          time: 60000
+        });
+
+        collector.on('collect', async interaction => {
+          await interaction.deferUpdate();
+
+          if (interaction.customId === 'bj_hit') {
+            playerHand.push(deck.pop());
+            if (calculateScore(playerHand) >= 21) {
+              collector.stop(calculateScore(playerHand) > 21 ? 'busted' : 'stand');
+            } else {
+              await gameMessage.edit({ embeds: [createEmbed("Blackjack", 0xFFFFFF)] });
+            }
+          } 
+
+          if (interaction.customId === 'bj_stand') {
+            collector.stop('stand');
+          }
+        });
+
+        collector.on('end', async (collected, reason) => {
+          let pScore = calculateScore(playerHand);
+          let dScore = calculateScore(dealerHand);
+          let status = "";
+          let finalColor = 0x333333;
+
+          if (reason !== 'busted') {
+            while (dScore < 17) {
+              dealerHand.push(deck.pop());
+              dScore = calculateScore(dealerHand);
+            }
+          }
+
+          if (reason === 'busted' || pScore > 21) {
+            status = "Überkauft! Du hast verloren.";
+            userData.balance -= betAmount;
+            finalColor = 0x333333;
+          } else if (dScore > 21) {
+            status = "Dealer überkauft! Du gewinnst!";
+            userData.balance += betAmount;
+          } else if (pScore > dScore) {
+            status = "Mehr Punkte als der Dealer. Du gewinnst!";
+            userData.balance += betAmount;
+          } else if (pScore < dScore) {
+            status = "Dealer hat mehr Punkte. Verloren!";
+            userData.balance -= betAmount;
+            finalColor = 0x333333;
+          } else {
+            status = "Unentschieden! Kekse zurück.";
+            finalColor = 0x333333;
+          }
+
+          await setEcoData(msg.author.id, userData);
+
+          const finalEmbed = createEmbed(`Blackjack - ${status}`, finalColor, true)
+            .setFooter({ text: `Neuer Kontostand: ${userData.balance} Kekse` });
+
+          await gameMessage.edit({ embeds: [finalEmbed], components: [] });
+        });
+        return;
+      }
+      return msg.reply({ content: "Unbekanntes Casino-Spiel. Verfügbar: `roulette`, `coinflip`, `jackpot`, `crash`, `highlow`, `blackjack`\nBeispiel: `!casino coinflip 10 heads`", ephemeral: true });
+    }
 
     const hasEcoRole = msg.member.roles.cache.has("1506732560837771284");
     const isAdmin = msg.author.id === "1151971830983311441";
@@ -417,12 +934,11 @@ export async function initEconomySystem(client) {
       if (userData.blocked) {
         return msg.reply({ content: "Dein Konto ist aktuell gesperrt. Bitte wende dich an den Support.", ephemeral: true });
       }
-
-      const balance = userData.balance || 0;
-      await msg.author.send({ 
-        content: `Dein aktueller Kontostand beträgt: **${balance} Kekse**.\nFür Auszahlungen öffne bitte ein Ticket in <#1423413348493430905>.`
-      }).catch(() => {});
-      return msg.delete().catch(() => {});
+      const userName = msg.author
+      if (msg.content.startsWith("!bank")) {
+        await msg.delete().catch(() => {});
+        return userName.send({ content: `Dein aktueller Kontostand beträgt: **${userData.balance || 0} Kekse** 🍪\nFür Auszahlungen öffne bitte ein Ticket in https://discord.com/channels/1423413347168157718/1423413348493430905`})
+      };
     }
   });
 
@@ -515,6 +1031,7 @@ export async function initEconomySystem(client) {
       await interaction.message.delete().catch(() => {});
     }
   });
+  
 }
 export function initAuditLogs(client) {
     const sendLog = async (title, user, text, color = "#ffffff", thumb = null, channelId = null) => {
