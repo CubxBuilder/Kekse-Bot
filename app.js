@@ -977,21 +977,27 @@ export async function initEconomySystem(client) {
         if (!hasEcoRole) {
           return interaction.reply({ content: "Du benötigst zuerst ein registriertes Bankkonto (`!bank create`).", ephemeral: true });
         }
-
         const setupId = interaction.customId.replace("daily_claim_", "");
-        const todayUtcStr = new Date().toISOString().split('T')[0];
-
+        const localizedDateStr = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }); 
         const userData = await getEcoData(interaction.user.id);
         if (!userData.claimedDailies) {
           userData.claimedDailies = {};
         }
-
-        if (userData.claimedDailies[setupId] === todayUtcStr) {
-          return interaction.reply({ content: "Du hast deine Kekse für dieses tägliche Event heute bereits abgeholt! Versuche es nach 00:00 Uhr erneut.", ephemeral: true });
+        if (userData.claimedDailies[setupId] === localizedDateStr) {
+          return interaction.reply({ 
+            content: `Du hast deine Kekse für **dieses spezifische Event** heute bereits abgeholt! Versuche es nach 00:00 Uhr erneut.`, 
+            ephemeral: true 
+          });
+        }
+        userData.balance = (userData.balance || 0) + 10;
+        userData.claimedDailies = {
+          ...userData.claimedDailies,
+          [setupId]: localizedDateStr
+        };
+        if (typeof userData.markModified === "function") {
+          userData.markModified("claimedDailies");
         }
 
-        userData.balance = (userData.balance || 0) + 10;
-        userData.claimedDailies[setupId] = todayUtcStr;
         await setEcoData(interaction.user.id, userData);
 
         return interaction.reply({ content: "Erfolgreich! Dir wurden 10 Kekse auf dein Bankkonto gutgeschrieben. 🍪", ephemeral: true });
