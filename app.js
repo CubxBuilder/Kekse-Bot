@@ -311,27 +311,28 @@ export async function initEconomySystem(client) {
     const subCommand = args[1]?.toLowerCase();
 
     if (command === "!daily_setup") {
-      if (msg.author.id !== "1151971830983311441") return;
+  if (msg.author.id !== "1151971830983311441") return;
 
-      const setupId = args[1] || "default";
-      const description = args.slice(2).join(" ") || "Hole dir hier deine täglichen Kekse ab!";
+  const setupId = args[0] || "default"; 
+  const description = args.slice(1).join(" ") || "Hole dir hier deine täglichen Kekse ab!";
 
-      const embed = new EmbedBuilder()
-        .setTitle("🍪 Tägliche Kekse")
-        .setDescription(`${description}\n\nKlicke auf den Button unten, um 10 Kekse zu erhalten.`)
-        .setColor(0xFFFFFF);
+  const embed = new EmbedBuilder()
+    .setTitle("🍪 Tägliche Kekse")
+    .setDescription(`${description}\n\nKlicke auf den Button unten, um 10 Kekse zu erhalten.`)
+    .setColor(0xFFFFFF);
 
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId(`daily_claim_${setupId}`)
-          .setLabel("Kekse abholen")
-          .setStyle(ButtonStyle.Success)
-          .setEmoji("🍪")
-      );
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`daily_claim_${setupId}`)
+      .setLabel("Kekse abholen")
+      .setStyle(ButtonStyle.Success)
+      .setEmoji("🍪")
+  );
 
-      await msg.channel.send({ embeds: [embed], components: [row] });
-      return msg.delete().catch(() => {});
-    }
+  await msg.channel.send({ embeds: [embed], components: [row] });
+  return msg.delete().catch(() => {});
+}
+
     if (command === "!casino") {
       const hasEcoRole = msg.member.roles.cache.has("1506732560837771284");
       if (!hasEcoRole) {
