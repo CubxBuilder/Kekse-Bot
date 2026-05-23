@@ -155,7 +155,7 @@ export async function archiveTicket({ name, closedBy, channel }, setTickData) {
     const sendKekseLog = async (ticketName, ticketMessages) => {
         const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
         if (!logChannel) return;
-        const ticketUrl = `https://212.132.113.65:5000/?t=${sessionToken}#ticket-${ticketIdNum}`;
+        const ticketUrl = `https://kekse-bot.dedyn.io:5000/?t=${sessionToken}#ticket-${ticketIdNum}`;
         const logEmbed = new EmbedBuilder()
             .setColor('#ffffff')
             .setAuthor({ 
