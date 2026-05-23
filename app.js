@@ -24,6 +24,7 @@ const options = {
   key: fs.readFileSync('/etc/letsencrypt/live/kekse-bot.dedyn.io/privkey.pem'),
   cert: fs.readFileSync('/etc/letsencrypt/live/kekse-bot.dedyn.io/fullchain.pem')
 };
+
 const port = 5000;
 https.createServer(options, app).listen(port, '0.0.0.0', () => {
   dashboardLog(`Dashboard läuft sicher auf Port ${port} via HTTPS!`);
