@@ -3466,60 +3466,6 @@ export async function initScammProtection(client) {
         }
     })
 }
-let cachedVersion = null;
-let lastFetchTime = 0;
-const CACHE_DURATION = 15 * 60 * 1000;
-
-export async function getBotVersion() {
-    const now = Date.now();
-    if (cachedVersion && (now - lastFetchTime < CACHE_DURATION)) {
-        return cachedVersion;
-    }
-    const URL = "https://api.github.com/repos/CubxBuilder/Kekse-Bot/commits?per_page=1";
-    try {
-        const headers = {
-            "User-Agent": "Bot-Backend-Version-Fetcher"
-        };
-        if (process.env.GITHUB_TOKEN) {
-            headers["Authorization"] = `Bearer ${process.env.GITHUB_TOKEN.trim()}`;
-        } else {
-            console.warn("Warnung: GITHUB_TOKEN ist nicht in den Umgebungsvariablen gesetzt!");
-        }
-        const response = await fetch(URL, { headers });
-        if (!response.ok) {
-            const errText = await response.text();
-            throw new Error(`GitHub-API HTTP ${response.status}: ${errText}`);
-        }
-        let totalCommits = 0;
-        const linkHeader = response.headers.get("link") || reponse.headers.get("Link");
-        if (linkHeader) {
-            const match = linkHeader.match(/&page=(\d+)>; rel="last"/);
-            if (match) {
-                totalCommits = parseInt(match, 10);
-            }
-        } 
-        if (!totalCommits || isNaN(totalCommits)) {
-            const commits = await response.json();
-            if (Array.isArray(commits)) {
-                totalCommits = commits.length;
-            }
-        }
-        if (!totalCommits || isNaN(totalCommits)) {
-            throw new Error("Ungültige Commit-Anzahl empfangen.");
-        }
-        const z3 = totalCommits % 10;
-        const totalTens = Math.floor(totalCommits / 10);
-        const z2 = totalTens % 25;
-        const z1 = Math.floor(totalTens / 25);
-
-        cachedVersion = `${z1}.${z2}.${z3}`;
-        lastFetchTime = now;
-        return cachedVersion;
-    } catch (error) {
-        console.error("[Version] Fehler beim Abrufen:", error.message);
-        return cachedVersion || "0.0.1"; 
-    }
-}
 export async function initDashboard(app, client, globalBotStats) {
   const logs = [];
   const _log = console.log.bind(console);
@@ -3531,7 +3477,7 @@ export async function initDashboard(app, client, globalBotStats) {
 }
 app.get("/api/stats", async (req, res) => {
   try {
-    const currentVersion = await getBotVersion();
+    const currentVersion = 2.4.3;
     if (!client || !client.isReady()) {
       return res.json({ 
         guild: null, 
@@ -3567,7 +3513,7 @@ app.get("/api/stats", async (req, res) => {
       users: userCount,
       bots: botCount,
       uptime: Math.floor(client.uptime / 1000),
-      version: await getBotVersion(),
+      version: 2.4.3,
       lastRestart: new Date(Date.now() - client.uptime).toISOString(),
       ping: {
         now: validPing,
