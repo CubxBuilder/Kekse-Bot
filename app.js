@@ -3618,6 +3618,7 @@ client.once("ready", async () => {
         await initTicketArchive(app, getTickData, setTickData);
         await initEconomySystem(client);
         initAdminFun(client);
+        initCommandList(client);
         client.user.setPresence({
             activities: [{ name: "!help", type: 0 }],
             status: "online"
