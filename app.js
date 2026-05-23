@@ -1,4 +1,4 @@
-import { Client, ModalBuilder, REST, Routes, GatewayIntentBits, Partials, ChannelType, PermissionFlagsBits, EmbedBuilder, Events, AuditLogEvent, MessageFlags, MessageType, PermissionsBitField, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, TextInputBuilder, TextInputStyle} from "discord.js"
+import { Client, ModalBuilder, REST, Routes, GatewayIntentBits, Partials, ChannelType, PermissionFlagsBits, EmbedBuilder, Events, AuditLogEvent, MessageFlags, MessageType, PermissionsBitField, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, TextInputBuilder, TextInputStyle, ComponentType} from "discord.js"
 import https from "https";
 import "dotenv/config"
 import path from "path"
@@ -304,41 +304,47 @@ export async function initEconomySystem(client) {
 
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot || !msg.member) return;
-
     if (!msg.content.startsWith("!")) return;
     const args = msg.content.trim().split(/ +/);
     const command = args[0].toLowerCase();
     const subCommand = args[1]?.toLowerCase();
 
     if (command === "!daily_setup") {
-  if (msg.author.id !== "1151971830983311441") return;
+      if (msg.author.id !== "1151971830983311441") return;
+      const setupId = args[1];
+      if (!setupId) {
+        return msg.reply({ content: "Bitte gib eine eindeutige Setup-ID an! Beispiel: `!daily_setup event1 Das ist ein Event`" });
+      }
+      const description = args.slice(1).join(" ") || "Hole dir hier deine täglichen Kekse ab!";
+      await setEcoData(`setup_${setupId}`, {
+        description: description,
+        exists: true
+      });
 
-  const setupId = args[0] || "default"; 
-  const description = args.slice(1).join(" ") || "Hole dir hier deine täglichen Kekse ab!";
+      const embed = new EmbedBuilder()
+        .setTitle("🍪 Tägliche Kekse")
+        .setDescription(`${description}\n\nKlicke auf den Button unten, um 10 Kekse zu erhalten.`)
+        .setColor(0xFFFFFF);
 
-  const embed = new EmbedBuilder()
-    .setTitle("🍪 Tägliche Kekse")
-    .setDescription(`${description}\n\nKlicke auf den Button unten, um 10 Kekse zu erhalten.`)
-    .setColor(0xFFFFFF);
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`daily_claim_${setupId}`)
+          .setLabel("Kekse abholen")
+          .setStyle(ButtonStyle.Success)
+          .setEmoji("🍪")
+      );
 
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`daily_claim_${setupId}`)
-      .setLabel("Kekse abholen")
-      .setStyle(ButtonStyle.Success)
-      .setEmoji("🍪")
-  );
-
-  await msg.channel.send({ embeds: [embed], components: [row] });
-  return msg.delete().catch(() => {});
-}
-
+      await msg.channel.send({ embeds: [embed], components: [row] });
+      return msg.delete().catch(() => {});
+    }
     if (command === "!casino") {
       const hasEcoRole = msg.member.roles.cache.has("1506732560837771284");
       if (!hasEcoRole) {
         return msg.reply({ content: "Du benötigst ein Bankkonto, um am Casino teilzunehmen. Nutze `!bank create`.", ephemeral: true });
       }
-
+      if (!msg.channelId === "1507385550825459812") {
+        return msg.reply({ content: "Das Casino ist nur in <#1507385550825459812> nutzbar.", ephemeral: true })
+      }
       const userData = await getEcoData(msg.author.id);
       if (userData.blocked) {
         return msg.reply({ content: "Dein Konto ist gesperrt. Bitte wende dich an den Support.", ephemeral: true });
@@ -942,103 +948,256 @@ export async function initEconomySystem(client) {
       };
     }
   });
-
   client.on("interactionCreate", async (interaction) => {
-    if (interaction.isButton()) {
-      if (interaction.customId.startsWith("open_bank_modal_")) {
-        const allowedUserId = interaction.customId.replace("open_bank_modal_", "");
-        if (interaction.user.id !== allowedUserId) {
-          return interaction.reply({ content: "Du kannst diesen Button nicht nutzen, da du den Befehl nicht eingegeben hast.", ephemeral: true });
-        }
+      if (interaction.isButton()) {
+          if (interaction.customId.startsWith("open_bank_modal_")) {
+              const allowedUserId = interaction.customId.replace("open_bank_modal_", "");
+              if (interaction.user.id !== allowedUserId) {
+                  return interaction.reply({ content: "Du kannst diesen Button nicht nutzen, da du den Befehl nicht eingegeben hast.", ephemeral: true });
+              }
+              const hasEcoRole = interaction.member.roles.cache.has("1506732560837771284");
+              if (hasEcoRole) {
+                  return interaction.reply({ content: "Du besitzt bereits ein registriertes Bankkonto.", ephemeral: true });
+              }
+              const modal = new ModalBuilder()
+                  .setCustomId(`bank_create_${interaction.user.id}`)
+                  .setTitle("Bankkonto erstellen");
+              const mcInput = new TextInputBuilder()
+                  .setCustomId("mc_username")
+                  .setLabel("Minecraft Benutzername")
+                  .setStyle(TextInputStyle.Short)
+                  .setRequired(true)
+                  .setPlaceholder("Dein exakter Name im Spiel");
+              modal.addComponents(new ActionRowBuilder().addComponents(mcInput));
+              return interaction.showModal(modal);
+          }
+          if (interaction.customId.startsWith("daily_claim_")) {
+              const hasEcoRole = interaction.member.roles.cache.has("1506732560837771284");
+              if (!hasEcoRole) {
+                  return interaction.reply({ content: "Du benötigst zuerst ein registriertes Bankkonto (`!bank create`).", ephemeral: true });
+              }
 
-        const hasEcoRole = interaction.member.roles.cache.has("1506732560837771284");
-        if (hasEcoRole) {
-          return interaction.reply({ content: "Du besitzt bereits ein registriertes Bankkonto.", ephemeral: true });
-        }
-
-        const modal = new ModalBuilder()
-          .setCustomId(`bank_create_${interaction.user.id}`)
-          .setTitle("Bankkonto erstellen");
-
-        const mcInput = new TextInputBuilder()
-          .setCustomId("mc_username")
-          .setLabel("Minecraft Benutzername")
-          .setStyle(TextInputStyle.Short)
-          .setRequired(true)
-          .setPlaceholder("Dein exakter Name im Spiel");
-        modal.addComponents(
-          new ActionRowBuilder().addComponents(mcInput),
-        );
-
-        return interaction.showModal(modal);
+              const setupId = interaction.customId.replace("daily_claim_", "");
+              const localizedDateStr = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }); 
+              const userData = await getEcoData(interaction.user.id);
+              if (!userData.claimedDailies) {
+                  userData.claimedDailies = {};
+              }
+              if (userData.claimedDailies[setupId] === localizedDateStr) {
+                  return interaction.reply({ 
+                      content: `Du hast deine Kekse für **dieses spezifische Event** heute bereits abgeholt! Versuche es nach 00:00 Uhr erneut.`, 
+                      ephemeral: true 
+                  });
+              }
+              userData.balance = (userData.balance || 0) + 10;
+              userData.claimedDailies[setupId] = localizedDateStr;
+              if (typeof userData.markModified === "function") {
+                  userData.markModified("claimedDailies");
+              } else {
+                  userData.claimedDailies = { ...userData.claimedDailies };
+              }
+              await setEcoData(interaction.user.id, userData);
+              return interaction.reply({ 
+                  content: "Erfolgreich! Dir wurden 10 Kekse auf dein Bankkonto gutgeschrieben.", 
+                  ephemeral: true 
+              });
+          }
       }
 
-      if (interaction.customId.startsWith("daily_claim_")) {
-        const hasEcoRole = interaction.member.roles.cache.has("1506732560837771284");
-        if (!hasEcoRole) {
-          return interaction.reply({ content: "Du benötigst zuerst ein registriertes Bankkonto (`!bank create`).", ephemeral: true });
-        }
-        const setupId = interaction.customId.replace("daily_claim_", "");
-        const localizedDateStr = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }); 
-        const userData = await getEcoData(interaction.user.id);
-        if (!userData.claimedDailies) {
-          userData.claimedDailies = {};
-        }
-        if (userData.claimedDailies[setupId] === localizedDateStr) {
-          return interaction.reply({ 
-            content: `Du hast deine Kekse für **dieses spezifische Event** heute bereits abgeholt! Versuche es nach 00:00 Uhr erneut.`, 
-            ephemeral: true 
-          });
-        }
-        userData.balance = (userData.balance || 0) + 10;
-        userData.claimedDailies = {
-          ...userData.claimedDailies,
-          [setupId]: localizedDateStr
-        };
-        if (typeof userData.markModified === "function") {
-          userData.markModified("claimedDailies");
-        }
+      if (!interaction.isModalSubmit()) return;
+      if (!interaction.customId.startsWith("bank_create_")) return;
 
-        await setEcoData(interaction.user.id, userData);
+      const userId = interaction.customId.replace("bank_create_", "");
+      if (interaction.user.id !== userId) return;
 
-        return interaction.reply({ content: "Erfolgreich! Dir wurden 10 Kekse auf dein Bankkonto gutgeschrieben. 🍪", ephemeral: true });
+      const mcUsername = interaction.fields.getTextInputValue("mc_username");
+      const accountData = {
+          userId: interaction.user.id,
+          username: interaction.user.username,
+          mcUsername: mcUsername,
+          balance: 0,
+          blocked: false,
+          claimedDailies: {}
+      };
+
+      await setEcoData(interaction.user.id, accountData);
+
+      const member = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+      if (member) {
+          await member.roles.add("1506732560837771284").catch(() => {});
       }
+
+      await interaction.reply({
+          content: `Dein Konto wurde erfolgreich angelegt!\n**Minecraft-Name:** ${mcUsername}\n**Startguthaben:** 0 Kekse\nDu hast nun Zugriff auf dein Konto mit \`!bank\`.`,
+          ephemeral: true
+      });
+
+      if (interaction.message) {
+          await interaction.message.delete().catch(() => {});
+      }
+  });  
+}
+export function initAdminFun(client) {
+  client.on("messageCreate", async (msg) => {
+    if (!msg.content.startsWith("!")) return;
+    const args = msg.content.slice(1).split(/\s+/);
+    const cmd = args.shift().toLowerCase();
+    if (cmd === "blob") {
+      const filePfad = path.join(__dirname, 'blobfish.jpg'); 
+      const attachment = new AttachmentBuilder(filePfad, { name: 'blobfish.jpg' });
+      msg.channel.send({ files: [attachment] });
     }
-
-    if (!interaction.isModalSubmit()) return;
-    if (!interaction.customId.startsWith("bank_create_")) return;
-
-    const userId = interaction.customId.replace("bank_create_", "");
-    if (interaction.user.id !== userId) return;
-
-    const mcUsername = interaction.fields.getTextInputValue("mc_username");
-
-    const accountData = {
-      userId: interaction.user.id,
-      username: interaction.user.username,
-      mcUsername: mcUsername,
-      balance: 0,
-      blocked: false,
-      claimedDailies: {}
-    };
-
-    await setEcoData(interaction.user.id, accountData);
-
-    const member = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
-    if (member) {
-      await member.roles.add("1506732560837771284").catch(() => {});
+    if (cmd === "sand") {
+      const filePfad = path.join(__dirname, 'sandkorn.png');
+      const attachment = new AttachmentBuilder(filePfad, { name: 'sandkorn.png' });
+      msg.channel.send({ files: [attachment] });
     }
-
-    await interaction.reply({
-      content: `Dein Konto wurde erfolgreich angelegt!\n**Minecraft-Name:** ${mcUsername}\n**Startguthaben:** 0 Kekse\nDu hast nun Zugriff auf dein Konto mit \`!bank\`.`,
-      ephemeral: true
-    });
-
-    if (interaction.message) {
-      await interaction.message.delete().catch(() => {});
+    if (cmd === "sandkorn") {
+      const filePfad = path.join(__dirname, 'strand.jpg');
+      const attachment = new AttachmentBuilder(filePfad, { name: 'strand.jpg' });
+      msg.channel.send({ files: [attachment] });
     }
   });
-  
+}
+export function initCommandList(client) {
+  client.on("messageCreate", async (msg) => {
+    if (msg.author.bot) return;
+    if (!msg.content.startsWith("!commands")) return;
+    if (msg.member?.roles.cache.has(TEAM_ROLE)) {
+      const teamMessage1 = 
+        "**Team-Befehle (Teil 1)**\n" +
+        "Hier sind alle Befehle, die du nutzen kannst:\n\n" +
+        "**!bank** - Zeigt die Übersicht deines Bankkontos an.\n" +
+        "**!bank create** - Erstellt ein neues Bankkonto für dich.\n" +
+        "**!bank help** - Zeigt die Hilfe-Menüs für die Bank-Befehle an.\n" +
+        "**!casino** - Zeigt die Casino-Übersicht.\n" +
+        "**!casino blackjack <x>** - Startet eine Runde Blackjack mit dem Einsatz (x).\n" +
+        "**!casino coinflip <x> <->** - Macht einen Münzwurf mit Einsatz (x) und Tipp (Kopf/Zahl).\n" +
+        "**!casino crash <x>** - Startet das Crash-Spiel mit einem Einsatz von (x).\n" +
+        "**!casino highlow <x>** - Spielt High-Low (Höher oder Tiefer) mit dem Einsatz (x).\n" +
+        "**!casino jackpot <x>** - Zahlt den Betrag (x) in den aktuellen Jackpot ein.\n" +
+        "**!casino roulette <x> <->** - Setzt den Einsatz (x) beim Roulette auf Farbe, Zahl oder Bereich.\n" +
+        "**!listpolls** - Listet alle aktuell laufenden Umfragen auf.\n" +
+        "**!remind <x> <t> <->** - Erstellt eine Erinnerung in (x) Zeit mit dem Text (t) und optional einem Kanal oder per DM.\n" +
+        "**!top** - Zeigt die Top 10 vom Counting an.\n" +
+        "**!ban <@>** - Sperrt das erwähnte Mitglied dauerhaft.\n" +
+        "**!block <@> <x>** - Hindert den User für die Dauer (x) an der Erstellung von Tickets.\n" +
+        "**!ban <@> <t>** - Sperrt das erwähnte Mitglied mit Begründung (t).\n" +
+        "**!closepoll <ID>** - Schließt die Umfrage mit der angegebenen ID.\n" +
+        "**!changelog <t>** - Postet ein Update oder Changelog mit dem Text (t).\n" +
+        "**!close** - Schließt das aktuelle Ticket.\n" +
+        "**!clear <@> <@>** - Löscht Nachrichten von zwei bestimmten Benutzern.";
+      const teamMessage2 =
+        "**Team-Befehle (Teil 2)**\n\n" +
+        "**!clear <@> <@> <x>** - Löscht eine Anzahl (x) an Nachrichten von zwei Benutzern.\n" +
+        "**!clear <@> <@> <x> <x>** - Löscht Nachrichten von zwei Benutzern in einem bestimmten Zeitraum (x).\n" +
+        "**!clear** - Löscht 100 Nachrichten im Kanal.\n" +
+        "**!clear <@>** - Löscht die Nachrichten eines bestimmten Benutzers.\n" +
+        "**!embed <t> <t> <HEX>** - Erstellt ein Embed mit Titel, Beschreibung und HEX-Farbe.\n" +
+        "**!dm <ID> <t>** - Sendet eine Direktnachricht mit Text (t) an die User-ID.\n" +
+        "**!giveaway <#> <x> <t> <x>** - Startet ein Giveaway im Kanal <#> für Zeit (x) mit Preis (t).\n" +
+        "**!kick <@>** - Kickt das erwähnte Mitglied vom Server.\n" +
+        "**!kick <@> <t>** - Kickt das erwähnte Mitglied mit Begründung (t).\n" +
+        "**!news <#> <t>** - Sendet eine Ankündigung in den News-Kanal <#>.\n" +
+        "**!ping** - Zeigt die aktuelle Latenz des Bots an.\n" +
+        "**!poll <t> <x> <t> ...** - Erstellt eine Umfrage mit einer Frage und Auswahlmöglichkeiten.\n" +
+        "**!reply <#> <ID> <t>** - Antwortet auf eine Nachricht via ID im Kanal <#>.\n" +
+        "**!send <#> <t>** - Sendet eine Textnachricht (t) in den Kanal <#>.\n" +
+        "**!setup_verify** - Richtet das Verifizierungssystem für den Server ein.\n" +
+        "**!ticket_panel** - Sendet das Panel zum Erstellen von Support-Tickets.\n" +
+        "**!timeout <@> <x>** - Versetzt das Mitglied für die Dauer (x) in den Server-Timeout.\n" +
+        "**!timeout <@> <x> <t>** - Versetzt das Mitglied mit Begründung (t) in den Timeout (x).\n" +
+        "**!unban <@>** - Hebt die Server-Sperre für das Mitglied auf.\n" +
+        "**!unban <@> <t>** - Hebt die Server-Sperre mit Begründung (t) auf.\n" +
+        "**!untimeout <@> <t>** - Hebt den Timeout eines Mitglieds vorzeitig auf.\n" +
+        "**!warn <@>** - Erteilt dem erwähnten Mitglied eine Verwarnung.\n" +
+        "**!warn <@> <t>** - Verwarnt das erwähnte Mitglied mit Begründung (t).\n" +
+        "**!warn_remove <@>** - Entfernt die letzte Verwarnung eines Mitglieds.\n" +
+        "**!warn_remove <@> <t>** - Entfernt eine Verwarnung mit Begründung (t).";
+      await msg.reply({ content: teamMessage1 });
+      await msg.channel.send({ content: teamMessage2 });
+    } else if (msg.author.id === "1151971830983311441") {
+      const devMessage1 = 
+        "**Entwickler-Befehle (Teil 1)**\n" +
+        "Hier sind alle Befehle, die du nutzen kannst:\n\n" +
+        "**!bank** - Zeigt die Übersicht deines Bankkontos an.\n" +
+        "**!bank create** - Erstellt ein neues Bankkonto für dich.\n" +
+        "**!bank help** - Zeigt die Hilfe-Menüs für die Bank-Befehle an.\n" +
+        "**!casino** - Zeigt die Casino-Übersicht.\n" +
+        "**!casino blackjack <x>** - Startet eine Runde Blackjack mit dem Einsatz (x).\n" +
+        "**!casino coinflip <x> <->** - Macht einen Münzwurf mit Einsatz (x) und Tipp (Kopf/Zahl).\n" +
+        "**!casino crash <x>** - Startet das Crash-Spiel mit einem Einsatz von (x).\n" +
+        "**!casino highlow <x>** - Spielt High-Low (Höher oder Tiefer) mit dem Einsatz (x).\n" +
+        "**!casino jackpot <x>** - Zahlt den Betrag (x) in den aktuellen Jackpot ein.\n" +
+        "**!casino roulette <x> <->** - Setzt den Einsatz (x) beim Roulette auf Farbe, Zahl oder Bereich.\n" +
+        "**!listpolls** - Listet alle aktuell laufenden Umfragen auf.\n" +
+        "**!remind <x> <t> <->** - Erstellt eine Erinnerung in (x) Zeit mit dem Text (t) und optional einem Kanal oder per DM.\n" +
+        "**!top** - Zeigt die Top 10 vom Counting an.\n" +
+        "**!bank add <x>** - Fügt dem eigenen Bankkonto einen Betrag (x) hinzu.\n" +
+        "**!bank add <x> <@>** - Fügt dem Bankkonto des erwähnten Mitglieds einen Betrag (x) hinzu.\n" +
+        "**!bank remove <x>** - Zieht einen Betrag (x) vom eigenen Bankkonto ab.\n" +
+        "**!bank remove <x> <@>** - Zieht einen Betrag (x) vom Bankkonto des erwähnten Mitglieds ab.\n" +
+        "**!bank see <@>** - Zeigt den Kontostand des erwähnten Mitglieds an.\n" +
+        "**!daily_setup <ID>** - Richtet das tägliche Belohnungssystem ein.\n" +
+        "**!set_number <x>** - Setzt im Counting die aktuelle Zahl auf (x).\n" +
+        "**!stats** - Zeigt die aktuellen Statistiken an.";
+      const devMessage2 =
+        "**Entwickler-Befehle (Teil 2)**\n\n" +
+        "**!ban <@>** - Sperrt das erwähnte Mitglied dauerhaft.\n" +
+        "**!block <@> <x>** - Hindert den User für die Dauer (x) an der Erstellung von Tickets.\n" +
+        "**!ban <@> <t>** - Sperrt das erwähnte Mitglied mit Begründung (t).\n" +
+        "**!closepoll <ID>** - Schließt die Umfrage mit der angegebenen ID.\n" +
+        "**!changelog <t>** - Postet ein Update oder Changelog mit dem Text (t).\n" +
+        "**!close** - Schließt das aktuelle Ticket.\n" +
+        "**!clear <@> <@>** - Löscht Nachrichten von zwei bestimmten Benutzern.\n" +
+        "**!clear <@> <@> <x>** - Löscht eine Anzahl (x) an Nachrichten von zwei Benutzern.\n" +
+        "**!clear <@> <@> <x> <x>** - Löscht Nachrichten von zwei Benutzern in einem bestimmten Zeitraum (x).\n" +
+        "**!clear** - Löscht 100 Nachrichten im Kanal.\n" +
+        "**!clear <@>** - Löscht die Nachrichten eines bestimmten Benutzers.\n" +
+        "**!embed <t> <t> <HEX>** - Erstellt ein Embed mit Titel, Beschreibung und HEX-Farbe.\n" +
+        "**!dm <ID> <t>** - Sendet eine Direktnachricht mit Text (t) an die User-ID.\n" +
+        "**!giveaway <#> <x> <t> <x>** - Startet ein Giveaway im Kanal <#> für Zeit (x) mit Preis (t).\n" +
+        "**!kick <@>** - Kickt das erwähnte Mitglied vom Server.\n" +
+        "**!kick <@> <t>** - Kickt das erwähnte Mitglied mit Begründung (t).\n" +
+        "**!news <#> <t>** - Sendet eine Ankündigung in den News-Kanal <#>.\n" +
+        "**!ping** - Zeigt die aktuelle Latenz des Bots an.\n" +
+        "**!poll <t> <x> <t> ...** - Erstellt eine Umfrage mit einer Frage und Auswahlmöglichkeiten.\n" +
+        "**!reply <#> <ID> <t>** - Antwortet auf eine Nachricht via ID im Kanal <#>.\n" +
+        "**!send <#> <t>** - Sendet eine Textnachricht (t) in den Kanal <#>.\n" +
+        "**!setup_verify** - Richtet das Verifizierungssystem für den Server ein.\n" +
+        "**!ticket_panel** - Sendet das Panel zum Erstellen von Support-Tickets.\n" +
+        "**!timeout <@> <x>** - Versetzt das Mitglied für die Dauer (x) in den Server-Timeout.\n" +
+        "**!timeout <@> <x> <t>** - Versetzt das Mitglied mit Begründung (t) in den Timeout (x).\n" +
+        "**!unban <@>** - Hebt die Server-Sperre für das Mitglied auf.\n" +
+        "**!unban <@> <t>** - Hebt die Server-Sperre mit Begründung (t) auf.\n" +
+        "**!untimeout <@> <t>** - Hebt den Timeout eines Mitglieds vorzeitig auf.\n" +
+        "**!warn <@>** - Erteilt dem erwähnten Mitglied eine Verwarnung.\n" +
+        "**!warn <@> <t>** - Verwarnt das erwähnte Mitglied mit Begründung (t).\n" +
+        "**!warn_remove <@>** - Entfernt die letzte Verwarnung eines Mitglieds.\n" +
+        "**!warn_remove <@> <t>** - Entfernt eine Verwarnung mit Begründung (t).";
+      await msg.reply({ content: devMessage1 });
+      await msg.channel.send({ content: devMessage2 });
+    }else {
+      const textMessage = 
+        "**Liste der verfügbaren Befehle**\n" +
+        "Hier sind alle Befehle, die du nutzen kannst:\n\n" +
+        "**!bank** - Zeigt die Übersicht deines Bankkontos an.\n" +
+        "**!bank create** - Erstellt ein neues Bankkonto für dich.\n" +
+        "**!bank help** - Zeigt die Hilfe-Menüs für die Bank-Befehle an.\n" +
+        "**!casino** - Zeigt die Casino-Übersicht.\n" +
+        "**!casino blackjack <x>** - Startet eine Runde Blackjack mit dem Einsatz (x).\n" +
+        "**!casino coinflip <x> <->** - Macht einen Münzwurf mit Einsatz (x) und Tipp (Kopf/Zahl).\n" +
+        "**!casino crash <x>** - Startet das Crash-Spiel mit einem Einsatz von (x).\n" +
+        "**!casino highlow <x>** - Spielt High-Low (Höher oder Tiefer) mit dem Einsatz (x).\n" +
+        "**!casino jackpot <x>** - Zahlt den Betrag (x) in den aktuellen Jackpot ein.\n" +
+        "**!casino roulette <x> <->** - Setzt den Einsatz (x) beim Roulette auf Farbe, Zahl oder Bereich.\n" +
+        "**!listpolls** - Listet alle aktuell laufenden Umfragen auf.\n" +
+        "**!remind <x> <t> <->** - Erstellt eine Erinnerung in (x) Zeit mit dem Text (t) und optional einem Kanal oder per DM.\n" +
+        "****!top** - Zeigt die Top 10 vom Counting an.";
+
+      await msg.reply({ content: textMessage });
+    }
+  });
 }
 export function initAuditLogs(client) {
     const sendLog = async (title, user, text, color = "#ffffff", thumb = null, channelId = null) => {
@@ -1321,86 +1480,6 @@ Grund: ${reason}${sectionTitle ? ` (${sectionTitle})` : ""}${durationText}${rule
 Um sicherzustellen, dass unsere Community sicher und freundlich bleibt, befolge bitte unsere Regeln. Die vollständigen Regeln findest du hier: https://discord.com/channels/1423413347168157718/1423413348065611949`;
 
   await user.send(message).catch(() => dashboardLog(`Konnte DM an ${user.tag} nicht senden.`));
-}
-export async function initInvites(client) {
- const inviteCache = new Map();
- const cacheInvites = async () => {
- for (const g of client.guilds.cache.values()) {
- const invs = await g.invites.fetch().catch(() => null);
- if (invs) inviteCache.set(g.id, new Map(invs.map(i => [i.code, i.uses])));
- }
- };
- client.on("ready", cacheInvites);
- client.on("messageCreate", async (msg) => {
- if (msg.author.bot || !msg.content.startsWith("!")) return;
- const args = msg.content.slice(1).split(/\s+/);
- const cmd = args.shift().toLowerCase();
- 
- if (cmd === "invite_leaderboard" || cmd === "invites") {
- const dbInviteStats = await getIData("invite_stats") || {};
- const leaderboard = Object.entries(dbInviteStats).map(([id, s]) => ({ 
-  id, ...s, total: (s.regular || 0) - (s.left || 0) - (s.fake || 0) + (s.bonus || 0) 
- })).sort((a, b) => b.total - a.total).slice(0, 10);
-
- if (leaderboard.length === 0) return msg.reply("Keine Daten.");
- let desc = "";
- leaderboard.forEach((e, i) => { 
-  desc += `\`${i + 1}. \` <@${e.id}> • **${e.total}** invites. (${e.regular} regular, ${e.left} left, ${e.fake} fake, ${e.bonus} bonus)\n`; 
- });
- const embed = new EmbedBuilder()
-  .setTitle("<:statistiques:1467246038497886311> Invite Leaderboard")
-  .setDescription(desc)
-  .setColor(0xffffff);
- await msg.reply({ embeds: [embed] });
- globalBotStats.commandsRunned += 1;
- }
-
- if (cmd === "addbonus" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
- const target = msg.mentions.users.first() || await client.users.fetch(args[0]).catch(() => null);
- const amount = parseInt(args[1]);
- if (!target || isNaN(amount)) return msg.reply(" !addbonus @user 10");
- 
- const dbInviteStats = await getIData("invite_stats") || {};
- dbInviteStats[target.id] = dbInviteStats[target.id] || { regular: 0, left: 0, fake: 0, bonus: 0 };
- dbInviteStats[target.id].bonus = (dbInviteStats[target.id].bonus || 0) + amount;
- await setIData("invite_stats", dbInviteStats);
- 
- msg.reply(` +${amount} für ${target.username}`);
- globalBotStats.commandsRunned += 1;
- }
- });
-
- client.on("guildMemberAdd", async (m) => {
- const cached = inviteCache.get(m.guild.id);
- const current = await m.guild.invites.fetch().catch(() => null);
- if (!current || !cached) return;
- const used = current.find(i => i.uses > (cached.get(i.code) || 0));
- inviteCache.set(m.guild.id, new Map(current.map(i => [i.code, i.uses])));
- if (used) {
- const dbInviteStats = await getIData("invite_stats") || {};
- const rels = await getIData("invite_relations") || {};
- const inviterId = used.inviter.id;
- dbInviteStats[inviterId] = dbInviteStats[inviterId] || { regular: 0, left: 0, fake: 0, bonus: 0 };
- rels[m.id] = inviterId;
- const isFake = (Date.now() - m.user.createdTimestamp) < 86400000;
- isFake ? dbInviteStats[inviterId].fake++ : dbInviteStats[inviterId].regular++;
- await setIData("invite_stats", dbInviteStats);
- await setIData("invite_relations", rels);
- }
- globalBotStats.membersJoined += 1;
- });
-
- client.on("guildMemberRemove", async (m) => {
- const rels = await getIData("invite_relations") || {};
- const inviterId = rels[m.id];
- if (inviterId) {
- const dbInviteStats = await getIData("invite_stats") || {};
- if (dbInviteStats[inviterId]) { dbInviteStats[inviterId].left++; await setIData("invite_stats", dbInviteStats); }
- delete rels[m.id];
- await setIData("invite_relations", rels);
- }
- globalBotStats.membersLeft += 1;
- });
 }
 export function initModSend(client) {
   client.on("guildAuditLogEntryCreate", async (entry, guild) => {
@@ -3507,37 +3586,47 @@ app.get("/api/stats", async (req, res) => {
     res.status(500).json({ error: "Fehler beim Laden der Statistiken" });
   }
 });
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('[Process] Unhandled Rejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+    console.error('[Process] Uncaught Exception:', err);
+});
 client.once("ready", async () => {
-    await initCounting(client);
-    registerMessageCommands(client);
-    await initTickets(client);
-    await initGiveaway(client);
-    initPing(client);
-    initReactions(client);
-    initHelp(client);
-    initTicketCategory(client);
-    await initPoll(client);
-    initVoiceChannels(client);
-    await initReminder(client);
-    await initModeration(client);
-    await initVerification(client);
-    await initInvites(client); 
-    initAuditLogs(client);
-    clear(client);
-    warning(client);
-    initModSend(client);
-    await violations(client);
-    await initStatistics(client);
-    await initDashboard(app, client, globalBotStats);
-    await initScammProtection(client);
-    await initTicketArchive(app, getTickData, setTickData);
-    await initEconomySystem(client);
-    client.user.setPresence({
-      activities: [{ name: "!help", type: 0 }],
-      status: "online"
-    });
-    dashboardLog(`Bot online: ${client.user.tag}`);
-    await startStorages();  
+    try {
+        await initCounting(client);
+        registerMessageCommands(client);
+        await initTickets(client);
+        await initGiveaway(client);
+        initPing(client);
+        initReactions(client);
+        initHelp(client);
+        initTicketCategory(client);
+        await initPoll(client);
+        initVoiceChannels(client);
+        initReminder(client);
+        initModeration(client);
+        initVerification(client);
+        initAuditLogs(client);
+        clear(client);
+        warning(client);
+        initModSend(client);
+        await violations(client);
+        await initStatistics(client);
+        await initDashboard(app, client, globalBotStats);
+        await initScammProtection(client);
+        await initTicketArchive(app, getTickData, setTickData);
+        await initEconomySystem(client);
+        initAdminFun(client);
+        client.user.setPresence({
+            activities: [{ name: "!help", type: 0 }],
+            status: "online"
+        });
+        dashboardLog(`Bot online: ${client.user.tag}`);
+        await startStorages();
+    } catch (err) {
+        console.error('[Ready] Kritischer Fehler beim Initialisieren:', err);
+    }
 })
 app.get("/api/stats_internal", (req, res) => {
     const totalSeconds = (client.uptime / 1000);
