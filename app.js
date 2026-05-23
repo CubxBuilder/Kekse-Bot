@@ -20,10 +20,14 @@ app.get("/err605", (req, res) => {
 app.get("/err612", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "err612", "index.html"));
 });
-const port = process.env.PORT || 5000
-app.listen(port, "0.0.0.0", () => {
-    dashboardLog(`Server läuft auf Port ${port}`)
-})
+const options = {
+  key: fs.readFileSync('/etc/letsencrypt/live/kekse-bot.dedyn.io/privkey.pem'),
+  cert: fs.readFileSync('/etc/letsencrypt/live/kekse-bot.dedyn.io/fullchain.pem')
+};
+const port = 5000;
+https.createServer(options, app).listen(port, '0.0.0.0', () => {
+  dashboardLog(`Dashboard läuft sicher auf Port ${port} via HTTPS!`);
+});
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
