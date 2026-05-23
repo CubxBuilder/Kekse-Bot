@@ -1063,60 +1063,7 @@ export function initCommandList(client) {
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot) return;
     if (!msg.content.startsWith("!commands")) return;
-    if (msg.member?.roles.cache.has(TEAM_ROLE)) {
-      const teamMessage1 = 
-        "**Team-Befehle (Teil 1)**\n" +
-        "Hier sind alle Befehle, die du nutzen kannst:\n\n" +
-        "**!bank** - Zeigt die Übersicht deines Bankkontos an.\n" +
-        "**!bank create** - Erstellt ein neues Bankkonto für dich.\n" +
-        "**!bank help** - Zeigt die Hilfe-Menüs für die Bank-Befehle an.\n" +
-        "**!casino** - Zeigt die Casino-Übersicht.\n" +
-        "**!casino blackjack <x>** - Startet eine Runde Blackjack mit dem Einsatz (x).\n" +
-        "**!casino coinflip <x> <->** - Macht einen Münzwurf mit Einsatz (x) und Tipp (Kopf/Zahl).\n" +
-        "**!casino crash <x>** - Startet das Crash-Spiel mit einem Einsatz von (x).\n" +
-        "**!casino highlow <x>** - Spielt High-Low (Höher oder Tiefer) mit dem Einsatz (x).\n" +
-        "**!casino jackpot <x>** - Zahlt den Betrag (x) in den aktuellen Jackpot ein.\n" +
-        "**!casino roulette <x> <->** - Setzt den Einsatz (x) beim Roulette auf Farbe, Zahl oder Bereich.\n" +
-        "**!listpolls** - Listet alle aktuell laufenden Umfragen auf.\n" +
-        "**!remind <x> <t> <->** - Erstellt eine Erinnerung in (x) Zeit mit dem Text (t) und optional einem Kanal oder per DM.\n" +
-        "**!top** - Zeigt die Top 10 vom Counting an.\n" +
-        "**!ban <@>** - Sperrt das erwähnte Mitglied dauerhaft.\n" +
-        "**!block <@> <x>** - Hindert den User für die Dauer (x) an der Erstellung von Tickets.\n" +
-        "**!ban <@> <t>** - Sperrt das erwähnte Mitglied mit Begründung (t).\n" +
-        "**!closepoll <ID>** - Schließt die Umfrage mit der angegebenen ID.\n" +
-        "**!changelog <t>** - Postet ein Update oder Changelog mit dem Text (t).\n" +
-        "**!close** - Schließt das aktuelle Ticket.\n" +
-        "**!clear <@> <@>** - Löscht Nachrichten von zwei bestimmten Benutzern.";
-      const teamMessage2 =
-        "**Team-Befehle (Teil 2)**\n\n" +
-        "**!clear <@> <@> <x>** - Löscht eine Anzahl (x) an Nachrichten von zwei Benutzern.\n" +
-        "**!clear <@> <@> <x> <x>** - Löscht Nachrichten von zwei Benutzern in einem bestimmten Zeitraum (x).\n" +
-        "**!clear** - Löscht 100 Nachrichten im Kanal.\n" +
-        "**!clear <@>** - Löscht die Nachrichten eines bestimmten Benutzers.\n" +
-        "**!embed <t> <t> <HEX>** - Erstellt ein Embed mit Titel, Beschreibung und HEX-Farbe.\n" +
-        "**!dm <ID> <t>** - Sendet eine Direktnachricht mit Text (t) an die User-ID.\n" +
-        "**!giveaway <#> <x> <t> <x>** - Startet ein Giveaway im Kanal <#> für Zeit (x) mit Preis (t).\n" +
-        "**!kick <@>** - Kickt das erwähnte Mitglied vom Server.\n" +
-        "**!kick <@> <t>** - Kickt das erwähnte Mitglied mit Begründung (t).\n" +
-        "**!news <#> <t>** - Sendet eine Ankündigung in den News-Kanal <#>.\n" +
-        "**!ping** - Zeigt die aktuelle Latenz des Bots an.\n" +
-        "**!poll <t> <x> <t> ...** - Erstellt eine Umfrage mit einer Frage und Auswahlmöglichkeiten.\n" +
-        "**!reply <#> <ID> <t>** - Antwortet auf eine Nachricht via ID im Kanal <#>.\n" +
-        "**!send <#> <t>** - Sendet eine Textnachricht (t) in den Kanal <#>.\n" +
-        "**!setup_verify** - Richtet das Verifizierungssystem für den Server ein.\n" +
-        "**!ticket_panel** - Sendet das Panel zum Erstellen von Support-Tickets.\n" +
-        "**!timeout <@> <x>** - Versetzt das Mitglied für die Dauer (x) in den Server-Timeout.\n" +
-        "**!timeout <@> <x> <t>** - Versetzt das Mitglied mit Begründung (t) in den Timeout (x).\n" +
-        "**!unban <@>** - Hebt die Server-Sperre für das Mitglied auf.\n" +
-        "**!unban <@> <t>** - Hebt die Server-Sperre mit Begründung (t) auf.\n" +
-        "**!untimeout <@> <t>** - Hebt den Timeout eines Mitglieds vorzeitig auf.\n" +
-        "**!warn <@>** - Erteilt dem erwähnten Mitglied eine Verwarnung.\n" +
-        "**!warn <@> <t>** - Verwarnt das erwähnte Mitglied mit Begründung (t).\n" +
-        "**!warn_remove <@>** - Entfernt die letzte Verwarnung eines Mitglieds.\n" +
-        "**!warn_remove <@> <t>** - Entfernt eine Verwarnung mit Begründung (t).";
-      await msg.reply({ content: teamMessage1 });
-      await msg.channel.send({ content: teamMessage2 });
-    } else if (msg.author.id === "1151971830983311441") {
+    if (msg.author.id === "1151971830983311441") {
       const devMessage1 = 
         "**Entwickler-Befehle (Teil 1)**\n" +
         "Hier sind alle Befehle, die du nutzen kannst:\n\n" +
@@ -1177,7 +1124,60 @@ export function initCommandList(client) {
         "**!warn_remove <@> <t>** - Entfernt eine Verwarnung mit Begründung (t).";
       await msg.reply({ content: devMessage1 });
       await msg.channel.send({ content: devMessage2 });
-    }else {
+    } else if (msg.member?.roles.cache.has(TEAM_ROLE_ID)) {
+      const teamMessage1 = 
+        "**Team-Befehle (Teil 1)**\n" +
+        "Hier sind alle Befehle, die du nutzen kannst:\n\n" +
+        "**!bank** - Zeigt die Übersicht deines Bankkontos an.\n" +
+        "**!bank create** - Erstellt ein neues Bankkonto für dich.\n" +
+        "**!bank help** - Zeigt die Hilfe-Menüs für die Bank-Befehle an.\n" +
+        "**!casino** - Zeigt die Casino-Übersicht.\n" +
+        "**!casino blackjack <x>** - Startet eine Runde Blackjack mit dem Einsatz (x).\n" +
+        "**!casino coinflip <x> <->** - Macht einen Münzwurf mit Einsatz (x) und Tipp (Kopf/Zahl).\n" +
+        "**!casino crash <x>** - Startet das Crash-Spiel mit einem Einsatz von (x).\n" +
+        "**!casino highlow <x>** - Spielt High-Low (Höher oder Tiefer) mit dem Einsatz (x).\n" +
+        "**!casino jackpot <x>** - Zahlt den Betrag (x) in den aktuellen Jackpot ein.\n" +
+        "**!casino roulette <x> <->** - Setzt den Einsatz (x) beim Roulette auf Farbe, Zahl oder Bereich.\n" +
+        "**!listpolls** - Listet alle aktuell laufenden Umfragen auf.\n" +
+        "**!remind <x> <t> <->** - Erstellt eine Erinnerung in (x) Zeit mit dem Text (t) und optional einem Kanal oder per DM.\n" +
+        "**!top** - Zeigt die Top 10 vom Counting an.\n" +
+        "**!ban <@>** - Sperrt das erwähnte Mitglied dauerhaft.\n" +
+        "**!block <@> <x>** - Hindert den User für die Dauer (x) an der Erstellung von Tickets.\n" +
+        "**!ban <@> <t>** - Sperrt das erwähnte Mitglied mit Begründung (t).\n" +
+        "**!closepoll <ID>** - Schließt die Umfrage mit der angegebenen ID.\n" +
+        "**!changelog <t>** - Postet ein Update oder Changelog mit dem Text (t).\n" +
+        "**!close** - Schließt das aktuelle Ticket.\n" +
+        "**!clear <@> <@>** - Löscht Nachrichten von zwei bestimmten Benutzern.";
+      const teamMessage2 =
+        "**Team-Befehle (Teil 2)**\n\n" +
+        "**!clear <@> <@> <x>** - Löscht eine Anzahl (x) an Nachrichten von zwei Benutzern.\n" +
+        "**!clear <@> <@> <x> <x>** - Löscht Nachrichten von zwei Benutzern in einem bestimmten Zeitraum (x).\n" +
+        "**!clear** - Löscht 100 Nachrichten im Kanal.\n" +
+        "**!clear <@>** - Löscht die Nachrichten eines bestimmten Benutzers.\n" +
+        "**!embed <t> <t> <HEX>** - Erstellt ein Embed mit Titel, Beschreibung und HEX-Farbe.\n" +
+        "**!dm <ID> <t>** - Sendet eine Direktnachricht mit Text (t) an die User-ID.\n" +
+        "**!giveaway <#> <x> <t> <x>** - Startet ein Giveaway im Kanal <#> für Zeit (x) mit Preis (t).\n" +
+        "**!kick <@>** - Kickt das erwähnte Mitglied vom Server.\n" +
+        "**!kick <@> <t>** - Kickt das erwähnte Mitglied mit Begründung (t).\n" +
+        "**!news <#> <t>** - Sendet eine Ankündigung in den News-Kanal <#>.\n" +
+        "**!ping** - Zeigt die aktuelle Latenz des Bots an.\n" +
+        "**!poll <t> <x> <t> ...** - Erstellt eine Umfrage mit einer Frage und Auswahlmöglichkeiten.\n" +
+        "**!reply <#> <ID> <t>** - Antwortet auf eine Nachricht via ID im Kanal <#>.\n" +
+        "**!send <#> <t>** - Sendet eine Textnachricht (t) in den Kanal <#>.\n" +
+        "**!setup_verify** - Richtet das Verifizierungssystem für den Server ein.\n" +
+        "**!ticket_panel** - Sendet das Panel zum Erstellen von Support-Tickets.\n" +
+        "**!timeout <@> <x>** - Versetzt das Mitglied für die Dauer (x) in den Server-Timeout.\n" +
+        "**!timeout <@> <x> <t>** - Versetzt das Mitglied mit Begründung (t) in den Timeout (x).\n" +
+        "**!unban <@>** - Hebt die Server-Sperre für das Mitglied auf.\n" +
+        "**!unban <@> <t>** - Hebt die Server-Sperre mit Begründung (t) auf.\n" +
+        "**!untimeout <@> <t>** - Hebt den Timeout eines Mitglieds vorzeitig auf.\n" +
+        "**!warn <@>** - Erteilt dem erwähnten Mitglied eine Verwarnung.\n" +
+        "**!warn <@> <t>** - Verwarnt das erwähnte Mitglied mit Begründung (t).\n" +
+        "**!warn_remove <@>** - Entfernt die letzte Verwarnung eines Mitglieds.\n" +
+        "**!warn_remove <@> <t>** - Entfernt eine Verwarnung mit Begründung (t).";
+      await msg.reply({ content: teamMessage1 });
+      await msg.channel.send({ content: teamMessage2 });
+    } else {
       const textMessage = 
         "**Liste der verfügbaren Befehle**\n" +
         "Hier sind alle Befehle, die du nutzen kannst:\n\n" +
