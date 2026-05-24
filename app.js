@@ -340,8 +340,45 @@ export async function initEconomySystem(client) {
       );
 
       await msg.channel.send({ embeds: [embed], components: [row] });
-      return msg.delete().catch(() => {});
       dashboardLog(`[Economy] Neues Daily Setup erstellt. (daily_claim_${setupId})`);
+      return msg.delete().catch(() => {});
+    }
+    if (command === "!shop_setup") {
+      if (msg.author.id !== "1151971830983311441") return;
+
+      const setupId = args[0];
+      if (!setupId) {
+        return msg.reply({ content: "Bitte gib eine eindeutige Setup-ID an! Beispiel: `!shop_setup event1 Das ist ein Event`" });
+      }
+      const description = args.slice(1).join(" ") || "Hole dir hier deine Items ab!";
+      await setEcoData(`setup_${setupId}`, {
+        description: description,
+        exists: true
+      });
+      const SHOP_CHANNEL_ID = "1508053328662364302";
+      const shopChannel = msg.guild.channels.cache.get(SHOP_CHANNEL_ID);
+      if (!shopChannel) return msg.reply("Shop-Kanal wurde nicht gefunden!");
+      const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+
+      const shopEmbed = new EmbedBuilder()
+        .setTitle(`🛒 Server Shop — ${setupId}`)
+        .setDescription(description)
+        .setColor(0x00AE86)
+        .addFields(
+          { name: "🎉 Double Chance Giveaway", value: "Erhöht deine Gewinnchance bei Giveaways.\n*Rolle: <@&1506164984202264656>*", inline: false },
+          { name: "🛡️ Counting Puffer", value: "Erlaubt dir einen Fehler beim Zählen, ohne die Zahl zurückzusetzen.\n*Rolle: <@&1508050024355856494>*", inline: false },
+          { name: "⚡ Counting XP Booster (30 Min)", value: "Du erhältst 30 Minuten lang doppelte XP beim Zählen.\n*Rolle: <@&1506164829029666827>*", inline: false },
+          { name: "🔥 Counting XP Booster (60 Min)", value: "Du erhältst 60 Minuten lang doppelte XP beim Zählen.\n*Rolle: <@&1508054186930208768>*", inline: false }
+        );
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('shop_giveaway').setLabel('Giveaway Chance').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId('shop_puffer').setLabel('Counting Puffer').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId('shop_xp30').setLabel('XP Booster 30m').setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId('shop_xp60').setLabel('XP Booster 60m').setStyle(ButtonStyle.Success)
+      );
+
+      await shopChannel.send({ embeds: [shopEmbed], components: [row] });
+      return msg.reply(`Shop erfolgreich im Kanal <#${SHOP_CHANNEL_ID}> eingerichtet!`);
     }
     if (command === "!casino") {
       const hasEcoRole = msg.member.roles.cache.has("1506732560837771284");
@@ -919,7 +956,7 @@ export async function initEconomySystem(client) {
         reply.delete().catch(() => {});
         msg.delete().catch(() => {});
       }, 30000);
-      
+
       return;
     }
 
@@ -936,14 +973,41 @@ export async function initEconomySystem(client) {
 
       return msg.reply({ embeds: [helpEmbed], ephemeral: true });
     }
-
+    if (subCommand === "pay") {
+      const targetUser = msg.mentions.users.first();
+      const amount = parseInt(args[2]);
+      const userData = await getEcoData(msg.author.id);
+      if (!targetUser || isNaN(amount) || amount <= 0) {
+        return msg.reply({ content: "Nutzung: `!bank pay @User <Betrag>`", ephemeral: true });
+      }
+      if (amount > (userData.balance || 0)) {
+        return msg.reply({ content: "Du hast nicht genug Kekse für diese Überweisung.", ephemeral: true });
+      }
+      const targetData = await getEcoData(targetUser.id);
+      if (!targetData || targetData.blocked) {
+        return msg.reply({ content: "Der Zielnutzer hat kein aktives Konto oder ist gesperrt.", ephemeral: true });
+      }
+      userData.balance -= amount;
+      targetData.balance = (targetData.balance || 0) + amount;
+      await setEcoData(msg.author.id, userData);
+      await setEcoData(targetUser.id, targetData);
+      dashboardLog(`[Economy] Überweisung von ${msg.author.id} an ${targetUser.id} für ${amount} Kekse.`);
+      const payEmbed = new EmbedBuilder()
+        .setTitle("Überweisung erfolgreich")
+        .setDescription(`Du hast **${amount} Kekse** an <@${targetUser.id}> überwiesen.`)
+        .addFields(
+          { name: "Neuer Kontostand", value: `${userData.balance} Kekse` }
+        )
+        .setColor(0xFFFFFF);
+      return msg.reply({ embeds: [payEmbed], ephemeral: true });
+    }
     if (!subCommand) {
       if (!hasEcoRole) {
         return msg.reply({ content: "Du hast noch kein Konto. Nutze `!bank create`, um dich zu registrieren.", ephemeral: true });
       }
 
       const userData = await getEcoData(msg.author.id);
-      
+
       if (userData.blocked) {
         return msg.reply({ content: "Dein Konto ist aktuell gesperrt. Bitte wende dich an den Support.", ephemeral: true });
       }
@@ -1008,6 +1072,43 @@ export async function initEconomySystem(client) {
                   ephemeral: true 
               });
           }
+        if (interaction.customId.startsWith("shop_")) {
+          const member = interaction.member;
+          const itemType = interaction.customId.replace("shop_", "");
+          const SHOP_ITEMS = {
+            giveaway: { roleId: "1506164984202264656", name: "🎉 Double Chance Giveaway", duration: null },
+            puffer:   { roleId: "1508050024355856494", name: "🛡️ Counting Puffer", duration: null },
+            xp30:     { roleId: "1506164829029666827", name: "⚡ Counting XP Booster (30 Min)", duration: 30 * 60 * 1000 },
+            xp60:     { roleId: "1508054186930208768", name: "🔥 Counting XP Booster (60 Min)", duration: 60 * 60 * 1000 }
+          };
+          const item = SHOP_ITEMS[itemType];
+          if (!item) return interaction.reply({ content: "Dieses Item existiert nicht!", ephemeral: true });
+          if (member.roles.cache.has(item.roleId)) {
+            return interaction.reply({ content: `Du besitzt das Item **${item.name}** bereits!`, ephemeral: true });
+          }
+
+          try {
+            await member.roles.add(item.roleId);
+            await interaction.reply({ content: `🛒 Kauf erfolgreich: Du hast **${item.name}** erhalten!`, ephemeral: true });
+            if (item.duration) {
+              setTimeout(async () => {
+                try {
+                  const currentMember = await interaction.guild.members.fetch(member.id).catch(() => null);
+                  if (currentMember && currentMember.roles.cache.has(item.roleId)) {
+                    await currentMember.roles.remove(item.roleId);
+                    await currentMember.send(`Dein **${item.name}** ist abgelaufen und wurde entfernt!`).catch(() => null);
+                  }
+                } catch (timerError) {
+                  console.error(`Fehler beim Entfernen von ${item.name}:`, timerError);
+                }
+              }, item.duration);
+            }
+
+          } catch (error) {
+            console.error("Fehler beim Shop-Kauf:", error);
+            return interaction.reply({ content: "Es gab einen Fehler beim Verarbeiten deines Kaufs!", ephemeral: true });
+          }
+        }
       }
 
       if (!interaction.isModalSubmit()) return;
@@ -1461,7 +1562,7 @@ export const ruleMap = {
 export async function sendPunishmentInfo(user, type, reason, duration = null) {
   let ruleText = "";
   let sectionTitle = "";
-  
+
   const ruleMatch = reason ? reason.match(/§\d+a\d+n\d+|-ssa-/) : null;
   if (ruleMatch) {
     const code = ruleMatch[0];
@@ -1479,7 +1580,7 @@ export async function sendPunishmentInfo(user, type, reason, duration = null) {
     "timeout": "Timeout"
   };
   const label = typeLabels[type] || type;
-  
+
   const message = `Hey ${user.username},
 
 dein Account auf \`Kekse Clan\` hat eine Strafe erhalten: **${label}**.
@@ -1516,7 +1617,7 @@ export function initModSend(client) {
             const now = new Date();
             const diffMs = until - now;
             const diffMin = Math.round(diffMs / 60000);
-            
+
             if (diffMin >= 60 * 24) {
               duration = `${Math.round(diffMin / (60 * 24))} Tag(e)`;
             } else if (diffMin >= 60) {
@@ -1658,7 +1759,7 @@ export function initModeration(client) {
       data.warns[user.id] ??= [];
       data.warns[user.id].push({ reason, by: msg.author.id, date: Date.now() });
       await setMData("moderation", data);
-      
+
       await sendModLog("Warnung", user, reason, `Warn-Stand: ${data.warns[user.id].length}`);
       await msg.reply({ content: `⚠️ **Warn**: <@${user.id}> (Gesamt: ${data.warns[user.id].length})`, ephemeral: true });
       globalBotStats.commandsRunned += 1;
@@ -1724,7 +1825,7 @@ export function initVerification(client) {
     try {
       await member.roles.remove(UNVERIFIED_ROLE_ID);
       await sendKekseLog("User Verifiziert", interaction.user, `Der User hat den Button genutzt und die Rolle <@&${UNVERIFIED_ROLE_ID}> wurde entfernt.`);
-      
+
       await interaction.reply({ 
         content: "Erfolgreich verifiziert!", 
         ephemeral: true 
@@ -1742,7 +1843,7 @@ export function initVerification(client) {
   client.on("messageCreate", async (msg) => {
     if (msg.content === "!setup_verify") {
       if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) return;
-      
+
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId("verify_user")
@@ -1752,7 +1853,7 @@ export function initVerification(client) {
       const channel = client.channels.cache.get(VERIFY_CHANNEL_ID);
       if (channel) {
         const imageUrl = new AttachmentBuilder('./verify.png');
-        
+
         await channel.send({ 
           content: "**Willkommen!** Klicke auf den Button, um die Verifizierung abzuschließen.",
           files: [imageUrl],
@@ -1761,7 +1862,7 @@ export function initVerification(client) {
 
         await sendKekseLog("Verification Setup", msg.author, `Das Verifizierungs-Panel wurde in <#${VERIFY_CHANNEL_ID}> neu aufgesetzt.`);
         globalBotStats.commandsRunned += 1;
-        
+
         await msg.delete().catch(() => {});
       }
     }
@@ -2033,14 +2134,14 @@ export async function initCounting(client) {
   const sendKekseLog = async (action, user, details) => { 
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID); 
     if (!logChannel) return; 
-    
+
     const logEmbed = new EmbedBuilder()
       .setColor('#ffffff') 
       .setAuthor({ name: user.username, iconURL: user.displayAvatarURL({ size: 512 }) }) 
       .setDescription(`**Aktion:** \`${action}\`\n${details}`) 
       .setFooter({ text: 'Kekse Clan | Counting System' }) 
       .setTimestamp(); 
-      
+
     await logChannel.send({ embeds: [logEmbed] }).catch(() => {}); 
   }; 
 
@@ -2083,15 +2184,39 @@ export async function initCounting(client) {
         const excludedUsers = ["1151971830983311441", "1274320881585356892"]; 
         if (!excludedUsers.includes(msg.author.id)) { 
           countingData.scoreboard[msg.author.id] ??= 0; 
-          countingData.scoreboard[msg.author.id]++; 
+          countingData.scoreboard[msg.author.id]++;
+          const COUNTING_XP = "1506164829029666827";
+          if (msg.member.roles.cache.has(COUNTING_XP)) {
+            countingData.scoreboard[msg.author.id]++;
+          }
         } 
         countingData.lastMessageId = msg.id;
         await saveCounting(); 
         await msg.react("✅").catch(() => {}); 
         return; 
       } 
-    } 
+    }
     if (num !== countingData.currentNumber || msg.author.id === countingData.lastUserId) { 
+      if (msg.member.roles.cache.has(COUNTING_PUFFER)) {
+        msg.member.roles.remove(COUNTING_PUFFER);
+        countingData.direction = num; 
+        countingData.currentNumber = num + countingData.direction; 
+        countingData.lastUserId = msg.author.id; 
+        countingData.lastCountingTime = msg.createdTimestamp; 
+        const excludedUsers = ["1151971830983311441", "1274320881585356892"]; 
+        if (!excludedUsers.includes(msg.author.id)) { 
+          countingData.scoreboard[msg.author.id] ??= 0; 
+          countingData.scoreboard[msg.author.id]++;
+          const COUNTING_XP = "1506164829029666827";
+          if (msg.member.roles.cache.has(COUNTING_XP)) {
+            countingData.scoreboard[msg.author.id]++;
+          }
+        } 
+        countingData.lastMessageId = msg.id;
+        await saveCounting(); 
+        await msg.react("🟨").catch(() => {}); 
+        return; 
+      }
       const reason = num !== countingData.currentNumber ? `Falsche Zahl (${num} statt ${countingData.currentNumber})` : "Doppel-Post"; 
       if (!syncMode) {
         await sendKekseLog("Counting Fehler", msg.author, `**Grund:** ${reason}\n**Reset auf:** 1 / 1`); 
@@ -2103,7 +2228,7 @@ export async function initCounting(client) {
       countingData.lastMessageId = msg.id;
       await saveCounting(); 
       await msg.react("❌").catch(() => {}); 
-      
+
       if (!syncMode) { 
         const replyContent = msg.author.id === countingData.lastUserId 
           ? ` , nicht zwei mal nacheinander! Zurück auf den Start (1 oder -1).` 
@@ -2115,7 +2240,7 @@ export async function initCounting(client) {
     countingData.currentNumber = num + (countingData.direction || 1); 
     countingData.lastUserId = msg.author.id; 
     countingData.lastCountingTime = msg.createdTimestamp; 
-    
+
     const excludedUsers = ["1151971830983311441", "1274320881585356892"]; 
     if (!excludedUsers.includes(msg.author.id)) { 
       countingData.scoreboard[msg.author.id] ??= 0; 
@@ -2280,18 +2405,32 @@ export async function initGiveaway(client) {
     await msg.delete().catch(() => {});
   });
   client.on("interactionCreate", async interaction => {
-    if (!interaction.isButton() || interaction.customId !== "join_giveaway") return;
-    const giveaways = await getGivData("activeGiveaways") || {};
-    const data = giveaways[interaction.message.id];
-    if (!data) return interaction.reply({ content: "❌ Dieses Giveaway ist nicht mehr aktiv.", ephemeral: true });
-    if (data.participants.includes(interaction.user.id)) {
-        return interaction.reply({ content: "ℹ️ Du nimmst bereits an diesem Giveaway teil!", ephemeral: true });
-    }
-    data.participants.push(interaction.user.id);
-    await setGivData("activeGiveaways", giveaways);
-    const updatedEmbed = EmbedBuilder.from(interaction.message.embeds[0])
-      .setDescription(`${data.messageText}\n\nEndet am: <t:${Math.floor(data.endTime / 1000)}:R> (<t:${Math.floor(data.endTime / 1000)}:f>)\nTeilnehmer: **${data.participants.length}**\nGewinner: **${data.winnerCount}**`);
-    await interaction.update({ embeds: [updatedEmbed] }).catch(() => {});
+      if (!interaction.isButton() || interaction.customId !== "join_giveaway") return;
+      const giveaways = await getGivData("activeGiveaways") || {};
+      const data = giveaways[interaction.message.id];
+      if (!data) {
+          return interaction.reply({ content: "❌ Dieses Giveaway ist nicht mehr aktiv.", ephemeral: true });
+      }
+      if (data.participants.includes(interaction.user.id)) {
+          return interaction.reply({ content: "ℹ️ Du nimmst bereits an diesem Giveaway teil!", ephemeral: true });
+      }
+      const bonusRoles = ["1464202435638722621", "1506164984202264656"];
+      const activeBonusCount = interaction.member.roles.cache.filter(role => bonusRoles.includes(role.id)).size;
+      const totalTickets = activeBonusCount === 2 ? 4 : (activeBonusCount === 1 ? 2 : 1);
+      for (let i = 0; i < totalTickets; i++) {
+          data.participants.push(interaction.user.id);
+      }
+      await setGivData("activeGiveaways", giveaways);
+      const updatedEmbed = EmbedBuilder.from(interaction.message.embeds)
+          .setDescription(`${data.messageText}\n\nEndet am: <t:${Math.floor(data.endTime / 1000)}:R> (<t:${Math.floor(data.endTime / 1000)}:f>)\nTeilnehmer: **${data.participants.length}**\nGewinner: **${data.winnerCount}**`);
+      await interaction.update({ embeds: [updatedEmbed] }).catch(() => {});
+      let replyText = "🎉 Du hast das Giveaway erfolgreich betreten!";
+      if (totalTickets === 2) {
+          replyText += " (Inklusive **doppelter Chance** durch deine Rolle!)";
+      } else if (totalTickets === 4) {
+          replyText += " (Inklusive **4-facher Chance**, da du beide Rollen besitzt!)";
+      }
+      await interaction.followUp({ content: replyText, ephemeral: true }).catch(() => {});
   });
 }
 async function endGiveaway(client, msg, data, logFunc) {
@@ -2394,7 +2533,7 @@ export function registerMessageCommands(client) {
           .setDescription(`**Aktion:** \`!${commandName}\`\n**Ziel:** ${target}\n**Inhalt:**\n\`\`\`${content || "Kein Inhalt"}\`\`\``)
           .setFooter({ text: 'Kekse Clan | Command Logs' })
           .setTimestamp();
-        
+
         await logChannel.send({ embeds: [kekseEmbed] });
       }
     };
@@ -2511,7 +2650,7 @@ export function initPing(client) {
         .setDescription(`**Aktion:** \`!ping\`\n**Ergebnis:** RT: \`${roundtrip}ms\` | WS: \`${wsPing}ms\``)
         .setFooter({ text: 'Kekse Clan | System Check' })
         .setTimestamp();
-      
+
       await logChannel.send({ embeds: [kekseLog] });
     }
     setTimeout(() => {
@@ -2634,7 +2773,7 @@ export async function initPoll(client) {
       const polls = await getPollData("polls_data") || [];
       const activePolls = polls.filter(p => !p.closed);
       if (activePolls.length === 0) return msg.reply("Keine aktiven Polls.");
-    
+
       const list = activePolls.map(p => `ID: \`${p.id}\` | ${p.question}`).join("\n");
       msg.reply(`**Aktive Polls:**\n${list}`);
       globalBotStats.commandsRunned += 1;
@@ -2749,7 +2888,7 @@ export function initTicketCategory(client) {
 
     const content = msg.content.toLowerCase();
     const foundTrigger = TRIGGERS.find(t => content.includes(t));
-    
+
     if (!foundTrigger || (foundTrigger.length < 4 && content !== foundTrigger)) return;
     if (askedUsers.has(msg.author.id)) return;
 
@@ -3017,7 +3156,7 @@ function toMonospace(text) {
 }
 
 export function initVoiceChannels(client) {
-  
+
   const sendKekseLog = async (action, user, details) => {
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
     if (!logChannel) return;
@@ -3069,7 +3208,7 @@ export function initVoiceChannels(client) {
 
         await sendKekseLog("Voice Lounge erstellt", member.user, `**Kanal:** \`${channelName}\`\n**ID:** \`${tempChannel.id}\``);
         globalBotStats.voiceChannelCreated += 1;
-        
+
       } catch (err) {
         console.error("[VOICE] Fehler beim Erstellen:", err);
       } finally {
@@ -3500,7 +3639,7 @@ app.get("/api/stats", async (req, res) => {
     }
 
     const guild = client.guilds.cache.first();
-    
+
     const guildData = guild ? {
       name: guild.name,
       id: guild.id,
@@ -3514,7 +3653,7 @@ app.get("/api/stats", async (req, res) => {
 
     const currentPing = client.ws.ping;
     const validPing = currentPing >= 0 ? currentPing : 0;
-    
+
     res.json({
       guild: guildData,
       users: userCount,
