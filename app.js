@@ -360,7 +360,7 @@ export async function initEconomySystem(client) {
       const shopEmbed = new EmbedBuilder()
         .setTitle(`🛒 Server Shop`)
         .setDescription(description)
-        .setColor(0x00AE86)
+        .setColor(0xFFFFFF)
         .addFields(
           { name: "🎉 Double Chance Giveaway - `15.000 Kekse`", value: "Erhöht deine Gewinnchance bei Giveaways.", inline: false },
           { name: "🛡️ Counting Puffer - `2.500 Kekse`", value: "Erlaubt dir einen Fehler beim Zählen, ohne die Zahl zurückzusetzen.", inline: false },
@@ -1135,7 +1135,7 @@ export async function initEconomySystem(client) {
     await interaction.reply({ content: `🛒 Kauf erfolgreich: Du hast **${item.name}** erhalten!`, flags: MessageFlags.Ephemeral });
     
     const invoiceEmbed = {
-      color: 0x00FF00,
+      color: 0xFFFFFF,
       title: '🧾 Deine Shop-Quittung',
       description: `Vielen Dank für deinen Einkauf auf unserem Server!`,
       fields: [
