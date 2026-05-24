@@ -3547,7 +3547,7 @@ process.on('unhandledRejection', (reason, promise) => {
 process.on('uncaughtException', (err) => {
     console.error('[Process] Uncaught Exception:', err);
 });
-client.once("ready", async () => {
+client.once("clientReady", async () => {
     try {
         await initCounting(client);
         registerMessageCommands(client);
