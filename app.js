@@ -971,38 +971,57 @@ export async function initEconomySystem(client) {
       return msg.reply({ embeds: [helpEmbed], ephemeral: true });
     }
     if (subCommand === "pay") {
-  const targetUserId = args[1]?.replace(/[<@!>]/g, "");
-  const amount = parseInt(args[2]);
+  let targetArg = args[1];
+  let amountArg = args[2];
+
+  if (!targetArg || isNaN(parseInt(amountArg))) {
+    targetArg = args[0];
+    amountArg = args[1];
+  }
+
+  const targetUserId = targetArg?.replace(/[<@!&>#]/g, "");
+  const amount = parseInt(amountArg);
   const userData = await getEcoData(msg.author.id);
+
   if (!targetUserId || isNaN(amount) || amount <= 0) {
     return msg.reply({ content: "Nutzung: `!bank pay @User <Betrag>`", ephemeral: true });
   }
+  
   if (targetUserId === msg.author.id) {
     return msg.reply({ content: "Du kannst dir selbst keine Kekse überweisen.", ephemeral: true });
   }
+  
   if (amount > (userData.balance || 0)) {
     return msg.reply({ content: "Du hast nicht genug Kekse für diese Überweisung.", ephemeral: true });
   }
+
   const targetData = await getEcoData(targetUserId);
   if (!targetData || targetData.blocked) {
     return msg.reply({ content: "Der Zielnutzer hat kein aktives Konto oder ist gesperrt.", ephemeral: true });
   }
+
   userData.balance -= amount;
   targetData.balance = (targetData.balance || 0) + amount;
+
   await setEcoData(msg.author.id, userData);
   await setEcoData(targetUserId, targetData);
+
   dashboardLog(`[Economy] Überweisung von ${msg.author.id} an ${targetUserId} für ${amount} Kekse.`);
+
   const payEmbed = new EmbedBuilder()
     .setTitle("Überweisung erfolgreich")
     .setDescription(`Du hast **${amount} Kekse** an <@${targetUserId}> überwiesen.`)
     .addFields({ name: "Neuer Kontostand", value: `${userData.balance} Kekse` })
     .setColor(0xFFFFFF);
+
   const getEmbed = new EmbedBuilder()
     .setTitle("Kekse erhalten!")
     .setDescription(`Du hast **${amount} Kekse** von <@${msg.author.id}> erhalten.`)
     .addFields({ name: "Neuer Kontostand", value: `${targetData.balance} Kekse` })
     .setColor(0xFFFFFF);
+
   await msg.reply({ embeds: [payEmbed], ephemeral: true });
+
   try {
     const targetUser = await msg.client.users.fetch(targetUserId);
     await targetUser.send({ embeds: [getEmbed] });
