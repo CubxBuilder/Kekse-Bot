@@ -359,20 +359,20 @@ export async function initEconomySystem(client) {
       const shopChannel = msg.guild.channels.cache.get(SHOP_CHANNEL_ID);
       if (!shopChannel) return msg.reply("Shop-Kanal wurde nicht gefunden!");
       const shopEmbed = new EmbedBuilder()
-        .setTitle(`🛒 Server Shop — ${setupId}`)
+        .setTitle(`🛒 Server Shop`)
         .setDescription(description)
         .setColor(0x00AE86)
         .addFields(
-          { name: "🎉 Double Chance Giveaway", value: "Erhöht deine Gewinnchance bei Giveaways.\n*Rolle: <@&1506164984202264656>*", inline: false },
-          { name: "🛡️ Counting Puffer", value: "Erlaubt dir einen Fehler beim Zählen, ohne die Zahl zurückzusetzen.\n*Rolle: <@&1508050024355856494>*", inline: false },
-          { name: "⚡ Counting XP Booster (30 Min)", value: "Du erhältst 30 Minuten lang doppelte XP beim Zählen.\n*Rolle: <@&1506164829029666827>*", inline: false },
-          { name: "🔥 Counting XP Booster (60 Min)", value: "Du erhältst 60 Minuten lang doppelte XP beim Zählen.\n*Rolle: <@&1508054186930208768>*", inline: false }
+          { name: "🎉 Double Chance Giveaway - `15.000 Kekse`", value: "Erhöht deine Gewinnchance bei Giveaways.", inline: false },
+          { name: "🛡️ Counting Puffer - `2.500 Kekse`", value: "Erlaubt dir einen Fehler beim Zählen, ohne die Zahl zurückzusetzen.", inline: false },
+          { name: "⚡ Counting XP Booster (30 Min) - `2.500 Kekse`", value: "Du erhältst 30 Minuten lang doppelte XP beim Zählen.", inline: false },
+          { name: "🔥 Counting XP Booster (60 Min) - `5.000 Kekse`", value: "Du erhältst 60 Minuten lang doppelte XP beim Zählen.", inline: false }
         );
       const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('shop_giveaway').setLabel('Giveaway Chance').setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId('shop_puffer').setLabel('Counting Puffer').setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId('shop_xp30').setLabel('XP Booster 30m').setStyle(ButtonStyle.Success),
-        new ButtonBuilder().setCustomId('shop_xp60').setLabel('XP Booster 60m').setStyle(ButtonStyle.Success)
+        new ButtonBuilder().setCustomId('shop_giveaway').setLabel('Giveaway Chance').setStyle(ButtonStyle.Primary).setEmoji('🎉'),
+        new ButtonBuilder().setCustomId('shop_puffer').setLabel('Counting Puffer').setStyle(ButtonStyle.Primary).setEmoji('🛡️'),
+        new ButtonBuilder().setCustomId('shop_xp30').setLabel('XP Booster 30m').setStyle(ButtonStyle.Success).setEmoji('⚡'),
+        new ButtonBuilder().setCustomId('shop_xp60').setLabel('XP Booster 60m').setStyle(ButtonStyle.Success).setEmoji('🔥')
       );
 
       await shopChannel.send({ embeds: [shopEmbed], components: [row] });
@@ -1071,44 +1071,67 @@ export async function initEconomySystem(client) {
               });
           }
         if (interaction.customId.startsWith("shop_")) {
-          const member = interaction.member;
-          const itemType = interaction.customId.replace("shop_", "");
-          const SHOP_ITEMS = {
-            giveaway: { roleId: "1506164984202264656", name: "🎉 Double Chance Giveaway", duration: null },
-            puffer:   { roleId: "1508050024355856494", name: "🛡️ Counting Puffer", duration: null },
-            xp30:     { roleId: "1506164829029666827", name: "⚡ Counting XP Booster (30 Min)", duration: 30 * 60 * 1000 },
-            xp60:     { roleId: "1508054186930208768", name: "🔥 Counting XP Booster (60 Min)", duration: 60 * 60 * 1000 }
-          };
-          const item = SHOP_ITEMS[itemType];
-          if (!item) return interaction.reply({ content: "Dieses Item existiert nicht!", ephemeral: true });
-          if (member.roles.cache.has(item.roleId)) {
-            return interaction.reply({ content: `Du besitzt das Item **${item.name}** bereits!`, ephemeral: true });
-          }
+  const member = interaction.member;
+  const itemType = interaction.customId.replace("shop_", "");
+  const SHOP_ITEMS = {
+    giveaway: { roleId: "1506164984202264656", name: "🎉 Double Chance Giveaway", duration: null, price: 15000 },
+    puffer:   { roleId: "1508050024355856494", name: "🛡️ Counting Puffer", duration: null, price: 2500 },
+    xp30:     { roleId: "1506164829029666827", name: "⚡ Counting XP Booster (30 Min)", duration: 30 * 60 * 1000, price: 2500 },
+    xp60:     { roleId: "1508054186930208768", name: "🔥 Counting XP Booster (60 Min)", duration: 60 * 60 * 1000, price: 5000 }
+  };
+  const item = SHOP_ITEMS[itemType];
+  if (!item) return interaction.reply({ content: "Dieses Item existiert nicht!", ephemeral: true });
+  if (member.roles.cache.has(item.roleId)) {
+    return interaction.reply({ content: `Du besitzt das Item **${item.name}** bereits!`, ephemeral: true });
+  }
+  const ecoKey = `eco_${interaction.user.id}`;
+  const userData = await getEcoData(ecoKey) || {};
+  const currentCookies = userData.cookies || 0;
 
-          try {
-            await member.roles.add(item.roleId);
-            await interaction.reply({ content: `🛒 Kauf erfolgreich: Du hast **${item.name}** erhalten!`, ephemeral: true });
-            if (item.duration) {
-              setTimeout(async () => {
-                try {
-                  const currentMember = await interaction.guild.members.fetch(member.id).catch(() => null);
-                  if (currentMember && currentMember.roles.cache.has(item.roleId)) {
-                    await currentMember.roles.remove(item.roleId);
-                    await currentMember.send(`Dein **${item.name}** ist abgelaufen und wurde entfernt!`).catch(() => null);
-                  }
-                } catch (timerError) {
-                  console.error(`Fehler beim Entfernen von ${item.name}:`, timerError);
-                }
-              }, item.duration);
-            }
-
-          } catch (error) {
-            console.error("Fehler beim Shop-Kauf:", error);
-            return interaction.reply({ content: "Es gab einen Fehler beim Verarbeiten deines Kaufs!", ephemeral: true });
+  if (currentCookies < item.price) {
+    return interaction.reply({ 
+      content: `❌ Du hast nicht genug Kekse für diesen Kauf! Ein(e) **${item.name}** kostet **${item.price.toLocaleString('de-DE')} Kekse** (Du hast: ${currentCookies.toLocaleString('de-DE')}).`, 
+      ephemeral: true 
+    });
+  }
+  try {
+    userData.cookies = currentCookies - item.price;
+    await setEcoData(ecoKey, userData);
+    await member.roles.add(item.roleId);
+    await interaction.reply({ content: `🛒 Kauf erfolgreich: Du hast **${item.name}** erhalten!`, ephemeral: true });
+    const invoiceEmbed = {
+      color: 0x00FF00,
+      title: '🧾 Deine Shop-Quittung',
+      description: `Vielen Dank für deinen Einkauf auf unserem Server!`,
+      fields: [
+        { name: 'Gekauftes Item', value: item.name, inline: true },
+        { name: 'Abgezogene Kekse', value: `-${item.price.toLocaleString('de-DE')} 🍪`, inline: true },
+        { name: 'Neuer Kontostand', value: `${userData.cookies.toLocaleString('de-DE')} 🍪`, inline: false }
+      ],
+      timestamp: new Date()
+    };
+    await interaction.user.send({ embeds: [invoiceEmbed] }).catch(() => {
+      console.log(`Konnte keine DM an ${interaction.user.tag} senden (DMs geschlossen).`);
+    });
+    if (item.duration) {
+      setTimeout(async () => {
+        try {
+          const currentMember = await interaction.guild.members.fetch(member.id).catch(() => null);
+          if (currentMember && currentMember.roles.cache.has(item.roleId)) {
+            await currentMember.roles.remove(item.roleId);
+            await currentMember.send(`Dein **${item.name}** ist abgelaufen und wurde entfernt!`).catch(() => null);
           }
+        } catch (timerError) {
+          console.error(`Fehler beim Entfernen von ${item.name}:`, timerError);
         }
-      }
+      }, item.duration);
+    }
 
+  } catch (error) {
+    console.error("Fehler beim Shop-Kauf:", error);
+    return interaction.reply({ content: "Es gab einen Fehler beim Verarbeiten deines Kaufs!", ephemeral: true });
+  }
+}
       if (!interaction.isModalSubmit()) return;
       if (!interaction.customId.startsWith("bank_create_")) return;
 
