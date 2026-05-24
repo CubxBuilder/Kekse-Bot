@@ -1001,7 +1001,7 @@ export async function initEconomySystem(client) {
   await setEcoData(msg.author.id, userData);
   await setEcoData(targetUserId, targetData);
 
-  dashboardLog(`[Economy] Überweisung von ${msg.author.id} an ${targetUserId} für ${amount} Kekse.`);
+  dashboardLog(`[Economy] Überweisung von ${userData.username} an ${targetData.username} für ${amount} Kekse.`);
 
   const payEmbed = new EmbedBuilder()
     .setTitle("Überweisung erfolgreich")
