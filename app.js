@@ -83,7 +83,7 @@ console.error = function(...args) {
   captureLog("error", args);
 };
 export function dashboardLog(text) {
-  console.log(`[Dashboard] ${text}`);
+  console.log(`${text}`);
 }
 export async function initTicketArchive(app, getTickData, setTickData) {
   try {
@@ -341,6 +341,7 @@ export async function initEconomySystem(client) {
 
       await msg.channel.send({ embeds: [embed], components: [row] });
       return msg.delete().catch(() => {});
+      dashboardLog(`[Economy] Neues Daily Setup erstellt. (daily_claim_${setupId})`);
     }
     if (command === "!casino") {
       const hasEcoRole = msg.member.roles.cache.has("1506732560837771284");
@@ -914,11 +915,11 @@ export async function initEconomySystem(client) {
         content: "Klicke auf den Button unten, um dein Konto zu erstellen. Dieser Button funktioniert nur für dich.",
         components: [row]
       });
-
       setTimeout(() => {
         reply.delete().catch(() => {});
         msg.delete().catch(() => {});
       }, 30000);
+      
       return;
     }
 
@@ -1036,6 +1037,7 @@ export async function initEconomySystem(client) {
           content: `Dein Konto wurde erfolgreich angelegt!\n**Minecraft-Name:** ${mcUsername}\n**Startguthaben:** 0 Kekse\nDu hast nun Zugriff auf dein Konto mit \`!bank\`.`,
           ephemeral: true
       });
+      dashboardLog(`[Economy] Neues Konto für ${msg.author.id} (MC: ${mcUsername}) erstellt.`);
 
       if (interaction.message) {
           await interaction.message.delete().catch(() => {});
