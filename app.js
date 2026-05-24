@@ -345,7 +345,6 @@ export async function initEconomySystem(client) {
     }
     if (command === "!shop_setup") {
       if (msg.author.id !== "1151971830983311441") return;
-
       const setupId = args[0];
       if (!setupId) {
         return msg.reply({ content: "Bitte gib eine eindeutige Setup-ID an! Beispiel: `!shop_setup event1 Das ist ein Event`" });
@@ -1164,7 +1163,8 @@ export async function initEconomySystem(client) {
       if (interaction.message) {
           await interaction.message.delete().catch(() => {});
       }
-  });  
+  };
+});
 }
 export function initAdminFun(client) {
   client.on("messageCreate", async (msg) => {
@@ -2276,7 +2276,7 @@ export async function initCounting(client) {
     console.log(" Starte Counting-Synchronisation..."); 
     await loadCounting(); 
     const channel = await client.channels.fetch(COUNTING_CHANNEL).catch(err => {
-      console.error(" Fehler beim Abrufen des Counting-Kanals:", err);
+      console.error("Fehler beim Abrufen des Counting-Kanals:", err);
       return null;
     }); 
     if (!channel || !channel.isTextBased()) return; 
@@ -3341,20 +3341,6 @@ export async function initStatistics(client) {
   }, 60000);
 }
 export async function initScammProtection(client) {
-    const {
-        Events,
-        EmbedBuilder,
-        ActionRowBuilder,
-        ButtonBuilder,
-        ButtonStyle,
-        AttachmentBuilder
-    } = await import("discord.js")
-
-    const sharp = (await import("sharp")).default
-    const { imageHash } = await import("image-hash")
-    const fs = await import("fs")
-    const https = await import("https")
-
     const CONFIG = {
         logChannel: "LOG_CHANNEL_ID",
         modRole: "MOD_ROLE_ID",
