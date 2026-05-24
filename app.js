@@ -971,7 +971,7 @@ export async function initEconomySystem(client) {
       return msg.reply({ embeds: [helpEmbed], ephemeral: true });
     }
     if (subCommand === "pay") {
-      const targetUser = msg.mentions.users.first();
+      const targetUser = args[1];
       const amount = parseInt(args[2]);
       const userData = await getEcoData(msg.author.id);
       if (!targetUser || isNaN(amount) || amount <= 0) {
@@ -1083,9 +1083,8 @@ export async function initEconomySystem(client) {
   if (member.roles.cache.has(item.roleId)) {
     return interaction.reply({ content: `Du besitzt das Item **${item.name}** bereits!`, ephemeral: true });
   }
-  const ecoKey = `eco_${interaction.user.id}`;
-  const userData = await getEcoData(ecoKey) || {};
-  const currentCookies = userData.cookies || 0;
+  const userData = await getEcoData(interaction.user.id) || {};
+  const currentCookies = userData.balance || 0;
 
   if (currentCookies < item.price) {
     return interaction.reply({ 
