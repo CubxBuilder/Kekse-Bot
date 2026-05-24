@@ -2215,10 +2215,10 @@ export async function initCounting(client) {
         await saveCounting(); 
         await msg.react("✅").catch(() => {}); 
         return; 
-      } 
+      }
     }
     if (num !== countingData.currentNumber || msg.author.id === countingData.lastUserId) {
-      const COUNTING_PUFFER = ""
+      const COUNTING_PUFFER = "1508050024355856494";
       if (msg.member.roles.cache.has(COUNTING_PUFFER)) {
         msg.member.roles.remove(COUNTING_PUFFER);
         countingData.direction = num; 
