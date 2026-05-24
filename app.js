@@ -2420,7 +2420,7 @@ export async function initGiveaway(client) {
         await endGiveaway(client, msg, giveawayData, sendKekseLog);
             } else {
         const embed = EmbedBuilder.from(msg.embeds[0])
-          .setTitle("🎉 NEUES GIVEAWAY 🎉")
+          .setTitle(args[2])
           .setDescription(`${data.messageText}\n\nEndet am: <t:${Math.floor(data.endTime / 1000)}:R> (<t:${Math.floor(data.endTime / 1000)}:f>)\nTeilnehmer: **${data.participants?.length || 0}**\nGewinner: **${data.winnerCount}**`);
         await msg.edit({ embeds: [embed] }).catch(() => {});
       }
