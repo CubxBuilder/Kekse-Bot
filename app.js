@@ -358,8 +358,6 @@ export async function initEconomySystem(client) {
       const SHOP_CHANNEL_ID = "1508053328662364302";
       const shopChannel = msg.guild.channels.cache.get(SHOP_CHANNEL_ID);
       if (!shopChannel) return msg.reply("Shop-Kanal wurde nicht gefunden!");
-      const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-
       const shopEmbed = new EmbedBuilder()
         .setTitle(`🛒 Server Shop — ${setupId}`)
         .setDescription(description)
@@ -2196,8 +2194,8 @@ export async function initCounting(client) {
         return; 
       } 
     }
-    if (num !== countingData.currentNumber || msg.author.id === countingData.lastUserId) { 
-      const COUNTING_PUFFER = "1508050024355856494";
+    if (num !== countingData.currentNumber || msg.author.id === countingData.lastUserId) {
+      const COUNTING_PUFFER = ""
       if (msg.member.roles.cache.has(COUNTING_PUFFER)) {
         msg.member.roles.remove(COUNTING_PUFFER);
         countingData.direction = num; 
