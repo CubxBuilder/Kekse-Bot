@@ -1094,7 +1094,7 @@ export async function initEconomySystem(client) {
   }
   try {
     userData.cookies = currentCookies - item.price;
-    await setEcoData(ecoKey, userData);
+    await setEcoData(interaction.user.id, userData);
     await member.roles.add(item.roleId);
     await interaction.reply({ content: `🛒 Kauf erfolgreich: Du hast **${item.name}** erhalten!`, ephemeral: true });
     const invoiceEmbed = {
