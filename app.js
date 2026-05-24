@@ -974,7 +974,6 @@ export async function initEconomySystem(client) {
   const targetUserId = args[1]?.replace(/[<@!>]/g, "");
   const amount = parseInt(args[2]);
   const userData = await getEcoData(msg.author.id);
-
   if (!targetUserId || isNaN(amount) || amount <= 0) {
     return msg.reply({ content: "Nutzung: `!bank pay @User <Betrag>`", ephemeral: true });
   }
