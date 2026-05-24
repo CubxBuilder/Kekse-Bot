@@ -971,13 +971,8 @@ export async function initEconomySystem(client) {
       return msg.reply({ embeds: [helpEmbed], ephemeral: true });
     }
     if (subCommand === "pay") {
-  let targetArg = args[1];
-  let amountArg = args[2];
-
-  if (!targetArg || isNaN(parseInt(amountArg))) {
-    targetArg = args[0];
-    amountArg = args[1];
-  }
+  let targetArg = args[2];
+  let amountArg = args[3];
 
   const targetUserId = targetArg?.replace(/[<@!&>#]/g, "");
   const amount = parseInt(amountArg);
