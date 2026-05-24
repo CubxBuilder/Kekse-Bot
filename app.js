@@ -1001,7 +1001,8 @@ export async function initEconomySystem(client) {
   await setEcoData(msg.author.id, userData);
   await setEcoData(targetUserId, targetData);
 
-  dashboardLog(`[Economy] Überweisung von ${userData.username} an ${targetData.username} für ${amount} Kekse.`);
+  dashboardLog(`[Economy] Überweisung von ${userData.username || msg.author.username} an ${targetData.username || targetUserId} für ${amount} Kekse.`);
+
 
   const payEmbed = new EmbedBuilder()
     .setTitle("Überweisung erfolgreich")
@@ -1105,24 +1106,34 @@ export async function initEconomySystem(client) {
     xp60:     { roleId: "1508054186930208768", name: "🔥 Counting XP Booster (60 Min)", duration: 60 * 60 * 1000, price: 5000 }
   };
   const item = SHOP_ITEMS[itemType];
-  if (!item) return interaction.reply({ content: "Dieses Item existiert nicht!", ephemeral: true });
+  if (!item) return interaction.reply({ content: "Dieses Item existiert nicht!", flags: MessageFlags.Ephemeral });
   if (member.roles.cache.has(item.roleId)) {
-    return interaction.reply({ content: `Du besitzt das Item **${item.name}** bereits!`, ephemeral: true });
+    return interaction.reply({ content: `Du besitzt das Item **${item.name}** bereits!`, flags: MessageFlags.Ephemeral });
   }
-  const userData = await getEcoData(interaction.user.id) || {};
-  const currentCookies = userData.balance || 0;
+  
+  // Frische Daten holen direkt vor der Prüfung
+  let freshData = await getEcoData(interaction.user.id);
+  if (!freshData || typeof freshData !== 'object') freshData = {};
+  let currentCookies = freshData.balance || 0;
 
   if (currentCookies < item.price) {
     return interaction.reply({ 
       content: `❌ Du hast nicht genug Kekse für diesen Kauf! Ein(e) **${item.name}** kostet **${item.price.toLocaleString('de-DE')} Kekse** (Du hast: ${currentCookies.toLocaleString('de-DE')}).`, 
-      ephemeral: true 
+      flags: MessageFlags.Ephemeral 
     });
   }
   try {
-    userData.balance = currentCookies - item.price;
-    await setEcoData(interaction.user.id, userData);
+    // Nochmals frisch auslesen, um Race Conditions zu minimieren
+    const finalData = await getEcoData(interaction.user.id) || {};
+    finalData.balance = (finalData.balance || currentCookies) - item.price;
+    if (!finalData.userId) finalData.userId = interaction.user.id;
+    if (!finalData.username) finalData.username = interaction.user.username;
+
+    await setEcoData(interaction.user.id, finalData);
     await member.roles.add(item.roleId);
-    await interaction.reply({ content: `🛒 Kauf erfolgreich: Du hast **${item.name}** erhalten!`, ephemeral: true });
+    
+    await interaction.reply({ content: `🛒 Kauf erfolgreich: Du hast **${item.name}** erhalten!`, flags: MessageFlags.Ephemeral });
+    
     const invoiceEmbed = {
       color: 0x00FF00,
       title: '🧾 Deine Shop-Quittung',
@@ -1130,13 +1141,15 @@ export async function initEconomySystem(client) {
       fields: [
         { name: 'Gekauftes Item', value: item.name, inline: true },
         { name: 'Abgezogene Kekse', value: `-${item.price.toLocaleString('de-DE')} 🍪`, inline: true },
-        { name: 'Neuer Kontostand', value: `${userData.cookies.toLocaleString('de-DE')} 🍪`, inline: false }
+        { name: 'Neuer Kontostand', value: `${finalData.balance.toLocaleString('de-DE')} 🍪`, inline: false }
       ],
       timestamp: new Date()
     };
+    
     await interaction.user.send({ embeds: [invoiceEmbed] }).catch(() => {
       console.log(`Konnte keine DM an ${interaction.user.tag} senden (DMs geschlossen).`);
     });
+    
     if (item.duration) {
       setTimeout(async () => {
         try {
@@ -1153,41 +1166,42 @@ export async function initEconomySystem(client) {
 
   } catch (error) {
     console.error("Fehler beim Shop-Kauf:", error);
-    return interaction.reply({ content: "Es gab einen Fehler beim Verarbeiten deines Kaufs!", ephemeral: true });
+    return interaction.reply({ content: "Es gab einen Fehler beim Verarbeiten deines Kaufs!", flags: MessageFlags.Ephemeral });
   }
 }
-      if (!interaction.isModalSubmit()) return;
-      if (!interaction.customId.startsWith("bank_create_")) return;
 
-      const userId = interaction.customId.replace("bank_create_", "");
-      if (interaction.user.id !== userId) return;
+if (!interaction.isModalSubmit()) return;
+if (!interaction.customId.startsWith("bank_create_")) return;
 
-      const mcUsername = interaction.fields.getTextInputValue("mc_username");
-      const accountData = {
-          userId: interaction.user.id,
-          username: interaction.user.username,
-          mcUsername: mcUsername,
-          balance: 0,
-          blocked: false,
-          claimedDailies: {}
-      };
+const userId = interaction.customId.replace("bank_create_", "");
+if (interaction.user.id !== userId) return;
 
-      await setEcoData(interaction.user.id, accountData);
+const mcUsername = interaction.fields.getTextInputValue("mc_username");
+const accountData = {
+    userId: interaction.user.id,
+    username: interaction.user.username,
+    mcUsername: mcUsername,
+    balance: 0,
+    blocked: false,
+    claimedDailies: {}
+};
 
-      const member = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
-      if (member) {
-          await member.roles.add("1506732560837771284").catch(() => {});
-      }
+await setEcoData(interaction.user.id, accountData);
 
-      await interaction.reply({
-          content: `Dein Konto wurde erfolgreich angelegt!\n**Minecraft-Name:** ${mcUsername}\n**Startguthaben:** 0 Kekse\nDu hast nun Zugriff auf dein Konto mit \`!bank\`.`,
-          ephemeral: true
-      });
-      dashboardLog(`[Economy] Neues Konto für ${msg.author.id} (MC: ${mcUsername}) erstellt.`);
+const member = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+if (member) {
+    await member.roles.add("1506732560837771284").catch(() => {});
+}
 
-      if (interaction.message) {
-          await interaction.message.delete().catch(() => {});
-      }
+await interaction.reply({
+    content: `Dein Konto wurde erfolgreich angelegt!\n**Minecraft-Name:** ${mcUsername}\n**Startguthaben:** 0 Kekse\nDu hast nun Zugriff auf dein Konto mit \`!bank\`.`,
+    flags: MessageFlags.Ephemeral
+});
+dashboardLog(`[Economy] Neues Konto für ${interaction.user.id} (MC: ${mcUsername}) erstellt.`);
+
+if (interaction.message) {
+    await interaction.message.delete().catch(() => {});
+}
   };
 });
 }
