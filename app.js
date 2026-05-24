@@ -2419,6 +2419,7 @@ export async function initGiveaway(client) {
         changed = false;
         await endGiveaway(client, msg, giveawayData, sendKekseLog);
       } else {
+        const oldEmbed = msg.embeds[0];
         const embed = EmbedBuilder.from(msg.embeds[0])
           .setTitle(oldEmbed.title || "GIVEAWAY_TITLE")
           .setDescription(`${data.messageText}\n\nEndet am: <t:${Math.floor(data.endTime / 1000)}:R> (<t:${Math.floor(data.endTime / 1000)}:f>)\nTeilnehmer: **${data.participants?.length || 0}**\nGewinner: **${data.winnerCount}**`);
