@@ -2220,7 +2220,6 @@ export async function initCounting(client) {
       const COUNTING_PUFFER = "1508050024355856494";
       if (msg.member.roles.cache.has(COUNTING_PUFFER)) {
         msg.member.roles.remove(COUNTING_PUFFER);
-        countingData.direction = num; 
         countingData.currentNumber = num + countingData.direction; 
         countingData.lastUserId = msg.author.id; 
         countingData.lastCountingTime = msg.createdTimestamp; 
@@ -2232,6 +2231,7 @@ export async function initCounting(client) {
           if (msg.member.roles.cache.has(COUNTING_XP)) {
             countingData.scoreboard[msg.author.id]++;
           }
+          countingData.lastMessageId = msg.id;
         } 
         countingData.lastMessageId = msg.id;
         await saveCounting(); 
