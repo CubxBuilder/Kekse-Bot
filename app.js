@@ -1617,9 +1617,25 @@ export function handleEconomyInteractions(client) {
         await int.deferUpdate();
         const transferId = int.customId.replace("eco_confirm_yes_", "");
         const transfer = activeTransfers.get(transferId);
-        const userData = await getEcoData(int.user.id);
-        const mcUsername = userData.mcUsername;
         if (!transfer || transfer.userId !== int.user.id) return;
+
+        const stats = await getEconomyStats(client);
+        const userData = await getEcoData(transfer.userId);
+        const currentBalance = userData.balance || 0;
+
+        if (!transfer.isBuy) {
+          if (currentBalance < transfer.amount) {
+            await int.editReply({ content: `❌ Vorgang abgebrochen: Du hast inzwischen nicht mehr genügend Kekse!`, embeds: [], components: [] });
+            return initEconomyTransferSystem(client, int.channel);
+          }
+          if (stats.botBalance < transfer.totalCoins) {
+            await int.editReply({ content: `Das Guthaben des Bots reicht für diese Transaktion nicht aus. Ein <@&1423427747103113307> wird sich zeitnah darum kümmern. Bitte komme später wieder.`, embeds: [], components: [] });
+            return initEconomyTransferSystem(client, int.channel);
+          }
+
+          userData.balance = currentBalance - transfer.amount;
+          await setEcoData(transfer.userId, userData);
+        }
 
         transfer.step = "PENDING_TEAM";
         activeTransfers.set(transferId, transfer);
@@ -1629,21 +1645,14 @@ export function handleEconomyInteractions(client) {
           .setColor("#f1c40f")
           .setDescription(
             `**User:** <@${transfer.userId}>\n` +
-            `**MC-Username:** ${mcUsername}\n` +
             `**Typ:** ${transfer.isBuy ? "Kekse kaufen (Coins ➔ Kekse)" : "Kekse verkaufen (Kekse ➔ Coins)"}\n` +
-            `**Kekse:** ${transfer.amount}\n` +
+            `**Kekse:** ${transfer.amount} ${transfer.isBuy ? "" : "*(Eingefroren)*"}\n` +
             `**Wechselwert:** ${transfer.totalCoins} Minevale Coins\n\n` +
             `⏳ Warte auf Freigabe durch das Serverteam mit \`!confirm\` oder \`!decline\`.`
           );
 
         await int.editReply({ embeds: [receiptEmbed], components: [] });
-
-        if (transfer.isBuy) {
-          await removeBotBalance(transfer.amount);
-          await initBotBalance(client);
-        }
-
-        await int.channel.send({ content: `Ein Team-Mitglied wird sich zeitnah bei dir melden für die Transaktion.\n<@&${TEAM_ROLE}> Bitte prüft den Vorgang und nutzt \`!confirm\` oder \`!decline\` sobalt die Transaktion beendet ist.` });
+        await int.channel.send({ content: `<@&${TEAM_ROLE}> Bitte prüft den Vorgang und nutzt \`!confirm\` oder \`!decline\`.` });
         return;
       }
 
@@ -1670,20 +1679,25 @@ export function handleEconomyInteractions(client) {
         const stats = await getEconomyStats(client);
         const userData = await getEcoData(int.user.id);
         const currentBalance = userData.balance || 0;
-
-        if (isBuy && amount > stats.botBalance) {
-          await int.editReply(`Das Guthaben des Bots reicht für diese Transaktion nicht aus. Ein <@&1423427747103113307> wird sich zeitnah darum kümmern. Bitte komme später wieder.`);
-          return initEconomyTransferSystem(client, int.channel);
-        }
-
-        if (!isBuy && currentBalance < amount) {
-          await int.editReply(`❌ Du hast nicht genügend Kekse für diese Transaktion! (Guthaben: ${currentBalance} Kekse)`);
-          return initEconomyTransferSystem(client, int.channel);
-        }
-
         const totalCoins = parseFloat((amount * stats.kurs).toFixed(4));
+
+        if (isBuy) {
+          if (amount > stats.botBalance) {
+            await int.editReply(`Das Guthaben des Bots reicht für diese Transaktion nicht aus. Ein <@&1423427747103113307> wird sich zeitnah darum kümmern. Bitte komme später wieder.`);
+            return initEconomyTransferSystem(client, int.channel);
+          }
+        } else {
+          if (currentBalance < amount) {
+            await int.editReply(`❌ Du hast nicht genügend Kekse für diese Transaktion! (Guthaben: ${currentBalance} Kekse)`);
+            return initEconomyTransferSystem(client, int.channel);
+          }
+          if (stats.botBalance < totalCoins) {
+            await int.editReply(`Das Guthaben des Bots reicht für diese Transaktion nicht aus. Ein <@&1423427747103113307> wird sich zeitnah darum kümmern. Bitte komme später wieder.`);
+            return initEconomyTransferSystem(client, int.channel);
+          }
+        }
+
         const transferId = `${int.channel.id}_${Date.now()}`;
-        
         activeTransfers.set(transferId, {
           id: transferId,
           channelId: int.channel.id,
@@ -1726,22 +1740,24 @@ export function handleEconomyInteractions(client) {
     if (!msg.member.roles.cache.has(TEAM_ROLE)) {
       return msg.reply("Nur Teammitglieder können diesen Vorgang freigeben.");
     }
-
     if (msg.content === "!confirm") {
-      const userData = await getEcoData(transfer.userId);
-      const currentBalance = userData.balance || 0;
+      const stats = await getEconomyStats(client);
 
       if (transfer.isBuy) {
-        userData.balance = currentBalance + transfer.amount;
-      } else {
-        if (currentBalance < transfer.amount) {
-          return msg.reply(`❌ Fehler: Der User hat nicht mehr genügend Kekse für diesen Tausch! (Guthaben: ${currentBalance})`);
+        if (transfer.amount > stats.botBalance) {
+          return msg.reply(`❌ Fehler: Der Bot hat mittlerweile nicht mehr genug Kekse auf Lager!`);
         }
-        userData.balance = currentBalance - transfer.amount;
-        await addBotBalance(transfer.amount);
+        const userData = await getEcoData(transfer.userId);
+        userData.balance = (userData.balance || 0) + transfer.amount;
+        await setEcoData(transfer.userId, userData);
+        await addBotBalance(transfer.totalCoins);
+      } else {
+        if (stats.botBalance < transfer.totalCoins) {
+          return msg.reply("❌ Fehler: Der Bot hat mittlerweile nicht mehr genug Coins auf der Balance!");
+        }
+        await removeBotBalance(transfer.totalCoins);
       }
 
-      await setEcoData(transfer.userId, userData);
       await initBotBalance(client);
       activeTransfers.delete(transfer.id);
 
@@ -1752,7 +1768,6 @@ export function handleEconomyInteractions(client) {
           `Der Tausch wurde erfolgreich vom Team bestätigt und abgeschlossen!\n\n` +
           `**User:** <@${transfer.userId}>\n` +
           `**Menge:** ${transfer.amount} Kekse\n` +
-          `**Neues Guthaben:** ${userData.balance} Kekse\n` +
           `**Gegenwert:** ${transfer.totalCoins} Minevale Coins\n` +
           `**Typ:** ${transfer.isBuy ? "Kekse gekauft" : "Kekse verkauft"}`
         )
@@ -1764,17 +1779,16 @@ export function handleEconomyInteractions(client) {
       if (user) {
         await user.send({ embeds: [finalEmbed] }).catch(() => {});
       }
-
       return;
     }
     if (msg.content === "!decline") {
-      if (transfer.isBuy) {
-        await addBotBalance(transfer.amount);
-        await initBotBalance(client);
+      if (!transfer.isBuy) {
+        const userData = await getEcoData(transfer.userId);
+        userData.balance = (userData.balance || 0) + transfer.amount;
+        await setEcoData(transfer.userId, userData);
       }
-
       activeTransfers.delete(transfer.id);
-      await msg.reply("❌ Der Vorgang wurde vom Team abgelehnt.");
+      await msg.reply("❌ Der Vorgang wurde vom Team abgelehnt. Eventuell eingefrorene Kekse wurden zurückerstattet.");
       return initEconomyTransferSystem(client, msg.channel);
     }
   });
