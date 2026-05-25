@@ -1766,6 +1766,7 @@ export function handleEconomyInteractions(client) {
       }
 
       return;
+    }
     if (msg.content === "!decline") {
       if (transfer.isBuy) {
         await addBotBalance(transfer.amount);
