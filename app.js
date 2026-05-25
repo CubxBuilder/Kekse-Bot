@@ -4171,7 +4171,7 @@ client.once("clientReady", async () => {
         initAdminFun(client);
         initCommandList(client);
         await initBotBalance(client);
-        handleEconomyInteractions(client, closeTicket);
+        handleEconomyInteractions(client); 
         client.user.setPresence({
             activities: [{ name: "!help", type: 0 }],
             status: "online"
