@@ -1699,12 +1699,19 @@ export async function handleEconomyInteractions(client) {
         const userData = await getEcoData(int.user.id);
         const currentBalance = userData.balance || 0;
         const totalCoins = parseFloat((amount * stats.kurs).toFixed(4));
-        const existingTransfer = Array.from(activeTransfers.values()).find(
-          t => t.channelId === int.channel.id && t.userId === int.user.id
+        const pendingTransfer = Array.from(activeTransfers.values()).find(
+          t => t.channelId === int.channel.id && t.userId === int.user.id && t.step === "PENDING_TEAM"
         );
-        if (existingTransfer) {
-          await int.editReply(`❌ Du hast bereits einen offenen Tauschvorgang in diesem Kanal. Schließe oder bestätige diesen zuerst.`);
+        if (pendingTransfer) {
+          await int.editReply(`❌ Du hast bereits einen laufenden Tauschvorgang, der auf Team-Bestätigung wartet. Bitte warte auf \`!confirm\` oder \`!decline\`.`);
           return;
+        }
+        const stalePreview = Array.from(activeTransfers.values()).find(
+          t => t.channelId === int.channel.id && t.userId === int.user.id && t.step === "PREVIEW"
+        );
+        if (stalePreview) {
+          activeTransfers.delete(stalePreview.id);
+          await saveActiveTransfers();
         }
         if (!isBuy) {
           if (currentBalance < amount) {
