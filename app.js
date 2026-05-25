@@ -1666,7 +1666,7 @@ export function handleEconomyInteractions(client) {
         const stats = await getEconomyStats(client);
 
         if (isBuy && amount > stats.botBalance) {
-          return await int.editReply(`❌ Der Bot hat nicht genügend Kekse auf Lager! (Verfügbar: ${stats.botBalance})`);
+          return await int.editReply(`Das Guthaben des Bots ist bald aufgebraucht. Ein <@&1423427747103113307> wird sich darum kümmern. Bitte komme später wieder.`);
         }
 
         const totalCoins = parseFloat((amount * stats.kurs).toFixed(4));
