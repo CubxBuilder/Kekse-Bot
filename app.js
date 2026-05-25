@@ -382,7 +382,7 @@ export async function initEconomySystem(client) {
       if (!hasEcoRole) {
         return msg.reply({ content: "Du benötigst ein Bankkonto, um am Casino teilzunehmen. Nutze `!bank create`.", ephemeral: true });
       }
-      if (!msg.channelId === "1507385550825459812") {
+      if (msg.channelId !== "1507385550825459812") {
         return msg.reply({ content: "Das Casino ist nur in <#1507385550825459812> nutzbar.", ephemeral: true })
       }
       const userData = await getEcoData(msg.author.id);
