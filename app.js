@@ -2611,18 +2611,9 @@ export async function initCounting(client) {
     .sort((a, b) => b[1] - a[1]) 
     .slice(0, 10);    
 
-  const lines = await Promise.all(sorted.map(async ([id, s], i) => {
-    try {
-      const user = await msg.client.users.fetch(id);
-      return `${i + 1}. **${user.username}** • ${s}`;
-    } catch {
-      return `${i + 1}. <@${id}> • ${s}`;
-    }
-  }));
-
   const embed = new EmbedBuilder() 
     .setTitle("🏆 Top 10 Counter") 
-    .setDescription(lines.join("\n") || "Keine Daten") 
+    .setDescription(sorted.map(([id, s], i) => `${i + 1}. <@${id}> • ${s}`).join("\n") || "Keine Daten") 
     .setColor('#ffffff') 
     .setFooter({ text: 'Kekse Clan' }); 
 
