@@ -1531,6 +1531,7 @@ export function initCommandList(client) {
   });
 }
 let activeTransfers = new Map();
+
 async function internalCloseTicket(channel, moderator) {
   try {
     const stored = await getTickData("tickets") || { tickets: {} };
@@ -1556,6 +1557,7 @@ async function internalCloseTicket(channel, moderator) {
     console.error("[TICKET] Fehler:", err);
   }
 }
+
 export async function initEconomyTransferSystem(client, channel) {
   try {
     const stats = await getEconomyStats(client);
@@ -1661,12 +1663,13 @@ export function handleEconomyInteractions(client) {
           return await int.editReply("❌ Bitte gib eine gültige, positive Zahl ein.");
         }
 
-        const vorschau = await getConversionPrice(client, amount, isBuy);
         const stats = await getEconomyStats(client);
 
         if (isBuy && amount > stats.botBalance) {
           return await int.editReply(`❌ Der Bot hat nicht genügend Kekse auf Lager! (Verfügbar: ${stats.botBalance})`);
         }
+
+        const totalCoins = parseFloat((amount * stats.kurs).toFixed(4));
 
         const transferId = `${int.channel.id}_${Date.now()}`;
         activeTransfers.set(transferId, {
@@ -1675,7 +1678,7 @@ export function handleEconomyInteractions(client) {
           userId: int.user.id,
           username: int.user.username,
           amount,
-          totalCoins: vorschau.gesamtCoins,
+          totalCoins: totalCoins,
           isBuy,
           step: "PREVIEW"
         });
@@ -1687,7 +1690,7 @@ export function handleEconomyInteractions(client) {
             `Bitte überprüfe deine Angaben genau:\n\n` +
             `• Aktion: **${isBuy ? "Kekse kaufen (➔ Kekse)" : "Kekse verkaufen (➔ Coins)"}**\n` +
             `• Keksmenge: **${amount} Kekse**\n` +
-            `• Gegenwert: **${vorschau.gesamtCoins} Minevale Coins**\n\n` +
+            `• Gegenwert: **${totalCoins} Minevale Coins**\n\n` +
             `Bist du dir sicher, dass du diesen Tausch durchführen möchtest?`
           );
 
