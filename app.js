@@ -3928,7 +3928,7 @@ app.get("/api/stats_internal", (req, res) => {
         members: client.guilds.cache.reduce((a, g) => a + g.memberCount, 0)
     });
 });
-client.setMaxListeners(20);
+client.setMaxListeners(50);
 client.on("error", console.error)
 client.on("warn", console.warn)
 mongoose.connect(process.env.MONGODB_URI)
