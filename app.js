@@ -282,7 +282,6 @@ export async function getEcoData(key) {
 }
 export async function initEconomyGetKekse(client) {
   try {
-    // Holt sich das bereits registrierte Model direkt aus Mongoose
     const StorageModel = mongoose.model('BotStorage');
     const allEcoDocuments = await StorageModel.find({ namespace: "economy" }).lean();
     
@@ -316,14 +315,12 @@ export async function initBotBalance(client) {
     client.on("messageCreate", async (message) => {
       if (message.author.bot) return;
       if (!message.content.startsWith("!balance")) return;
-
-      // TEAM_ROLE muss global verfügbar sein oder importiert werden
       if (!message.member || !message.member.roles.cache.has(TEAM_ROLE)) {
         return message.reply("Du hast keine Berechtigung, diesen Befehl zu nutzen.");
       }
 
       const args = message.content.split(" ");
-      const action = args[1]; // add, remove, see
+      const action = args[1];
       const amount = parseInt(args[2]);
 
       if (action === "see") {
@@ -372,6 +369,22 @@ export async function removeBotBalance(coins) {
   const current = data.balance || 0;
   data.balance = Math.max(0, current - coins);
   await dbSet("economy", "bot_balance", data);
+}
+export async function getEconomyStats(client) {
+  const existingKekse = await initEconomyGetKekse(client);
+  const botBalance = await getBotBalance();
+  const basisWertProKeks = 0.1;
+  let kurs = basisWertProKeks;
+  if (botBalance > 0 && existingKekse > 0) {
+    kurs = parseFloat((basisWertProKeks * (existingKekse / botBalance)).toFixed(4));
+  }
+  const kekseProCoin = kurs > 0 ? parseFloat((1 / kurs).toFixed(1)) : 0;
+  return {
+    existingKekse,
+    botBalance,
+    kurs,
+    kekseProCoin
+  };
 }
 export async function initEconomySystem(client) {
   const crashGames = new Map();
@@ -469,6 +482,21 @@ export async function initEconomySystem(client) {
       await shopChannel.send({ embeds: [shopEmbed], components: [row] });
       return msg.reply(`Shop erfolgreich im Kanal <#${SHOP_CHANNEL_ID}> eingerichtet!`);
     }
+    if (command === "!eco-stats") {
+  if (!message.member || !message.member.roles.cache.has(TEAM_ROLE)) {
+    return message.reply("Du hast keine Berechtigung, diesen Befehl zu nutzen.");
+  }
+
+  const stats = await getEconomyStats(message.client);
+
+  return message.reply(
+    `📊 **Wirtschafts-Statistiken:**\n\n` +
+    `• Kekse im Umlauf (User): **${stats.existingKekse}**\n` +
+    `• Bot-Balance: **${stats.botBalance}** Kekse\n` +
+    `• Aktueller Kurs: **${stats.kekseProCoin} Kekse = 1 Coin**\n` +
+    `• Wert pro Keks: **${stats.kurs}** Coins`
+  );
+}
     if (command === "!casino") {
       const hasEcoRole = msg.member.roles.cache.has("1506732560837771284");
       if (!hasEcoRole) {
