@@ -6,7 +6,6 @@ if (!uri) {
     console.error("❌ MONGODB_URI fehlt in der .env Datei!");
 }
 
-// Exportiere das Promise, damit index.js darauf warten kann
 export const dbConnection = mongoose.connect(uri)
     .then(() => {
         console.log('🍃 MongoDB-Verbindung (KekseStorage) erfolgreich hergestellt.');
