@@ -2607,17 +2607,28 @@ export async function initCounting(client) {
     if (msg.channel.id !== COUNTING_CHANNEL) return; 
     await loadCounting(); 
     if (!syncMode && msg.content === "!top") { 
-      const sorted = Object.entries(countingData.scoreboard) 
-        .sort((a, b) => b[1] - a[1]) 
-        .slice(0, 10);    
-      const embed = new EmbedBuilder() 
-        .setTitle(" Top 10 Counter") 
-        .setDescription(sorted.map(([id, s], i) => `${i + 1}. • ${s}`).join("\n") || "Keine Daten") 
-        .setColor('#ffffff') 
-        .setFooter({ text: 'Kekse Clan' }); 
-      await msg.reply({ embeds: [embed] }); 
-      return; 
-    } 
+  const sorted = Object.entries(countingData.scoreboard || {}) 
+    .sort((a, b) => b[1] - a[1]) 
+    .slice(0, 10);    
+
+  const lines = await Promise.all(sorted.map(async ([id, s], i) => {
+    try {
+      const user = await msg.client.users.fetch(id);
+      return `${i + 1}. **${user.username}** • ${s}`;
+    } catch {
+      return `${i + 1}. <@${id}> • ${s}`;
+    }
+  }));
+
+  const embed = new EmbedBuilder() 
+    .setTitle("🏆 Top 10 Counter") 
+    .setDescription(lines.join("\n") || "Keine Daten") 
+    .setColor('#ffffff') 
+    .setFooter({ text: 'Kekse Clan' }); 
+
+  await msg.reply({ embeds: [embed] }); 
+  return; 
+}
     const match = msg.content.trim().match(/^-?\d+/); 
     if (!match && !syncMode && msg.content.startsWith("!set_number")) { 
       if (msg.author.id !== "1151971830983311441") return; 
