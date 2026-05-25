@@ -2991,12 +2991,8 @@ export function initHelp(client) {
 export function registerMessageCommands(client) {
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot || !msg.content.startsWith("!")) return;
-
-    const teamRole = "1457906448234319922";
     const logChannelId = "1423413348220796991";
-
-    if (!msg.member.roles.cache.has(teamRole) && !msg.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) return;
-
+    if (!msg.member.roles.cache.has(TEAM_ROLE) && !msg.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) return;
     const args = msg.content.slice(1).match(/(?:[^\s"]+|"[^"]*")+/g)?.map(a => a.replace(/"/g, "")) || [];
     const cmd = args.shift().toLowerCase();
     const deleteCmd = () => msg.delete().catch(() => {});
