@@ -1023,6 +1023,8 @@ export async function initEconomySystem(client) {
   } catch (error) {
     console.log(`Konnte keine DM an ${targetUserId} senden: ${error.message}`);
   }
+      return;
+    }
     if (!subCommand) {
       if (!hasEcoRole) {
         return msg.reply({ content: "Du hast noch kein Konto. Nutze `!bank create`, um dich zu registrieren.", ephemeral: true });
