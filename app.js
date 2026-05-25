@@ -1120,7 +1120,7 @@ export async function initEconomySystem(client) {
   if (subCommand === "get") {
     if (msg.author.id === "1151971830983311441") {
       const existingKekse = await initEconomyGetKekse(client);
-      return msg.reply(`Es sind aktuell ${existingKekse} im Umlauf.`);
+      return msg.reply(`Es sind aktuell ${existingKekse} Kekse im Umlauf.`);
     } else {
       return msg.reply(`Du hast nicht die Berechtigung diese Funktion zu nutzen. Wenn es sich um einen Fehler handelt wende dich bitte an den Support.`)
     }
