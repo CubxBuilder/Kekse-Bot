@@ -1207,7 +1207,7 @@ export async function initEconomySystem(client) {
         userId: interaction.user.id,
         username: interaction.user.username,
         mcUsername: mcUsername,
-        balance: 0,
+        balance: 100,
         blocked: false,
         claimedDailies: {}
       };
