@@ -869,12 +869,11 @@ export async function initEconomySystem(client) {
         });
         return;
       }
-      return msg.reply({ content: "Unbekanntes Casino-Spiel. Verfügbar: `roulette`, `coinflip`, `jackpot`, `crash`, `highlow`, `blackjack`\nBeispiel: `!casino coinflip 10 heads`", ephemeral: true });
+      return msg.reply({ content: "Unbekanntes Casino-Spiel. Verfügbar: `roulette`, `coinflip`, `jackpot`, `crash`, `highlow`, `blackjack`\nBeispiel: `!casino coinflip 10 heads`" });
     }
-
+    if (command === "!bank") {
     const hasEcoRole = msg.member.roles.cache.has("1506732560837771284");
     const isAdmin = msg.author.id === "1151971830983311441";
-if (command === "!bank"){
     if (isAdmin && (subCommand === "add" || subCommand === "remove" || subCommand === "see")) {
       const targetUser = msg.mentions.users.first();
       let amount = 0;
@@ -1024,7 +1023,6 @@ if (command === "!bank"){
   } catch (error) {
     console.log(`Konnte keine DM an ${targetUserId} senden: ${error.message}`);
   }
-}
     if (!subCommand) {
       if (!hasEcoRole) {
         return msg.reply({ content: "Du hast noch kein Konto. Nutze `!bank create`, um dich zu registrieren.", ephemeral: true });
@@ -1211,10 +1209,6 @@ await interaction.reply({
     flags: MessageFlags.Ephemeral
 });
 dashboardLog(`[Economy] Neues Konto für ${interaction.user.id} (MC: ${mcUsername}) erstellt.`);
-
-if (interaction.message) {
-    await interaction.message.delete().catch(() => {});
-}
   };
 });
 }
@@ -1238,6 +1232,7 @@ export function initAdminFun(client) {
       const attachment = new AttachmentBuilder(filePfad, { name: 'strand.jpg' });
       msg.channel.send({ files: [attachment] });
     }
+  }
   });
 }
 export function initCommandList(client) {
