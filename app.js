@@ -1531,7 +1531,7 @@ export function initCommandList(client) {
   });
 }
 export function initEconomyTransferListener(client) {
-  client.on(Events.ChannelCreate, async (channel) {
+  client.on(Events.ChannelCreate, async (channel) => {
     const document = await getTickData("tickets");
     const allEntries = document?.value?.tickets || {};
     const ticket = Object.values(allEntries).find(
