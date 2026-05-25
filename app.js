@@ -3265,7 +3265,7 @@ export async function initTickets(client) {
       new ButtonBuilder().setCustomId('t_Support').setLabel('Support').setEmoji('⚙️').setStyle(ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId('t_Abholung').setLabel('Abholung').setEmoji('🎉').setStyle(ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId('t_Bewerbung').setLabel('Bewerbung').setEmoji('✉️').setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setcustomId('t_Economy').setLabel('Economy').setEmoji('🏦').setStyle(ButtonStyle.Secondary)
+      new ButtonBuilder().setCustomId('t_Economy').setLabel('Economy').setEmoji('🏦').setStyle(ButtonStyle.Secondary)
     );
     await channel.send({ embeds: [embed], components: [row] });
   }
