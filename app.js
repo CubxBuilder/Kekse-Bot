@@ -1042,174 +1042,192 @@ export async function initEconomySystem(client) {
 }
   });
   client.on("interactionCreate", async (interaction) => {
-      if (interaction.isButton()) {
-  if (interaction.customId.startsWith("open_bank_modal_")) {
-    const allowedUserId = interaction.customId.replace("open_bank_modal_", "");
-    
-    // 1. Berechtigungsprüfung
-    if (interaction.user.id !== allowedUserId) {
-      return interaction.reply({ content: "Du kannst diesen Button nicht nutzen, da du den Befehl nicht eingegeben hast.", ephemeral: true });
-    }
-    
-    // 2. Rollenprüfung
-    const hasEcoRole = interaction.member.roles.cache.has("1506732560837771284");
-    if (hasEcoRole) {
-      return interaction.reply({ content: "Du besitzt bereits ein registriertes Bankkonto.", ephemeral: true });
-    }
-    
-    // 3. Modal erstellen
-    const modal = new ModalBuilder()
-      .setCustomId(`bank_create_${interaction.user.id}`)
-      .setTitle("Bankkonto erstellen");
-      
-    const mcInput = new TextInputBuilder()
-      .setCustomId("mc_username")
-      .setLabel("Minecraft Benutzername")
-      .setStyle(TextInputStyle.Short)
-      .setRequired(true)
-      .setPlaceholder("Dein exakter Name im Spiel");
-      
-    modal.addComponents(new ActionRowBuilder().addComponents(mcInput));
-    
-    // 4. Modal anzeigen (Asynchron per await, KEIN return davor setzen)
-    await interaction.showModal(modal).catch(console.error);
-    return; // Beendet die Funktion nach dem Senden
-  }
-}
-          if (interaction.customId.startsWith("daily_claim_")) {
-              const hasEcoRole = interaction.member.roles.cache.has("1506732560837771284");
-              if (!hasEcoRole) {
-                  return interaction.reply({ content: "Du benötigst zuerst ein registriertes Bankkonto (`!bank create`).", ephemeral: true });
-              }
-
-              const setupId = interaction.customId.replace("daily_claim_", "");
-              const localizedDateStr = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }); 
-              const userData = await getEcoData(interaction.user.id);
-              if (!userData.claimedDailies) {
-                  userData.claimedDailies = {};
-              }
-              if (userData.claimedDailies[setupId] === localizedDateStr) {
-                  return interaction.reply({ 
-                      content: `Du hast deine Kekse für **dieses spezifische Event** heute bereits abgeholt! Versuche es nach 00:00 Uhr erneut.`, 
-                      ephemeral: true 
-                  });
-              }
-              userData.balance = (userData.balance || 0) + 10;
-              userData.claimedDailies[setupId] = localizedDateStr;
-              if (typeof userData.markModified === "function") {
-                  userData.markModified("claimedDailies");
-              } else {
-                  userData.claimedDailies = { ...userData.claimedDailies };
-              }
-              await setEcoData(interaction.user.id, userData);
-              return interaction.reply({ 
-                  content: "Erfolgreich! Dir wurden 10 Kekse auf dein Bankkonto gutgeschrieben.", 
-                  ephemeral: true 
-              });
-          }
-        if (interaction.customId.startsWith("shop_")) {
-  const member = interaction.member;
-  const itemType = interaction.customId.replace("shop_", "");
-  const SHOP_ITEMS = {
-    giveaway: { roleId: "1506164984202264656", name: "🎉 Double Chance Giveaway", duration: null, price: 15000 },
-    puffer:   { roleId: "1508050024355856494", name: "🛡️ Counting Puffer", duration: null, price: 2500 },
-    xp30:     { roleId: "1506164829029666827", name: "⚡ Counting XP Booster (30 Min)", duration: 30 * 60 * 1000, price: 2500 },
-    xp60:     { roleId: "1508054186930208768", name: "🔥 Counting XP Booster (60 Min)", duration: 60 * 60 * 1000, price: 5000 }
-  };
-  const item = SHOP_ITEMS[itemType];
-  if (!item) return interaction.reply({ content: "Dieses Item existiert nicht!", flags: MessageFlags.Ephemeral });
-  if (member.roles.cache.has(item.roleId)) {
-    return interaction.reply({ content: `Du besitzt das Item **${item.name}** bereits!`, flags: MessageFlags.Ephemeral });
-  }
   
-  // Frische Daten holen direkt vor der Prüfung
-  let freshData = await getEcoData(interaction.user.id);
-  if (!freshData || typeof freshData !== 'object') freshData = {};
-  let currentCookies = freshData.balance || 0;
-
-  if (currentCookies < item.price) {
-    return interaction.reply({ 
-      content: `❌ Du hast nicht genug Kekse für diesen Kauf! Ein(e) **${item.name}** kostet **${item.price.toLocaleString('de-DE')} Kekse** (Du hast: ${currentCookies.toLocaleString('de-DE')}).`, 
-      flags: MessageFlags.Ephemeral 
-    });
-  }
-  try {
-    // Nochmals frisch auslesen, um Race Conditions zu minimieren
-    const finalData = await getEcoData(interaction.user.id) || {};
-    finalData.balance = (finalData.balance || currentCookies) - item.price;
-    if (!finalData.userId) finalData.userId = interaction.user.id;
-    if (!finalData.username) finalData.username = interaction.user.username;
-
-    await setEcoData(interaction.user.id, finalData);
-    await member.roles.add(item.roleId);
+  // ==========================================
+  // BUTTON INTERAKTIONEN
+  // ==========================================
+  if (interaction.isButton()) {
     
-    await interaction.reply({ content: `🛒 Kauf erfolgreich: Du hast **${item.name}** erhalten!`, flags: MessageFlags.Ephemeral });
-    
-    const invoiceEmbed = {
-      color: 0xFFFFFF,
-      title: '🧾 Deine Shop-Quittung',
-      description: `Vielen Dank für deinen Einkauf auf unserem Server!`,
-      fields: [
-        { name: 'Gekauftes Item', value: item.name, inline: true },
-        { name: 'Abgezogene Kekse', value: `-${item.price.toLocaleString('de-DE')} 🍪`, inline: true },
-        { name: 'Neuer Kontostand', value: `${finalData.balance.toLocaleString('de-DE')} 🍪`, inline: false }
-      ],
-      timestamp: new Date()
-    };
-    
-    await interaction.user.send({ embeds: [invoiceEmbed] }).catch(() => {
-      console.log(`Konnte keine DM an ${interaction.user.tag} senden (DMs geschlossen).`);
-    });
-    
-    if (item.duration) {
-      setTimeout(async () => {
-        try {
-          const currentMember = await interaction.guild.members.fetch(member.id).catch(() => null);
-          if (currentMember && currentMember.roles.cache.has(item.roleId)) {
-            await currentMember.roles.remove(item.roleId);
-            await currentMember.send(`Dein **${item.name}** ist abgelaufen und wurde entfernt!`).catch(() => null);
-          }
-        } catch (timerError) {
-          console.error(`Fehler beim Entfernen von ${item.name}:`, timerError);
-        }
-      }, item.duration);
+    // 1. Bank Modal öffnen
+    if (interaction.customId.startsWith("open_bank_modal_")) {
+      const allowedUserId = interaction.customId.replace("open_bank_modal_", "");
+      
+      if (interaction.user.id !== allowedUserId) {
+        return interaction.reply({ content: "Du kannst diesen Button nicht nutzen, da du den Befehl nicht eingegeben hast.", ephemeral: true });
+      }
+      
+      const hasEcoRole = interaction.member.roles.cache.has("1506732560837771284");
+      if (hasEcoRole) {
+        return interaction.reply({ content: "Du besitzt bereits ein registriertes Bankkonto.", ephemeral: true });
+      }
+      
+      const modal = new ModalBuilder()
+        .setCustomId(`bank_create_${interaction.user.id}`)
+        .setTitle("Bankkonto erstellen");
+        
+      const mcInput = new TextInputBuilder()
+        .setCustomId("mc_username")
+        .setLabel("Minecraft Benutzername")
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true)
+        .setPlaceholder("Dein exakter Name im Spiel");
+        
+      modal.addComponents(new ActionRowBuilder().addComponents(mcInput));
+      
+      await interaction.showModal(modal).catch(console.error);
+      return; 
     }
 
-  } catch (error) {
-    console.error("Fehler beim Shop-Kauf:", error);
-    return interaction.reply({ content: "Es gab einen Fehler beim Verarbeiten deines Kaufs!", flags: MessageFlags.Ephemeral });
+    // 2. Daily Claim System
+    if (interaction.customId.startsWith("daily_claim_")) {
+      const hasEcoRole = interaction.member.roles.cache.has("1506732560837771284");
+      if (!hasEcoRole) {
+        return interaction.reply({ content: "Du benötigst zuerst ein registriertes Bankkonto (`!bank create`).", ephemeral: true });
+      }
+
+      const setupId = interaction.customId.replace("daily_claim_", "");
+      const localizedDateStr = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }); 
+      const userData = await getEcoData(interaction.user.id) || {};
+      
+      if (!userData.claimedDailies) {
+        userData.claimedDailies = {};
+      }
+      if (userData.claimedDailies[setupId] === localizedDateStr) {
+        return interaction.reply({ 
+          content: `Du hast deine Kekse für **dieses spezifische Event** heute bereits abgeholt! Versuche es nach 00:00 Uhr erneut.`, 
+          ephemeral: true 
+        });
+      }
+      
+      userData.balance = (userData.balance || 0) + 10;
+      userData.claimedDailies[setupId] = localizedDateStr;
+      
+      if (typeof userData.markModified === "function") {
+        userData.markModified("claimedDailies");
+      } else {
+        userData.claimedDailies = { ...userData.claimedDailies };
+      }
+      
+      await setEcoData(interaction.user.id, userData);
+      return interaction.reply({ 
+        content: "Erfolgreich! Dir wurden 10 Kekse auf dein Bankkonto gutgeschrieben.", 
+        ephemeral: true 
+      });
+    }
+
+    // 3. Shop System
+    if (interaction.customId.startsWith("shop_")) {
+      const member = interaction.member;
+      const itemType = interaction.customId.replace("shop_", "");
+      const SHOP_ITEMS = {
+        giveaway: { roleId: "1506164984202264656", name: "🎉 Double Chance Giveaway", duration: null, price: 15000 },
+        puffer:   { roleId: "1508050024355856494", name: "🛡️ Counting Puffer", duration: null, price: 2500 },
+        xp30:     { roleId: "1506164829029666827", name: "⚡ Counting XP Booster (30 Min)", duration: 30 * 60 * 1000, price: 2500 },
+        xp60:     { roleId: "1508054186930208768", name: "🔥 Counting XP Booster (60 Min)", duration: 60 * 60 * 1000, price: 5000 }
+      };
+      
+      const item = SHOP_ITEMS[itemType];
+      if (!item) return interaction.reply({ content: "Dieses Item existiert nicht!", flags: MessageFlags.Ephemeral });
+      
+      if (member.roles.cache.has(item.roleId)) {
+        return interaction.reply({ content: `Du besitzt das Item **${item.name}** bereits!`, flags: MessageFlags.Ephemeral });
+      }
+      
+      let freshData = await getEcoData(interaction.user.id);
+      if (!freshData || typeof freshData !== 'object') freshData = {};
+      let currentCookies = freshData.balance || 0;
+
+      if (currentCookies < item.price) {
+        return interaction.reply({ 
+          content: `❌ Du hast nicht genug Kekse für diesen Kauf! Ein(e) **${item.name}** kostet **${item.price.toLocaleString('de-DE')} Kekse** (Du hast: ${currentCookies.toLocaleString('de-DE')}).`, 
+          flags: MessageFlags.Ephemeral 
+        });
+      }
+      
+      try {
+        const finalData = await getEcoData(interaction.user.id) || {};
+        finalData.balance = (finalData.balance || currentCookies) - item.price;
+        if (!finalData.userId) finalData.userId = interaction.user.id;
+        if (!finalData.username) finalData.username = interaction.user.username;
+
+        await setEcoData(interaction.user.id, finalData);
+        await member.roles.add(item.roleId);
+        
+        await interaction.reply({ content: `🛒 Kauf erfolgreich: Du hast **${item.name}** erhalten!`, flags: MessageFlags.Ephemeral });
+        
+        const invoiceEmbed = {
+          color: 0xFFFFFF,
+          title: '🧾 Deine Shop-Quittung',
+          description: `Vielen Dank für deinen Einkauf auf unserem Server!`,
+          fields: [
+            { name: 'Gekauftes Item', value: item.name, inline: true },
+            { name: 'Abgezogene Kekse', value: `-${item.price.toLocaleString('de-DE')} 🍪`, inline: true },
+            { name: 'Neuer Kontostand', value: `${finalData.balance.toLocaleString('de-DE')} 🍪`, inline: false }
+          ],
+          timestamp: new Date()
+        };
+        
+        await interaction.user.send({ embeds: [invoiceEmbed] }).catch(() => {
+          console.log(`Konnte keine DM an ${interaction.user.tag} senden (DMs geschlossen).`);
+        });
+        
+        if (item.duration) {
+          setTimeout(async () => {
+            try {
+              const currentMember = await interaction.guild.members.fetch(member.id).catch(() => null);
+              if (currentMember && currentMember.roles.cache.has(item.roleId)) {
+                await currentMember.roles.remove(item.roleId);
+                await currentMember.send(`Dein **${item.name}** ist abgelaufen und wurde entfernt!`).catch(() => null);
+              }
+            } catch (timerError) {
+              console.error(`Fehler beim Entfernen von ${item.name}:`, timerError);
+            }
+          }, item.duration);
+        }
+
+      } catch (error) {
+        console.error("Fehler beim Shop-Kauf:", error);
+        return interaction.reply({ content: "Es gab einen Fehler beim Verarbeiten deines Kaufs!", flags: MessageFlags.Ephemeral });
+      }
+    }
+  } // <--- Hier schließt jetzt der Button-Zweig sauber ab!
+
+  // ==========================================
+  // MODAL SUBMIT INTERAKTIONEN
+  // ==========================================
+  if (interaction.isModalSubmit()) {
+    if (interaction.customId.startsWith("bank_create_")) {
+      const userId = interaction.customId.replace("bank_create_", "");
+      if (interaction.user.id !== userId) return;
+
+      const mcUsername = interaction.fields.getTextInputValue("mc_username");
+      const accountData = {
+        userId: interaction.user.id,
+        username: interaction.user.username,
+        mcUsername: mcUsername,
+        balance: 0,
+        blocked: false,
+        claimedDailies: {}
+      };
+
+      await setEcoData(interaction.user.id, accountData);
+
+      const member = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+      if (member) {
+        await member.roles.add("1506732560837771284").catch(() => {});
+      }
+
+      await interaction.reply({
+        content: `Dein Konto wurde erfolgreich angelegt!\n**Minecraft-Name:** ${mcUsername}\n**Startguthaben:** 0 Kekse\nDu hast nun Zugriff auf dein Konto mit \`!bank\`.`,
+        flags: MessageFlags.Ephemeral
+      });
+      
+      if (typeof dashboardLog === "function") {
+        dashboardLog(`[Economy] Neues Konto für ${interaction.user.id} (MC: ${mcUsername}) erstellt.`);
+      }
+    }
   }
-}
-
-if (!interaction.isModalSubmit()) return;
-if (!interaction.customId.startsWith("bank_create_")) return;
-
-const userId = interaction.customId.replace("bank_create_", "");
-if (interaction.user.id !== userId) return;
-
-const mcUsername = interaction.fields.getTextInputValue("mc_username");
-const accountData = {
-    userId: interaction.user.id,
-    username: interaction.user.username,
-    mcUsername: mcUsername,
-    balance: 0,
-    blocked: false,
-    claimedDailies: {}
-};
-
-await setEcoData(interaction.user.id, accountData);
-
-const member = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
-if (member) {
-    await member.roles.add("1506732560837771284").catch(() => {});
-}
-
-await interaction.reply({
-    content: `Dein Konto wurde erfolgreich angelegt!\n**Minecraft-Name:** ${mcUsername}\n**Startguthaben:** 0 Kekse\nDu hast nun Zugriff auf dein Konto mit \`!bank\`.`,
-    flags: MessageFlags.Ephemeral
 });
-dashboardLog(`[Economy] Neues Konto für ${interaction.user.id} (MC: ${mcUsername}) erstellt.`);
-  });
 }
 export function initAdminFun(client) {
   client.on("messageCreate", async (msg) => {
