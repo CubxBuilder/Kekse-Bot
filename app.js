@@ -280,6 +280,71 @@ export async function getEcoData(key) {
  const data = await dbGet("economy", key);
  return data || {};
 }
+export async function initEconomyGetKekse(client) {
+  const allEcoData = await dbGetAll("economy"); 
+  const existingKekse = Object.entries(allEcoData).reduce((summe, [key, data]) => {
+    const isNumericKey = /^\d+$/.test(key); 
+    if (isNumericKey && data && typeof data.balance === "number") {
+      return summe + data.balance;
+    }
+    return summe;
+  }, 0);
+  return existingKekse;
+}
+export async function initBotBalance(client) {
+  const existingKekse = await initEconomyGetKekse(client);
+  const currentBotData = await getEcoData("bot_balance");
+  const currentBalance = currentBotData.balance || 0;
+  await setEcoData("bot_balance", {
+    existingKekse: existingKekse,
+    balance: currentBalance
+  });
+  client.on("messageCreate", async (message) => {
+    if (message.author.bot) return;
+    if (!message.content.startsWith("!balance")) return;
+    if (!message.member || !message.member.roles.cache.has(TEAM_ROLE)) {
+      return message.reply("Du hast keine Berechtigung, diesen Befehl zu nutzen.");
+    }
+    const args = message.content.split(" ");
+    const action = args[1];
+    const amount = parseInt(args[2]);
+    if (action === "see") {
+      const balance = await getBotBalance();
+      return message.reply(`Die aktuelle Bot-Balance beträgt: **${balance}** Kekse.`);
+    }
+    if (action === "add") {
+      if (isNaN(amount) || amount <= 0) return message.reply("Bitte gib eine gültige Zahl an. Beispiel: `!balance add 100`");
+      await addBotBalance(amount);
+      return message.reply(`**${amount}** Kekse zur Bot-Balance hinzugefügt.`);
+    }
+    if (action === "remove") {
+      if (isNaN(amount) || amount <= 0) return message.reply("Bitte gib eine gültige Zahl an. Beispiel: `!balance remove 100`");
+      const current = await getBotBalance();
+      if (current - amount < 0) {
+        return message.reply(`Fehler: Die Balance kann nicht negativ werden! (Aktuell: ${current})`);
+      }
+      await removeBotBalance(amount);
+      return message.reply(`**${amount}** Kekse von der Bot-Balance abgezogen.`);
+    }
+  });
+}
+export async function getBotBalance() {
+  const data = await getEcoData("bot_balance");
+  return data.balance || 0;
+}
+export async function addBotBalance(coins) {
+  if (coins <= 0) return;
+  const data = await getEcoData("bot_balance");
+  data.balance = (data.balance || 0) + coins;
+  await setEcoData("bot_balance", data);
+}
+export async function removeBotBalance(coins) {
+  if (coins <= 0) return;
+  const data = await getEcoData("bot_balance");
+  const current = data.balance || 0;
+  data.balance = Math.max(0, current - coins);
+  await setEcoData("bot_balance", data);
+}
 export async function initEconomySystem(client) {
   const crashGames = new Map();
   const hlGames = new Map();
@@ -313,7 +378,6 @@ export async function initEconomySystem(client) {
     const args = msg.content.trim().split(/ +/);
     const command = args[0].toLowerCase();
     const subCommand = args[1]?.toLowerCase();
-
     if (command === "!daily_setup") {
       if (msg.author.id !== "1151971830983311441") return;
       const setupId = args[1];
@@ -1025,6 +1089,14 @@ export async function initEconomySystem(client) {
   }
       return;
     }
+  if (subCommand === "get") {
+    if (msg.author.id === "1151971830983311441") {
+      const existingKekse = await initEconomyGetKekse(client);
+      return msg.reply(`Es sind aktuell ${existingKekse} im Umlauf.`);
+    } else {
+      return msg.reply(`Du hast nicht die Berechtigung diese Funktion zu nutzen. Wenn es sich um einen Fehler handelt wende dich bitte an den Support.`)
+    }
+  }
     if (!subCommand) {
       if (!hasEcoRole) {
         return msg.reply({ content: "Du hast noch kein Konto. Nutze `!bank create`, um dich zu registrieren.", ephemeral: true });
@@ -3053,11 +3125,12 @@ async function moveChannelToAdmin(channel, isGerman) {
 }
 const ARCHIVE_CATEGORY_ID = "1465452886657077593";
 const ADMIN_ROLE_ID = "1423427747103113307";
-const CATEGORY_EMOJI = { Support: "⚙️", Abholung: "🎉", Bewerbung: "✉️" };
+const CATEGORY_EMOJI = { Support: "⚙️", Abholung: "🎉", Bewerbung: "✉️", Economy: "🏦" };
 const CATEGORY_CHANNELS = {
   Support: "1423413348065611953",
   Abholung: "1423413348065611953",
-  Bewerbung: "1434277752982474945"
+  Bewerbung: "1434277752982474945",
+  Economy: "1423413348065611953"
 };
 let ticketData = { lastId: 0, tickets: {} };
 async function loadTickets() {
@@ -3106,13 +3179,15 @@ export async function initTickets(client) {
         "Ein Mitglied der Administration wird sich so schnell wie möglich um dich kümmern.\n\n" +
         "**⚙️ Support:** Allgemeine Anliegen\n" +
         "**🎉 Abholung:** Gewinn-Abholung\n" +
-        "**✉️ Bewerbung:** Clan-Bewerbungen"
+        "**✉️ Bewerbung:** Clan-Bewerbungen\n" +
+        "**🏦 Economy:** Umtausch von Keksen zu Minevale Coins"
       )
       .setColor(0xffffff);
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId('t_Support').setLabel('Support').setEmoji('⚙️').setStyle(ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId('t_Abholung').setLabel('Abholung').setEmoji('🎉').setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId('t_Bewerbung').setLabel('Bewerbung').setEmoji('✉️').setStyle(ButtonStyle.Secondary)
+      new ButtonBuilder().setCustomId('t_Bewerbung').setLabel('Bewerbung').setEmoji('✉️').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setcustomId('t_Economy').setLabel('Economy').setEmoji('🏦').setStyle(ButtonStyle.Secondary)
     );
     await channel.send({ embeds: [embed], components: [row] });
   }
@@ -3159,7 +3234,8 @@ export async function initTickets(client) {
     const greetings = {
       Support: `Hey <@${user.id}>, bitte beschreibe dein Anliegen genauer.`,
       Abholung: `Hey <@${user.id}>, wir benötigen deinen **Minecraft Namen** und die **Info zum Gewinn**.`,
-      Bewerbung: `Hey <@${user.id}>, ein Teammitglied wird sich in Kürze melden.`
+      Bewerbung: `Hey <@${user.id}>, ein Teammitglied wird sich in Kürze melden.`,
+      Economy: `Hey <@${user.id}>, dieses Ticket gilt dem Umtausch von Keksen (Währung) zu Minevale Coins.\n*Da der Wert von Minevale Coins über die Zeit variiert ist der Wert von Keksen (Währung) dynamisch und kann sich jederzeit ändern.*`
     };
     await channel.send({ 
       content: `<@&${TEAM_ROLE_ID}>`, 
