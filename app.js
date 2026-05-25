@@ -483,13 +483,13 @@ export async function initEconomySystem(client) {
       return msg.reply(`Shop erfolgreich im Kanal <#${SHOP_CHANNEL_ID}> eingerichtet!`);
     }
     if (command === "!eco-stats") {
-  if (!message.member || !message.member.roles.cache.has(TEAM_ROLE)) {
-    return message.reply("Du hast keine Berechtigung, diesen Befehl zu nutzen.");
+  if (!msg.member || !msg.member.roles.cache.has(TEAM_ROLE)) {
+    return msg.reply("Du hast keine Berechtigung, diesen Befehl zu nutzen.");
   }
 
-  const stats = await getEconomyStats(message.client);
+  const stats = await getEconomyStats(msg.client);
 
-  return message.reply(
+  return msg.reply(
     `📊 **Wirtschafts-Statistiken:**\n\n` +
     `• Kekse im Umlauf (User): **${stats.existingKekse}**\n` +
     `• Bot-Balance: **${stats.botBalance}** Kekse\n` +
