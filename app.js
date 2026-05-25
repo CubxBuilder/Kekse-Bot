@@ -1044,27 +1044,39 @@ export async function initEconomySystem(client) {
   });
   client.on("interactionCreate", async (interaction) => {
       if (interaction.isButton()) {
-          if (interaction.customId.startsWith("open_bank_modal_")) {
-              const allowedUserId = interaction.customId.replace("open_bank_modal_", "");
-              if (interaction.user.id !== allowedUserId) {
-                  return interaction.reply({ content: "Du kannst diesen Button nicht nutzen, da du den Befehl nicht eingegeben hast.", ephemeral: true });
-              }
-              const hasEcoRole = interaction.member.roles.cache.has("1506732560837771284");
-              if (hasEcoRole) {
-                  return interaction.reply({ content: "Du besitzt bereits ein registriertes Bankkonto.", ephemeral: true });
-              }
-              const modal = new ModalBuilder()
-                  .setCustomId(`bank_create_${interaction.user.id}`)
-                  .setTitle("Bankkonto erstellen");
-              const mcInput = new TextInputBuilder()
-                  .setCustomId("mc_username")
-                  .setLabel("Minecraft Benutzername")
-                  .setStyle(TextInputStyle.Short)
-                  .setRequired(true)
-                  .setPlaceholder("Dein exakter Name im Spiel");
-              modal.addComponents(new ActionRowBuilder().addComponents(mcInput));
-              return interaction.showModal(modal);
-          }
+  if (interaction.customId.startsWith("open_bank_modal_")) {
+    const allowedUserId = interaction.customId.replace("open_bank_modal_", "");
+    
+    // 1. Berechtigungsprüfung
+    if (interaction.user.id !== allowedUserId) {
+      return interaction.reply({ content: "Du kannst diesen Button nicht nutzen, da du den Befehl nicht eingegeben hast.", ephemeral: true });
+    }
+    
+    // 2. Rollenprüfung
+    const hasEcoRole = interaction.member.roles.cache.has("1506732560837771284");
+    if (hasEcoRole) {
+      return interaction.reply({ content: "Du besitzt bereits ein registriertes Bankkonto.", ephemeral: true });
+    }
+    
+    // 3. Modal erstellen
+    const modal = new ModalBuilder()
+      .setCustomId(`bank_create_${interaction.user.id}`)
+      .setTitle("Bankkonto erstellen");
+      
+    const mcInput = new TextInputBuilder()
+      .setCustomId("mc_username")
+      .setLabel("Minecraft Benutzername")
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true)
+      .setPlaceholder("Dein exakter Name im Spiel");
+      
+    modal.addComponents(new ActionRowBuilder().addComponents(mcInput));
+    
+    // 4. Modal anzeigen (Asynchron per await, KEIN return davor setzen)
+    await interaction.showModal(modal).catch(console.error);
+    return; // Beendet die Funktion nach dem Senden
+  }
+}
           if (interaction.customId.startsWith("daily_claim_")) {
               const hasEcoRole = interaction.member.roles.cache.has("1506732560837771284");
               if (!hasEcoRole) {
