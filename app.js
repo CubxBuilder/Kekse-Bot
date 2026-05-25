@@ -281,11 +281,11 @@ export async function getEcoData(key) {
  return data || {};
 }
 export async function initEconomyGetKekse(client) {
-  const allEcoData = await dbGetAll("economy"); 
-  const existingKekse = Object.entries(allEcoData).reduce((summe, [key, data]) => {
-    const isNumericKey = /^\d+$/.test(key); 
-    if (isNumericKey && data && typeof data.balance === "number") {
-      return summe + data.balance;
+  const allEcoDocuments = await db.collection("botstorages").find({ namespace: "economy" }).toArray();
+  const existingKekse = allEcoDocuments.reduce((summe, doc) => {
+    const isNumericKey = /^\d+$/.test(doc.key); 
+    if (isNumericKey && doc.value && typeof doc.value.balance === "number") {
+      return summe + doc.value.balance;
     }
     return summe;
   }, 0);
