@@ -1634,13 +1634,6 @@ export async function handleEconomyInteractions(client) {
         const stats = await getEconomyStats(client);
         const userData = await getEcoData(transfer.userId);
         const currentBalance = userData.balance || 0;
-        const existingTransfer = Array.from(activeTransfers.values()).find(
-          t => t.channelId === int.channel.id && t.userId === int.user.id
-        );
-        if (existingTransfer) {
-          await int.editReply(`❌ Du hast bereits einen offenen Tauschvorgang in diesem Kanal. Schließe oder bestätige diesen zuerst.`);
-          return;
-        }
         if (!transfer.isBuy) {
           if (currentBalance < transfer.amount) {
             await int.editReply({ content: `❌ Vorgang abgebrochen: Du hast inzwischen nicht mehr genügend Kekse!`, embeds: [], components: [] });
@@ -1650,7 +1643,6 @@ export async function handleEconomyInteractions(client) {
             await int.editReply({ content: `Das Guthaben des Bots reicht für diese Transaktion nicht aus. Ein <@&1423427747103113307> wird sich zeitnah darum kümmern. Bitte komme später wieder.`, embeds: [], components: [] });
             return initEconomyTransferSystem(client, int.channel);
           }
-
           userData.balance = currentBalance - transfer.amount;
           await setEcoData(transfer.userId, userData);
         }
