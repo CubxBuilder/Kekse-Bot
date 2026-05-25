@@ -503,7 +503,7 @@ export async function initEconomySystem(client) {
   return msg.reply(
     `📊 **Wirtschafts-Statistiken:**\n\n` +
     `• Kekse im Umlauf (User): **${stats.existingKekse}**\n` +
-    `• Bot-Balance: **${stats.botBalance}** Kekse\n` +
+    `• Bot-Balance: **${stats.botBalance}** Coins\n` +
     `• Aktueller Kurs: **${stats.kekseProCoin} Kekse = 1 Coin**\n` +
     `• Wert pro Keks: **${stats.kurs}** Coins (**${stats.prozent}%**)`
   );
