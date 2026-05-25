@@ -376,14 +376,19 @@ export async function getEconomyStats(client) {
   const basisWertProKeks = 0.1;
   let kurs = basisWertProKeks;
   if (botBalance > 0 && existingKekse > 0) {
-    kurs = parseFloat((basisWertProKeks * (existingKekse / botBalance)).toFixed(4));
+    const verhaeltnis = botBalance / existingKekse;
+    const berechneterKurs = basisWertProKeks * verhaeltnis;
+    kurs = Math.max(0.1, Math.min(0.2, berechneterKurs));
+    kurs = parseFloat(kurs.toFixed(4));
   }
   const kekseProCoin = kurs > 0 ? parseFloat((1 / kurs).toFixed(1)) : 0;
+  const prozent = parseFloat(((kurs / basisWertProKeks) * 100).toFixed(1));
   return {
     existingKekse,
     botBalance,
     kurs,
-    kekseProCoin
+    kekseProCoin,
+    prozent
   };
 }
 export async function initEconomySystem(client) {
@@ -494,7 +499,7 @@ export async function initEconomySystem(client) {
     `• Kekse im Umlauf (User): **${stats.existingKekse}**\n` +
     `• Bot-Balance: **${stats.botBalance}** Kekse\n` +
     `• Aktueller Kurs: **${stats.kekseProCoin} Kekse = 1 Coin**\n` +
-    `• Wert pro Keks: **${stats.kurs}** Coins`
+    `• Wert pro Keks: **${stats.kurs}** Coins (**${stats.prozent}%**)`
   );
 }
     if (command === "!casino") {
