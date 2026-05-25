@@ -1231,7 +1231,6 @@ export function initAdminFun(client) {
       const attachment = new AttachmentBuilder(filePfad, { name: 'strand.jpg' });
       msg.channel.send({ files: [attachment] });
     }
-  }
   });
 }
 export function initCommandList(client) {
