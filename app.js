@@ -874,7 +874,7 @@ export async function initEconomySystem(client) {
 
     const hasEcoRole = msg.member.roles.cache.has("1506732560837771284");
     const isAdmin = msg.author.id === "1151971830983311441";
-
+if (command === "!bank"){
     if (isAdmin && (subCommand === "add" || subCommand === "remove" || subCommand === "see")) {
       const targetUser = msg.mentions.users.first();
       let amount = 0;
@@ -1041,6 +1041,7 @@ export async function initEconomySystem(client) {
         return userName.send({ content: `Dein aktueller Kontostand beträgt: **${userData.balance || 0} Kekse** 🍪\nFür Auszahlungen öffne bitte ein Ticket in https://discord.com/channels/1423413347168157718/1423413348493430905`})
       };
     }
+}
   });
   client.on("interactionCreate", async (interaction) => {
       if (interaction.isButton()) {
