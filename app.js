@@ -2530,6 +2530,7 @@ export async function initGiveaway(client) {
           replyText += " (Inklusive **doppelter Chance** durch deine Rolle!)";
           if (interaction.member.roles.cache.has("1506164984202264656")) {
               await interaction.member.roles.remove("1506164984202264656").catch(console.error);
+          }
       } else if (totalTickets === 4) {
           replyText += " (Inklusive **4-facher Chance**, da du beide Rollen besitzt!)";
           await interaction.member.roles.remove("1506164984202264656").catch(console.error);
