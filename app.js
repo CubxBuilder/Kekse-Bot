@@ -494,18 +494,11 @@ export async function initEconomySystem(client) {
       return msg.reply(`Shop erfolgreich im Kanal <#${SHOP_CHANNEL_ID}> eingerichtet!`);
     }
     if (command === "!eco-stats") {
-  if (!msg.member || !msg.member.roles.cache.has(TEAM_ROLE)) {
-    return msg.reply("Du hast keine Berechtigung, diesen Befehl zu nutzen.");
-  }
-
   const stats = await getEconomyStats(msg.client);
-
   return msg.reply(
     `📊 **Wirtschafts-Statistiken:**\n\n` +
-    `• Kekse im Umlauf (User): **${stats.existingKekse}**\n` +
-    `• Bot-Balance: **${stats.botBalance}** Coins\n` +
     `• Aktueller Kurs: **${stats.kekseProCoin} Kekse = 1 Coin**\n` +
-    `• Wert pro Keks: **${stats.kurs}** Coins (**${stats.prozent}%**)`
+    `• Wert pro Keks: **${stats.kurs}** Coins`
   );
 }
     if (command === "!casino") {
@@ -1327,11 +1320,7 @@ export async function initEconomySystem(client) {
         return interaction.reply({ content: "Es gab einen Fehler beim Verarbeiten deines Kaufs!", flags: MessageFlags.Ephemeral });
       }
     }
-  } // <--- Hier schließt jetzt der Button-Zweig sauber ab!
-
-  // ==========================================
-  // MODAL SUBMIT INTERAKTIONEN
-  // ==========================================
+  }
   if (interaction.isModalSubmit()) {
     if (interaction.customId.startsWith("bank_create_")) {
       const userId = interaction.customId.replace("bank_create_", "");
@@ -1399,6 +1388,9 @@ export function initCommandList(client) {
         "**!bank** - Zeigt die Übersicht deines Bankkontos an.\n" +
         "**!bank create** - Erstellt ein neues Bankkonto für dich.\n" +
         "**!bank help** - Zeigt die Hilfe-Menüs für die Bank-Befehle an.\n" +
+        "**!bank pay <@> <x>** - Übertrage (x) Kekse an das Konto vom angegebenen User.\n" +
+        "**!confirm** - Bestätige, dass eine Transaktion getätigt wurde.\n" +
+        "**!decline** - Breche eine Transaktion ab.\n" +
         "**!casino** - Zeigt die Casino-Übersicht.\n" +
         "**!casino blackjack <x>** - Startet eine Runde Blackjack mit dem Einsatz (x).\n" +
         "**!casino coinflip <x> <->** - Macht einen Münzwurf mit Einsatz (x) und Tipp (Kopf/Zahl).\n" +
@@ -1414,6 +1406,7 @@ export function initCommandList(client) {
         "**!bank remove <x>** - Zieht einen Betrag (x) vom eigenen Bankkonto ab.\n" +
         "**!bank remove <x> <@>** - Zieht einen Betrag (x) vom Bankkonto des erwähnten Mitglieds ab.\n" +
         "**!bank see <@>** - Zeigt den Kontostand des erwähnten Mitglieds an.\n" +
+        "**!eco-stats** - Zeigt aktuellen Umrechnungskurs von Keksen (Währung).\n" +
         "**!daily_setup <ID>** - Richtet das tägliche Belohnungssystem ein.\n" +
         "**!set_number <x>** - Setzt im Counting die aktuelle Zahl auf (x).\n" +
         "**!stats** - Zeigt die aktuellen Statistiken an.";
@@ -1461,6 +1454,10 @@ export function initCommandList(client) {
         "**!bank** - Zeigt die Übersicht deines Bankkontos an.\n" +
         "**!bank create** - Erstellt ein neues Bankkonto für dich.\n" +
         "**!bank help** - Zeigt die Hilfe-Menüs für die Bank-Befehle an.\n" +
+        "**!bank pay <@> <x>** - Übertrage (x) Kekse an das Konto vom angegebenen User.\n" +
+        "**!confirm** - Bestätige, dass eine Transaktion getätigt wurde.\n" +
+        "**!decline** - Breche eine Transaktion ab.\n" +
+        "**!eco-stats** - Zeigt aktuellen Umrechnungskurs von Keksen (Währung).\n" +
         "**!casino** - Zeigt die Casino-Übersicht.\n" +
         "**!casino blackjack <x>** - Startet eine Runde Blackjack mit dem Einsatz (x).\n" +
         "**!casino coinflip <x> <->** - Macht einen Münzwurf mit Einsatz (x) und Tipp (Kopf/Zahl).\n" +
@@ -1515,6 +1512,8 @@ export function initCommandList(client) {
         "**!bank** - Zeigt die Übersicht deines Bankkontos an.\n" +
         "**!bank create** - Erstellt ein neues Bankkonto für dich.\n" +
         "**!bank help** - Zeigt die Hilfe-Menüs für die Bank-Befehle an.\n" +
+        "**!bank pay <@> <x>** - Übertrage (x) Kekse an das Konto vom angegebenen User.\n" +
+        "**!eco-stats** - Zeigt aktuellen Umrechnungskurs von Keksen (Währung).\n" +
         "**!casino** - Zeigt die Casino-Übersicht.\n" +
         "**!casino blackjack <x>** - Startet eine Runde Blackjack mit dem Einsatz (x).\n" +
         "**!casino coinflip <x> <->** - Macht einen Münzwurf mit Einsatz (x) und Tipp (Kopf/Zahl).\n" +
@@ -1524,7 +1523,7 @@ export function initCommandList(client) {
         "**!casino roulette <x> <->** - Setzt den Einsatz (x) beim Roulette auf Farbe, Zahl oder Bereich.\n" +
         "**!listpolls** - Listet alle aktuell laufenden Umfragen auf.\n" +
         "**!remind <x> <t> <->** - Erstellt eine Erinnerung in (x) Zeit mit dem Text (t) und optional einem Kanal oder per DM.\n" +
-        "****!top** - Zeigt die Top 10 vom Counting an.";
+        "**!top** - Zeigt die Top 10 vom Counting an.";
 
       await msg.channel.send({ content: textMessage });
     }
@@ -1579,7 +1578,7 @@ export async function initEconomyTransferSystem(client, channel) {
       .setDescription(
         `📊 **Aktuelle Kurse:**\n` +
         `• Kurs: **${stats.kekseProCoin} Kekse = 1 Coin**\n` +
-        `• Wert pro Keks: **${stats.kurs}** Coins (**${stats.prozent}%**)`
+        `• Wert pro Keks: **${stats.kurs}** Coins`
       );
 
     const row = new ActionRowBuilder().addComponents(
