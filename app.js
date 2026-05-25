@@ -1209,8 +1209,7 @@ await interaction.reply({
     flags: MessageFlags.Ephemeral
 });
 dashboardLog(`[Economy] Neues Konto für ${interaction.user.id} (MC: ${mcUsername}) erstellt.`);
-  };
-});
+  });
 }
 export function initAdminFun(client) {
   client.on("messageCreate", async (msg) => {
