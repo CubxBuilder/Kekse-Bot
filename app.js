@@ -1716,11 +1716,21 @@ export function handleEconomyInteractions(client) {
     }
 
     if (msg.content === "!confirm") {
-      if (!transfer.isBuy) {
+      const userData = await getEcoData(transfer.userId);
+      const currentBalance = userData.balance || 0;
+
+      if (transfer.isBuy) {
+        userData.balance = currentBalance + transfer.amount;
+      } else {
+        if (currentBalance < transfer.amount) {
+          return msg.reply(`❌ Fehler: Der User hat nicht mehr genügend Kekse für diesen Tausch! (Guthaben: ${currentBalance})`);
+        }
+        userData.balance = currentBalance - transfer.amount;
         await addBotBalance(transfer.amount);
-        await initBotBalance(client);
       }
 
+      await setEcoData(transfer.userId, userData);
+      await initBotBalance(client);
       activeTransfers.delete(transfer.id);
 
       const finalEmbed = new EmbedBuilder()
@@ -1730,6 +1740,7 @@ export function handleEconomyInteractions(client) {
           `Der Tausch wurde erfolgreich vom Team bestätigt und abgeschlossen!\n\n` +
           `**User:** <@${transfer.userId}>\n` +
           `**Menge:** ${transfer.amount} Kekse\n` +
+          `**Neues Guthaben:** ${userData.balance} Kekse\n` +
           `**Gegenwert:** ${transfer.totalCoins} Minevale Coins\n` +
           `**Typ:** ${transfer.isBuy ? "Kekse gekauft" : "Kekse verkauft"}`
         )
