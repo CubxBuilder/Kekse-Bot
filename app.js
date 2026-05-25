@@ -325,13 +325,13 @@ export async function initBotBalance(client) {
 
       if (action === "see") {
         const balance = await getBotBalance();
-        return message.reply(`Die aktuelle Bot-Balance beträgt: **${balance}** Kekse.`);
+        return message.reply(`Die aktuelle Bot-Balance beträgt: **${balance}** Coins.`);
       }
 
       if (action === "add") {
         if (isNaN(amount) || amount <= 0) return message.reply("Bitte gib eine gültige Zahl an. Beispiel: `!balance add 100`");
         await addBotBalance(amount);
-        return message.reply(`**${amount}** Kekse zur Bot-Balance hinzugefügt.`);
+        return message.reply(`**${amount}** Coins zur Bot-Balance hinzugefügt.`);
       }
 
       if (action === "remove") {
@@ -343,7 +343,7 @@ export async function initBotBalance(client) {
         }
 
         await removeBotBalance(amount);
-        return message.reply(`**${amount}** Kekse von der Bot-Balance abgezogen.`);
+        return message.reply(`**${amount}** Coins von der Bot-Balance abgezogen.`);
       }
     });
 
@@ -1531,7 +1531,18 @@ export function initCommandList(client) {
   });
 }
 let activeTransfers = new Map();
-
+async function saveActiveTransfers() {
+  await dbSet("economy", "active_transfers", Object.fromEntries(activeTransfers));
+}
+async function loadActiveTransfers() {
+  const saved = await dbGet("economy", "active_transfers");
+  if (saved && typeof saved === "object") {
+    for (const [id, transfer] of Object.entries(saved)) {
+      activeTransfers.set(id, transfer);
+    }
+    dashboardLog(`[Transfer] ${activeTransfers.size} aktive Transfers aus DB geladen.`);
+  }
+}
 async function internalCloseTicket(channel, moderator) {
   try {
     const stored = await getTickData("tickets") || { tickets: {} };
@@ -1583,7 +1594,8 @@ export async function initEconomyTransferSystem(client, channel) {
   }
 }
 
-export function handleEconomyInteractions(client) {
+export async function handleEconomyInteractions(client) {
+  await loadActiveTransfers();
   client.on("interactionCreate", async (int) => {
     if (int.isButton()) {
       if (int.customId === "eco_btn_cancel") {
@@ -1622,7 +1634,13 @@ export function handleEconomyInteractions(client) {
         const stats = await getEconomyStats(client);
         const userData = await getEcoData(transfer.userId);
         const currentBalance = userData.balance || 0;
-
+        const existingTransfer = Array.from(activeTransfers.values()).find(
+          t => t.channelId === int.channel.id && t.userId === int.user.id
+        );
+        if (existingTransfer) {
+          await int.editReply(`❌ Du hast bereits einen offenen Tauschvorgang in diesem Kanal. Schließe oder bestätige diesen zuerst.`);
+          return;
+        }
         if (!transfer.isBuy) {
           if (currentBalance < transfer.amount) {
             await int.editReply({ content: `❌ Vorgang abgebrochen: Du hast inzwischen nicht mehr genügend Kekse!`, embeds: [], components: [] });
@@ -1636,10 +1654,9 @@ export function handleEconomyInteractions(client) {
           userData.balance = currentBalance - transfer.amount;
           await setEcoData(transfer.userId, userData);
         }
-
         transfer.step = "PENDING_TEAM";
         activeTransfers.set(transferId, transfer);
-
+        await saveActiveTransfers();
         const receiptEmbed = new EmbedBuilder()
           .setTitle("🧾 Unbestätigte Quittung")
           .setColor("#f1c40f")
@@ -1652,7 +1669,8 @@ export function handleEconomyInteractions(client) {
           );
 
         await int.editReply({ embeds: [receiptEmbed], components: [] });
-        await int.channel.send({ content: `<@&${TEAM_ROLE}> Bitte prüft den Vorgang und nutzt \`!confirm\` oder \`!decline\`.` });
+        await int.channel.send({ content: `Ein Team-Mitglied wird sich in Kürze für die Transaktion melden.\n<@&${TEAM_ROLE}> Bitte prüft den Vorgang und nutzt \`!confirm\` oder \`!decline\` sobalt die Transaktion beendet ist.
+` });
         return;
       }
 
@@ -1660,6 +1678,7 @@ export function handleEconomyInteractions(client) {
         await int.deferUpdate();
         const transferId = int.customId.replace("eco_confirm_no_", "");
         activeTransfers.delete(transferId);
+        await saveActiveTransfers();
         return initEconomyTransferSystem(client, int.channel);
       }
     }
@@ -1680,13 +1699,14 @@ export function handleEconomyInteractions(client) {
         const userData = await getEcoData(int.user.id);
         const currentBalance = userData.balance || 0;
         const totalCoins = parseFloat((amount * stats.kurs).toFixed(4));
-
-        if (isBuy) {
-          if (amount > stats.botBalance) {
-            await int.editReply(`Das Guthaben des Bots reicht für diese Transaktion nicht aus. Ein <@&1423427747103113307> wird sich zeitnah darum kümmern. Bitte komme später wieder.`);
-            return initEconomyTransferSystem(client, int.channel);
-          }
-        } else {
+        const existingTransfer = Array.from(activeTransfers.values()).find(
+          t => t.channelId === int.channel.id && t.userId === int.user.id
+        );
+        if (existingTransfer) {
+          await int.editReply(`❌ Du hast bereits einen offenen Tauschvorgang in diesem Kanal. Schließe oder bestätige diesen zuerst.`);
+          return;
+        }
+        if (!isBuy) {
           if (currentBalance < amount) {
             await int.editReply(`❌ Du hast nicht genügend Kekse für diese Transaktion! (Guthaben: ${currentBalance} Kekse)`);
             return initEconomyTransferSystem(client, int.channel);
@@ -1708,7 +1728,7 @@ export function handleEconomyInteractions(client) {
           isBuy,
           step: "PREVIEW"
         });
-
+        await saveActiveTransfers();
         const previewEmbed = new EmbedBuilder()
           .setTitle("📊 Tausch-Vorschau & Überprüfung")
           .setColor("#3498db")
@@ -1744,9 +1764,6 @@ export function handleEconomyInteractions(client) {
       const stats = await getEconomyStats(client);
 
       if (transfer.isBuy) {
-        if (transfer.amount > stats.botBalance) {
-          return msg.reply(`❌ Fehler: Der Bot hat mittlerweile nicht mehr genug Kekse auf Lager!`);
-        }
         const userData = await getEcoData(transfer.userId);
         userData.balance = (userData.balance || 0) + transfer.amount;
         await setEcoData(transfer.userId, userData);
@@ -1757,8 +1774,7 @@ export function handleEconomyInteractions(client) {
         }
         await removeBotBalance(transfer.totalCoins);
       }
-
-      await initBotBalance(client);
+      await saveActiveTransfers();
       activeTransfers.delete(transfer.id);
 
       const finalEmbed = new EmbedBuilder()
@@ -1788,6 +1804,7 @@ export function handleEconomyInteractions(client) {
         await setEcoData(transfer.userId, userData);
       }
       activeTransfers.delete(transfer.id);
+      await saveActiveTransfers();
       await msg.reply("❌ Der Vorgang wurde vom Team abgelehnt. Eventuell eingefrorene Kekse wurden zurückerstattet.");
       return initEconomyTransferSystem(client, msg.channel);
     }
