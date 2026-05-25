@@ -374,15 +374,21 @@ export async function getEconomyStats(client) {
   const existingKekse = await initEconomyGetKekse(client);
   const botBalance = await getBotBalance();
   const basisWertProKeks = 0.1;
+
   let kurs = basisWertProKeks;
   if (botBalance > 0 && existingKekse > 0) {
     const verhaeltnis = botBalance / existingKekse;
     const berechneterKurs = basisWertProKeks * verhaeltnis;
+    
     kurs = Math.max(0.1, Math.min(1.0, berechneterKurs));
     kurs = parseFloat(kurs.toFixed(4));
+  } else if (botBalance === 0) {
+    kurs = basisWertProKeks;
   }
+
   const kekseProCoin = kurs > 0 ? parseFloat((1 / kurs).toFixed(1)) : 0;
   const prozent = parseFloat(((kurs / basisWertProKeks) * 100).toFixed(1));
+
   return {
     existingKekse,
     botBalance,
