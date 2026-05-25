@@ -1617,6 +1617,8 @@ export function handleEconomyInteractions(client) {
         await int.deferUpdate();
         const transferId = int.customId.replace("eco_confirm_yes_", "");
         const transfer = activeTransfers.get(transferId);
+        const userData = await getEcoData(int.user.id);
+        const mcUsername = userData.mcUsername;
         if (!transfer || transfer.userId !== int.user.id) return;
 
         transfer.step = "PENDING_TEAM";
@@ -1627,6 +1629,7 @@ export function handleEconomyInteractions(client) {
           .setColor("#f1c40f")
           .setDescription(
             `**User:** <@${transfer.userId}>\n` +
+            `**MC-Username:** ${mcUsername}\n` +
             `**Typ:** ${transfer.isBuy ? "Kekse kaufen (Coins ➔ Kekse)" : "Kekse verkaufen (Kekse ➔ Coins)"}\n` +
             `**Kekse:** ${transfer.amount}\n` +
             `**Wechselwert:** ${transfer.totalCoins} Minevale Coins\n\n` +
@@ -1640,7 +1643,7 @@ export function handleEconomyInteractions(client) {
           await initBotBalance(client);
         }
 
-        await int.channel.send({ content: `<@&${TEAM_ROLE}> Bitte prüft den Vorgang und nutzt \`!confirm\` oder \`!decline\`.` });
+        await int.channel.send({ content: `Ein Team-Mitglied wird sich zeitnah bei dir melden für die Transaktion.\n<@&${TEAM_ROLE}> Bitte prüft den Vorgang und nutzt \`!confirm\` oder \`!decline\` sobalt die Transaktion beendet ist.` });
         return;
       }
 
@@ -1660,18 +1663,27 @@ export function handleEconomyInteractions(client) {
         const amount = parseInt(amountText);
 
         if (isNaN(amount) || amount <= 0) {
-          return await int.editReply("❌ Bitte gib eine gültige, positive Zahl ein.");
+          await int.editReply("❌ Bitte gib eine gültige, positive Zahl ein.");
+          return initEconomyTransferSystem(client, int.channel);
         }
 
         const stats = await getEconomyStats(client);
+        const userData = await getEcoData(int.user.id);
+        const currentBalance = userData.balance || 0;
 
         if (isBuy && amount > stats.botBalance) {
-          return await int.editReply(`Das Guthaben des Bots ist bald aufgebraucht. Ein <@&1423427747103113307> wird sich darum kümmern. Bitte komme später wieder.`);
+          await int.editReply(`Das Guthaben des Bots reicht für diese Transaktion nicht aus. Ein <@&1423427747103113307> wird sich zeitnah darum kümmern. Bitte komme später wieder.`);
+          return initEconomyTransferSystem(client, int.channel);
+        }
+
+        if (!isBuy && currentBalance < amount) {
+          await int.editReply(`❌ Du hast nicht genügend Kekse für diese Transaktion! (Guthaben: ${currentBalance} Kekse)`);
+          return initEconomyTransferSystem(client, int.channel);
         }
 
         const totalCoins = parseFloat((amount * stats.kurs).toFixed(4));
-
         const transferId = `${int.channel.id}_${Date.now()}`;
+        
         activeTransfers.set(transferId, {
           id: transferId,
           channelId: int.channel.id,
@@ -1754,8 +1766,6 @@ export function handleEconomyInteractions(client) {
       }
 
       return;
-    }
-
     if (msg.content === "!decline") {
       if (transfer.isBuy) {
         await addBotBalance(transfer.amount);
@@ -3534,7 +3544,7 @@ export async function initTickets(client) {
       Support: `Hey <@${user.id}>, bitte beschreibe dein Anliegen genauer.`,
       Abholung: `Hey <@${user.id}>, wir benötigen deinen **Minecraft Namen** und die **Info zum Gewinn**.`,
       Bewerbung: `Hey <@${user.id}>, ein Teammitglied wird sich in Kürze melden.`,
-      Economy: `Hey <@${user.id}>, dieses Ticket gilt dem Umtausch von Keksen (Währung) zu Minevale Coins.\n*Da der Wert von Minevale Coins über die Zeit variiert ist der Wert von Keksen (Währung) dynamisch und kann sich jederzeit ändern.*`
+      Economy: `Hey <@${user.id}>, dieses Ticket gilt dem Umtausch von Keksen (Währung) zu Minevale Coins. Um dem Team Arbeit zu ersparen geschieht dieser Ablauf automatisch. Bei Missverständnissen oder Problemen bitte <@&1457906448234319922> pingen.`
     };
     await channel.send({ 
       content: `<@&${TEAM_ROLE_ID}>`, 
