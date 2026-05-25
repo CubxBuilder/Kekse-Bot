@@ -1220,7 +1220,7 @@ export async function initEconomySystem(client) {
       }
 
       await interaction.reply({
-        content: `Dein Konto wurde erfolgreich angelegt!\n**Minecraft-Name:** ${mcUsername}\n**Startguthaben:** 0 Kekse\nDu hast nun Zugriff auf dein Konto mit \`!bank\`.`,
+        content: `Dein Konto wurde erfolgreich angelegt!\n**Minecraft-Name:** ${mcUsername}\n**Startguthaben:** 100 Kekse\nDu hast nun Zugriff auf dein Konto mit \`!bank\`.`,
         flags: MessageFlags.Ephemeral
       });
       
