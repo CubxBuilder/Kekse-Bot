@@ -2444,15 +2444,16 @@ export async function initGiveaway(client) {
         await setGivData("activeGiveaways", giveaways);
         changed = false;
         await endGiveaway(client, msg, giveawayData, sendKekseLog);
-                  } else {
-        const oldEmbed = msg.embeds[0];
-        const fallBackTitle = data.price ? `🎁 Giveaway: ${data.price}` : "🎉 NEUES GIVEAWAY 🎉";
-        const embed = EmbedBuilder.from(oldEmbed)
-          .setTitle(oldEmbed?.title || fallBackTitle)
-          .setDescription(`${data.messageText}\n\nEndet am: <t:${Math.floor(data.endTime / 1000)}:R> (<t:${Math.floor(data.endTime / 1000)}:f>)\nTeilnehmer: **${data.participants?.length || 0}**\nGewinner: **${data.winnerCount}**`);
+                        } else {
+        const uniqueParticipants = [...new Set(data.participants || [])].length;
+        const embed = new EmbedBuilder()
+          .setTitle(`🎁 Giveaway: ${data.price}`)
+          .setDescription(`${data.messageText}\n\nEndet am: <t:${Math.floor(data.endTime / 1000)}:R> (<t:${Math.floor(data.endTime / 1000)}:f>)\nTeilnehmer: **${uniqueParticipants}**\nGewinner: **${data.winnerCount}**`)
+          .setColor(EMBED_COLOR);
         
         await msg.edit({ embeds: [embed] }).catch(() => {});
       }
+
     }
     if (changed) await setGivData("activeGiveaways", giveaways);
   };
