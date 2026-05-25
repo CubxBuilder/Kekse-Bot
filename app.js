@@ -1151,8 +1151,6 @@ export async function initEconomySystem(client) {
       await interaction.showModal(modal).catch(console.error);
       return; 
     }
-
-    // 2. Daily Claim System
     if (interaction.customId.startsWith("daily_claim_")) {
       const hasEcoRole = interaction.member.roles.cache.has("1506732560837771284");
       if (!hasEcoRole) {
@@ -1188,8 +1186,6 @@ export async function initEconomySystem(client) {
         ephemeral: true 
       });
     }
-
-    // 3. Shop System
     if (interaction.customId.startsWith("shop_")) {
       const member = interaction.member;
       const itemType = interaction.customId.replace("shop_", "");
