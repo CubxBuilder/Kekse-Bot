@@ -1532,8 +1532,9 @@ export function initCommandList(client) {
 }
 export function initEconomyTransferListener(client) {
   client.on(Events.ChannelCreate, async (channel) => {
+    if (!channel.isTextBased()) return;
     const document = await getTickData("tickets");
-    const allEntries = document?.value?.tickets || {};
+    const allEntries = document?.value?.tickets || document?.tickets || {};
     const ticket = Object.values(allEntries).find(
         t => typeof t === 'object' && t.channelId === channel.id
     );
@@ -1542,7 +1543,17 @@ export function initEconomyTransferListener(client) {
     }
     dashboardLog(`[Economy] Economy-Ticket ${ticket.idString} von ${ticket.username} erstellt.`);
     dashboardLog(`[Economy] Umtausch-Prozess gestartet...`);
-    await channel.send(`============================================\n\nTausch-System noch nicht in Betrieb. Bitte komme später wieder.\n\n============================================`);
+    setTimeout(async () => {
+      try {
+        await channel.send(
+          `============================================\n\n` +
+          `Tausch-System noch nicht in Betrieb. Bitte komme später wieder.\n\n` +
+          `============================================`
+        );
+      } catch (err) {
+        console.error(`❌ Fehler beim Senden der Nachricht im Economy-Ticket:`, err);
+      }
+    }, 1000);
   });
 }
 export function initAuditLogs(client) {
