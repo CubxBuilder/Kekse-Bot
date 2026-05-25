@@ -1530,6 +1530,21 @@ export function initCommandList(client) {
     }
   });
 }
+export function initEconomyTransferListener(client) {
+  client.on(Events.ChannelCreate, async (channel) {
+    const document = await getTickData("tickets");
+    const allEntries = document?.value?.tickets || {};
+    const ticket = Object.values(allEntries).find(
+        t => typeof t === 'object' && t.channelId === channel.id
+    );
+    if (!ticket || ticket.category !== "Economy") {
+        return;
+    }
+    dashboardLog(`[Economy] Economy-Ticket ${ticket.idString} von ${ticket.username} erstellt.`);
+    dashboardLog(`[Economy] Umtausch-Prozess gestartet...`);
+    await channel.send(`============================================\n\nTausch-System noch nicht in Betrieb. Bitte komme später wieder.\n\n============================================`);
+  });
+}
 export function initAuditLogs(client) {
     const sendLog = async (title, user, text, color = "#ffffff", thumb = null, channelId = null) => {
         if (channelId === LOG_CHANNEL_ID) return;
@@ -3943,7 +3958,8 @@ client.once("clientReady", async () => {
         await initEconomySystem(client);
         initAdminFun(client);
         initCommandList(client);
-        await initBotBalance(client)
+        await initBotBalance(client);
+        initEconomyTransferListener(client);
         client.user.setPresence({
             activities: [{ name: "!help", type: 0 }],
             status: "online"
