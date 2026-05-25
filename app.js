@@ -282,7 +282,10 @@ export async function getEcoData(key) {
 }
 export async function initEconomyGetKekse(client) {
   try {
+    // Holt sich das bereits registrierte Model direkt aus Mongoose
+    const StorageModel = mongoose.model('BotStorage');
     const allEcoDocuments = await StorageModel.find({ namespace: "economy" }).lean();
+    
     const existingKekse = allEcoDocuments.reduce((summe, doc) => {
       const isNumericKey = /^\d+$/.test(doc.key); 
       if (isNumericKey && doc.value && typeof doc.value.balance === "number") {
@@ -296,59 +299,79 @@ export async function initEconomyGetKekse(client) {
     return 0;
   }
 }
+
+let isBalanceListenerRegistered = false;
+
 export async function initBotBalance(client) {
   const existingKekse = await initEconomyGetKekse(client);
-  const currentBotData = await getEcoData("bot_balance");
-  const currentBalance = currentBotData.balance || 0;
-  await setEcoData("bot_balance", {
+  const currentBotData = await dbGet("economy", "bot_balance");
+  const currentBalance = currentBotData ? currentBotData.balance : 0;
+
+  await dbSet("economy", "bot_balance", {
     existingKekse: existingKekse,
     balance: currentBalance
   });
-  client.on("messageCreate", async (message) => {
-    if (message.author.bot) return;
-    if (!message.content.startsWith("!balance")) return;
-    if (!message.member || !message.member.roles.cache.has(TEAM_ROLE)) {
-      return message.reply("Du hast keine Berechtigung, diesen Befehl zu nutzen.");
-    }
-    const args = message.content.split(" ");
-    const action = args[1];
-    const amount = parseInt(args[2]);
-    if (action === "see") {
-      const balance = await getBotBalance();
-      return message.reply(`Die aktuelle Bot-Balance beträgt: **${balance}** Kekse.`);
-    }
-    if (action === "add") {
-      if (isNaN(amount) || amount <= 0) return message.reply("Bitte gib eine gültige Zahl an. Beispiel: `!balance add 100`");
-      await addBotBalance(amount);
-      return message.reply(`**${amount}** Kekse zur Bot-Balance hinzugefügt.`);
-    }
-    if (action === "remove") {
-      if (isNaN(amount) || amount <= 0) return message.reply("Bitte gib eine gültige Zahl an. Beispiel: `!balance remove 100`");
-      const current = await getBotBalance();
-      if (current - amount < 0) {
-        return message.reply(`Fehler: Die Balance kann nicht negativ werden! (Aktuell: ${current})`);
+
+  if (!isBalanceListenerRegistered) {
+    client.on("messageCreate", async (message) => {
+      if (message.author.bot) return;
+      if (!message.content.startsWith("!balance")) return;
+
+      // TEAM_ROLE muss global verfügbar sein oder importiert werden
+      if (!message.member || !message.member.roles.cache.has(TEAM_ROLE)) {
+        return message.reply("Du hast keine Berechtigung, diesen Befehl zu nutzen.");
       }
-      await removeBotBalance(amount);
-      return message.reply(`**${amount}** Kekse von der Bot-Balance abgezogen.`);
-    }
-  });
+
+      const args = message.content.split(" ");
+      const action = args[1]; // add, remove, see
+      const amount = parseInt(args[2]);
+
+      if (action === "see") {
+        const balance = await getBotBalance();
+        return message.reply(`Die aktuelle Bot-Balance beträgt: **${balance}** Kekse.`);
+      }
+
+      if (action === "add") {
+        if (isNaN(amount) || amount <= 0) return message.reply("Bitte gib eine gültige Zahl an. Beispiel: `!balance add 100`");
+        await addBotBalance(amount);
+        return message.reply(`**${amount}** Kekse zur Bot-Balance hinzugefügt.`);
+      }
+
+      if (action === "remove") {
+        if (isNaN(amount) || amount <= 0) return message.reply("Bitte gib eine gültige Zahl an. Beispiel: `!balance remove 100`");
+        
+        const current = await getBotBalance();
+        if (current - amount < 0) {
+          return message.reply(`Fehler: Die Balance kann nicht negativ werden! (Aktuell: ${current})`);
+        }
+
+        await removeBotBalance(amount);
+        return message.reply(`**${amount}** Kekse von der Bot-Balance abgezogen.`);
+      }
+    });
+
+    isBalanceListenerRegistered = true;
+  }
 }
+
 export async function getBotBalance() {
-  const data = await getEcoData("bot_balance");
-  return data.balance || 0;
+  const data = await dbGet("economy", "bot_balance");
+  return data ? data.balance : 0;
 }
+
 export async function addBotBalance(coins) {
   if (coins <= 0) return;
-  const data = await getEcoData("bot_balance");
+  const data = await dbGet("economy", "bot_balance") || {};
   data.balance = (data.balance || 0) + coins;
-  await setEcoData("bot_balance", data);
+  await dbSet("economy", "bot_balance", data);
 }
+
 export async function removeBotBalance(coins) {
   if (coins <= 0) return;
-  const data = await getEcoData("bot_balance");
+  const data = await dbGet("economy", "bot_balance") || {};
   const current = data.balance || 0;
   data.balance = Math.max(0, current - coins);
-  await setEcoData("bot_balance", data);
+  await dbSet("economy", "bot_balance", data);
 }
 export async function initEconomySystem(client) {
   const crashGames = new Map();
