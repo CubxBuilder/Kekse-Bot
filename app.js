@@ -281,15 +281,20 @@ export async function getEcoData(key) {
  return data || {};
 }
 export async function initEconomyGetKekse(client) {
-  const allEcoDocuments = await db.collection("botstorages").find({ namespace: "economy" }).toArray();
-  const existingKekse = allEcoDocuments.reduce((summe, doc) => {
-    const isNumericKey = /^\d+$/.test(doc.key); 
-    if (isNumericKey && doc.value && typeof doc.value.balance === "number") {
-      return summe + doc.value.balance;
-    }
-    return summe;
-  }, 0);
-  return existingKekse;
+  try {
+    const allEcoDocuments = await StorageModel.find({ namespace: "economy" }).lean();
+    const existingKekse = allEcoDocuments.reduce((summe, doc) => {
+      const isNumericKey = /^\d+$/.test(doc.key); 
+      if (isNumericKey && doc.value && typeof doc.value.balance === "number") {
+        return summe + doc.value.balance;
+      }
+      return summe;
+    }, 0);
+    return existingKekse;
+  } catch (err) {
+    console.error("❌ Fehler beim Berechnen der existingKekse:", err);
+    return 0;
+  }
 }
 export async function initBotBalance(client) {
   const existingKekse = await initEconomyGetKekse(client);
