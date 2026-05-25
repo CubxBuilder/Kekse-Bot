@@ -1530,30 +1530,172 @@ export function initCommandList(client) {
     }
   });
 }
-export function initEconomyTransferListener(client) {
-  client.on(Events.ChannelCreate, async (channel) => {
-    if (!channel.isTextBased()) return;
-    const document = await getTickData("tickets");
-    const allEntries = document?.value?.tickets || document?.tickets || {};
-    const ticket = Object.values(allEntries).find(
-        t => typeof t === 'object' && t.channelId === channel.id
+let activeTransfers = new Map();
+export async function initEconomyTransferSystem(client, channel) {
+  try {
+    const stats = await getEconomyStats(client);
+    const embed = new EmbedBuilder()
+      .setTitle("🏦 Keks <> Coin")
+      .setColor("#ffffff")
+      .setDescription(
+        `📊 **Aktuelle Tausch-Kurse:**\n` +
+        `• Kurs: **${stats.kekseProCoin} Kekse = 1 Coin**\n` +
+        `• Wert pro Keks: **${stats.kurs}** Coins (**${stats.prozent}%**)`
+      );
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId("eco_btn_deposit").setLabel("Kekse einzahlen").setEmoji("📥").setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId("eco_btn_withdraw").setLabel("Kekse auszahlen").setEmoji("📤").setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId("eco_btn_cancel").setLabel("Abbrechen").setEmoji("❌").setStyle(ButtonStyle.Danger)
     );
-    if (!ticket || ticket.category !== "Economy") {
+    await channel.send({ embeds: [embed], components: [row] });
+  } catch (error) {
+    console.error(error);
+  }
+}
+export function handleEconomyInteractions(client, closeTicketFunction) {
+  client.on("interactionCreate", async (int) => {
+    if (int.isButton()) {
+      if (int.customId === "eco_btn_cancel") {
+        await int.deferUpdate();
+        await int.channel.send(`============================================\n\n❌ Der Tauschprozess wurde abgebrochen.\n\n============================================`);
+        if (typeof closeTicketFunction === "function") {
+          return closeTicketFunction(int.channel, client.user);
+        }
         return;
-    }
-    dashboardLog(`[Economy] Economy-Ticket ${ticket.idString} von ${ticket.username} erstellt.`);
-    dashboardLog(`[Economy] Umtausch-Prozess gestartet...`);
-    setTimeout(async () => {
-      try {
-        await channel.send(
-          `============================================\n\n` +
-          `Tausch-System noch nicht in Betrieb. Bitte komme später wieder.\n\n` +
-          `============================================`
-        );
-      } catch (err) {
-        console.error(`❌ Fehler beim Senden der Nachricht im Economy-Ticket:`, err);
       }
-    }, 1000);
+      if (int.customId === "eco_btn_deposit" || int.customId === "eco_btn_withdraw") {
+        const isWithdraw = int.customId === "eco_btn_withdraw";
+        const modal = new ModalBuilder()
+          .setCustomId(isWithdraw ? "eco_mdl_withdraw" : "eco_mdl_deposit")
+          .setTitle(isWithdraw ? "Kekse auszahlen" : "Kekse einzahlen");
+        const amountInput = new TextInputBuilder()
+          .setCustomId("eco_txt_amount")
+          .setLabel("Menge der Kekse")
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder("z.B. 500")
+          .setRequired(true);
+        modal.addComponents(new ActionRowBuilder().addComponents(amountInput));
+        return await int.showModal(modal);
+      }
+      if (int.customId.startsWith("eco_confirm_yes_")) {
+        await int.deferUpdate();
+        const transferId = int.customId.replace("eco_confirm_yes_", "");
+        const transfer = activeTransfers.get(transferId);
+        if (!transfer || transfer.userId !== int.user.id) return;
+        transfer.step = "PENDING_TEAM";
+        activeTransfers.set(transferId, transfer);
+        const receiptEmbed = new EmbedBuilder()
+          .setTitle("🧾 Unbestätigte Quittung")
+          .setColor("#f1c40f")
+          .setDescription(
+            `**User:** <@${transfer.userId}>\n` +
+            `**Typ:** ${transfer.isWithdraw ? "Auszahlung (Coins ➔ Kekse)" : "Einzahlung (Kekse ➔ Coins)"}\n` +
+            `**Kekse:** ${transfer.amount}\n` +
+            `**Wechselwert:** ${transfer.totalCoins} Minevale Coins\n\n` +
+            `⏳ Warte auf Freigabe durch das Serverteam mit \`!confirm\` oder \`!decline\`.`
+          );
+        await int.editReply({ embeds: [receiptEmbed], components: [] });
+        if (transfer.isWithdraw) {
+          await removeBotBalance(transfer.amount);
+          await initBotBalance(client);
+        }
+        await int.channel.send({ content: `<@&${TEAM_PING_ROLE_ID}> Bitte prüft den Vorgang und nutzt \`!confirm\` oder \`!decline\`.` });
+        return;
+      }
+      if (int.customId.startsWith("eco_confirm_no_")) {
+        await int.deferUpdate();
+        const transferId = int.customId.replace("eco_confirm_no_", "");
+        activeTransfers.delete(transferId);
+        return initEconomyTransferSystem(client, int.channel);
+      }
+    }
+    if (int.isModalSubmit()) {
+      if (int.customId === "eco_mdl_deposit" || int.customId === "eco_mdl_withdraw") {
+        await int.deferReply();
+        const isWithdraw = int.customId === "eco_mdl_withdraw";
+        const amountText = int.fields.getTextInputValue("eco_txt_amount");
+        const amount = parseInt(amountText);
+        if (isNaN(amount) || amount <= 0) {
+          return await int.editReply("❌ Bitte gib eine gültige, positive Zahl ein.");
+        }
+        const vorschau = await getConversionPrice(client, amount, isWithdraw);
+        const stats = await getEconomyStats(client);
+
+        if (isWithdraw && amount > stats.botBalance) {
+          return await int.editReply(`❌ Der Bot hat nicht genügend Kekse auf Lager! (Verfügbar: ${stats.botBalance})`);
+        }
+        const transferId = `${int.channel.id}_${Date.now()}`;
+        activeTransfers.set(transferId, {
+          id: transferId,
+          channelId: int.channel.id,
+          userId: int.user.id,
+          username: int.user.username,
+          amount,
+          totalCoins: vorschau.gesamtCoins,
+          isWithdraw,
+          step: "PREVIEW"
+        });
+        const previewEmbed = new EmbedBuilder()
+          .setTitle("📊 Tausch-Vorschau & Überprüfung")
+          .setColor("#3498db")
+          .setDescription(
+            `Bitte überprüfe deine Angaben genau:\n\n` +
+            `• Aktion: **${isWithdraw ? "Auszahlung (➔ Kekse)" : "Einzahlung (➔ Coins)"}**\n` +
+            `• Keksmenge: **${amount} Kekse**\n` +
+            `• Du erhältst/verlierst: **${vorschau.gesamtCoins} Minevale Coins**\n\n` +
+            `Bist du dir sicher, dass du diesen Tausch durchführen möchtest?`
+          );
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId(`eco_confirm_yes_${transferId}`).setLabel("Ja, absenden").setStyle(ButtonStyle.Success),
+          new ButtonBuilder().setCustomId(`eco_confirm_no_${transferId}`).setLabel("Nein, zurück").setStyle(ButtonStyle.Danger)
+        );
+        return await int.editReply({ embeds: [previewEmbed], components: [row] });
+      }
+    }
+  });
+  client.on("messageCreate", async (msg) => {
+    if (msg.author.bot) return;
+    if (msg.content !== "!confirm" && msg.content !== "!decline") return;
+    const transfer = Array.from(activeTransfers.values()).find(t => t.channelId === msg.channel.id && t.step === "PENDING_TEAM");
+    if (!transfer) return;
+    if (!msg.member.roles.cache.has(TEAM_ROLE)) {
+      return msg.reply("Nur Teammitglieder können diesen Vorgang freigeben.");
+    }
+    if (msg.content === "!confirm") {
+      if (!transfer.isWithdraw) {
+        await addBotBalance(transfer.amount);
+        await initBotBalance(client);
+      }
+      activeTransfers.delete(transfer.id);
+      const finalEmbed = new EmbedBuilder()
+        .setTitle("✅ Tausch-Quittung")
+        .setColor("#2ecc71")
+        .setDescription(
+          `Der Tausch wurde erfolgreich vom Team bestätigt und abgeschlossen!\n\n` +
+          `**User:** <@${transfer.userId}>\n` +
+          `**Menge:** ${transfer.amount} Kekse\n` +
+          `**Gegenwert:** ${transfer.totalCoins} Minevale Coins\n` +
+          `**Typ:** ${transfer.isWithdraw ? "Auszahlung" : "Einzahlung"}`
+        )
+        .setTimestamp();
+      await msg.channel.send({ embeds: [finalEmbed] });
+
+      const user = await client.users.fetch(transfer.userId).catch(() => null);
+      if (user) {
+        await user.send({ embeds: [finalEmbed] }).catch(() => {});
+      }
+      return;
+    }
+    if (msg.content === "!decline") {
+      if (transfer.isWithdraw) {
+        await addBotBalance(transfer.amount);
+        await initBotBalance(client);
+      }
+
+      activeTransfers.delete(transfer.id);
+      await msg.reply("❌ Der Vorgang wurde vom Team abgelehnt.");
+      return initEconomyTransferSystem(client, msg.channel);
+    }
   });
 }
 export function initAuditLogs(client) {
@@ -3333,6 +3475,9 @@ export async function initTickets(client) {
       flags: MessageFlags.SuppressNotifications 
     });
     await channel.send({ content: greetings[category] });
+    if (category === "Economy") {
+      await initEconomyTransferSystem(guild.client, channel);
+    }
     await sendKekseLog("Ticket Erstellt", user, `**Kategorie:** ${category}\n**Kanal:** ${channel}\n**ID:** \`${idString}\``);
     globalBotStats.ticketsCreated += 1;
   } catch (err) {
@@ -3970,7 +4115,7 @@ client.once("clientReady", async () => {
         initAdminFun(client);
         initCommandList(client);
         await initBotBalance(client);
-        initEconomyTransferListener(client);
+        handleEconomyInteractions(client, closeTicket);
         client.user.setPresence({
             activities: [{ name: "!help", type: 0 }],
             status: "online"
