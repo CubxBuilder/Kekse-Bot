@@ -1260,7 +1260,7 @@ export async function initEconomySystem(client) {
       }
       
       userData.balance = (userData.balance || 0) + 10;
-      await logTransaction(userData.userId, payout, payout >= 0 ? "plus" : "minus", "Daily");
+      await logTransaction(interaction.user.id, payout, "plus", "Daily");
       userData.claimedDailies[setupId] = localizedDateStr;
       
       if (typeof userData.markModified === "function") {
