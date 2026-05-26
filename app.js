@@ -749,6 +749,7 @@ export async function initEconomySystem(client) {
             const win = Math.floor(betAmount * multiplier);
             const fresh = await getEcoData(msg.author.id);
             fresh.balance = (fresh.balance || 0) + win;
+            await logTransaction(msg.author.id, win, "plus", "Casino Crash");
             await setEcoData(msg.author.id, fresh);
             await gameMsg.edit({ embeds: [crashEmbed(false, multiplier)], components: [] }).catch(() => {});
             return;
