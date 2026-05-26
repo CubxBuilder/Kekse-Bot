@@ -1258,8 +1258,8 @@ export async function initEconomySystem(client) {
           ephemeral: true 
         });
       }
-      
-      userData.balance = (userData.balance || 0) + 10;
+      const payout = 10;
+      userData.balance = (userData.balance || 0) + payout;
       await logTransaction(interaction.user.id, payout, "plus", "Daily");
       userData.claimedDailies[setupId] = localizedDateStr;
       
