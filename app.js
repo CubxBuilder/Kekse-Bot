@@ -624,7 +624,7 @@ export async function initEconomySystem(client) {
         const flip = Math.random() < 0.5 ? 'heads' : 'tails';
         const won = flip === choice;
         userData.balance = (userData.balance || 0) + (won ? betAmount : -betAmount);
-        await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", "Casino Coinflip");
+        await logTransaction(msg.author.id, betAmount, won ? "plus" : "minus", "Casino Coinflip");
         await setEcoData(msg.author.id, userData);
 
         const cfEmbed = new EmbedBuilder()
