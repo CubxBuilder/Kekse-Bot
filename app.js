@@ -47,15 +47,27 @@ const client = new Client({
     Partials.GuildMember, Partials.User, Partials.ThreadMember
     ]
 });
-setInterval(() => {
+setInterval(async () => {
   if (client && client.ws) {
     const currentPing = client.ws.ping;
     if (currentPing && currentPing > 0) {
       globalBotStats.pingNow = currentPing;
       if (globalBotStats.pingMinimum === 0 || currentPing < globalBotStats.pingMinimum) globalBotStats.pingMinimum = currentPing;
-      if (currentPing > globalBotStats.pingMaximum) globalBotStats.pingMaximum = currentPing;
-      backendPingHistory.push({ x: Date.now(), y: currentPing });
-      if (backendPingHistory.length > 2880) backendPingHistory.shift();
+      if (globalBotStats.pingMaximum || currentPing > globalBotStats.pingMaximum) globalBotStats.pingMaximum = currentPing;
+      try {
+        const StorageModel = mongoose.model('BotStorage');
+        let pingDoc = await StorageModel.findOne({ namespace: "system", key: "ping_history" });
+        let history = pingDoc && pingDoc.value && Array.isArray(pingDoc.value.history) ? pingDoc.value.history : [];
+        history.push({ x: Date.now(), y: currentPing });
+        if (history.length > 2880) history.shift();
+        await StorageModel.updateOne(
+          { namespace: "system", key: "ping_history" },
+          { value: { history: history } },
+          { upsert: true }
+        );
+      } catch (err) {
+        originalError.apply(console, ["[Ping-Storage-Fehler]", err]);
+      }
     }
   }
 }, 30000);
@@ -4173,7 +4185,9 @@ app.get("/api/stats", async (req, res) => {
     const ecoStats = await getEconomyStats(client);
     const StorageModel = mongoose.model('BotStorage');
     const allEcoDocuments = await StorageModel.find({ namespace: "economy" }).lean();
-    
+    const pingDoc = await StorageModel.findOne({ namespace: "system", key: "ping_history" }).lean();
+    let dbPingHistory = pingDoc && pingDoc.value && Array.isArray(pingDoc.value.history) ? pingDoc.value.history : [];
+
     let accounts = [];
     let transactionLogs = {};
 
@@ -4213,7 +4227,7 @@ app.get("/api/stats", async (req, res) => {
         now: client.ws.ping || globalBotStats.pingNow || 0,
         avg: globalBotStats.pingAverage || client.ws.ping || 0,
         max: globalBotStats.pingMaximum || client.ws.ping || 0,
-        history: backendPingHistory
+        history: dbPingHistory
       },
       stats: {
         tickets: globalBotStats.ticketsCreated,
