@@ -791,7 +791,7 @@ export async function initEconomySystem(client) {
         }
 
         userData.balance -= betAmount;
-        await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", "Casino Higher Lower");
+        await logTransaction(msg.author.id, betAmount, "minus", "Casino Higher Lower");
         await setEcoData(msg.author.id, userData);
         hlGames.set(msg.author.id, true);
 
@@ -949,7 +949,7 @@ export async function initEconomySystem(client) {
           } else {
             status = "Echter Blackjack! Du gewinnst das 1.5-fache!";
             userData.balance += Math.floor(betAmount * 1.5);
-            await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", "Casino Blackjack");
+            await logTransaction(msg.author.id, Math.floor(betAmount * 1.5), "plus", "Casino Blackjack");
           }
 
           await setEcoData(msg.author.id, userData);
