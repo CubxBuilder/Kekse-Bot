@@ -60,6 +60,8 @@ setInterval(() => {
   }
 }, 30000);
 let archives = [];
+let logs = [];
+let backendPingHistory = [];
 export async function initTicketArchive(app, getTickData, setTickData) {
   try {
     const stored = await getTickData("archive_list") || {};
@@ -182,10 +184,8 @@ function parseTimeframe(tf) {
  default: return 0;
  }
 }
-let logs = [];
 const originalLog = console.log;
 const originalError = console.error;
-
 console.log = function(...args) {
   originalLog.apply(console, args);
   captureLog("info", args);
