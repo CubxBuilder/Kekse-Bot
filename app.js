@@ -3,7 +3,8 @@ import https from "https";
 import "dotenv/config"
 import path from "path"
 import mongoose from 'mongoose';
-import express from "express"
+import express from "express";
+import util from "util";
 import { fileURLToPath } from "url"
 import fs from "fs"
 import crypto from 'crypto';
@@ -46,8 +47,19 @@ const client = new Client({
     Partials.GuildMember, Partials.User, Partials.ThreadMember
     ]
 });
+setInterval(() => {
+  if (client && client.ws) {
+    const currentPing = client.ws.ping;
+    if (currentPing && currentPing > 0) {
+      globalBotStats.pingNow = currentPing;
+      if (globalBotStats.pingMinimum === 0 || currentPing < globalBotStats.pingMinimum) globalBotStats.pingMinimum = currentPing;
+      if (currentPing > globalBotStats.pingMaximum) globalBotStats.pingMaximum = currentPing;
+      backendPingHistory.push({ x: Date.now(), y: currentPing });
+      if (backendPingHistory.length > 2880) backendPingHistory.shift();
+    }
+  }
+}, 30000);
 let archives = [];
-let logs = [];
 const originalLog = console.log;
 const originalError = console.error;
 function captureLog(type, args) {
@@ -206,6 +218,46 @@ function parseTimeframe(tf) {
  case "d": return num * 86400000;
  default: return 0;
  }
+}
+function captureLog(type, args) {
+  const message = args.map(arg => {
+    if (arg instanceof Error) return arg.stack || arg.message;
+    if (typeof arg === "object" && arg !== null) {
+      try {
+        if (arg.embeds || arg.content) {
+          return `[Bot-Nachricht] ${arg.content || ""} ${arg.embeds ? JSON.stringify(arg.embeds) : ""}`;
+        }
+        return util.inspect(arg, { depth: 2, colors: false });
+      } catch (e) {
+        return "[Komplexes Objekt]";
+      }
+    }
+    return String(arg);
+  }).join(" ");
+
+  const logEntry = {
+    timestamp: Date.now(),
+    type: type,
+    message: message
+  };
+  logs.push(logEntry);
+  if (logs.length > 100) logs.shift();
+}
+async function logTransaction(userId, amount, type, description) {
+  try {
+    const key = `tx_${userId}`;
+    const data = await dbGet("economy", key) || { history: [] };
+    data.history.unshift({
+      timestamp: Date.now(),
+      amount: amount,
+      type: type,
+      description: description
+    });
+    if (data.history.length > 50) data.history.pop();
+    await dbSet("economy", key, data);
+  } catch (err) {
+    console.error(err);
+  }
 }
 const TEAM_ROLE = "1457906448234319922";
 const LOG_CHANNEL_ID = "1423413348220796991";
@@ -569,6 +621,7 @@ export async function initEconomySystem(client) {
         }
 
         userData.balance = (userData.balance || 0) + payout;
+        await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", "Casino Roulette");
         await setEcoData(msg.author.id, userData);
 
         const roulEmbed = new EmbedBuilder()
@@ -595,6 +648,7 @@ export async function initEconomySystem(client) {
         const flip = Math.random() < 0.5 ? 'heads' : 'tails';
         const won = flip === choice;
         userData.balance = (userData.balance || 0) + (won ? betAmount : -betAmount);
+        await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", "Casino Coinflip");
         await setEcoData(msg.author.id, userData);
 
         const cfEmbed = new EmbedBuilder()
@@ -618,6 +672,7 @@ export async function initEconomySystem(client) {
         }
 
         userData.balance -= betAmount;
+        await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", "Casino Jackpot");
         await setEcoData(msg.author.id, userData);
         jackpotState.entries.push({ userId: msg.author.id, username: msg.author.username, betAmount });
         jackpotState.totalPool += betAmount;
@@ -670,6 +725,7 @@ export async function initEconomySystem(client) {
           return msg.reply({ content: "Du hast bereits ein aktives Crash-Spiel!", ephemeral: true });
         }
         userData.balance -= betAmount;
+        await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", "Casino Crash");
         await setEcoData(msg.author.id, userData);
         const crashPoint = parseFloat(Math.max(1.01, 0.97 / (1 - Math.random())).toFixed(2));
         let multiplier = 1.00;
@@ -759,6 +815,7 @@ export async function initEconomySystem(client) {
         }
 
         userData.balance -= betAmount;
+        await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", "Casino Higher Lower");
         await setEcoData(msg.author.id, userData);
         hlGames.set(msg.author.id, true);
 
@@ -916,6 +973,7 @@ export async function initEconomySystem(client) {
           } else {
             status = "Echter Blackjack! Du gewinnst das 1.5-fache!";
             userData.balance += Math.floor(betAmount * 1.5);
+            await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", "Casino Blackjack");
           }
 
           await setEcoData(msg.author.id, userData);
@@ -983,7 +1041,7 @@ export async function initEconomySystem(client) {
             status = "Unentschieden! Kekse zurück.";
             finalColor = 0x333333;
           }
-
+          await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", "Casino Crash");
           await setEcoData(msg.author.id, userData);
 
           const finalEmbed = createEmbed(`Blackjack - ${status}`, finalColor, true)
@@ -1120,7 +1178,7 @@ export async function initEconomySystem(client) {
 
   userData.balance -= amount;
   targetData.balance = (targetData.balance || 0) + amount;
-
+  await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", `Pay an ${targetData.username}`);
   await setEcoData(msg.author.id, userData);
   await setEcoData(targetUserId, targetData);
 
@@ -1232,6 +1290,7 @@ export async function initEconomySystem(client) {
       }
       
       userData.balance = (userData.balance || 0) + 10;
+      await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", "Daily");
       userData.claimedDailies[setupId] = localizedDateStr;
       
       if (typeof userData.markModified === "function") {
@@ -1643,6 +1702,7 @@ export async function handleEconomyInteractions(client) {
             return initEconomyTransferSystem(client, int.channel);
           }
           userData.balance = currentBalance - transfer.amount;
+          await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", "Trasaction");
           await setEcoData(transfer.userId, userData);
         }
         transfer.step = "PENDING_TEAM";
@@ -1750,6 +1810,7 @@ export async function handleEconomyInteractions(client) {
       if (transfer.isBuy) {
         const userData = await getEcoData(transfer.userId);
         userData.balance = (userData.balance || 0) + transfer.amount;
+        await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", "Transaction");
         await setEcoData(transfer.userId, userData);
         await addBotBalance(transfer.totalCoins);
       } else {
@@ -1785,6 +1846,7 @@ export async function handleEconomyInteractions(client) {
       if (!transfer.isBuy) {
         const userData = await getEcoData(transfer.userId);
         userData.balance = (userData.balance || 0) + transfer.amount;
+        await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", "Transaction cancled");
         await setEcoData(transfer.userId, userData);
       }
       activeTransfers.delete(transfer.id);
@@ -4118,61 +4180,118 @@ export async function initDashboard(app, client, globalBotStats) {
 }
 app.get("/api/stats", async (req, res) => {
   try {
-    const currentVersion = "2.4.3";
-    if (!client || !client.isReady()) {
-      return res.json({ 
-        guild: null, 
-        users: 0, 
-        bots: 0, 
-        uptime: 0, 
-        version: currentVersion, 
-        lastRestart: new Date().toISOString(),
-        ping: { now: 0, avg: 0, max: 0 },
-        stats: { tickets: 0, polls: 0, giveaways: 0, commands: 0, scams: 0, deleted: 0 },
-        logs: [] 
-      });
+    const guild = client.guilds.cache.first() || { name: "Kekse Server", id: "—", channels: { cache: { size: 0 } } };
+    let ownerName = "Unbekannt";
+    let userCount = globalBotStats.membersJoined;
+    let botCount = 0;
+
+    if (guild.fetchOwner) {
+      const owner = await guild.fetchOwner().catch(() => null);
+      if (owner) ownerName = owner.user.username;
+      userCount = guild.members ? guild.members.cache.filter(m => !m.user.bot).size : userCount;
+      botCount = guild.members ? guild.members.cache.filter(m => m.user.bot).size : 0;
     }
 
-    const guild = client.guilds.cache.first();
+    const ecoStats = await getEconomyStats(client);
+    const StorageModel = mongoose.model('BotStorage');
+    const allEcoDocuments = await StorageModel.find({ namespace: "economy" }).lean();
+    
+    let accounts = [];
+    let transactionLogs = {};
 
-    const guildData = guild ? {
-      name: guild.name,
-      id: guild.id,
-      owner: "cubxbuilder",
-      channels: guild.channels.cache.size
-    } : null;
+    for (const doc of allEcoDocuments) {
+      if (/^\d+$/.test(doc.key) && doc.value) {
+        accounts.push({
+          userId: doc.key,
+          username: doc.value.username || "Unbekannt",
+          mcUsername: doc.value.mcUsername || "Nicht registriert",
+          balance: doc.value.balance || 0,
+          blocked: doc.value.blocked || false
+        });
+      } else if (doc.key.startsWith("tx_") && doc.value && doc.value.history) {
+        const uId = doc.key.replace("tx_", "");
+        transactionLogs[uId] = doc.value.history;
+      }
+    }
 
-    const totalMembers = guild ? guild.memberCount : 0;
-    const botCount = guild ? guild.members.cache.filter(m => m.user.bot).size : 0;
-    const userCount = totalMembers - botCount;
-
-    const currentPing = client.ws.ping;
-    const validPing = currentPing >= 0 ? currentPing : 0;
+    const mappedLogs = logs.map(l => ({
+      t: l.timestamp,
+      m: `[${l.type.toUpperCase()}] ${l.message}`
+    }));
 
     res.json({
-      guild: guildData,
+      guild: {
+        name: guild.name,
+        id: guild.id,
+        owner: ownerName,
+        channels: guild.channels?.cache?.size || 0
+      },
       users: userCount,
       bots: botCount,
-      uptime: Math.floor(client.uptime / 1000),
-      version: "2.4.3",
-      lastRestart: new Date(Date.now() - client.uptime).toISOString(),
+      uptime: Math.floor(process.uptime()),
+      version: "2.1.0",
+      lastRestart: Date.now() - (process.uptime() * 1000),
       ping: {
-        now: validPing,
-        avg: validPing,
-        max: validPing
+        now: client.ws.ping || globalBotStats.pingNow || 0,
+        avg: globalBotStats.pingAverage || client.ws.ping || 0,
+        max: globalBotStats.pingMaximum || client.ws.ping || 0,
+        history: backendPingHistory
       },
       stats: {
-        tickets: globalBotStats.ticketsCreated || 0,
-        polls: globalBotStats.pollsCreated || 0,
-        giveaways: globalBotStats.giveawaysCreated || 0,
-        commands: globalBotStats.commandsRunned || 0,
-        scams: globalBotStats.usersVerified || 0,
-        deleted: globalBotStats.countingMessagesFailed || 0
+        tickets: globalBotStats.ticketsCreated,
+        polls: globalBotStats.pollsCreated,
+        giveaways: globalBotStats.giveawaysCreated,
+        commands: globalBotStats.commandsRunned,
+        scams: globalBotStats.countingMessagesFailed,
+        deleted: globalBotStats.countingMessagesRecovered
       },
-      logs: typeof logs !== "undefined" ? logs : []
+      economy: {
+        existingKekse: ecoStats.existingKekse,
+        botBalance: ecoStats.botBalance,
+        kurs: ecoStats.kurs,
+        kekseProCoin: ecoStats.kekseProCoin,
+        prozent: ecoStats.prozent
+      },
+      accounts: accounts,
+      transactionLogs: transactionLogs,
+      logs: mappedLogs
     });
   } catch (error) {
-    res.status(500).json({ error: "Fehler beim Laden der Statistiken" });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/accounts/action", express.json(), async (req, res) => {
+  try {
+    const { token, userId, action, amount } = req.body;
+    if (!token) return res.status(401).json({ error: "Kein Token angegeben" });
+    
+    const inputHash = crypto.createHash('sha256').update(token).digest('hex');
+    const ADMIN_TOKEN_HASH = "98b597cf0dab8d66c56c7368241dcb52db0c68eb6db44a6d762f7d45fb2db07c";
+    if (inputHash !== ADMIN_TOKEN_HASH) return res.status(403).json({ error: "Ungültiger Admin Token" });
+
+    const userData = await getEcoData(userId);
+    if (!userData || !userData.username) return res.status(404).json({ error: "Konto nicht gefunden" });
+
+    if (action === "toggle-block") {
+      userData.blocked = !userData.blocked;
+      await logTransaction(userId, 0, "neutral", `Konto durch Dashboard ${userData.blocked ? "gesperrt" : "entsperrt"}`);
+    } else if (action === "add-kekse") {
+      const val = parseInt(amount);
+      if (isNaN(val) || val <= 0) return res.status(400).json({ error: "Ungültiger Betrag" });
+      userData.balance = (userData.balance || 0) + val;
+      await logTransaction(userId, val, "plus", "Dashboard Gutschrift");
+    } else if (action === "remove-kekse") {
+      const val = parseInt(amount);
+      if (isNaN(val) || val <= 0) return res.status(400).json({ error: "Ungültiger Betrag" });
+      userData.balance = Math.max(0, (userData.balance || 0) - val);
+      await logTransaction(userId, val, "minus", "Dashboard Abzug");
+    }
+
+    await setEcoData(userId, userData);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 process.on('unhandledRejection', (reason, promise) => {
