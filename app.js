@@ -95,9 +95,6 @@ export async function initTicketArchive(app, getTickData, setTickData) {
         if (inputHash === ADMIN_TOKEN_HASH) {
             console.log(`[TicketArchive] Ein Admin hat sich eingeloggt.`);
         }
-        if (!allowedTicket) {
-            return res.status(403).json({ error: "Ungültiger Token" });
-        }
         res.json([archives]);
     });
 }
