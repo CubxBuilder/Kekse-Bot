@@ -872,6 +872,7 @@ export async function initEconomySystem(client) {
             if (streak > 0) {
               const win = Math.floor(betAmount * multiplier);
               fresh.balance = (fresh.balance || 0) + win;
+              await logTransaction(msg.author.id, win, "plus", "Casino Higher Lower");
               await setEcoData(msg.author.id, fresh);
               await gameMsg.edit({ embeds: [hlEmbed(`Zeit abgelaufen! Auto Cash-Out bei **${multiplier.toFixed(2)}x**\n**+${win - betAmount} Kekse**\nNeuer Kontostand: **${fresh.balance} Kekse**`, 0x333333)], components: [] }).catch(() => {});
             } else {
