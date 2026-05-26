@@ -1210,13 +1210,7 @@ export async function initEconomySystem(client) {
 }
   });
   client.on("interactionCreate", async (interaction) => {
-  
-  // ==========================================
-  // BUTTON INTERAKTIONEN
-  // ==========================================
   if (interaction.isButton()) {
-    
-    // 1. Bank Modal öffnen
     if (interaction.customId.startsWith("open_bank_modal_")) {
       const allowedUserId = interaction.customId.replace("open_bank_modal_", "");
       
@@ -1266,7 +1260,7 @@ export async function initEconomySystem(client) {
       }
       
       userData.balance = (userData.balance || 0) + 10;
-      await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", "Daily");
+      await logTransaction(interaction.author.id, payout, payout >= 0 ? "plus" : "minus", "Daily");
       userData.claimedDailies[setupId] = localizedDateStr;
       
       if (typeof userData.markModified === "function") {
