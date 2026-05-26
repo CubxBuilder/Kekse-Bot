@@ -82,21 +82,23 @@ export async function initTicketArchive(app, getTickData, setTickData) {
   } catch (e) {
     console.log("[TicketArchive] Fehler beim Laden: " + e.message);
   }
-  const ADMIN_TOKEN_HASH = "98b597cf0dab8d66c56c7368241dcb52db0c68eb6db44a6d762f7d45fb2db07c";
   app.get("/admin/login", (req, res) => {
       res.sendFile(path.join(__dirname, "public", "admin", "login", "index.html"));
   });
-  app.get("/api/tickets", (req, res) => {
-      const userToken = req.query.token;
-        if (!userToken) {
-            return res.status(401).json({ error: "Kein Token angegeben" });
-        }
-        const inputHash = crypto.createHash('sha256').update(userToken).digest('hex');
-        if (inputHash === ADMIN_TOKEN_HASH) {
-            console.log(`[TicketArchive] Ein Admin hat sich eingeloggt.`);
-        }
-        res.json([archives]);
-    });
+  app.get("/api/tickets", async (req, res) => {
+  try {
+    const StorageModel = mongoose.model('BotStorage');
+    const allTicketDocs = await StorageModel.find({ namespace: "tickets" }).lean();
+    
+    const allTickets = allTicketDocs
+      .filter(doc => doc.value && doc.value.messages)
+      .map(doc => doc.value);
+
+    res.json(allTickets);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 }
 export async function archiveTicket({ name, closedBy, channel }, setTickData) {
   try {
