@@ -632,6 +632,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script>
+      let openedLogUsers = new Set();
       const $ = id => document.getElementById(id);
 const set = (id, v) => { const el = $(id); if (el) el.textContent = v ?? "—"; };
 const fmtUptime = s => {
@@ -717,8 +718,9 @@ function processAndRenderAccounts() {
  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:15px; color:var(--text-muted);">Keine Konten gefunden</td></tr>`;
  return;
  }
-    tbody.innerHTML = filtered.map(a => {
+      tbody.innerHTML = filtered.map(a => {
     const userLogs = rawTxLogsCache[a.userId] || [];
+    const isOpen = openedLogUsers.has(a.userId);
     const logHtml = userLogs.length ? userLogs.map(l => {
       const color = l.type === "plus" ? "#4ade80" : l.type === "minus" ? "#f87171" : "#888888";
       const prefix = l.type === "plus" ? "+" : l.type === "minus" ? "-" : "";
@@ -734,8 +736,8 @@ function processAndRenderAccounts() {
       <td style="padding:8px; color:#4ade80; font-weight:bold;">${a.balance} Kekse</td>
       <td style="padding:8px;">${a.blocked ? '<span style="color:#f87171;">Gesperrt</span>' : '<span style="color:#4ade80;">Aktiv</span>'}</td>
       <td style="padding:8px;">
-        <button class="log-toggle-btn" onclick="toggleUserLogs('${a.userId}', this)">Anzeigen</button>
-        <div id="logs-container-${a.userId}" class="tx-container" style="margin-top: 5px;">${logHtml}</div>
+        <button class="log-toggle-btn" onclick="toggleUserLogs('${a.userId}', this)">${isOpen ? 'Verbergen' : 'Anzeigen'}</button>
+        <div id="logs-container-${a.userId}" class="tx-container ${isOpen ? 'open' : ''}" style="margin-top: 5px;">${logHtml}</div>
       </td>
       <td style="padding:8px; display:flex; gap:5px; flex-wrap:wrap;">
         <button onclick="handleAccountAction('${a.userId}', 'add-kekse')" style="padding:4px 8px; background:#2e7d32; color:white; border:none; border-radius:4px; font-size:0.75rem; cursor:pointer;">+ Geben</button>
@@ -860,7 +862,13 @@ navigator.serviceWorker.register('sw.js');
   const container = document.getElementById(`logs-container-${userId}`);
   if (container) {
     container.classList.toggle("open");
-    btn.textContent = container.classList.contains("open") ? "Verbergen" : "Anzeigen";
+    if (container.classList.contains("open")) {
+      openedLogUsers.add(userId);
+      btn.textContent = "Verbergen";
+    } else {
+      openedLogUsers.delete(userId);
+      btn.textContent = "Anzeigen";
+    }
   }
 };
 
