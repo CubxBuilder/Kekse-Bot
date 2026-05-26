@@ -1162,7 +1162,7 @@ export async function initEconomySystem(client) {
   userData.balance -= amount;
   targetData.balance = (targetData.balance || 0) + amount;
   await logTransaction(msg.author.id, amount, "minus", `Pay an ${targetData.username}`);
-  await logTransaction(targetData.userId, amount, "plus", `Pay von ${msg.author.id}`);
+  await logTransaction(targetData.userId, amount, "plus", `Pay von ${userData.username}`);
   await setEcoData(msg.author.id, userData);
   await setEcoData(targetUserId, targetData);
 
