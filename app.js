@@ -28,7 +28,7 @@ const options = {
 
 const port = 5000;
 https.createServer(options, app).listen(port, '0.0.0.0', () => {
-  dashboardLog(`Dashboard läuft sicher auf Port ${port} via HTTPS!`);
+  console.log(`Dashboard läuft sicher auf Port ${port} via HTTPS!`);
 });
 const client = new Client({
     intents: [
@@ -64,9 +64,9 @@ export async function initTicketArchive(app, getTickData, setTickData) {
   try {
     const stored = await getTickData("archive_list") || {};
     archives = Array.isArray(stored.archive) ? stored.archive : [];
-    dashboardLog(`[TicketArchive] ${archives.length} archivierte Tickets geladen.`);
+    console.log(`[TicketArchive] ${archives.length} archivierte Tickets geladen.`);
   } catch (e) {
-    dashboardLog("[TicketArchive] Fehler beim Laden: " + e.message);
+    console.log("[TicketArchive] Fehler beim Laden: " + e.message);
   }
   const ADMIN_TOKEN_HASH = "98b597cf0dab8d66c56c7368241dcb52db0c68eb6db44a6d762f7d45fb2db07c";
   app.get("/admin/login", (req, res) => {
@@ -79,7 +79,7 @@ export async function initTicketArchive(app, getTickData, setTickData) {
         }
         const inputHash = crypto.createHash('sha256').update(userToken).digest('hex');
         if (inputHash === ADMIN_TOKEN_HASH) {
-            dashboardLog(`[TicketArchive] Ein Admin hat sich eingeloggt.`);
+            console.log(`[TicketArchive] Ein Admin hat sich eingeloggt.`);
             return res.json(archives);
         }
         const allowedTicket = archives.find(t => t.token === userToken);
@@ -127,7 +127,7 @@ export async function archiveTicket({ name, closedBy, channel }, setTickData) {
     });
     if (archives.length > 100) archives.pop();
     await setTickData("archive_list", { archive: archives });
-    dashboardLog(`[TicketArchive] ✅ "${name}" archiviert — ${messages.length} Nachrichten.`);
+    console.log(`[TicketArchive] ✅ "${name}" archiviert — ${messages.length} Nachrichten.`);
     const sendKekseLog = async (ticketName, ticketMessages) => {
         const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
         if (!logChannel) return;
@@ -148,7 +148,7 @@ export async function archiveTicket({ name, closedBy, channel }, setTickData) {
         await channel.delete().catch(() => {});
     }, 2000);      
   } catch (e) {
-    dashboardLog(`[TicketArchive] ❌ Fehler bei "${name}": ${e.message}`);
+    console.log(`[TicketArchive] ❌ Fehler bei "${name}": ${e.message}`);
   }
 }
 export let globalBotStats = {
@@ -165,9 +165,9 @@ async function startStorages() {
     if (stats) {
       globalBotStats = { ...globalBotStats, ...stats };
     }
-    dashboardLog("[Storage] Globale Statistiken erfolgreich geladen.");
+    console.log("[Storage] Globale Statistiken erfolgreich geladen.");
   } catch (error) {
-    dashboardLog(`[Storage] Fehler beim Laden der Statistiken: ${error.message}`);
+    console.log(`[Storage] Fehler beim Laden der Statistiken: ${error.message}`);
   }
 }
 function parseTimeframe(tf) {
@@ -182,6 +182,19 @@ function parseTimeframe(tf) {
  default: return 0;
  }
 }
+let logs = [];
+const originalLog = console.log;
+const originalError = console.error;
+
+console.log = function(...args) {
+  originalLog.apply(console, args);
+  captureLog("info", args);
+};
+
+console.error = function(...args) {
+  originalError.apply(console, args);
+  captureLog("error", args);
+};
 function captureLog(type, args) {
   const message = args.map(arg => {
     if (arg instanceof Error) return arg.stack || arg.message;
@@ -471,7 +484,7 @@ export async function initEconomySystem(client) {
       );
 
       await msg.channel.send({ embeds: [embed], components: [row] });
-      dashboardLog(`[Economy] Neues Daily Setup erstellt. (daily_claim_${setupId})`);
+      console.log(`[Economy] Neues Daily Setup erstellt. (daily_claim_${setupId})`);
       return msg.delete().catch(() => {});
     }
     if (command === "!shop_setup") {
@@ -1145,7 +1158,7 @@ export async function initEconomySystem(client) {
   await setEcoData(msg.author.id, userData);
   await setEcoData(targetUserId, targetData);
 
-  dashboardLog(`[Economy] Überweisung von ${userData.username || msg.author.username} an ${targetData.username || targetUserId} für ${amount} Kekse.`);
+  console.log(`[Economy] Überweisung von ${userData.username || msg.author.username} an ${targetData.username || targetUserId} für ${amount} Kekse.`);
 
 
   const payEmbed = new EmbedBuilder()
@@ -1371,7 +1384,7 @@ export async function initEconomySystem(client) {
       });
       
       if (typeof dashboardLog === "function") {
-        dashboardLog(`[Economy] Neues Konto für ${interaction.user.id} (MC: ${mcUsername}) erstellt.`);
+        console.log(`[Economy] Neues Konto für ${interaction.user.id} (MC: ${mcUsername}) erstellt.`);
       }
     }
   }
@@ -1561,7 +1574,7 @@ async function loadActiveTransfers() {
     for (const [id, transfer] of Object.entries(saved)) {
       activeTransfers.set(id, transfer);
     }
-    dashboardLog(`[Transfer] ${activeTransfers.size} aktive Transfers aus DB geladen.`);
+    console.log(`[Transfer] ${activeTransfers.size} aktive Transfers aus DB geladen.`);
   }
 }
 async function internalCloseTicket(channel, moderator) {
@@ -2028,7 +2041,7 @@ export async function clear(client) {
         }
       }
     } catch (clearError) {
-      dashboardLog(`[ClearCommand] Fehler bei der Ausführung: ${clearError.message}`);
+      console.log(`[ClearCommand] Fehler bei der Ausführung: ${clearError.message}`);
       if (statusMsg) await statusMsg.edit("❌ Ein interner Fehler ist beim Löschen aufgetreten.").catch(() => {});
       return;
     }
@@ -2108,7 +2121,7 @@ Grund: ${reason}${sectionTitle ? ` (${sectionTitle})` : ""}${durationText}${rule
 
 Um sicherzustellen, dass unsere Community sicher und freundlich bleibt, befolge bitte unsere Regeln. Die vollständigen Regeln findest du hier: https://discord.com/channels/1423413347168157718/1423413348065611949`;
 
-  await user.send(message).catch(() => dashboardLog(`Konnte DM an ${user.tag} nicht senden.`));
+  await user.send(message).catch(() => console.log(`Konnte DM an ${user.tag} nicht senden.`));
 }
 export function initModSend(client) {
   client.on("guildAuditLogEntryCreate", async (entry, guild) => {
@@ -2601,7 +2614,7 @@ function initReminder(client) {
           await user.send(`⏰ Erinnerung aus einem gelöschten Kanal: ${r.reason}`).catch(() => {});
         }
       } catch (err) {
-        dashboardLog(`[Reminder] Fehler beim Senden einer Erinnerung: ${err.message}`);
+        console.log(`[Reminder] Fehler beim Senden einer Erinnerung: ${err.message}`);
       }
     }
   }
@@ -3032,7 +3045,7 @@ export function initHelp(client) {
 
     if (cmd !== "help") return;
 
-    dashboardLog(`[HELP] Von ${msg.author.username}`);
+    console.log(`[HELP] Von ${msg.author.username}`);
     await msg.channel.send(
       "Erstelle ein <#1423413348493430905>. Ein Moderator wird sich so schnell wie möglich um dein Anliegen kümmern."
     );
@@ -3350,7 +3363,7 @@ export function initReactions(client) {
         message.type === MessageType.GuildBoostTier2 || 
         message.type === MessageType.GuildBoostTier3) {
       try {
-        dashboardLog(`[BOOST] Boost erkannt von ${message.author.username}. Sende Herz-Nachricht.`);
+        console.log(`[BOOST] Boost erkannt von ${message.author.username}. Sende Herz-Nachricht.`);
         await message.react("❤️");
       } catch (err) {
         console.error("[BOOST] Fehler beim Senden der Herz-Antwort:", err);
@@ -3362,19 +3375,19 @@ export function initReactions(client) {
 
     if (message.content.includes("🍪")) {
       try {
-        dashboardLog(`[REACTION] Keks-Reaktion für ${message.author.username}`);
+        console.log(`[REACTION] Keks-Reaktion für ${message.author.username}`);
         await message.channel.send("<:pepecookie:1453796363442585660>");
       } catch {}
     }
 
     if (message.mentions.everyone) {
       try {
-        dashboardLog(`[REACTION] Everyone-Ping-Reaktion für ${message.author.username}`);
+        console.log(`[REACTION] Everyone-Ping-Reaktion für ${message.author.username}`);
         await message.channel.send("<a:pingeveryone:1453800508329558218>");
       } catch {}
     } else if (message.mentions.has(client.user.id)) {
       try {
-        dashboardLog(`[REACTION] Bot-Ping-Reaktion für ${message.author.username}`);
+        console.log(`[REACTION] Bot-Ping-Reaktion für ${message.author.username}`);
         await message.channel.send("<:ping:1453799622303813714>");
       } catch {}
     }
@@ -3611,7 +3624,7 @@ export async function initTickets(client) {
       t => typeof t === 'object' && t.channelId === channel.id
     );
     if (!ticket) {
-      dashboardLog("Gesuchte Channel-ID:", channel.id);
+      console.log("Gesuchte Channel-ID:", channel.id);
       return channel.send("❌ Kein aktives Ticket in der Datenbank gefunden.");
     }
     await channel.permissionOverwrites.delete(ticket.userId).catch(() => {});
@@ -3845,7 +3858,7 @@ export async function initStatistics(client) {
         lastSentDay = currentDay;
         const user = await client.users.fetch("1151971830983311441");
         await user.send(getStatsMessage());
-        dashboardLog("Tägliche Statistik gesendet");
+        console.log("Tägliche Statistik gesendet");
       }
     } catch (err) {
       console.error("Fehler beim Senden der Statistik:", err);
@@ -4296,7 +4309,7 @@ client.once("clientReady", async () => {
             activities: [{ name: "!help", type: 0 }],
             status: "online"
         });
-        dashboardLog(`Bot online: ${client.user.tag}`);
+        console.log(`Bot online: ${client.user.tag}`);
         await startStorages();
     } catch (err) {
         console.error('[Ready] Kritischer Fehler beim Initialisieren:', err);
@@ -4320,7 +4333,7 @@ client.on("error", console.error)
 client.on("warn", console.warn)
 mongoose.connect(process.env.MONGODB_URI)
   .then(async () => {
-    dashboardLog('🍃 MongoDB verbunden!');
+    console.log('🍃 MongoDB verbunden!');
     await startStorages();
     client.login(process.env.BOT_TOKEN);
   })
