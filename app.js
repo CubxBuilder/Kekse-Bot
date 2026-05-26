@@ -701,7 +701,7 @@ export async function initEconomySystem(client) {
           return msg.reply({ content: "Du hast bereits ein aktives Crash-Spiel!", ephemeral: true });
         }
         userData.balance -= betAmount;
-        await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", "Casino Crash");
+        await logTransaction(msg.author.id, betAmount, "minus", "Casino Crash");
         await setEcoData(msg.author.id, userData);
         const crashPoint = parseFloat(Math.max(1.01, 0.97 / (1 - Math.random())).toFixed(2));
         let multiplier = 1.00;
@@ -1017,7 +1017,7 @@ export async function initEconomySystem(client) {
             status = "Unentschieden! Kekse zurück.";
             finalColor = 0x333333;
           }
-          await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", "Casino Crash");
+          await logTransaction(msg.author.id, betAmount, betAmount >= 0 ? "plus" : "minus", "Casino Crash");
           await setEcoData(msg.author.id, userData);
 
           const finalEmbed = createEmbed(`Blackjack - ${status}`, finalColor, true)
@@ -1154,7 +1154,8 @@ export async function initEconomySystem(client) {
 
   userData.balance -= amount;
   targetData.balance = (targetData.balance || 0) + amount;
-  await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", `Pay an ${targetData.username}`);
+  await logTransaction(msg.author.id, amount, "minus", `Pay an ${targetData.username}`);
+  await logTransaction(targetData.userId, amount, "plus", `Pay von ${msg.author.id}`);
   await setEcoData(msg.author.id, userData);
   await setEcoData(targetUserId, targetData);
 
