@@ -94,13 +94,11 @@ export async function initTicketArchive(app, getTickData, setTickData) {
         const inputHash = crypto.createHash('sha256').update(userToken).digest('hex');
         if (inputHash === ADMIN_TOKEN_HASH) {
             console.log(`[TicketArchive] Ein Admin hat sich eingeloggt.`);
-            return res.json(archives);
         }
-        const allowedTicket = archives.find(t => t.token === userToken);
         if (!allowedTicket) {
             return res.status(403).json({ error: "Ungültiger Token" });
         }
-        res.json([allowedTicket]);
+        res.json([archives]);
     });
 }
 export async function archiveTicket({ name, closedBy, channel }, setTickData) {
