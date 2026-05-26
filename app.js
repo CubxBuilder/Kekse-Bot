@@ -1017,7 +1017,7 @@ export async function initEconomySystem(client) {
             status = "Unentschieden! Kekse zurück.";
             finalColor = 0x333333;
           }
-          await logTransaction(msg.author.id, betAmount, betAmount >= 0 ? "plus" : "minus", "Casino Crash");
+          await logTransaction(msg.author.id, betAmount, betAmount >= 0 ? "plus" : "minus", "Casino Blackjack");
           await setEcoData(msg.author.id, userData);
 
           const finalEmbed = createEmbed(`Blackjack - ${status}`, finalColor, true)
