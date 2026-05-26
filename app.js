@@ -85,20 +85,32 @@ export async function initTicketArchive(app, getTickData, setTickData) {
   app.get("/admin/login", (req, res) => {
       res.sendFile(path.join(__dirname, "public", "admin", "login", "index.html"));
   });
-  app.get("/api/tickets", async (req, res) => {
-  try {
-    const StorageModel = mongoose.model('BotStorage');
-    const allTicketDocs = await StorageModel.find({ namespace: "tickets" }).lean();
-    
-    const allTickets = allTicketDocs
-      .filter(doc => doc.value && doc.value.messages)
-      .map(doc => doc.value);
+    app.get("/api/tickets", async (req, res) => {
+    try {
+      const StorageModel = mongoose.model('BotStorage');
+      
+      const archiveDoc = await StorageModel.findOne({ 
+        namespace: "tickets", 
+        key: "archive_list" 
+      }).lean();
 
-    res.json(allTickets);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+      if (!archiveDoc || !archiveDoc.value) {
+        return res.json([]);
+      }
+
+      if (Array.isArray(archiveDoc.value.archive)) {
+        return res.json(archiveDoc.value.archive);
+      }
+
+      if (Array.isArray(archiveDoc.value)) {
+        return res.json(archiveDoc.value);
+      }
+
+      res.json([]);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
 }
 export async function archiveTicket({ name, closedBy, channel }, setTickData) {
   try {
