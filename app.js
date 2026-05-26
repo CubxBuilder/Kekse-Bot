@@ -1680,7 +1680,7 @@ export async function handleEconomyInteractions(client) {
             return initEconomyTransferSystem(client, int.channel);
           }
           userData.balance = currentBalance - transfer.amount;
-          await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", "Trasaction");
+          await logTransaction(userData.userId, transfer.amount, "minus", "Trasaction");
           await setEcoData(transfer.userId, userData);
         }
         transfer.step = "PENDING_TEAM";
@@ -1788,7 +1788,7 @@ export async function handleEconomyInteractions(client) {
       if (transfer.isBuy) {
         const userData = await getEcoData(transfer.userId);
         userData.balance = (userData.balance || 0) + transfer.amount;
-        await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", "Transaction");
+        await logTransaction(userData.userId, transfer.amount, "plus", "Transaction");
         await setEcoData(transfer.userId, userData);
         await addBotBalance(transfer.totalCoins);
       } else {
