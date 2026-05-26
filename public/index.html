@@ -348,6 +348,32 @@
       footer .sep {
         color: var(--border);
       }
+      .tx-container {
+  max-height: 90px;
+  overflow-y: auto;
+  min-width: 220px;
+  border: 1px solid #1a1a22;
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  background: #0d0d11;
+  display: none;
+}
+.tx-container.open {
+  display: block;
+}
+.log-toggle-btn {
+  padding: 4px 8px;
+  background: #22222a;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.log-toggle-btn:hover {
+  background: #2a2a35;
+  color: white;
+}
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -691,7 +717,7 @@ function processAndRenderAccounts() {
  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:15px; color:var(--text-muted);">Keine Konten gefunden</td></tr>`;
  return;
  }
-  tbody.innerHTML = filtered.map(a => {
+    tbody.innerHTML = filtered.map(a => {
     const userLogs = rawTxLogsCache[a.userId] || [];
     const logHtml = userLogs.length ? userLogs.map(l => {
       const color = l.type === "plus" ? "#4ade80" : l.type === "minus" ? "#f87171" : "#888888";
@@ -703,12 +729,15 @@ function processAndRenderAccounts() {
       </div>`;
     }).join("") : `<div style="color:var(--text-muted); font-size:0.75rem;">Keine Transaktionen</div>`;
     return `<tr>
-      <td data-label="Discord Nutzer"><strong>${escapeHTML(a.username)}</strong><br><span style="font-size:0.7rem; color:var(--text-muted);">${a.userId}</span></td>
-      <td data-label="Minecraft Name">${escapeHTML(a.mcUsername)}</td>
-      <td data-label="Kontostand" style="color:#4ade80; font-weight:bold;">${a.balance} Kekse</td>
-      <td data-label="Status">${a.blocked ? '<span style="color:#f87171;">Gesperrt</span>' : '<span style="color:#4ade80;">Aktiv</span>'}</td>
-      <td data-label="Konto-Logs"><div class="tx-container">${logHtml}</div></td>
-      <td data-label="Aktionen" style="display:flex; gap:5px; flex-wrap:wrap;">
+      <td style="padding:8px;"><strong>${escapeHTML(a.username)}</strong><br><span style="font-size:0.7rem; color:var(--text-muted);">${a.userId}</span></td>
+      <td style="padding:8px;">${escapeHTML(a.mcUsername)}</td>
+      <td style="padding:8px; color:#4ade80; font-weight:bold;">${a.balance} Kekse</td>
+      <td style="padding:8px;">${a.blocked ? '<span style="color:#f87171;">Gesperrt</span>' : '<span style="color:#4ade80;">Aktiv</span>'}</td>
+      <td style="padding:8px;">
+        <button class="log-toggle-btn" onclick="toggleUserLogs('${a.userId}', this)">Anzeigen</button>
+        <div id="logs-container-${a.userId}" class="tx-container" style="margin-top: 5px;">${logHtml}</div>
+      </td>
+      <td style="padding:8px; display:flex; gap:5px; flex-wrap:wrap;">
         <button onclick="handleAccountAction('${a.userId}', 'add-kekse')" style="padding:4px 8px; background:#2e7d32; color:white; border:none; border-radius:4px; font-size:0.75rem; cursor:pointer;">+ Geben</button>
         <button onclick="handleAccountAction('${a.userId}', 'remove-kekse')" style="padding:4px 8px; background:#c62828; color:white; border:none; border-radius:4px; font-size:0.75rem; cursor:pointer;">- Abziehen</button>
         <button onclick="handleAccountAction('${a.userId}', 'toggle-block')" style="padding:4px 8px; background:#37474f; color:white; border:none; border-radius:4px; font-size:0.75rem; cursor:pointer;">Sperre</button>
@@ -742,6 +771,7 @@ async function handleAccountAction(userId, action) {
  alert("Fehler bei der Kommunikation mit dem Server");
  }
 }
+      
 $("acc-search").addEventListener("input", processAndRenderAccounts);
 $("acc-sort").addEventListener("change", processAndRenderAccounts);
 function processAndRenderTickets() {
@@ -826,6 +856,14 @@ setInterval(fetchStats, 5000);
 if ('serviceWorker' in navigator) {
 navigator.serviceWorker.register('sw.js');
 }
+      window.toggleUserLogs = (userId, btn) => {
+  const container = document.getElementById(`logs-container-${userId}`);
+  if (container) {
+    container.classList.toggle("open");
+    btn.textContent = container.classList.contains("open") ? "Verbergen" : "Anzeigen";
+  }
+};
+
     </script>
   </body>
 </html>
