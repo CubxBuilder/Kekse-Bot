@@ -864,6 +864,7 @@ export async function initEconomySystem(client) {
           if (reason === 'cashout') {
             const win = Math.floor(betAmount * multiplier);
             fresh.balance = (fresh.balance || 0) + win;
+            await logTransaction(msg.author.id, win, "plus", "Casino Higher Lower");
             await setEcoData(msg.author.id, fresh);
             await gameMsg.edit({ embeds: [hlEmbed(`Cash Out bei **${multiplier.toFixed(2)}x**!\n\n**+${win - betAmount} Kekse** Gewinn\nNeuer Kontostand: **${fresh.balance} Kekse**`, 0x333333)], components: [] }).catch(() => {});
           } else if (reason === 'wrong') {
