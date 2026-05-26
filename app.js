@@ -60,43 +60,6 @@ setInterval(() => {
   }
 }, 30000);
 let archives = [];
-const originalLog = console.log;
-const originalError = console.error;
-function captureLog(type, args) {
-  const message = args.map(arg => {
-    if (arg instanceof Error) return arg.stack || arg.message;
-    if (typeof arg === "object" && arg !== null) {
-      try {
-        if (arg.embeds || arg.content) {
-          return `[Bot-Nachricht] ${arg.content || ""} ${arg.embeds ? JSON.stringify(arg.embeds) : ""}`;
-        }
-        return JSON.stringify(arg);
-      } catch (e) {
-        return "[Komplexes Objekt]";
-      }
-    }
-    return String(arg);
-  }).join(" ");
-
-  const logEntry = {
-    timestamp: Date.now(),
-    type: type,
-    message: message
-  };
-  logs.push(logEntry);
-  if (logs.length > 100) logs.shift();
-}
-console.log = function(...args) {
-  originalLog.apply(console, args);
-  captureLog("info", args);
-};
-console.error = function(...args) {
-  originalError.apply(console, args);
-  captureLog("error", args);
-};
-export function dashboardLog(text) {
-  console.log(`${text}`);
-}
 export async function initTicketArchive(app, getTickData, setTickData) {
   try {
     const stored = await getTickData("archive_list") || {};
