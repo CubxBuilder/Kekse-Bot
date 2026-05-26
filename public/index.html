@@ -348,26 +348,6 @@
       footer .sep {
         color: var(--border);
       }
-      .article-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  cursor: pointer;
-  user-select: none;
-  margin-bottom: 15px;
-}
-.collapse-trigger {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-.collapsible-content {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-article.collapsed .collapsible-content {
-  display: none;
-}
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -495,91 +475,122 @@ article.collapsed .collapsible-content {
       <h1>Dashboard</h1>
     </header>
     <main>
+  <article id="server-statistics">
+    <h3>Server Statistiken</h3>
+    <div class="stats-grid">
+      <ol>
+        <li>Server Name <p id="server">—</p></li>
+        <li>Server ID <p id="server-id">—</p></li>
+        <li>Inhaber <p id="owner">—</p></li>
+      </ol>
+      <ol>
+        <li>Kanäle <p id="channels">—</p></li>
+        <li>Mitglieder <p id="users">—</p></li>
+        <li>Bots <p id="bots">—</p></li>
+      </ol>
+    </div>
+  </article>
+
   <article id="server-status">
-    <div class="article-header" onclick="toggleSection('server-status')">
-      <h3>Server Status</h3>
-      <span class="collapse-trigger">▼</span>
-    </div>
-    <div class="collapsible-content">
-      <div id="console"></div>
-    </div>
-  </article>
-
-  <article id="ping-stats">
-    <div class="article-header" onclick="toggleSection('ping-stats')">
-      <h3>Ping Graph</h3>
-      <span class="collapse-trigger">▼</span>
-    </div>
-    <div class="collapsible-content">
-      <div style="height: 250px;"><canvas id="ping-chart"></canvas></div>
+    <h3>Server Status</h3>
+    <div class="stats-grid">
+      <ol>
+        <li>Ping <p id="ping">—</p></li>
+        <li>Durchschnitt <p id="avg-ping">—</p></li>
+        <li>Maximum <p id="max-ping">—</p></li>
+      </ol>
+      <ol>
+        <li>Uptime <p id="uptime">—</p></li>
+        <li>Version <p id="version">—</p></li>
+        <li>Letzter Start <p id="last-restart">—</p></li>
+      </ol>
     </div>
   </article>
 
-  <article id="ticket-archive" class="full-width">
-    <div class="article-header" onclick="toggleSection('ticket-archive')">
-      <h3>Ticket Archiv</h3>
-      <span class="collapse-trigger">▼</span>
-    </div>
-    <div class="collapsible-content">
-      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <input type="text" id="ticket-search" placeholder="Nach Kanal oder User suchen..." style="flex: 1; padding: 6px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: white;">
-        <select id="ticket-sort" style="padding: 6px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); color: white;">
-          <option value="newest">Neueste zuerst</option>
-          <option value="oldest">Älteste zuerst</option>
-          <option value="messages">Meiste Nachrichten</option>
-        </select>
-      </div>
-      <div class="ticket-list" id="ticket-list">
-        <div class="no-tickets">Keine archivierten Tickets.</div>
-      </div>
+  <article>
+    <h3>Live Konsole</h3>
+    <div class="console" id="console">
+      <div class="no-logs">Warte auf Logs...</div>
     </div>
   </article>
 
-  <article id="economy-overview" class="full-width">
-    <div class="article-header" onclick="toggleSection('economy-overview')">
-      <h3>Wirtschafts Statistiken</h3>
-      <span class="collapse-trigger">▼</span>
-    </div>
-    <div class="collapsible-content">
-      <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
-        <div>Kekse im Umlauf: <span id="eco-total">—</span></div>
-        <div>Bot Balance: <span id="eco-bot">—</span></div>
-        <div>Wert pro Keks: <span id="eco-value">—</span></div>
-        <div>Kurs (1 Coin): <span id="eco-rate">—</span></div>
-        <div>Verhältnis Basis: <span id="eco-percent">—</span></div>
-      </div>
+  <article>
+    <h3>Ping Statistik</h3>
+    <div style="position: relative; height: 160px; width: 100%;">
+      <canvas id="ping-chart"></canvas>
     </div>
   </article>
 
-  <article id="accounts-database" class="full-width">
-    <div class="article-header" onclick="toggleSection('accounts-database')">
-      <h3>Konten Datenbank & Logsystem</h3>
-      <span class="collapse-trigger">▼</span>
+  <article id="ticket-archive" style="grid-column: 1 / -1;">
+    <h3>Ticket Archiv</h3>
+    <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+      <input type="text" id="ticket-search" placeholder="Nach Kanal oder User suchen..." style="flex: 1; padding: 6px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: white;">
+      <select id="ticket-sort" style="padding: 6px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); color: white;">
+        <option value="newest">Neueste zuerst</option>
+        <option value="oldest">Älteste zuerst</option>
+        <option value="messages">Meiste Nachrichten</option>
+      </select>
     </div>
-    <div class="collapsible-content">
-      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <input type="text" id="acc-search" placeholder="Suchen..." style="flex: 1; padding: 6px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: white;">
-        <select id="acc-sort" style="padding: 6px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); color: white;">
-          <option value="balance-desc">Höchster Kontostand</option>
-          <option value="balance-asc">Niedrigster Kontostand</option>
-          <option value="name">Name A-Z</option>
-        </select>
-      </div>
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Discord Nutzer</th>
-              <th>Minecraft Name</th>
-              <th>Kontostand</th>
-              <th>Status</th>
-              <th>Konto-Logs</th>
-              <th>Aktionen</th>
-            </tr>
-          </thead>
-          <tbody id="accounts-list"></tbody>
-        </table>
-      </div>
+    <div class="ticket-list" id="ticket-list">
+      <div class="no-tickets">Warte auf Tickets...</div>
+    </div>
+  </article>
+
+  <article id="economy-overview">
+    <h3>Wirtschafts Statistiken</h3>
+    <div class="stats-grid">
+      <ol>
+        <li>Kekse im Umlauf <p id="eco-total">—</p></li>
+        <li>Bot Balance <p id="eco-bot">—</p></li>
+        <li>Wert pro Keks <p id="eco-value">—</p></li>
+      </ol>
+      <ol>
+        <li>Kurs (Kekse = 1 Coin) <p id="eco-rate">—</p></li>
+        <li>Verhältnis zur Basis <p id="eco-percent">—</p></li>
+      </ol>
+    </div>
+  </article>
+
+  <article id="bot-statistics">
+    <h3>Bot Statistiken</h3>
+    <div class="stats-grid">
+      <ol>
+        <li>Tickets Erstellt <p id="tickets-created">—</p></li>
+        <li>Umfragen <p id="polls-created">—</p></li>
+        <li>Giveaways <p id="giveaways-created">—</p></li>
+      </ol>
+      <ol>
+        <li>Befehle Genutzt <p id="commands-used">—</p></li>
+        <li>Scams Verhindert <p id="scams-prevented">—</p></li>
+        <li>Nachrichten Gelöscht <p id="messages-deleted">—</p></li>
+      </ol>
+    </div>
+  </article>
+
+  <article id="accounts-database" style="grid-column: 1 / -1; flex-direction: column;">
+    <h3>Konten Datenbank & Logsystem</h3>
+    <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+      <input type="text" id="acc-search" placeholder="Nach Discord ID, Name oder Minecraft Name suchen..." style="flex: 1; padding: 6px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: white;">
+      <select id="acc-sort" style="padding: 6px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); color: white;">
+        <option value="balance-desc">Höchster Kontostand</option>
+        <option value="balance-asc">Niedrigster Kontostand</option>
+        <option value="name">Name A-Z</option>
+      </select>
+    </div>
+    <div style="overflow-x: auto; width: 100%;">
+      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border); color: var(--text-secondary);">
+            <th style="padding: 8px;">Discord Nutzer</th>
+            <th style="padding: 8px;">Minecraft Name</th>
+            <th style="padding: 8px;">Kontostand</th>
+            <th style="padding: 8px;">Status</th>
+            <th style="padding: 8px;">Konto-Logs</th>
+            <th style="padding: 8px;">Aktionen</th>
+          </tr>
+        </thead>
+        <tbody id="accounts-list"></tbody>
+      </table>
     </div>
   </article>
 </main>
@@ -595,15 +606,6 @@ article.collapsed .collapsible-content {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script>
-      window.toggleSection = id => {
-  const el = $(id);
-  if (el) {
-    el.classList.toggle("collapsed");
-    const trigger = el.querySelector(".collapse-trigger");
-    if (trigger) trigger.textContent = el.classList.contains("collapsed") ? "▲" : "▼";
-  }
-};
-
       const $ = id => document.getElementById(id);
 const set = (id, v) => { const el = $(id); if (el) el.textContent = v ?? "—"; };
 const fmtUptime = s => {
