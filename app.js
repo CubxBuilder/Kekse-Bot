@@ -1006,22 +1006,25 @@ export async function initEconomySystem(client) {
           if (reason === 'busted' || pScore > 21) {
             status = "Überkauft! Du hast verloren.";
             userData.balance -= betAmount;
+            await logTransaction(msg.author.id, betAmount, "minus", "Casino Blackjack");
             finalColor = 0x333333;
           } else if (dScore > 21) {
             status = "Dealer überkauft! Du gewinnst!";
             userData.balance += betAmount;
+            await logTransaction(msg.author.id, betAmount, "plus", "Casino Blackjack");
           } else if (pScore > dScore) {
             status = "Mehr Punkte als der Dealer. Du gewinnst!";
             userData.balance += betAmount;
+            await logTransaction(msg.author.id, betAmount, "plus", "Casino Blackjack");
           } else if (pScore < dScore) {
             status = "Dealer hat mehr Punkte. Verloren!";
             userData.balance -= betAmount;
+            await logTransaction(msg.author.id, betAmount, "minus", "Casino Blackjack");
             finalColor = 0x333333;
           } else {
             status = "Unentschieden! Kekse zurück.";
             finalColor = 0x333333;
           }
-          await logTransaction(msg.author.id, betAmount, betAmount >= 0 ? "plus" : "minus", "Casino Blackjack");
           await setEcoData(msg.author.id, userData);
 
           const finalEmbed = createEmbed(`Blackjack - ${status}`, finalColor, true)
