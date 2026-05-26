@@ -348,6 +348,72 @@
       footer .sep {
         color: var(--border);
       }
+      .article-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 15px;
+}
+.collapse-trigger {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.collapsible-content {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+article.collapsed .collapsible-content {
+  display: none;
+}
+#console {
+  background: #050507;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  font-family: monospace;
+  font-size: 0.85rem;
+  height: 250px;
+  overflow-y: auto;
+}
+.ticket-list {
+  max-height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.table-wrapper {
+  overflow-x: auto;
+  width: 100%;
+  max-height: 500px;
+  overflow-y: auto;
+}
+.tx-container {
+  max-height: 90px;
+  overflow-y: auto;
+  min-width: 220px;
+  border: 1px solid #1a1a22;
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  background: #0d0d11;
+}
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a35;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a4a;
+}
       @media (max-width: 900px) {
         main {
           grid-template-columns: 1fr;
@@ -411,6 +477,33 @@
         footer .sep {
           display: none;
         }
+        main {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  .full-width {
+    grid-column: unset;
+  }
+  thead {
+    display: none;
+  }
+  tr {
+    display: block;
+    border-bottom: 2px solid var(--border);
+    padding: 10px 0;
+  }
+  td {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    border: none;
+  }
+  td::before {
+    content: attr(data-label);
+    font-weight: bold;
+    color: var(--text-secondary);
+    margin-right: 15px;
+  }
       }
       @media (min-width: 1400px) {
         main {
@@ -434,122 +527,94 @@
       <h1>Dashboard</h1>
     </header>
     <main>
-      <article id="server-stats">
-        <h3>Server Stats</h3>
-        <div class="stats-grid">
-          <ol>
-            <li>Server <p id="server">—</p></li>
-            <li>Server ID <p id="server-id">—</p></li>
-            <li>Owner <p id="owner">—</p></li>
-          </ol>
-          <ol>
-            <li>Users <p id="users">—</p></li>
-            <li>Bots <p id="bots">—</p></li>
-            <li>Channels <p id="channels">—</p></li>
-          </ol>
-        </div>
-      </article>
+  <article id="server-status">
+    <div class="article-header" onclick="toggleSection('server-status')">
+      <h3>Server Status</h3>
+      <span class="collapse-trigger">▼</span>
+    </div>
+    <div class="collapsible-content">
+      <div id="console"></div>
+    </div>
+  </article>
 
-      <article id="bot-stats">
-        <h3>Bot Stats</h3>
-        <div class="stats-grid">
-          <ol>
-            <li>Current Ping <p id="ping">—</p></li>
-            <li>Average Ping <p id="avg-ping">—</p></li>
-            <li>Highest Ping <p id="max-ping">—</p></li>
-          </ol>
-          <ol>
-            <li>Uptime <p id="uptime">—</p></li>
-            <li>Version <p id="version">—</p></li>
-            <li>Last Restart <p id="last-restart">—</p></li>
-          </ol>
-        </div>
-      </article>
+  <article id="ping-stats">
+    <div class="article-header" onclick="toggleSection('ping-stats')">
+      <h3>Ping Graph</h3>
+      <span class="collapse-trigger">▼</span>
+    </div>
+    <div class="collapsible-content">
+      <div style="height: 250px;"><canvas id="ping-chart"></canvas></div>
+    </div>
+  </article>
 
-      <article id="ping-statistic">
-        <h3>Ping Statistic</h3>
-        <div class="chart-wrap">
-          <canvas id="ping-chart"></canvas>
-        </div>
-      </article>
+  <article id="ticket-archive" class="full-width">
+    <div class="article-header" onclick="toggleSection('ticket-archive')">
+      <h3>Ticket Archiv</h3>
+      <span class="collapse-trigger">▼</span>
+    </div>
+    <div class="collapsible-content">
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <input type="text" id="ticket-search" placeholder="Nach Kanal oder User suchen..." style="flex: 1; padding: 6px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: white;">
+        <select id="ticket-sort" style="padding: 6px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); color: white;">
+          <option value="newest">Neueste zuerst</option>
+          <option value="oldest">Älteste zuerst</option>
+          <option value="messages">Meiste Nachrichten</option>
+        </select>
+      </div>
+      <div class="ticket-list" id="ticket-list">
+        <div class="no-tickets">Keine archivierten Tickets.</div>
+      </div>
+    </div>
+  </article>
 
-      <article id="logs">
-        <h3>Console</h3>
-        <div id="console"></div>
-      </article>
+  <article id="economy-overview" class="full-width">
+    <div class="article-header" onclick="toggleSection('economy-overview')">
+      <h3>Wirtschafts Statistiken</h3>
+      <span class="collapse-trigger">▼</span>
+    </div>
+    <div class="collapsible-content">
+      <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+        <div>Kekse im Umlauf: <span id="eco-total">—</span></div>
+        <div>Bot Balance: <span id="eco-bot">—</span></div>
+        <div>Wert pro Keks: <span id="eco-value">—</span></div>
+        <div>Kurs (1 Coin): <span id="eco-rate">—</span></div>
+        <div>Verhältnis Basis: <span id="eco-percent">—</span></div>
+      </div>
+    </div>
+  </article>
 
-      <article id="functions-used">
-        <h3>Functions Used</h3>
-        <div class="stats-grid">
-          <ol>
-            <li>Tickets created <p id="tickets-created">—</p></li>
-            <li>Polls created <p id="polls-created">—</p></li>
-            <li>Giveaways created <p id="giveaways-created">—</p></li>
-          </ol>
-          <ol>
-            <li>Commands used <p id="commands-used">—</p></li>
-            <li>Scams prevented <p id="scams-prevented">—</p></li>
-            <li>Messages deleted <p id="messages-deleted">—</p></li>
-          </ol>
-        </div>
-      </article>
-      <article id="ticket-archive">
- <h3>Ticket Archiv</h3>
- <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
-   <input type="text" id="ticket-search" placeholder="Nach Kanal oder User suchen..." style="flex: 1; padding: 6px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: white;">
-   <select id="ticket-sort" style="padding: 6px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); color: white;">
-     <option value="newest">Neueste zuerst</option>
-     <option value="oldest">Älteste zuerst</option>
-     <option value="messages">Meiste Nachrichten</option>
-   </select>
- </div>
- <div class="ticket-list" id="ticket-list">
- <div class="no-tickets">Keine archivierten Tickets.</div>
- </div>
-</article>
-
-<article id="economy-overview">
- <h3>Wirtschafts Statistiken</h3>
- <div class="stats-grid">
-   <ol>
-     <li>Kekse im Umlauf <p id="eco-total">—</p></li>
-     <li>Bot Balance <p id="eco-bot">—</p></li>
-     <li>Wert pro Keks <p id="eco-value">—</p></li>
-   </ol>
-   <ol>
-     <li>Kurs (Kekse = 1 Coin) <p id="eco-rate">—</p></li>
-     <li>Verhältnis zur Basis <p id="eco-percent">—</p></li>
-   </ol>
- </div>
-</article>
-
-<article id="accounts-database" style="grid-column: 1 / -1; flex-direction: column;">
- <h3>Konten Datenbank & Logsystem</h3>
- <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
-   <input type="text" id="acc-search" placeholder="Nach Discord ID, Name oder Minecraft Name suchen..." style="flex: 1; padding: 6px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: white;">
-   <select id="acc-sort" style="padding: 6px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); color: white;">
-     <option value="balance-desc">Höchster Kontostand</option>
-     <option value="balance-asc">Niedrigster Kontostand</option>
-     <option value="name">Name A-Z</option>
-   </select>
- </div>
- <div style="overflow-x: auto; width: 100%;">
-   <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
-     <thead>
-       <tr style="border-bottom: 1px solid var(--border); color: var(--text-secondary);">
-         <th style="padding: 8px;">Discord Nutzer</th>
-         <th style="padding: 8px;">Minecraft Name</th>
-         <th style="padding: 8px;">Kontostand</th>
-         <th style="padding: 8px;">Status</th>
-         <th style="padding: 8px;">Konto-Logs</th>
-         <th style="padding: 8px;">Aktionen</th>
-       </tr>
-     </thead>
-     <tbody id="accounts-list"></tbody>
-   </table>
- </div>
-</article>
-    </main>
+  <article id="accounts-database" class="full-width">
+    <div class="article-header" onclick="toggleSection('accounts-database')">
+      <h3>Konten Datenbank & Logsystem</h3>
+      <span class="collapse-trigger">▼</span>
+    </div>
+    <div class="collapsible-content">
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <input type="text" id="acc-search" placeholder="Suchen..." style="flex: 1; padding: 6px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: white;">
+        <select id="acc-sort" style="padding: 6px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); color: white;">
+          <option value="balance-desc">Höchster Kontostand</option>
+          <option value="balance-asc">Niedrigster Kontostand</option>
+          <option value="name">Name A-Z</option>
+        </select>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Discord Nutzer</th>
+              <th>Minecraft Name</th>
+              <th>Kontostand</th>
+              <th>Status</th>
+              <th>Konto-Logs</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody id="accounts-list"></tbody>
+        </table>
+      </div>
+    </div>
+  </article>
+</main>
     <footer>
       <span>Kekse Bot Dashboard</span>
       <span class="sep">|</span>
@@ -562,6 +627,15 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script>
+      window.toggleSection = id => {
+  const el = $(id);
+  if (el) {
+    el.classList.toggle("collapsed");
+    const trigger = el.querySelector(".collapse-trigger");
+    if (trigger) trigger.textContent = el.classList.contains("collapsed") ? "▲" : "▼";
+  }
+};
+
       const $ = id => document.getElementById(id);
 const set = (id, v) => { const el = $(id); if (el) el.textContent = v ?? "—"; };
 const fmtUptime = s => {
@@ -647,30 +721,30 @@ function processAndRenderAccounts() {
  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:15px; color:var(--text-muted);">Keine Konten gefunden</td></tr>`;
  return;
  }
- tbody.innerHTML = filtered.map(a => {
- const userLogs = rawTxLogsCache[a.userId] || [];
- const logHtml = userLogs.length ? userLogs.map(l => {
- const color = l.type === "plus" ? "#4ade80" : l.type === "minus" ? "#f87171" : "#888888";
- const prefix = l.type === "plus" ? "+" : l.type === "minus" ? "-" : "";
- return `<div style="font-size:0.75rem; border-bottom:1px solid #1a1a1a; padding:2px 0; white-space: nowrap;">
- <span style="color:${color}; font-weight:bold;">${prefix}${l.amount}</span> 
- <span style="color:var(--text-secondary); margin-left:5px;">${escapeHTML(l.description)}</span>
- <span style="color:var(--text-muted); float:right; margin-left:10px;">${new Date(l.timestamp).toLocaleTimeString("de-DE")}</span>
- </div>`;
- }).join("") : `<div style="color:var(--text-muted); font-size:0.75rem;">Keine Transaktionen</div>`;
- return `<tr style="border-bottom:1px solid #151515; vertical-align:top;">
- <td style="padding:8px;"><strong>${escapeHTML(a.username)}</strong><br><span style="font-size:0.7rem; color:var(--text-muted);">${a.userId}</span></td>
- <td style="padding:8px;">${escapeHTML(a.mcUsername)}</td>
- <td style="padding:8px; color:#4ade80; font-weight:bold;">${a.balance} Kekse</td>
- <td style="padding:8px;">${a.blocked ? '<span style="color:#f87171;">Gesperrt</span>' : '<span style="color:#4ade80;">Aktiv</span>'}</td>
- <td style="padding:8px;"><div style="max-height:100px; overflow-y:auto; min-width:200px;">${logHtml}</div></td>
- <td style="padding:8px; display:flex; gap:5px; flex-wrap:wrap;">
- <button onclick="handleAccountAction('${a.userId}', 'add-kekse')" style="padding:3px 6px; background:#2e7d32; border:none; border-radius:4px; font-size:0.75rem; cursor:pointer;">+ Geben</button>
- <button onclick="handleAccountAction('${a.userId}', 'remove-kekse')" style="padding:3px 6px; background:#c62828; border:none; border-radius:4px; font-size:0.75rem; cursor:pointer;">- Abziehen</button>
- <button onclick="handleAccountAction('${a.userId}', 'toggle-block')" style="padding:3px 6px; background:#37474f; border:none; border-radius:4px; font-size:0.75rem; cursor:pointer;">${a.blocked ? 'Entsperren' : 'Sperren'}</button>
- </td>
- </tr>`;
- }).join("");
+  tbody.innerHTML = filtered.map(a => {
+    const userLogs = rawTxLogsCache[a.userId] || [];
+    const logHtml = userLogs.length ? userLogs.map(l => {
+      const color = l.type === "plus" ? "#4ade80" : l.type === "minus" ? "#f87171" : "#888888";
+      const prefix = l.type === "plus" ? "+" : l.type === "minus" ? "-" : "";
+      return `<div style="font-size:0.75rem; border-bottom:1px solid #1a1a1a; padding:2px 0; white-space: nowrap;">
+        <span style="color:${color}; font-weight:bold;">${prefix}${l.amount}</span> 
+        <span style="color:var(--text-secondary); margin-left:5px;">${escapeHTML(l.description)}</span>
+        <span style="color:var(--text-muted); float:right; margin-left:10px;">${new Date(l.timestamp).toLocaleTimeString("de-DE")}</span>
+      </div>`;
+    }).join("") : `<div style="color:var(--text-muted); font-size:0.75rem;">Keine Transaktionen</div>`;
+    return `<tr>
+      <td data-label="Discord Nutzer"><strong>${escapeHTML(a.username)}</strong><br><span style="font-size:0.7rem; color:var(--text-muted);">${a.userId}</span></td>
+      <td data-label="Minecraft Name">${escapeHTML(a.mcUsername)}</td>
+      <td data-label="Kontostand" style="color:#4ade80; font-weight:bold;">${a.balance} Kekse</td>
+      <td data-label="Status">${a.blocked ? '<span style="color:#f87171;">Gesperrt</span>' : '<span style="color:#4ade80;">Aktiv</span>'}</td>
+      <td data-label="Konto-Logs"><div class="tx-container">${logHtml}</div></td>
+      <td data-label="Aktionen" style="display:flex; gap:5px; flex-wrap:wrap;">
+        <button onclick="handleAccountAction('${a.userId}', 'add-kekse')" style="padding:4px 8px; background:#2e7d32; color:white; border:none; border-radius:4px; font-size:0.75rem; cursor:pointer;">+ Geben</button>
+        <button onclick="handleAccountAction('${a.userId}', 'remove-kekse')" style="padding:4px 8px; background:#c62828; color:white; border:none; border-radius:4px; font-size:0.75rem; cursor:pointer;">- Abziehen</button>
+        <button onclick="handleAccountAction('${a.userId}', 'toggle-block')" style="padding:4px 8px; background:#37474f; color:white; border:none; border-radius:4px; font-size:0.75rem; cursor:pointer;">Sperre</button>
+      </td>
+    </tr>`;
+  }).join("");
 }
 async function handleAccountAction(userId, action) {
  let amount = 0;
