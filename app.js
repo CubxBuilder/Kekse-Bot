@@ -440,6 +440,7 @@ export async function initEconomySystem(client) {
     for (const entry of entries) { rand -= entry.betAmount; if (rand <= 0) { winner = entry; break; } }
     const winnerData = await getEcoData(winner.userId);
     winnerData.balance = (winnerData.balance || 0) + totalPool;
+    await logTransaction(winnerData.userId, totalPool, "plus", "Casino Jackpot");
     await setEcoData(winner.userId, winnerData);
     const winEmbed = new EmbedBuilder()
       .setTitle('Jackpot — Gewinner!')
@@ -648,7 +649,7 @@ export async function initEconomySystem(client) {
         }
 
         userData.balance -= betAmount;
-        await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", "Casino Jackpot");
+        await logTransaction(msg.author.id, betAmount, "minus", "Casino Jackpot");
         await setEcoData(msg.author.id, userData);
         jackpotState.entries.push({ userId: msg.author.id, username: msg.author.username, betAmount });
         jackpotState.totalPool += betAmount;
