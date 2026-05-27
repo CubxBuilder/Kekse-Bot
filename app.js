@@ -358,10 +358,11 @@ return summe;
 }, 0); 
 return existingKekse; 
 } catch (err) { 
-console.error("  
+console.error("Fehler beim Berechnen der existingKekse:", err);
 return 0; 
 } 
 } 
+Fehler beim Berechnen der existingKekse:", err);
 Fehler beim Berechnen der existingKekse:", err); 
 let isBalanceListenerRegistered = false; 
 export async function initBotBalance(client) { 
