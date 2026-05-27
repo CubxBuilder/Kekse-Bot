@@ -8,7 +8,7 @@ Der **Kekse-Bot** ist ein maßgeschneidertes, funktionsreiches Discord.js-Bot-Sy
 
 ### 1. 🏦 Bank- & Wirtschaftssystem
 * **Minecraft-Verknüpfung**: Spieler können über ein Formular (`!bank create`) ihre Discord-ID mit ihrem Minecraft-Namen koppeln.
-* **Tägliche Belohnungen**: Integriertes Abhol-System im `#Daily`-Kanal mit interaktiven Knöpfen. Clan-Mitglieder erhalten automatisch den doppelten Bonus.
+* **Tägliche Belohnungen**: Integriertes Abhol-System im `#Daily`-Kanal mit interaktiven Knöpfen. Clan-Mitglieder erhalten den doppelten Bonus.
 * **Dynamischer Wechselkurs**: Automatische Echtzeit-Berechnung des Keks-Wertes auf Basis der im Umlauf befindlichen Kekse und des Bot-Guthabens.
 
 ### 🎲 2. Keks-Casino & Server-Shop
