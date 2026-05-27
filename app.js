@@ -3727,6 +3727,15 @@ const commands = [
     new SlashCommandBuilder()
     .setName('setup-verify')
     .setDescription('Erstellt das Verifizierungs-Panel mit Button im festgelegten Kanal')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+    new SlashCommandBuilder()
+    .setName('top')
+    .setDescription('Zeigt die Top 10 User mit den meisten Punkten im Counting-System'),
+
+  new SlashCommandBuilder()
+    .setName('set-number')
+    .setDescription('Admin: Setzt die nächste zu zählende Nummer manuell fest')
+    .addIntegerOption(opt => opt.setName('nummer').setDescription('Die neue Zielzahl').setRequired(true))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
 ].map(cmd => cmd.toJSON());
 export function registerSlashCommands(client) {
@@ -4416,6 +4425,49 @@ const createPollButtons = (pollId, opts) => {
       await interaction.editReply({ content: `✅ Das Verifizierungs-Panel wurde erfolgreich in ${targetChannel} aufgesetzt.` });
       
       await sendKekseLog("Verification Setup", user, `Das Verifizierungs-Panel wurde in <#${VERIFY_CHANNEL_ID}> neu aufgesetzt.`);
+      globalBotStats.commandsRunned += 1;
+    }
+        if (commandName === "top") {
+      await loadCounting();
+
+      const sorted = Object.entries(countingData.scoreboard || {})
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+
+      const embed = new EmbedBuilder()
+        .setTitle("🏆 Top 10 Counter")
+        .setDescription(sorted.map(([id, s], i) => `${i + 1}. <@${id}> • ${s}`).join("\n") || "Keine Daten")
+        .setColor('#ffffff')
+        .setFooter({ text: 'Kekse Clan' });
+
+      await interaction.reply({ embeds: [embed] });
+      globalBotStats.commandsRunned += 1;
+    }
+
+    if (commandName === "set-number") {
+      if (user.id !== "1151971830983311441") {
+        return interaction.reply({ content: "❌ Nur der Haupt-Admin darf diesen Befehl nutzen.", ephemeral: true });
+      }
+
+      const newNum = options.getInteger("nummer");
+      
+      await loadCounting();
+      countingData.currentNumber = newNum;
+      countingData.direction = newNum < 0 ? -1 : 1;
+      await saveCounting();
+
+      const logChannel = client.channels.cache.get(logChannelId);
+      if (logChannel) {
+        const logEmbed = new EmbedBuilder()
+          .setColor('#ffffff')
+          .setAuthor({ name: user.username, iconURL: user.displayAvatarURL({ size: 512 }) })
+          .setDescription(`**Aktion:** \`Counting Reset (Admin)\`\nDie Zahl wurde manuell auf **${newNum}** gesetzt.`)
+          .setFooter({ text: 'Kekse Clan | Counting System' })
+          .setTimestamp();
+        await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
+      }
+
+      await interaction.reply({ content: ` Die nächste Zahl wurde auf **${newNum}** gesetzt.`, ephemeral: true });
       globalBotStats.commandsRunned += 1;
     }
   });
