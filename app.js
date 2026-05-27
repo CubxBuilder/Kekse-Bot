@@ -1719,8 +1719,7 @@ export async function handleEconomyInteractions(client) {
           );
 
         await int.editReply({ embeds: [receiptEmbed], components: [] });
-        await int.channel.send({ content: `Ein Team-Mitglied wird sich in Kürze für die Transaktion melden.\n<@&${TEAM_ROLE}> Bitte prüft den Vorgang und nutzt \`!confirm\` oder \`!decline\` sobalt die Transaktion beendet ist.
-` });
+        await int.channel.send({ content: `Ein Team-Mitglied wird sich in Kürze für die Transaktion melden.\n<@&${TEAM_ROLE}> Bitte prüft den Vorgang und nutzt \`!confirm\` oder \`/confirm\` (bzw. \`!decline\` / \`/decline\`), sobald die Transaktion beendet ist.` });
         return;
       }
 
@@ -1793,7 +1792,7 @@ export async function handleEconomyInteractions(client) {
     }
   });
 
-  client.on("messageCreate", async (msg) => {
+    client.on("messageCreate", async (msg) => {
     if (msg.author.bot) return;
     if (msg.content !== "!confirm" && msg.content !== "!decline") return;
 
@@ -1803,6 +1802,7 @@ export async function handleEconomyInteractions(client) {
     if (!msg.member.roles.cache.has(TEAM_ROLE)) {
       return msg.reply("Nur Teammitglieder können diesen Vorgang freigeben.");
     }
+
     if (msg.content === "!confirm") {
       const stats = await getEconomyStats(client);
 
@@ -1818,8 +1818,9 @@ export async function handleEconomyInteractions(client) {
         }
         await removeBotBalance(transfer.totalCoins);
       }
-      await saveActiveTransfers();
+      
       activeTransfers.delete(transfer.id);
+      await saveActiveTransfers();
 
       const finalEmbed = new EmbedBuilder()
         .setTitle("✅ Tausch-Quittung")
@@ -1835,21 +1836,24 @@ export async function handleEconomyInteractions(client) {
 
       await msg.channel.send({ embeds: [finalEmbed] });
 
-      const user = await client.users.fetch(transfer.userId).catch(() => null);
-      if (user) {
-        await user.send({ embeds: [finalEmbed] }).catch(() => {});
+      const targetUser = await client.users.fetch(transfer.userId).catch(() => null);
+      if (targetUser) {
+        await targetUser.send({ embeds: [finalEmbed] }).catch(() => {});
       }
       return;
     }
+
     if (msg.content === "!decline") {
       if (!transfer.isBuy) {
         const userData = await getEcoData(transfer.userId);
         userData.balance = (userData.balance || 0) + transfer.amount;
-        await logTransaction(msg.author.id, payout, payout >= 0 ? "plus" : "minus", "Transaction cancled");
+        await logTransaction(transfer.userId, transfer.amount, "plus", "Transaction canceled");
         await setEcoData(transfer.userId, userData);
       }
+      
       activeTransfers.delete(transfer.id);
       await saveActiveTransfers();
+      
       await msg.reply("❌ Der Vorgang wurde vom Team abgelehnt. Eventuell eingefrorene Kekse wurden zurückerstattet.");
       return initEconomyTransferSystem(client, msg.channel);
     }
@@ -4483,7 +4487,98 @@ const commands = [
     .setName('set-number')
     .setDescription('Admin: Setzt die nächste zu zählende Nummer manuell fest')
     .addIntegerOption(opt => opt.setName('nummer').setDescription('Die neue Zielzahl').setRequired(true))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer),
+    new SlashCommandBuilder()
+    .setName('daily-setup')
+    .setDescription('Entwickler: Richtet ein tägliches Belohnungssystem mit Button ein')
+    .addStringOption(opt => opt.setName('id').setDescription('Eine eindeutige ID für dieses Setup (z.B. event1)').setRequired(true))
+    .addStringOption(opt => opt.setName('beschreibung').setDescription('Zusätzlicher Beschreibungstext für das Einlösen').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('shop-setup')
+    .setDescription('Entwickler: Richtet den Server-Shop im festgelegten Kanal ein')
+    .addStringOption(opt => opt.setName('beschreibung').setDescription('Zusätzlicher Beschreibungstext für den Shop').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+    new SlashCommandBuilder()
+    .setName('casino')
+    .setDescription('Zeigt eine Übersicht aller verfügbaren Casino-Spiele an'),
+
+  new SlashCommandBuilder()
+    .setName('roulette')
+    .setDescription('Spiele eine Runde Roulette')
+    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true))
+    .addStringOption(opt => opt.setName('typ').setDescription('Wettart: red, black, even, odd, Zahl 0-36, 1-18, 19-36').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('coinflip')
+    .setDescription('Mache einen Münzwurf')
+    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true))
+    .addStringOption(opt => opt.setName('seite').setDescription('Kopf oder Zahl?').setRequired(true).addChoices({ name: 'Kopf (Heads)', value: 'heads' }, { name: 'Zahl (Tails)', value: 'tails' })),
+
+  new SlashCommandBuilder()
+    .setName('jackpot')
+    .setDescription('Zahle Kekse in den aktuellen Jackpot ein')
+    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('crash')
+    .setDescription('Starte ein Crash-Multiplikator-Spiel')
+    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('highlow')
+    .setDescription('Errate, ob die nächste Karte höher oder niedriger ist')
+    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('blackjack')
+    .setDescription('Spiele eine Runde Blackjack gegen den Bot')
+    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true)),
+    new SlashCommandBuilder()
+    .setName('bank')
+    .setDescription('Nutze das integrierte Bank- und Währungssystem')
+    .addSubcommand(sub => sub
+      .setName('status')
+      .setDescription('Zeigt dir privat deinen aktuellen Kontostand an'))
+    .addSubcommand(sub => sub
+      .setName('create')
+      .setDescription('Erstellt dein persönliches Bankkonto (Minecraft-Name erforderlich)'))
+    .addSubcommand(sub => sub
+      .setName('help')
+      .setDescription('Zeigt die Hilfe-Übersicht des Bank-Systems an'))
+    .addSubcommand(sub => sub
+      .setName('pay')
+      .setDescription('Überweist Kekse an das Konto eines anderen Spielers')
+      .addUserOption(opt => opt.setName('nutzer').setDescription('Der Empfänger der Kekse').setRequired(true))
+      .addIntegerOption(opt => opt.setName('anzahl').setDescription('Die Menge an Keksen').setRequired(true)))
+    .addSubcommand(sub => sub
+      .setName('see')
+      .setDescription('Entwickler: Zeigt detaillierte Kontoinformationen eines Nutzers')
+      .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu prüfende Nutzer').setRequired(true)))
+    .addSubcommand(sub => sub
+      .setName('add')
+      .setDescription('Entwickler: Fügt dem Konto eines Nutzers Kekse hinzu')
+      .addIntegerOption(opt => opt.setName('anzahl').setDescription('Die Menge an Keksen').setRequired(true))
+      .addUserOption(opt => opt.setName('nutzer').setDescription('Optionale Zielperson (sonst man selbst)').setRequired(false)))
+    .addSubcommand(sub => sub
+      .setName('remove')
+      .setDescription('Entwickler: Zieht vom Konto eines Nutzers Kekse ab')
+      .addIntegerOption(opt => opt.setName('anzahl').setDescription('Die Menge an Keksen').setRequired(true))
+      .addUserOption(opt => opt.setName('nutzer').setDescription('Optionale Zielperson (sonst man selbst)').setRequired(false)))
+    .addSubcommand(sub => sub
+      .setName('get')
+      .setDescription('Entwickler: Zeigt an, wie viele Kekse insgesamt im Umlauf sind')),
+    new SlashCommandBuilder()
+    .setName('confirm')
+    .setDescription('Team: Bestätigt und schließt den aktuellen Keks- oder Coin-Tausch ab')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('decline')
+    .setDescription('Team: Lehnt den aktuellen Keks- oder Coin-Tausch ab und erstattet ggf. Kekse zurück')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+
 ].map(cmd => cmd.toJSON());
 export function registerSlashCommands(client) {
   client.once("ready", async () => {
@@ -5215,6 +5310,800 @@ const createPollButtons = (pollId, opts) => {
 
       await interaction.reply({ content: ` Die nächste Zahl wurde auf **${newNum}** gesetzt.`, ephemeral: true });
       globalBotStats.commandsRunned += 1;
+    }
+        if (commandName === "daily-setup") {
+      if (user.id !== "1151971830983311441") {
+        return interaction.reply({ content: "❌ Nur der Haupt-Admin darf diesen Befehl nutzen.", ephemeral: true });
+      }
+
+      const setupId = options.getString("id");
+      const description = options.getString("beschreibung") || "Hole dir hier deine täglichen Kekse ab!";
+
+      await setEcoData(`setup_${setupId}`, {
+        description: description,
+        exists: true
+      });
+
+      const embed = new EmbedBuilder()
+        .setTitle("🍪 Tägliche Kekse")
+        .setDescription(`${description}\n\nKlicke auf den Button unten, um 10 Kekse zu erhalten.`)
+        .setColor(0xFFFFFF);
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`daily_claim_${setupId}`)
+          .setLabel("Kekse abholen")
+          .setStyle(ButtonStyle.Success)
+          .setEmoji("🍪")
+      );
+
+      await currentChannel.send({ embeds: [embed], components: [row] });
+      console.log(`[Economy] Neues Daily Setup erstellt. (daily_claim_${setupId})`);
+      
+      await interaction.reply({ content: "✅ Daily Setup erfolgreich platziert.", ephemeral: true });
+      globalBotStats.commandsRunned += 1;
+    }
+
+    if (commandName === "shop-setup") {
+      if (user.id !== "1151971830983311441") {
+        return interaction.reply({ content: "❌ Nur der Haupt-Admin darf diesen Befehl nutzen.", ephemeral: true });
+      }
+
+      const description = options.getString("beschreibung") || "Hole dir hier deine Items ab!";
+      const SHOP_CHANNEL_ID = "1508053328662364302";
+      const shopChannel = guild.channels.cache.get(SHOP_CHANNEL_ID);
+
+      if (!shopChannel) {
+        return interaction.reply({ content: "❌ Shop-Kanal wurde auf diesem Server nicht gefunden!", ephemeral: true });
+      }
+
+      const shopEmbed = new EmbedBuilder()
+        .setTitle(`🛒 Server Shop`)
+        .setDescription(description)
+        .setColor(0xFFFFFF)
+        .addFields(
+          { name: "🎉 Double Chance Giveaway - `15.000 Kekse`", value: "Erhöht deine Gewinnchance bei Giveaways.", inline: false },
+          { name: "🛡️ Counting Puffer - `2.500 Kekse`", value: "Erlaubt dir einen Fehler beim Zählen, ohne die Zahl zurückzusetzen.", inline: false },
+          { name: "⚡ Counting XP Booster (30 Min) - `2.500 Kekse`", value: "Du erhältst 30 Minuten lang doppelte XP beim Zählen.", inline: false },
+          { name: "🔥 Counting XP Booster (60 Min) - `5.000 Kekse`", value: "Du erhältst 60 Minuten lang doppelte XP beim Zählen.", inline: false }
+        );
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('shop_giveaway').setLabel('Giveaway Chance').setStyle(ButtonStyle.Primary).setEmoji('🎉'),
+        new ButtonBuilder().setCustomId('shop_puffer').setLabel('Counting Puffer').setStyle(ButtonStyle.Primary).setEmoji('🛡️'),
+        new ButtonBuilder().setCustomId('shop_xp30').setLabel('XP Booster 30m').setStyle(ButtonStyle.Success).setEmoji('⚡'),
+        new ButtonBuilder().setCustomId('shop_xp60').setLabel('XP Booster 60m').setStyle(ButtonStyle.Success).setEmoji('🔥')
+      );
+
+      await shopChannel.send({ embeds: [shopEmbed], components: [row] });
+      
+      await interaction.reply({ content: `✅ Shop erfolgreich im Kanal <#${SHOP_CHANNEL_ID}> eingerichtet!`, ephemeral: true });
+      globalBotStats.commandsRunned += 1;
+    }
+        const CASINO_CHANNEL_ID = "1507385550825459812";
+    const ECO_ROLE_ID = "1506732560837771284";
+
+    if (commandName === "casino") {
+      if (channelId !== CASINO_CHANNEL_ID) {
+        return interaction.reply({ content: `Das Casino ist nur in <#${CASINO_CHANNEL_ID}> nutzbar.`, ephemeral: true });
+      }
+
+      const listEmbed = new EmbedBuilder()
+        .setTitle("🎲 Kekse Clan Casino")
+        .setDescription(
+          "Hier sind alle Befehle, die du direkt im Chat eingeben kannst:\n\n" +
+          "**/roulette** `<Einsatz>` `<Wettart>` - Setze auf Farben, Zahlen oder Bereiche\n" +
+          "**/coinflip** `<Einsatz>` `<Kopf/Zahl>` - Setze auf das Ergebnis eines Münzwurfs\n" +
+          "**/jackpot** `<Einsatz>` - Tritt dem globalen Pott bei\n" +
+          "**/crash** `<Einsatz>` - Cashing out bevor die Rakete explodiert\n" +
+          "**/highlow** `<Einsatz>` - Errate die nächste Karte\n" +
+          "**/blackjack** `<Einsatz>` - Gewinne im Kartenspiel gegen den Dealer"
+        )
+        .setColor("#ffffff");
+
+      return interaction.reply({ embeds: [listEmbed] });
+    }
+
+    if (["roulette", "coinflip", "jackpot", "crash", "highlow", "blackjack"].includes(commandName)) {
+      const hasEcoRole = member.roles.cache.has(ECO_ROLE_ID);
+      if (!hasEcoRole) {
+        return interaction.reply({ content: "Du benötigst ein Bankkonto, um am Casino teilzunehmen. Nutze `/bank create`.", ephemeral: true });
+      }
+
+      if (channelId !== CASINO_CHANNEL_ID) {
+        return interaction.reply({ content: `Das Casino ist nur in <#${CASINO_CHANNEL_ID}> nutzbar.`, ephemeral: true });
+      }
+
+      const userData = await getEcoData(user.id);
+      if (userData.blocked) {
+        return interaction.reply({ content: "Dein Konto ist gesperrt. Bitte wende dich an den Support.", ephemeral: true });
+      }
+
+      const betAmount = options.getInteger("einsatz");
+      if (betAmount <= 0) {
+        return interaction.reply({ content: "Bitte gib einen gültigen Einsatz über 0 an.", ephemeral: true });
+      }
+
+      if (betAmount > (userData.balance || 0)) {
+        return interaction.reply({ content: "Du hast nicht genug Kekse für diesen Einsatz.", ephemeral: true });
+      }
+
+      // ==========================================
+      // GAME: /roulette
+      // ==========================================
+      if (commandName === "roulette") {
+        const betType = options.getString("typ").toLowerCase();
+        const redNumbers = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+        const spin = Math.floor(Math.random() * 37);
+        const spinColor = spin === 0 ? 'green' : redNumbers.has(spin) ? 'red' : 'black';
+        const spinEmoji = spin === 0 ? '🟢' : spinColor === 'red' ? '🔴' : '⚫';
+        
+        let won = false;
+        let payout = 0;
+        let betDesc = betType;
+        const numBet = parseInt(betType);
+
+        if (!isNaN(numBet) && numBet >= 0 && numBet <= 36) {
+          won = spin === numBet;
+          payout = won ? betAmount * 35 : -betAmount;
+          betDesc = `Zahl ${numBet}`;
+        } else if (betType === 'red') {
+          won = spinColor === 'red';
+          payout = won ? betAmount : -betAmount;
+          betDesc = '🔴 Rot';
+        } else if (betType === 'black') {
+          won = spinColor === 'black';
+          payout = won ? betAmount : -betAmount;
+          betDesc = '⚫ Schwarz';
+        } else if (betType === 'even') {
+          won = spin !== 0 && spin % 2 === 0;
+          payout = won ? betAmount : -betAmount;
+          betDesc = 'Gerade';
+        } else if (betType === 'odd') {
+          won = spin % 2 !== 0;
+          payout = won ? betAmount : -betAmount;
+          betDesc = 'Ungerade';
+        } else if (betType === '1-18') {
+          won = spin >= 1 && spin <= 18;
+          payout = won ? betAmount : -betAmount;
+          betDesc = '1–18';
+        } else if (betType === '19-36') {
+          won = spin >= 19 && spin <= 36;
+          payout = won ? betAmount : -betAmount;
+          betDesc = '19–36';
+        } else {
+          return interaction.reply({ content: "Ungültige Wettart. Nutze: `red`, `black`, `even`, `odd`, eine Zahl (0–36), `1-18` oder `19-36`.", ephemeral: true });
+        }
+
+        userData.balance = (userData.balance || 0) + payout;
+        await logTransaction(user.id, payout, payout >= 0 ? "plus" : "minus", "Casino Roulette");
+        await setEcoData(user.id, userData);
+
+        const roulEmbed = new EmbedBuilder()
+          .setTitle('Roulette')
+          .setDescription(`Die Kugel landet auf: **${spinEmoji} ${spin}**\n\nDeine Wette: **${betDesc}** | Einsatz: **${betAmount} Kekse**`)
+          .addFields({ name: won ? '✅ Gewonnen!' : '❌ Verloren!', value: `${payout >= 0 ? '+' : ''}${payout} Kekse\nNeuer Kontostand: **${userData.balance} Kekse**` })
+          .setColor(0x333333);
+
+        return interaction.reply({ embeds: [roulEmbed] });
+      }
+
+      // ==========================================
+      // GAME: /coinflip
+      // ==========================================
+      if (commandName === "coinflip") {
+        const choice = options.getString("seite");
+        const flip = Math.random() < 0.5 ? 'heads' : 'tails';
+        const won = flip === choice;
+
+        userData.balance = (userData.balance || 0) + (won ? betAmount : -betAmount);
+        await logTransaction(user.id, betAmount, won ? "plus" : "minus", "Casino Coinflip");
+        await setEcoData(user.id, userData);
+
+        const cfEmbed = new EmbedBuilder()
+          .setTitle(`Coinflip`)
+          .setDescription(`Die Münze zeigt: **${flip === 'heads' ? 'Kopf (Heads)' : 'Zahl (Tails)'}**\n\nDu hast auf **${choice === 'heads' ? 'Kopf' : 'Zahl'}** gesetzt.`)
+          .addFields({ name: won ? '✅ Gewonnen!' : '❌ Verloren!', value: `${won ? '+' : '-'}${betAmount} Kekse\nNeuer Kontostand: **${userData.balance} Kekse**` })
+          .setColor(0x333333);
+
+        return interaction.reply({ embeds: [cfEmbed] });
+      }
+
+      // ==========================================
+      // GAME: /jackpot
+      // ==========================================
+      if (commandName === "jackpot") {
+        if (jackpotState.entries.find(e => e.userId === user.id)) {
+          return interaction.reply({ content: "Du bist bereits im Jackpot! Warte auf die Ziehung.", ephemeral: true });
+        }
+
+        userData.balance -= betAmount;
+        await logTransaction(user.id, betAmount, "minus", "Casino Jackpot");
+        await setEcoData(user.id, userData);
+
+        jackpotState.entries.push({ userId: user.id, username: user.username, betAmount });
+        jackpotState.totalPool += betAmount;
+
+        const buildJackpotEmbed = (extra = '') => {
+          const list = jackpotState.entries.map(e => {
+            const pct = ((e.betAmount / jackpotState.totalPool) * 100).toFixed(1);
+            return `<@${e.userId}> — **${e.betAmount} Kekse** (${pct}%)`;
+          }).join('\n');
+          return new EmbedBuilder()
+            .setTitle('Jackpot')
+            .setDescription(`**Pool: ${jackpotState.totalPool} Kekse**\n\n${extra}`)
+            .addFields({ name: `Teilnehmer (${jackpotState.entries.length})`, value: list || 'Keine' })
+            .setColor(0xFFFFFF)
+            .setFooter({ text: 'Je mehr du einsetzt, desto höher deine Gewinnchance!' });
+        };
+
+        const userChance = ((betAmount / jackpotState.totalPool) * 100).toFixed(1);
+
+        if (jackpotState.entries.length === 1) {
+          const jMsg = await guild.channels.cache.get(CASINO_CHANNEL_ID).send({ embeds: [buildJackpotEmbed('Warte auf weitere Teilnehmer…')] });
+          jackpotState.announceMessage = jMsg;
+          return interaction.reply({ content: `Du bist dem Jackpot beigetreten! Einsatz: **${betAmount} Kekse** (${userChance}% Chance)`, ephemeral: true });
+        }
+
+        if (jackpotState.announceMessage) {
+          const extra = jackpotState.countdownEndTime ? `Ziehung <t:${Math.floor(jackpotState.countdownEndTime / 1000)}:R>` : '';
+          await jackpotState.announceMessage.edit({ embeds: [buildJackpotEmbed(extra)] }).catch(() => {});
+        }
+
+        if (!jackpotState.countdownTimer) {
+          const drawTime = Date.now() + 5 * 60 * 1000;
+          jackpotState.countdownEndTime = drawTime;
+          if (jackpotState.announceMessage) {
+            await jackpotState.announceMessage.edit({ embeds: [buildJackpotEmbed(`Ziehung <t:${Math.floor(drawTime / 1000)}:R>`)] }).catch(() => {});
+          }
+          jackpotState.countdownTimer = setTimeout(() => runJackpotDraw(guild.channels.cache.get(CASINO_CHANNEL_ID)), 5 * 60 * 1000);
+        }
+
+        return interaction.reply({ content: `Du bist dem Jackpot beigetreten! Einsatz: **${betAmount} Kekse** (${userChance}% Chance)\nPool: **${jackpotState.totalPool} Kekse**`, ephemeral: true });
+      }
+
+      // ==========================================
+      // GAME: /crash
+      // ==========================================
+      if (commandName === "crash") {
+        if (crashGames.has(user.id)) {
+          return interaction.reply({ content: "Du hast bereits ein aktives Crash-Spiel!", ephemeral: true });
+        }
+
+        userData.balance -= betAmount;
+        await logTransaction(user.id, betAmount, "minus", "Casino Crash");
+        await setEcoData(user.id, userData);
+
+        const crashPoint = parseFloat(Math.max(1.01, 0.97 / (1 - Math.random())).toFixed(2));
+        let multiplier = 1.00;
+
+        const cashoutRow = () => new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`crash_cashout_${user.id}`)
+            .setLabel(`Cash Out (${Math.floor(betAmount * multiplier)} Kekse)`)
+            .setStyle(ButtonStyle.Success)
+        );
+                const crashEmbed = (crashed = false, cashedAt = null) => {
+          if (crashed) return new EmbedBuilder().setTitle('💥 CRASH!').setDescription(`Gecrasht bei **${crashPoint.toFixed(2)}x**!\n\nEinsatz: **${betAmount} Kekse** — **Verloren!**\nNeuer Kontostand: **${userData.balance} Kekse**`).setColor(0x333333);
+          if (cashedAt !== null) {
+            const win = Math.floor(betAmount * cashedAt);
+            return new EmbedBuilder().setTitle('💰 Cash Out!').setDescription(`Ausgecasht bei **${cashedAt.toFixed(2)}x**!\n\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${userData.balance + win} Kekse**`).setColor(0x333333);
+          }
+          return new EmbedBuilder().setTitle('Crash').setDescription(`**${multiplier.toFixed(2)}x** — Steigt noch…\n\nEinsatz: **${betAmount} Kekse**\nMöglicher Gewinn: **${Math.floor(betAmount * multiplier)} Kekse**\n\nDrücke **Cash Out** bevor die Rakete crasht!`).setColor(0xFFFFFF);
+        };
+
+        const gameMsg = await interaction.reply({ embeds: [crashEmbed()], components: [cashoutRow()], fetchReply: true });
+        crashGames.set(user.id, { betAmount, crashPoint, cashedOut: false });
+
+        const collector = gameMsg.createMessageComponentCollector({
+          filter: i => i.user.id === user.id && i.customId === `crash_cashout_${user.id}`,
+          componentType: ComponentType.Button,
+          time: 120000
+        });
+
+        collector.on('collect', async (i) => {
+          await i.deferUpdate();
+          const game = crashGames.get(user.id);
+          if (game && !game.cashedOut) game.cashedOut = true;
+        });
+
+        const interval = setInterval(async () => {
+          const game = crashGames.get(user.id);
+          if (!game) { clearInterval(interval); return; }
+          multiplier = parseFloat((multiplier + 0.08).toFixed(2));
+
+          if (game.cashedOut) {
+            clearInterval(interval);
+            crashGames.delete(user.id);
+            collector.stop('cashout');
+            const win = Math.floor(betAmount * multiplier);
+            const fresh = await getEcoData(user.id);
+            fresh.balance = (fresh.balance || 0) + win;
+            await logTransaction(user.id, win, "plus", "Casino Crash");
+            await setEcoData(user.id, fresh);
+            await gameMsg.edit({ embeds: [crashEmbed(false, multiplier)], components: [] }).catch(() => {});
+            return;
+          }
+
+          if (multiplier >= game.crashPoint) {
+            clearInterval(interval);
+            crashGames.delete(user.id);
+            collector.stop('crashed');
+            await gameMsg.edit({ embeds: [crashEmbed(true)], components: [] }).catch(() => {});
+            return;
+          }
+
+          await gameMsg.edit({ embeds: [crashEmbed()], components: [cashoutRow()] }).catch(() => {});
+        }, 600);
+
+        collector.on('end', async (collected, reason) => {
+          if (reason === 'time') {
+            clearInterval(interval);
+            const game = crashGames.get(user.id);
+            if (game) {
+              crashGames.delete(user.id);
+              await gameMsg.edit({ embeds: [crashEmbed(true)], components: [] }).catch(() => {});
+            }
+          }
+        });
+        return;
+      }
+
+      if (commandName === "highlow") {
+        if (hlGames.has(user.id)) {
+          return interaction.reply({ content: "Du hast bereits ein aktives Higher/Lower-Spiel!", ephemeral: true });
+        }
+
+        userData.balance -= betAmount;
+        await logTransaction(user.id, betAmount, "minus", "Casino Higher Lower");
+        await setEcoData(user.id, userData);
+        hlGames.set(user.id, true);
+
+        const cardNames = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+        const cardVals = { '2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,'J':11,'Q':12,'K':13,'A':14 };
+        const suits = ['♠️','♥️','♦️','♣️'];
+        const getCard = () => { const n = cardNames[Math.floor(Math.random()*cardNames.length)]; return { display: `${n}${suits[Math.floor(Math.random()*4)]}`, value: cardVals[n] }; };
+
+        let currentCard = getCard();
+        let streak = 0;
+        let multiplier = 1.0;
+
+        const hlRow = (disabled = false) => new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId(`hl_higher_${user.id}`).setLabel('Higher').setStyle(ButtonStyle.Primary).setDisabled(disabled),
+          new ButtonBuilder().setCustomId(`hl_lower_${user.id}`).setLabel('Lower').setStyle(ButtonStyle.Danger).setDisabled(disabled),
+          new ButtonBuilder().setCustomId(`hl_cashout_${user.id}`).setLabel(`Cash Out (${Math.floor(betAmount * multiplier)} Kekse)`).setStyle(ButtonStyle.Success).setDisabled(disabled || streak === 0)
+        );
+
+        const hlEmbed = (desc, color = 0xFFFFFF) => new EmbedBuilder().setTitle('Higher or Lower').setDescription(desc).setColor(color);
+
+        const gameMsg = await interaction.reply({
+          embeds: [hlEmbed(`Aktuelle Karte: **${currentCard.display}**\n\nStreak: **0** | Multiplikator: **1.00x**\nMöglicher Gewinn: **${betAmount} Kekse**\n\nIst die nächste Karte höher oder niedriger?`)],
+          components: [hlRow()],
+          fetchReply: true
+        });
+
+        const collector = gameMsg.createMessageComponentCollector({
+          filter: i => i.user.id === user.id,
+          componentType: ComponentType.Button,
+          time: 90000
+        });
+
+        collector.on('collect', async (i) => {
+          await i.deferUpdate();
+          const id = i.customId;
+          if (id === `hl_cashout_${user.id}`) { collector.stop('cashout'); return; }
+
+          const nextCard = getCard();
+          const choice = id.startsWith(`hl_higher`) ? 'higher' : 'lower';
+          const isTie = nextCard.value === currentCard.value;
+          const correct = !isTie && ((choice === 'higher' && nextCard.value > currentCard.value) || (choice === 'lower' && nextCard.value < currentCard.value));
+
+          if (isTie) {
+            currentCard = nextCard;
+            await gameMsg.edit({ embeds: [hlEmbed(`Unentschieden! Neue Karte: **${nextCard.display}**\nStreak: **${streak}** | Multiplikator: **${multiplier.toFixed(2)}x**`)], components: [hlRow()] }).catch(() => {});
+            return;
+          }
+
+          if (correct) {
+            streak++;
+            multiplier = parseFloat((multiplier + 0.5).toFixed(2));
+            currentCard = nextCard;
+            await gameMsg.edit({
+              embeds: [hlEmbed(`Richtig! Nächste Karte war **${nextCard.display}**\n\nAktuelle Karte: **${currentCard.display}**\nStreak: **${streak}** | Multiplikator: **${multiplier.toFixed(2)}x**\nMöglicher Gewinn: **${Math.floor(betAmount * multiplier)} Kekse**`, 0xFFFFFF)],
+              components: [hlRow()]
+            }).catch(() => {});
+          } else {
+            collector.stop('wrong');
+          }
+        });
+
+        collector.on('end', async (collected, reason) => {
+          hlGames.delete(user.id);
+          const fresh = await getEcoData(user.id);
+          if (reason === 'cashout') {
+            const win = Math.floor(betAmount * multiplier);
+            fresh.balance = (fresh.balance || 0) + win;
+            await logTransaction(user.id, win, "plus", "Casino Higher Lower");
+            await setEcoData(user.id, fresh);
+            await gameMsg.edit({ embeds: [hlEmbed(`Cash Out bei **${multiplier.toFixed(2)}x**!\n\n**+${win - betAmount} Kekse** Gewinn\nNeuer Kontostand: **${fresh.balance} Kekse**`, 0x333333)], components: [] }).catch(() => {});
+          } else if (reason === 'wrong') {
+            await gameMsg.edit({ embeds: [hlEmbed(`❌ Falsch! Du hast **${betAmount} Kekse** verloren.\nNeuer Kontostand: **${fresh.balance} Kekse**`, 0x333333)], components: [] }).catch(() => {});
+          } else {
+            if (streak > 0) {
+              const win = Math.floor(betAmount * multiplier);
+              fresh.balance = (fresh.balance || 0) + win;
+              await logTransaction(user.id, win, "plus", "Casino Higher Lower");
+              await setEcoData(user.id, fresh);
+              await gameMsg.edit({ embeds: [hlEmbed(`Zeit abgelaufen! Auto Cash-Out bei **${multiplier.toFixed(2)}x**\n**+${win - betAmount} Kekse**\nNeuer Kontostand: **${fresh.balance} Kekse**`, 0x333333)], components: [] }).catch(() => {});
+            } else {
+              await gameMsg.edit({ embeds: [hlEmbed(`Zeit abgelaufen! **${betAmount} Kekse** verloren.\nNeuer Kontostand: **${fresh.balance} Kekse**`, 0x333333)], components: [] }).catch(() => {});
+            }
+          }
+        });
+        return;
+      }
+
+      if (commandName === "blackjack") {
+        const suits = ['♠️', '♥️', '♦️', '♣️'];
+        const values = [
+          { n: '2', v: 2 }, { n: '3', v: 3 }, { n: '4', v: 4 }, { n: '5', v: 5 },
+          { n: '6', v: 6 }, { n: '7', v: 7 }, { n: '8', v: 8 }, { n: '9', v: 9 },
+          { n: '10', v: 10 }, { n: 'J', v: 10 }, { n: 'Q', v: 10 }, { n: 'K', v: 10 },
+          { n: 'A', v: 11 }
+        ];
+
+        let deck = [];
+        for (const suit of suits) {
+          for (const val of values) {
+            deck.push({ name: `${val.n}${suit}`, value: val.v });
+          }
+        }
+        deck = deck.sort(() => Math.random() - 0.5);
+
+        const playerHand = [deck.pop(), deck.pop()];
+        const dealerHand = [deck.pop(), deck.pop()];
+
+        const calculateScore = (hand) => {
+          let score = hand.reduce((sum, card) => sum + card.value, 0);
+          let aces = hand.filter(card => card.name.startsWith('A')).length;
+          while (score > 21 && aces > 0) {
+            score -= 10;
+            aces--;
+          }
+          return score;
+        };
+
+                const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('bj_hit').setLabel('Karte ziehen (Hit)').setStyle(ButtonStyle.Primary),
+          new ButtonBuilder().setCustomId('bj_stand').setLabel('Halten (Stand)').setStyle(ButtonStyle.Secondary)
+        );
+
+        const createEmbed = (title, color, showAllDealer = false) => {
+          const pScore = calculateScore(playerHand);
+          const dScore = showAllDealer ? calculateScore(dealerHand) : dealerHand[0].value;
+          const pCards = playerHand.map(c => c.name).join(' ');
+          const dCards = showAllDealer ? dealerHand.map(c => c.name).join(' ') : `${dealerHand[0].name} 🃏`;
+          return new EmbedBuilder()
+            .setTitle(title)
+            .setColor(color)
+            .setDescription(`Dein Einsatz: **${betAmount} Kekse**`)
+            .addFields(
+              { name: `Deine Hand (${pScore})`, value: pCards, inline: true },
+              { name: `Dealer Hand (${showAllDealer ? dScore : dScore + ' + ?'})`, value: dCards, inline: true }
+            );
+        };
+
+        if (calculateScore(playerHand) === 21) {
+          let dScore = calculateScore(dealerHand);
+          let status = "";
+          let finalColor = 0x333333;
+          if (dScore === 21) {
+            status = "Beide haben Blackjack! Unentschieden.";
+          } else {
+            status = "Echter Blackjack! Du gewinnst das 1.5-fache!";
+            userData.balance += Math.floor(betAmount * 1.5);
+            await logTransaction(user.id, Math.floor(betAmount * 1.5), "plus", "Casino Blackjack");
+          }
+          await setEcoData(user.id, userData);
+          const finalEmbed = createEmbed(`Blackjack - ${status}`, finalColor, true).setFooter({ text: `Neuer Kontostand: ${userData.balance} Kekse` });
+          return interaction.reply({ embeds: [finalEmbed] });
+        }
+
+        const gameMessage = await interaction.reply({ embeds: [createEmbed("Blackjack", 0xFFFFFF)], components: [row], fetchReply: true });
+
+        const collector = gameMessage.createMessageComponentCollector({
+          filter: i => i.user.id === user.id,
+          componentType: ComponentType.Button,
+          time: 60000
+        });
+
+        collector.on('collect', async i => {
+          await i.deferUpdate();
+          if (i.customId === 'bj_hit') {
+            playerHand.push(deck.pop());
+            if (calculateScore(playerHand) >= 21) {
+              collector.stop(calculateScore(playerHand) > 21 ? 'busted' : 'stand');
+            } else {
+              await gameMessage.edit({ embeds: [createEmbed("Blackjack", 0xFFFFFF)] });
+            }
+          }
+          if (i.customId === 'bj_stand') {
+            collector.stop('stand');
+          }
+        });
+
+        collector.on('end', async (collected, reason) => {
+          let pScore = calculateScore(playerHand);
+          let dScore = calculateScore(dealerHand);
+          let status = "";
+          let finalColor = 0x333333;
+
+          if (reason !== 'busted') {
+            while (dScore < 17) {
+              dealerHand.push(deck.pop());
+              dScore = calculateScore(dealerHand);
+            }
+          }
+
+          if (reason === 'busted' || pScore > 21) {
+            status = "❌ Überkauft! Du hast verloren.";
+            userData.balance -= betAmount;
+            await logTransaction(user.id, betAmount, "minus", "Casino Blackjack");
+          } else if (dScore > 21) {
+            status = "🎉 Dealer überkauft! Du gewinnst!";
+            userData.balance += betAmount;
+            await logTransaction(user.id, betAmount, "plus", "Casino Blackjack");
+          } else if (pScore > dScore) {
+            status = "🎉 Mehr Punkte als der Dealer. Du gewinnst!";
+            userData.balance += betAmount;
+            await logTransaction(user.id, betAmount, "plus", "Casino Blackjack");
+          } else if (pScore < dScore) {
+            status = "❌ Dealer hat mehr Punkte. Verloren!";
+            userData.balance -= betAmount;
+            await logTransaction(user.id, betAmount, "minus", "Casino Blackjack");
+          } else {
+            status = "🤝 Unentschieden! Kekse zurück.";
+          }
+
+          await setEcoData(user.id, userData);
+          const finalEmbed = createEmbed(`Blackjack - ${status}`, finalColor, true).setFooter({ text: `Neuer Kontostand: ${userData.balance} Kekse` });
+          await gameMessage.edit({ embeds: [finalEmbed], components: [] });
+        });
+        return;
+      }
+          if (commandName === "bank") {
+      const subCommand = options.getSubcommand();
+      const hasEcoRole = member.roles.cache.has("1506732560837771284");
+      const isDev = user.id === "1151971830983311441";
+
+      if (["add", "remove", "see", "get"].includes(subCommand)) {
+        if (!isDev) {
+          return interaction.reply({ content: "Du hast nicht die Berechtigung diese Funktion zu nutzen. Wenn es sich um einen Fehler handelt wende dich bitte an den Support.", ephemeral: true });
+        }
+
+        if (subCommand === "see") {
+          const targetUser = options.getUser("nutzer");
+          const data = await getEcoData(targetUser.id);
+          const dmEmbed = new EmbedBuilder()
+            .setTitle(`Konto-Details von ${targetUser.username}`)
+            .setColor(0xFFFFFF)
+            .addFields(
+              { name: "User ID", value: data.userId || targetUser.id },
+              { name: "Discord Name", value: data.username || "Kein Name" },
+              { name: "Minecraft Name", value: data.mcUsername || "Nicht registriert" },
+              { name: "Kontostand", value: `${data.balance || 0} Kekse` },
+              { name: "Gesperrt?", value: data.blocked ? "Ja" : "Nein" }
+            );
+
+          await user.send({ embeds: [dmEmbed] }).catch(() => {});
+          return interaction.reply({ content: `✅ Die Kontodetails von ${targetUser.username} wurden dir per DM zugestellt.`, ephemeral: true });
+        }
+
+        if (subCommand === "get") {
+          const existingKekse = await initEconomyGetKekse(client);
+          return interaction.reply({ content: `Es sind aktuell ${existingKekse} Kekse im Umlauf.`, ephemeral: true });
+        }
+
+        const amount = options.getInteger("anzahl");
+        const targetUser = options.getUser("nutzer") || user;
+
+        if (amount <= 0) {
+          return interaction.reply({ content: "Bitte gib eine gültige Anzahl an Keksen an.", ephemeral: true });
+        }
+
+        const targetData = await getEcoData(targetUser.id);
+        let currentBalance = targetData.balance || 0;
+
+        if (subCommand === "add") {
+          currentBalance += amount;
+        } else {
+          currentBalance = Math.max(0, currentBalance - amount);
+        }
+
+        targetData.balance = currentBalance;
+        await setEcoData(targetUser.id, targetData);
+
+        const logEmbed = new EmbedBuilder()
+          .setTitle("Konto-Aktualisierung")
+          .setDescription(`Konto von <@${targetUser.id}> wurde aktualisiert.`)
+          .addFields(
+            { name: "Aktion", value: subCommand === "add" ? `+${amount} Kekse` : `-${amount} Kekse` },
+            { name: "Neuer Kontostand", value: `${currentBalance} Kekse` }
+          )
+          .setColor(0xFFFFFF);
+
+        await user.send({ embeds: [logEmbed] }).catch(() => {});
+        return interaction.reply({ content: `✅ Das Konto von <@${targetUser.id}> wurde erfolgreich modifiziert.`, ephemeral: true });
+      }
+
+      if (subCommand === "create") {
+        if (hasEcoRole) {
+          return interaction.reply({ content: "Du besitzt bereits ein registriertes Bankkonto.", ephemeral: true });
+        }
+
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`open_bank_modal_${user.id}`)
+            .setLabel("Registrierungsformular öffnen")
+            .setStyle(ButtonStyle.Primary)
+        );
+
+        return interaction.reply({
+          content: "Klicke auf den Button unten, um dein Konto zu erstellen. Dieser Button funktioniert nur für dich.",
+          components: [row],
+          ephemeral: true
+        });
+      }
+
+      if (subCommand === "help") {
+        const helpEmbed = new EmbedBuilder()
+          .setTitle("🏦 Bank-System Hilfe")
+          .setColor(0xFFFFFF)
+          .setDescription("Hier findest du alle verfügbaren Befehle:")
+          .addFields(
+            { name: "`/bank create`", value: "Erstellt dein persönliches Bankkonto (Erfordert Minecraft-Namen)." },
+            { name: "`/bank status`", value: "Zeigt dir deinen aktuellen Kontostand (Privat für dich)." },
+            { name: "`/bank pay`", value: "Überträgt Kekse sicher auf das Konto eines Mitspielers." },
+            { name: "⚠️ Wichtiger Hinweis", value: "Für Änderungen am Konto oder Auszahlungen eröffne bitte ein Ticket in <#1423413348493430905>." }
+          );
+
+        return interaction.reply({ embeds: [helpEmbed], ephemeral: true });
+      }
+
+      if (subCommand === "pay") {
+        const targetUser = options.getUser("nutzer");
+        const amount = options.getInteger("anzahl");
+        const userData = await getEcoData(user.id);
+
+        if (amount <= 0) {
+          return interaction.reply({ content: "Bitte gib eine gültige Anzahl an Keksen an.", ephemeral: true });
+        }
+
+        if (targetUser.id === user.id) {
+          return interaction.reply({ content: "Du kannst dir selbst keine Kekse überweisen.", ephemeral: true });
+        }
+
+        if (amount > (userData.balance || 0)) {
+          return interaction.reply({ content: "Du hast nicht genug Kekse für diese Überweisung.", ephemeral: true });
+        }
+
+        const targetData = await getEcoData(targetUser.id);
+        if (!targetData || targetData.blocked) {
+          return interaction.reply({ content: "Der Zielnutzer hat kein aktives Konto oder ist gesperrt.", ephemeral: true });
+        }
+
+        userData.balance -= amount;
+        targetData.balance = (targetData.balance || 0) + amount;
+        
+        await logTransaction(user.id, amount, "minus", `Pay an ${targetData.username}`);
+        await logTransaction(targetUser.id, amount, "plus", `Pay von ${userData.username}`);
+        await setEcoData(user.id, userData);
+        await setEcoData(targetUser.id, targetData);
+
+        console.log(`[Economy] Überweisung von ${userData.username || user.username} an ${targetData.username || targetUser.id} für ${amount} Kekse.`);
+
+        const payEmbed = new EmbedBuilder()
+          .setTitle("Überweisung erfolgreich")
+          .setDescription(`Du hast **${amount} Kekse** an <@${targetUser.id}> überweisen.`)
+          .addFields({ name: "Neuer Kontostand", value: `${userData.balance} Kekse` })
+          .setColor(0xFFFFFF);
+
+        const getEmbed = new EmbedBuilder()
+          .setTitle("Kekse erhalten!")
+          .setDescription(`Du hast **${amount} Kekse** von <@${user.id}> erhalten.`)
+          .addFields({ name: "Neuer Kontostand", value: `${targetData.balance} Kekse` })
+          .setColor(0xFFFFFF);
+
+        await interaction.reply({ embeds: [payEmbed], ephemeral: true });
+
+        await targetUser.send({ embeds: [getEmbed] }).catch(() => {
+          console.log(`Konnte keine DM an ${targetUser.id} senden.`);
+        });
+        return;
+      }
+
+      if (subCommand === "status") {
+        if (!hasEcoRole) {
+          return interaction.reply({ content: "Du hast noch kein Konto. Nutze `/bank create`, um dich zu registrieren.", ephemeral: true });
+        }
+
+        const userData = await getEcoData(user.id);
+
+        if (userData.blocked) {
+          return interaction.reply({ content: "Dein Konto ist aktuell gesperrt. Bitte wende dich an den Support.", ephemeral: true });
+        }
+
+        await user.send({ content: `Dein aktueller Kontostand beträgt: **${userData.balance || 0} Kekse** 🍪\nFür Auszahlungen öffne bitte ein Ticket in https://discord.com/channels/1423413347168157718/1423413348493430905` }).catch(() => {});
+        return interaction.reply({ content: "✅ Dein aktueller Kontostand wurde dir per DM zugestellt.", ephemeral: true });
+      }
+    }
+              if (commandName === "confirm" || commandName === "decline") {
+      if (!member.roles.cache.has(TEAM_ROLE)) {
+        return interaction.reply({ content: "Nur Teammitglieder können diesen Vorgang bearbeiten.", ephemeral: true });
+      }
+
+      const transfer = Array.from(activeTransfers.values()).find(t => t.channelId === currentChannel.id && t.step === "PENDING_TEAM");
+      if (!transfer) {
+        return interaction.reply({ content: "❌ Es gibt keinen unbestätigten Tauschvorgang in diesem Kanal.", ephemeral: true });
+      }
+
+      const stats = await getEconomyStats(client);
+
+      if (commandName === "confirm") {
+        if (transfer.isBuy) {
+          const userData = await getEcoData(transfer.userId);
+          userData.balance = (userData.balance || 0) + transfer.amount;
+          await logTransaction(userData.userId, transfer.amount, "plus", "Transaction");
+          await setEcoData(transfer.userId, userData);
+          await addBotBalance(transfer.totalCoins);
+        } else {
+          if (stats.botBalance < transfer.totalCoins) {
+            return interaction.reply({ content: "❌ Fehler: Der Bot hat mittlerweile nicht mehr genug Coins auf der Balance!", ephemeral: true });
+          }
+          await removeBotBalance(transfer.totalCoins);
+        }
+
+        activeTransfers.delete(transfer.id);
+        await saveActiveTransfers();
+
+        const finalEmbed = new EmbedBuilder()
+          .setTitle("✅ Tausch-Quittung")
+          .setColor("#2ecc71")
+          .setDescription(
+            `Der Tausch wurde erfolgreich vom Team bestätigt und abgeschlossen!\n\n` +
+            `**User:** <@${transfer.userId}>\n` +
+            `**Menge:** ${transfer.amount} Kekse\n` +
+            `**Gegenwert:** ${transfer.totalCoins} Minevale Coins\n` +
+            `**Typ:** ${transfer.isBuy ? "Kekse gekauft" : "Kekse verkauft"}`
+          )
+          .setTimestamp();
+
+        await interaction.reply({ embeds: [finalEmbed] });
+
+        const targetUser = await client.users.fetch(transfer.userId).catch(() => null);
+        if (targetUser) {
+          await targetUser.send({ embeds: [finalEmbed] }).catch(() => {});
+        }
+        return;
+      }
+
+      if (commandName === "decline") {
+        if (!transfer.isBuy) {
+          const userData = await getEcoData(transfer.userId);
+          userData.balance = (userData.balance || 0) + transfer.amount;
+          
+          let payout = transfer.amount;
+          await logTransaction(transfer.userId, payout, "plus", "Transaction canceled");
+          await setEcoData(transfer.userId, userData);
+        }
+
+        activeTransfers.delete(transfer.id);
+        await saveActiveTransfers();
+
+        await interaction.reply({ content: "❌ Der Vorgang wurde vom Team abgelehnt. Eventuell eingefrorene Kekse wurden zurückerstattet." });
+        return initEconomyTransferSystem(client, currentChannel);
+      }
+    }
     }
   });
 }
