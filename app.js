@@ -6540,7 +6540,7 @@ export function registerSlashCommands(client) {
     const rest = new REST({ version: "10" }).setToken(process.env.BOT_TOKEN);
     try {
       console.log("🤖 Registriere Slash-Commands bei Discord...");
-      await rest.put(Routes.applicationCommands(client.user.id), {
+      await rest.put(Routes.applicationGuildCommands(client.user.id, "1423413347168157718"), {
         body: commands,
       });
       console.log("✅ Slash-Commands erfolgreich im Discord-Menü registriert!");
