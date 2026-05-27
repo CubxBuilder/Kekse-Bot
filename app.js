@@ -4336,10 +4336,8 @@ client.once("clientReady", async () => {
         await initPoll(client);
         initVoiceChannels(client);
         initReminder(client);
-        initModeration(client);
         initVerification(client);
         initAuditLogs(client);
-        clear(client);
         warning(client);
         initModSend(client);
         await violations(client);
