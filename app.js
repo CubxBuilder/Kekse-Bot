@@ -4488,7 +4488,6 @@ const commands = [
 export function registerSlashCommands(client) {
   client.once("ready", async () => {
     const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
-
     try {
       console.log('🤖 Registriere Slash-Commands bei Discord...');
       await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
@@ -5238,6 +5237,7 @@ client.once("clientReady", async () => {
         clear(client);
         warning(client);
         initModSend(client);
+        registerSlashCommands(client)
         await violations(client);
         await initStatistics(client);
         await initDashboard(app, client, globalBotStats);
