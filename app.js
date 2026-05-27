@@ -47,6 +47,9 @@ const client = new Client({
     Partials.GuildMember, Partials.User, Partials.ThreadMember
     ]
 });
+const SUPPORT_CATEGORY = "1423413348065611953";
+const ADMIN_CATEGORY = "1426271033047912582";
+const ADMIN_ROLE = "1423427747103113307";
 setInterval(async () => {
   if (client && client.ws) {
     const currentPing = client.ws.ping;
@@ -4182,7 +4185,31 @@ const createPollButtons = (pollId, opts) => {
       await sendTicketPanel(currentChannel);
       globalBotStats.commandsRunned += 1;
     }
-
+    async function closeTicket(channel, moderator) {
+  try {
+    const stored = await getTickData("tickets") || { tickets: {} };
+    const allEntries = stored.tickets || {};
+    const ticket = Object.values(allEntries).find(
+      t => typeof t === 'object' && t.channelId === channel.id
+    );
+    if (!ticket) {
+      return channel.send("❌ Kein aktives Ticket in der Datenbank gefunden.");
+    }
+    await channel.permissionOverwrites.delete(ticket.userId).catch(() => {});
+    await channel.send({ 
+      content: `⏳ **Ticket wird archiviert...**\nErstellt von: ${ticket.username}\nID: ${ticket.idString}`
+    });
+    delete stored.tickets[ticket.idString];
+    await setTickData("tickets", stored);
+    await archiveTicket({ 
+        name: channel.name, 
+        closedBy: moderator,
+        channel: channel 
+    }, setTickData);
+  } catch (err) {
+    console.error("[TICKET] Fehler:", err);
+  }
+}
     if (commandName === "close") {
       if (!member.roles.cache.has(TEAM_ROLE)) {
         return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
