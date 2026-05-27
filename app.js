@@ -4301,8 +4301,6 @@ process.on('unhandledRejection', (reason, promise) => {
 process.on('uncaughtException', (err) => {
     console.error('[Process] Uncaught Exception:', err);
 });
-const ADMIN_CATEGORY = "1426271033047912582";
-const ADMIN_ROLE = "1423427747103113307";
 const commands = [
   new SlashCommandBuilder()
     .setName('send')
