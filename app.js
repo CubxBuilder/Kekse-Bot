@@ -47,745 +47,6 @@ const client = new Client({
     Partials.GuildMember, Partials.User, Partials.ThreadMember
     ]
 });
-const commands = [
-  new SlashCommandBuilder()
-    .setName('send')
-    .setDescription('Sendet eine Nachricht in einen bestimmten Kanal')
-    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Zielkanal').setRequired(true))
-    .addStringOption(opt => opt.setName('text').setDescription('Der Nachrichtentext').setRequired(true))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName('changelog')
-    .setDescription('Erstellt einen neuen Changelog-Eintrag')
-    .addStringOption(opt => opt.setName('eintrag').setDescription('Inhalt des Updates (Nutze Kommas für Listenpunkte)').setRequired(true))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName('embed')
-    .setDescription('Sendet ein strukturiertes Embed')
-    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Zielkanal').setRequired(true))
-    .addStringOption(opt => opt.setName('titel').setDescription('Der Titel des Embeds').setRequired(true))
-    .addStringOption(opt => opt.setName('text').setDescription('Die Beschreibung / Haupttext').setRequired(true))
-    .addStringOption(opt => opt.setName('farbe').setDescription('HEX-Farbe (z.B. #ff0000 oder #ffffff)').setRequired(false))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName('dm')
-    .setDescription('Sendet eine Direktnachricht an einen User')
-    .addStringOption(opt => opt.setName('userid').setDescription('Die Discord-ID des Users').setRequired(true))
-    .addStringOption(opt => opt.setName('text').setDescription('Der Nachrichtentext').setRequired(true))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName('news')
-    .setDescription('Sendet eine News-Nachricht mit integrierter Emoji-Ersetzung')
-    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Zielkanal').setRequired(true))
-    .addStringOption(opt => opt.setName('text').setDescription('Der Newstext (Nutze :emojiName:)').setRequired(true))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName('reply')
-    .setDescription('Antwortet auf eine existierende Nachricht')
-    .addStringOption(opt => opt.setName('msgid').setDescription('Die ID der Nachricht').setRequired(true))
-    .addStringOption(opt => opt.setName('text').setDescription('Der Antworttext').setRequired(true))
-    .addChannelOption(opt => opt.setName('kanal').setDescription('Kanal der Nachricht (Standard: aktueller Kanal)').setRequired(false))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-    new SlashCommandBuilder()
-    .setName('ping')
-    .setDescription('Zeigt die aktuelle Latenz des Bots an')
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-    new SlashCommandBuilder()
-    .setName('clear')
-    .setDescription('Löscht eine bestimmte Anzahl an Nachrichten mit Filtern')
-    .addIntegerOption(opt => opt.setName('anzahl').setDescription('Menge an Nachrichten (max. 500, Standard: 100)').setRequired(false))
-    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Zielkanal (Standard: aktueller Kanal)').setRequired(false))
-    .addUserOption(opt => opt.setName('nutzer').setDescription('Filtert Nachrichten nach einem bestimmten User').setRequired(false))
-    .addStringOption(opt => opt.setName('zeitrahmen').setDescription('Zeitrahmen-Filter (z.B. 2h, 1d)').setRequired(false))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-    new SlashCommandBuilder()
-    .setName('help')
-    .setDescription('Zeigt dir, wie du Hilfe oder Support erhalten kannst'),
-      new SlashCommandBuilder()
-    .setName('poll')
-    .setDescription('Verwaltet das Umfragen-System (Admin)')
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
-    .addSubcommand(sub => sub
-      .setName('start')
-      .setDescription('Startet eine neue Umfrage')
-      .addStringOption(opt => opt.setName('frage').setDescription('Die Hauptfrage der Umfrage').setRequired(true))
-      .addIntegerOption(opt => opt.setName('minuten').setDescription('Dauer der Umfrage in Minuten').setRequired(true))
-      .addStringOption(opt => opt.setName('beschreibung').setDescription('Zusätzliche Details oder Erklärungen').setRequired(true))
-      .addStringOption(opt => opt.setName('option_1').setDescription('Erste Antwortmöglichkeit').setRequired(true))
-      .addStringOption(opt => opt.setName('option_2').setDescription('Zweite Antwortmöglichkeit').setRequired(true))
-      .addStringOption(opt => opt.setName('option_3').setDescription('Dritte Antwortmöglichkeit').setRequired(false))
-      .addStringOption(opt => opt.setName('option_4').setDescription('Vierte Antwortmöglichkeit').setRequired(false))
-      .addStringOption(opt => opt.setName('option_5').setDescription('Fünfte Antwortmöglichkeit').setRequired(false))
-      .addStringOption(opt => opt.setName('option_6').setDescription('Sechste Antwortmöglichkeit').setRequired(false))
-      .addStringOption(opt => opt.setName('option_7').setDescription('Siebte Antwortmöglichkeit').setRequired(false))
-      .addStringOption(opt => opt.setName('option_8').setDescription('Achte Antwortmöglichkeit').setRequired(false))
-      .addStringOption(opt => opt.setName('option_9').setDescription('Neunte Antwortmöglichkeit').setRequired(false))
-      .addStringOption(opt => opt.setName('option_10').setDescription('Zehnte Antwortmöglichkeit').setRequired(false)))
-    .addSubcommand(sub => sub
-      .setName('close')
-      .setDescription('Beendet eine aktive Umfrage vorzeitig')
-      .addStringOption(opt => opt.setName('id').setDescription('Die ID der zu beendenden Umfrage').setRequired(true))),
-
-  new SlashCommandBuilder()
-    .setName('listpolls')
-    .setDescription('Zeigt eine Übersicht aller aktiven Umfragen an'),
-  new SlashCommandBuilder()
-    .setName('moveadmin')
-    .setDescription('Verschiebt das aktuelle Ticket manuell in den Admin-Bereich')
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-    new SlashCommandBuilder()
-    .setName('ticket-panel')
-    .setDescription('Sendet das Ticket-Panel mit Buttons in den aktuellen Kanal')
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer),
-
-  new SlashCommandBuilder()
-    .setName('close')
-    .setDescription('Schließt und archiviert das aktuelle Ticket')
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-  new SlashCommandBuilder()
-    .setName('block')
-    .setDescription('Sperrt einen User für eine bestimmte Anzahl an Tagen für das Ticket-System')
-    .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu sperrende Nutzer').setRequired(true))
-    .addIntegerOption(opt => opt.setName('tage').setDescription('Anzahl der Tage für die Sperre (Standard: 7)').setRequired(false))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-    new SlashCommandBuilder()
-    .setName('timeout')
-    .setDescription('Versetzt ein Mitglied in ein Timeout')
-    .addUserOption(opt => opt.setName('nutzer').setDescription('Der betroffene Nutzer').setRequired(true))
-    .addStringOption(opt => opt.setName('dauer').setDescription('Dauer (z.B. 10s, 5m, 2h, 1d)').setRequired(true))
-    .addStringOption(opt => opt.setName('grund').setDescription('Grund für das Timeout').setRequired(false))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName('untimeout')
-    .setDescription('Hebt das Timeout eines Mitglieds vorzeitig auf')
-    .addUserOption(opt => opt.setName('nutzer').setDescription('Der betroffene Nutzer').setRequired(true))
-    .addStringOption(opt => opt.setName('grund').setDescription('Grund für die Aufhebung').setRequired(false))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName('kick')
-    .setDescription('Kickt ein Mitglied vom Server')
-    .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu kickende Nutzer').setRequired(true))
-    .addStringOption(opt => opt.setName('grund').setDescription('Grund für den Kick').setRequired(false))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName('ban')
-    .setDescription('Bannt einen User vom Server (auch per ID)')
-    .addStringOption(opt => opt.setName('userid').setDescription('Die Discord-ID oder Erwähnung des Users').setRequired(true))
-    .addStringOption(opt => opt.setName('grund').setDescription('Grund für den Ban').setRequired(false))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName('unban')
-    .setDescription('Hebt den Ban eines Users auf')
-    .addStringOption(opt => opt.setName('userid').setDescription('Die Discord-ID des Users').setRequired(true))
-    .addStringOption(opt => opt.setName('grund').setDescription('Grund für den Entban').setRequired(false))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName('warn')
-    .setDescription('Verwarnt ein Mitglied auf dem Server')
-    .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu verwarnende Nutzer').setRequired(true))
-    .addStringOption(opt => opt.setName('grund').setDescription('Grund für die Verwarnung').setRequired(false))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName('warns')
-    .setDescription('Zeigt alle Verwarnungen eines Nutzers an')
-    .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu prüfende Nutzer').setRequired(true))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName('warn-remove')
-    .setDescription('Entfernt eine bestimmte Verwarnung eines Nutzers anhand der Nummer')
-    .addUserOption(opt => opt.setName('nutzer').setDescription('Der betroffene Nutzer').setRequired(true))
-    .addIntegerOption(opt => opt.setName('nummer').setDescription('Die Nummer des Warns (z.B. 1)').setRequired(true))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
-].map(cmd => cmd.toJSON());
-export function registerSlashCommands(client) {
-  client.once("ready", async () => {
-    const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
-
-    try {
-      console.log('🤖 Registriere Slash-Commands bei Discord...');
-      await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
-      console.log('✅ Slash-Commands erfolgreich im Discord-Menü registriert!');
-    } catch (error) {
-      console.error('❌ Fehler bei der Slash-Command-Registrierung:', error);
-    }
-  });
-
-  client.on("interactionCreate", async (interaction) => {
-    if (!interaction.isChatInputCommand()) return;
-    const { commandName, options, member, guild, user, channel: currentChannel } = interaction;
-    const logChannelId = "1423413348220796991";
-    const TEAM_ROLE = "1457906448234319922";
-    if (!member.roles.cache.has(TEAM_ROLE) && !member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
-      return interaction.reply({ content: "Du hast keine Berechtigung für diesen Befehl.", ephemeral: true });
-    }
-    const sendKekseLog = async (cmdName, target, content) => {
-      const logChannel = client.channels.cache.get(logChannelId);
-      if (logChannel) {
-        const kekseEmbed = new EmbedBuilder()
-          .setColor('#ffffff')
-          .setAuthor({ 
-              name: user.username, 
-              iconURL: user.displayAvatarURL({ size: 512 }) 
-          })
-          .setDescription(`**Aktion:** \`/${cmdName}\`\n**Ziel:** ${target}\n**Inhalt:**\n\`\`\`${content || "Kein Inhalt"}\`\`\``)
-          .setFooter({ text: 'Kekse Clan | Command Logs' })
-          .setTimestamp();
-
-        await logChannel.send({ embeds: [kekseEmbed] }).catch(() => {});
-      }
-    };
-    if (commandName === "send") {
-      const targetChannel = options.getChannel("kanal");
-      const text = options.getString("text");
-
-      await targetChannel.send(text);
-      await interaction.reply({ content: `Nachricht in ${targetChannel} gesendet.`, ephemeral: true });
-      await sendKekseLog("send", targetChannel.toString(), text);
-      globalBotStats.commandsRunned += 1;
-    }
-    if (commandName === "changelog") {
-      const changelogChannel = guild.channels.cache.get("1464993818968588379");
-      const eintrag = options.getString("eintrag");
-      if (!changelogChannel) return interaction.reply({ content: "Kanal nicht gefunden.", ephemeral: true });
-      const date = new Date().toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
-      const updateList = eintrag.split(",").map(item => `- ${item.trim()}`).join("\n");
-      const messageFormat = `<@&1464994942345547857>\n**:wrench: Änderungen (${date})**\n${updateList}`;
-      await changelogChannel.send(messageFormat);
-      await interaction.reply({ content: "Changelog erfolgreich gepostet.", ephemeral: true });
-      await sendKekseLog("changelog", changelogChannel.toString(), updateList);
-      globalBotStats.commandsRunned += 1;
-    }
-
-    if (commandName === "embed") {
-      const targetChannel = options.getChannel("kanal");
-      const title = options.getString("titel");
-      const text = options.getString("text");
-      const color = options.getString("farbe") || "#ffffff";
-
-      const validColor = /^#[0-9A-F]{6}$/i.test(color) ? color : "#ffffff";
-
-      const embed = new EmbedBuilder().setTitle(title).setDescription(text).setColor(validColor);
-      await targetChannel.send({ embeds: [embed] });
-      await interaction.reply({ content: `Embed erfolgreich in ${targetChannel} gesendet.`, ephemeral: true });
-      await sendKekseLog("embed", targetChannel.toString(), `Titel: ${title}\nText: ${text}`);
-      globalBotStats.commandsRunned += 1;
-    }
-
-    if (commandName === "dm") {
-      const userId = options.getString("userid");
-      const text = options.getString("text");
-      const targetUser = await client.users.fetch(userId).catch(() => null);
-
-      if (!targetUser) {
-        return interaction.reply({ content: "❌ User konnte nicht gefunden werden. Ungültige ID?", ephemeral: true });
-      }
-
-      try {
-        await targetUser.send(text);
-        await interaction.reply({ content: `Direktnachricht an ${targetUser.tag} gesendet.`, ephemeral: true });
-        await sendKekseLog("dm", `${targetUser.tag} (${userId})`, text);
-        globalBotStats.commandsRunned += 1;
-      } catch (err) {
-        await interaction.reply({ content: "❌ Die DM konnte nicht zugestellt werden (Privatsphäre-Einstellungen des Users).", ephemeral: true });
-      }
-    }
-
-    if (commandName === "news") {
-      const targetChannel = options.getChannel("kanal");
-      const rawText = options.getString("text");
-
-      const emojiMap = { "regles": "1467246063122649180", "mail": "1467246078226334040", "like": "1467246068235501733", "management": "1467246065437642999", "moins": "1467246060689690849", "info": "1467246059561685238", "web": "1467246058341142833", "dislike": "1467246057070268681", "logs": "1467246054910070938", "check": "1467246053911957759", "staff": "1467246044772569218", "lien": "1467246043182924040", "identifiant": "1467246041668780227", "cybersecurite": "1467246039731015794", "statistiques": "1467246038497886311", "administrateur": "1467246035922321478", "croix": "1467246034580410429", "certifier": "1467246033389092904", "supprimer": "1467246032181006499", "profil": "1467246030998343733", "moderateur": "1467246028758712575", "crayon": "1467246026846109821", "stats": "1467246025411658012", "ouvert": "1467246023872352358", "discordoff": "1467246022668583147", "warningicon": "1467246020445339875", "2nd": "1467246019556282533", "discordon": "1467246018218430696", "1st": "1467246016926453810", "help": "1467246015332618372", "timeout": "1467246013487255705", "unstableping": "1467246011578712186", "yinfo": "1467246010349785119", "3rd": "1467246008734847138", "failed": "1467246005870264352", "mute": "1467246003890425928", "verified": "1467246002628202507", "cross": "1467246000258420767", "interruption": "1467245998043824128", "checkmark": "1467245996584210554", "moderatorprogramsalumnia": "1467245995510337659", "pingeveryone": "1453800508329558218", "ping": "1453799622303813714", "pepecookie": "1453796363442585660" };
-      const formattedText = rawText.replace(/:([a-zA-Z0-9_]+):/g, (match, name) => {
-        return emojiMap[name] ? `<:emoji:${emojiMap[name]}>` : match;
-      });
-
-      await targetChannel.send(formattedText);
-      await interaction.reply({ content: `News-Nachricht erfolgreich in ${targetChannel} gepostet.`, ephemeral: true });
-      await sendKekseLog("news", targetChannel.toString(), rawText);
-      globalBotStats.commandsRunned += 1;
-    }
-    if (commandName === "reply") {
-      const msgId = options.getString("msgid");
-      const text = options.getString("text");
-      const targetChannel = options.getChannel("kanal") || currentChannel;
-      try {
-        const targetMsg = await targetChannel.messages.fetch(msgId);
-        targetMsg.system ? await targetChannel.send(text) : await targetMsg.reply(text);
-        await interaction.reply({ content: "Erfolgreich auf die Nachricht geantwortet.", ephemeral: true });
-        await sendKekseLog("reply", `Nachricht ID ${msgId} in ${targetChannel}`, text);
-        globalBotStats.commandsRunned += 1;
-      } catch (err) {
-        await interaction.reply({ content: "❌ Nachricht im angegebenen Kanal nicht gefunden.", ephemeral: true });
-      }
-    }
-        if (commandName === "ping") {
-      if (!member.roles.cache.has(TEAM_ROLE_ID)) {
-        return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
-      }
-
-      globalBotStats.commandsRunned += 1;
-
-      const start = Date.now();
-      await interaction.reply({ content: "🏓 Pinging...", ephemeral: true });
-      const end = Date.now();
-
-      const roundtrip = end - start;
-      const wsPing = client.ws.ping;
-
-      await interaction.editReply({
-        content: `🏓 **Pong!**\n- API-Latenz: \`${roundtrip}ms\`\n- WebSocket: \`${wsPing}ms\``
-      }).catch(() => {});
-
-      const logChannel = client.channels.cache.get(logChannelId);
-      if (logChannel) {
-        const kekseLog = new EmbedBuilder()
-          .setColor('#ffffff')
-          .setAuthor({ 
-              name: user.username, 
-              iconURL: user.displayAvatarURL({ size: 512 }) 
-          })
-          .setDescription(`**Aktion:** \`/ping\`\n**Ergebnis:** RT: \`${roundtrip}ms\` | WS: \`${wsPing}ms\``)
-          .setFooter({ text: 'Kekse Clan | System Check' })
-          .setTimestamp();
-
-        await logChannel.send({ embeds: [kekseLog] }).catch(() => {});
-      }
-    }
-        if (commandName === "clear") {
-      if (!member.roles.cache.has(TEAM_ROLE)) {
-        return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
-      }
-
-      const amount = Math.min(options.getInteger("anzahl") || 100, 500);
-      const targetChannel = options.getChannel("kanal") || currentChannel;
-      const targetUser = options.getUser("nutzer");
-      const timeframe = options.getString("zeitrahmen");
-
-      if (!targetChannel.isTextBased()) {
-        return interaction.reply({ content: "❌ Der ausgewählte Kanal ist kein Textkanal.", ephemeral: true });
-      }
-
-      await interaction.deferReply({ ephemeral: true });
-      const startTime = Date.now();
-
-      let messagesToDelete = [];
-      let lastId = null;
-      let deletedCount = 0;
-
-      try {
-        while (messagesToDelete.length < amount) {
-          const fetched = await targetChannel.messages.fetch({ limit: 100, before: lastId || undefined });
-          if (!fetched || fetched.size === 0) break;
-
-          for (const msg of fetched.values()) {
-            if (targetUser && msg.author.id !== targetUser.id) continue;
-            if (timeframe) {
-              const ms = parseTimeframe(timeframe);
-              if (Date.now() - msg.createdTimestamp > ms) continue;
-            }
-            messagesToDelete.push(msg);
-            if (messagesToDelete.length >= amount) break;
-          }
-
-          const lastMsg = fetched.last();
-          if (!lastMsg) break;
-          lastId = lastMsg.id;
-          if (fetched.size < 100) break;
-        }
-
-        if (messagesToDelete.length === 0) {
-          return interaction.editReply({ content: " Keine Nachrichten gefunden, die den Kriterien entsprechen." });
-        }
-
-        const fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
-        const youngMsgs = messagesToDelete.filter(m => m.createdTimestamp > fourteenDaysAgo);
-        const oldMsgs = messagesToDelete.filter(m => m.createdTimestamp <= fourteenDaysAgo);
-
-        if (youngMsgs.length > 0) {
-          await interaction.editReply({ content: ` Bulk-Löschung von ${youngMsgs.length} Nachrichten...` });
-          const deletedBulk = await targetChannel.bulkDelete(youngMsgs, true).catch(() => new Map());
-          deletedCount += deletedBulk.size;
-        }
-
-        if (oldMsgs.length > 0) {
-          for (let i = 0; i < oldMsgs.length; i++) {
-            await oldMsgs[i].delete().catch(() => {});
-            deletedCount++;
-            if (deletedCount % 5 === 0) {
-              await interaction.editReply({ content: ` Lösche alte Nachrichten: **${deletedCount}/${messagesToDelete.length}**...` }).catch(() => {});
-            }
-            await new Promise(r => setTimeout(r, 1200));
-          }
-        }
-      } catch (clearError) {
-        console.log(`[ClearCommand] Fehler bei der Ausführung: ${clearError.message}`);
-        return interaction.editReply({ content: "❌ Ein interner Fehler ist beim Löschen aufgetreten." });
-      }
-
-      const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-      
-      await interaction.editReply({
-        content: `✅ **Abschlussbericht:**\n- Gelöscht: **${deletedCount}**\n- Dauer: **${duration}s**\n- Kanal: <#${targetChannel.id}>`
-      });
-
-      const logChannel = client.channels.cache.get(logChannelId);
-      if (logChannel) {
-        const userList = targetUser ? `<@${targetUser.id}>` : "Alle User";
-        const logEmbed = new EmbedBuilder()
-          .setColor('#ffffff')
-          .setAuthor({ 
-              name: user.username, 
-              iconURL: user.displayAvatarURL({ size: 512 }) 
-          })
-          .setDescription(`**Aktion:** \`Clear\`\n\n**Kanal:** <#${targetChannel.id}>\n**Anzahl:** ${deletedCount}\n**Filter (User):** ${userList}\n**Zeitrahmen:** ${timeframe || "Keiner"}\n**Dauer:** ${duration}s`)
-          .setFooter({ text: 'Kekse Clan | Moderation System' })
-          .setTimestamp();
-        await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
-      }
-      globalBotStats.commandsRunned += 1;
-    }
-        if (commandName === "giveaway") {
-      if (!member.roles.cache.has(TEAM_ROLE)) {
-        return interaction.reply({ content: " Keine Rechte.", ephemeral: true });
-      }
-
-      const channel = options.getChannel("kanal");
-      const durationStr = options.getString("dauer");
-      const price = options.getString("preis");
-      const messageText = options.getString("text") || "Viel Glück 🍀";
-      const winnerCount = options.getInteger("gewinner") || 1;
-
-      if (!channel.isTextBased()) {
-        return interaction.reply({ content: "❌ Der ausgewählte Kanal ist kein Textkanal.", ephemeral: true });
-      }
-
-      const durationMs = parseDuration(durationStr);
-      if (durationMs <= 0) {
-        return interaction.reply({ content: "❌ Zeitformat ungültig (z.B. 1h, 30m, 1d).", ephemeral: true });
-      }
-
-      const startTime = Date.now();
-      const endTime = startTime + durationMs;
-
-      const embed = new EmbedBuilder()
-        .setTitle(`🎁 Giveaway: ${price}`)
-        .setDescription(`${messageText}\n\nEndet am: <t:${Math.floor(endTime / 1000)}:R> (<t:${Math.floor(endTime / 1000)}:f>)\nTeilnehmer: **0**\nGewinner: **${winnerCount}**`)
-        .setColor(EMBED_COLOR);
-
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId(`join_giveaway`)
-          .setLabel("Teilnehmen")
-          .setEmoji(GIVEAWAY_EMOJI)
-          .setStyle(ButtonStyle.Primary)
-      );
-
-      const giveawayMsg = await channel.send({
-        content: "<@&1424028650080178348>",
-        embeds: [embed],
-        components: [row]
-      });
-
-      const giveaways = await getGivData("activeGiveaways") || {};
-      giveaways[giveawayMsg.id] = {
-        channelId: channel.id,
-        startTime, endTime, price, messageText, winnerCount,
-        hostId: user.id,
-        participants: []
-      };
-      await setGivData("activeGiveaways", giveaways);
-
-      await interaction.reply({ content: `✅ Giveaway erfolgreich in ${channel} gestartet!`, ephemeral: true });
-
-      await sendKekseLog("Giveaway gestartet", user, `**Preis:** ${price}\n**Kanal:** ${channel}\n**Dauer:** ${durationStr}\n**Gewinner:** ${winnerCount}`);
-      
-      globalBotStats.commandsRunned += 1;
-      globalBotStats.giveawaysCreated += 1;
-    }
-        if (commandName === "help") {
-      console.log(`[HELP] Von ${user.username}`);
-      
-      await interaction.reply({
-        content: "Erstelle ein <#1423413348493430905>. Ein Moderator wird sich so schnell wie möglich um dein Anliegen kümmern.",
-        ephemeral: false
-      });
-
-      globalBotStats.commandsRunned += 1;
-    }
-        if (commandName === "poll") {
-      if (!member.roles.cache.has(TEAM_ROLE)) {
-        return interaction.reply({ content: "❌ Du hast keine Berechtigung.", ephemeral: true });
-      }
-
-      const subCommand = options.getSubcommand();
-
-      if (subCommand === "start") {
-        const question = options.getString("frage");
-        const time = options.getInteger("minuten");
-        const description = options.getString("beschreibung");
-
-        const rawOptions = [];
-        for (let i = 1; i <= 10; i++) {
-          const optValue = options.getString(`option_${i}`);
-          if (optValue) rawOptions.push(optValue);
-        }
-
-        const pollId = interaction.id;
-        const emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
-        const pollOptions = rawOptions.map((opt, i) => ({ text: opt, emoji: emojis[i], votes: 0 }));
-        const endTime = Date.now() + time * 60000;
-
-        const pollContent = createPollText(question, description, pollOptions, endTime, 0, pollId, user);
-        const components = createPollButtons(pollId, pollOptions);
-
-        await interaction.reply({ content: " Umfrage wird gestartet...", ephemeral: true });
-        const pollMsg = await currentChannel.send({ content: pollContent, components: components });
-
-        const polls = await getPollData("polls_data") || [];
-        polls.push({
-          id: pollId, messageId: pollMsg.id, channelId: currentChannel.id,
-          question, description, options: pollOptions, endTime,
-          creatorId: user.id, voters: [], closed: false
-        });
-        await setPollData("polls_data", polls);
-
-        await sendKekseLog("Umfrage gestartet", user, `**Frage:** ${question}\n**Dauer:** ${time} Min.\n**ID:** \`${pollId}\``);
-        globalBotStats.pollsCreated += 1;
-      }
-
-      if (subCommand === "close") {
-        const pollId = options.getString("id");
-        const polls = await getPollData("polls_data") || [];
-        const poll = polls.find(p => p.id === pollId && !p.closed);
-
-        if (!poll) {
-          return interaction.reply({ content: "❌ Poll nicht gefunden.", ephemeral: true });
-        }
-
-        await closePoll(poll, polls, user);
-        await interaction.reply({ content: `✅ Die Umfrage mit der ID \`${pollId}\` wurde erfolgreich geschlossen.`, ephemeral: true });
-        globalBotStats.commandsRunned += 1;
-      }
-    }
-    if (commandName === "listpolls") {
-      const polls = await getPollData("polls_data") || [];
-      const activePolls = polls.filter(p => !p.closed);
-      if (activePolls.length === 0) {
-        return interaction.reply({ content: "Keine aktiven Umfragen vorhanden.", ephemeral: true });
-      }
-      const list = activePolls.map(p => `ID: \`${p.id}\` | ${p.question}`).join("\n");
-      await interaction.reply({ content: `**Aktive Umfragen:**\n${list}`, ephemeral: false });
-      globalBotStats.commandsRunned += 1;
-    }
-    if (commandName === "moveadmin") {
-      if (!member.roles.cache.has(TEAM_ROLE)) {
-        return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
-      }
-
-      await interaction.reply({ content: "⏳ Verschiebe Ticket in den Admin-Bereich...", ephemeral: true });
-      await moveChannelToAdmin(currentChannel, true);
-      globalBotStats.commandsRunned += 1;
-    }
-        if (commandName === "ticket-panel") {
-      if (!member.roles.cache.has("1454169207838216253")) {
-        return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
-      }
-
-      await interaction.reply({ content: "⏳ Sende Ticket-Panel...", ephemeral: true });
-      await sendTicketPanel(currentChannel);
-      globalBotStats.commandsRunned += 1;
-    }
-
-    if (commandName === "close") {
-      if (!member.roles.cache.has(TEAM_ROLE)) {
-        return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
-      }
-      await interaction.reply({ content: "⏳ Ticket-Schließung initiiert...", ephemeral: true });
-      await closeTicket(currentChannel, user);
-      globalBotStats.commandsRunned += 1;
-    }
-    if (commandName === "block") {
-      if (!member.roles.cache.has(TEAM_ROLE)) {
-        return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
-      }
-      const targetUser = options.getUser("nutzer");
-      const days = options.getInteger("tage") || 7;
-
-      await blockUser(targetUser.id, targetUser.username, days * 24 * 60 * 60 * 1000);
-      await interaction.reply({ content: `✅ <@${targetUser.id}> wurde für ${days} Tage gesperrt.`, ephemeral: true });
-      globalBotStats.commandsRunned += 1;
-    }
-        if (!member.roles.cache.has(TEAM_ROLE) || !hasPerm(member)) {
-      if (["timeout", "untimeout", "kick", "ban", "unban", "warn", "warns", "warn-remove"].includes(commandName)) {
-        return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
-      }
-    }
-
-    let moderationData = await getMData("moderation") || { warns: {} };
-
-    const sendModLog = async (action, target, reason, extra = null) => {
-      const logChannel = await client.channels.fetch(logChannelId).catch(() => null);
-      if (!logChannel) return;
-
-      const kekseEmbed = new EmbedBuilder()
-        .setColor('#ffffff')
-        .setAuthor({ 
-            name: user.username, 
-            iconURL: user.displayAvatarURL({ size: 512 }) 
-        })
-        .setTitle(`🛠️ Mod-Aktion: ${action}`)
-        .setDescription(`**Target:** ${target.tag || target.id} (\`${target.id}\`)\n**Grund:** ${reason}${extra ? `\n**Info:** ${extra}` : ""}`)
-        .setFooter({ text: 'Kekse Clan | Moderation Logs' })
-        .setTimestamp();
-
-      await logChannel.send({ embeds: [kekseEmbed] }).catch(() => {});
-    };
-
-    if (commandName === "timeout") {
-      const targetUser = options.getUser("nutzer");
-      const durationStr = options.getString("dauer");
-      const reason = options.getString("grund") || "Kein Grund";
-
-      const match = durationStr.match(/^(\d+)([smhd])$/);
-      if (!match) return interaction.reply({ content: " Format: 10s, 5m, 2h, 1d", ephemeral: true });
-
-      const durationMs = parseTimeframe(durationStr);
-      if (durationMs === 0) return interaction.reply({ content: " Ungültige Zeitangabe.", ephemeral: true });
-
-      try {
-        const targetMember = await guild.members.fetch(targetUser.id);
-        await targetMember.timeout(durationMs, reason);
-        await interaction.reply({ content: ` **Timeout**: <@${targetUser.id}> für ${durationStr}.`, ephemeral: true });
-        await sendModLog("Timeout", targetUser, reason, `Dauer: ${durationStr}`);
-        globalBotStats.commandsRunned += 1;
-      } catch (err) {
-        await interaction.reply({ content: " Fehler: User nicht auf Server oder fehlende Rechte.", ephemeral: true });
-      }
-    }
-
-    if (commandName === "untimeout") {
-      const targetUser = options.getUser("nutzer");
-      const reason = options.getString("grund") || "Kein Grund";
-
-      try {
-        const targetMember = await guild.members.fetch(targetUser.id);
-        await targetMember.timeout(null, reason);
-        await interaction.reply({ content: `✅ **Untimeout**: <@${targetUser.id}>`, ephemeral: true });
-        await sendModLog("Untimeout", targetUser, reason);
-        globalBotStats.commandsRunned += 1;
-      } catch (err) {
-        await interaction.reply({ content: "❌ Fehler beim Untimeout.", ephemeral: true });
-      }
-    }
-
-    if (commandName === "kick") {
-      const targetUser = options.getUser("nutzer");
-      const reason = options.getString("grund") || "Kein Grund";
-
-      try {
-        await guild.members.kick(targetUser.id, reason);
-        await interaction.reply({ content: `✅ **Kick**: <@${targetUser.id}>`, ephemeral: true });
-        await sendModLog("Kick", targetUser, reason);
-        globalBotStats.commandsRunned += 1;
-      } catch (err) {
-        await interaction.reply({ content: "❌ Fehler beim Kick.", ephemeral: true });
-      }
-    }
-
-    if (commandName === "ban") {
-      const idInput = options.getString("userid").replace(/[<@!>]/g, "");
-      const reason = options.getString("grund") || "Kein Grund";
-
-      if (!/^\d{17,20}$/.test(idInput)) {
-        return interaction.reply({ content: "❌ Gültige ID/Erwähnung angeben.", ephemeral: true });
-      }
-
-      try {
-        const fetchedUser = await client.users.fetch(idInput).catch(() => ({ id: idInput, tag: "Unknown#0000" }));
-        await guild.members.ban(idInput, { reason });
-        await interaction.reply({ content: `✅ **Ban**: ${fetchedUser.tag || idInput} wurde gebannt.`, ephemeral: true });
-        await sendModLog("Ban", fetchedUser, reason);
-        globalBotStats.commandsRunned += 1;
-      } catch (err) {
-        await interaction.reply({ content: "❌ Fehler beim Ban (Rechte?).", ephemeral: true });
-      }
-    }
-
-    if (commandName === "unban") {
-      const idInput = options.getString("userid").replace(/[<@!>]/g, "");
-      const reason = options.getString("grund") || "Kein Grund";
-
-      try {
-        const fetchedUser = await client.users.fetch(idInput).catch(() => ({ id: idInput, tag: idInput }));
-        await guild.members.unban(idInput, reason);
-        await interaction.reply({ content: `✅ **Unban**: ${fetchedUser.tag || idInput}`, ephemeral: true });
-        await sendModLog("Unban", fetchedUser, reason);
-        globalBotStats.commandsRunned += 1;
-      } catch (err) {
-        await interaction.reply({ content: "❌ User nicht gebannt oder ID falsch.", ephemeral: true });
-      }
-    }
-
-    if (commandName === "warn") {
-      const targetUser = options.getUser("nutzer");
-      const reason = options.getString("grund") || "Kein Grund";
-
-      moderationData.warns[targetUser.id] ??= [];
-      moderationData.warns[targetUser.id].push({ reason, by: user.id, date: Date.now() });
-      await setMData("moderation", moderationData);
-
-      await interaction.reply({ content: `⚠️ **Warn**: <@${targetUser.id}> (Gesamt: ${moderationData.warns[targetUser.id].length})`, ephemeral: true });
-      await sendModLog("Warnung", targetUser, reason, `Warn-Stand: ${moderationData.warns[targetUser.id].length}`);
-      globalBotStats.commandsRunned += 1;
-    }
-
-    if (commandName === "warns") {
-      const targetUser = options.getUser("nutzer");
-      const userWarns = moderationData.warns[targetUser.id] || [];
-
-      if (userWarns.length === 0) {
-        return interaction.reply({ content: "✅ Keine Warnungen.", ephemeral: true });
-      }
-
-      const embed = new EmbedBuilder()
-        .setTitle(`Warnungen: ${targetUser.username}`)
-        .setColor('#ffffff')
-        .setDescription(userWarns.map((w, i) => `**${i + 1}.** ${w.reason} (von <@${w.by}>)`).join("\n"))
-        .setFooter({ text: 'Kekse Clan' });
-
-      await interaction.reply({ embeds: [embed] });
-      globalBotStats.commandsRunned += 1;
-    }
-
-    if (commandName === "warn-remove") {
-      const targetUser = options.getUser("nutzer");
-      const index = options.getInteger("nummer") - 1;
-
-      if (!moderationData.warns[targetUser.id]?.[index]) {
-        return interaction.reply({ content: "❌ Ungültige Warn-Nummer.", ephemeral: true });
-      }
-
-      const removed = moderationData.warns[targetUser.id].splice(index, 1);
-      await setMData("moderation", moderationData);
-
-      await interaction.reply({ content: "✅ Warnung entfernt.", ephemeral: true });
-      await sendModLog("Warn entfernt", targetUser, `Grund war: ${removed[0].reason}`);
-      globalBotStats.commandsRunned += 1;
-    }
-  });
-}
 setInterval(async () => {
   if (client && client.ws) {
     const currentPing = client.ws.ping;
@@ -2244,7 +1505,7 @@ export function initCommandList(client) {
       await msg.channel.send({ content: devMessage1 });
       await msg.channel.send({ content: devMessage2 });
       await msg.channel.send({ content: devMessage3 });
-    } else if (msg.member?.roles.cache.has(TEAM_ROLE_ID)) {
+    } else if (msg.member?.roles.cache.has(TEAM_ROLE)) {
       const teamMessage1 = 
         "**Team-Befehle**\n" +
         "Hier sind alle Befehle, die du nutzen kannst:\n\n" +
@@ -2860,34 +2121,6 @@ export function initVerification(client) {
         content: "Fehler: Meine Rolle steht in der Liste vermutlich unter der Verifizierungs-Rolle.", 
         ephemeral: true 
       });
-    }
-  });
-
-  client.on("messageCreate", async (msg) => {
-    if (msg.content === "!setup_verify") {
-      if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) return;
-
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId("verify_user")
-          .setLabel("Verifizieren")
-          .setStyle(ButtonStyle.Success)
-      );
-      const channel = client.channels.cache.get(VERIFY_CHANNEL_ID);
-      if (channel) {
-        const imageUrl = new AttachmentBuilder('./verify.png');
-
-        await channel.send({ 
-          content: "**Willkommen!** Klicke auf den Button, um die Verifizierung abzuschließen.",
-          files: [imageUrl],
-          components: [row] 
-        });
-
-        await sendKekseLog("Verification Setup", msg.author, `Das Verifizierungs-Panel wurde in <#${VERIFY_CHANNEL_ID}> neu aufgesetzt.`);
-        globalBotStats.commandsRunned += 1;
-
-        await msg.delete().catch(() => {});
-      }
     }
   });
 }
@@ -4327,6 +3560,781 @@ process.on('unhandledRejection', (reason, promise) => {
 process.on('uncaughtException', (err) => {
     console.error('[Process] Uncaught Exception:', err);
 });
+const commands = [
+  new SlashCommandBuilder()
+    .setName('send')
+    .setDescription('Sendet eine Nachricht in einen bestimmten Kanal')
+    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Zielkanal').setRequired(true))
+    .addStringOption(opt => opt.setName('text').setDescription('Der Nachrichtentext').setRequired(true))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('changelog')
+    .setDescription('Erstellt einen neuen Changelog-Eintrag')
+    .addStringOption(opt => opt.setName('eintrag').setDescription('Inhalt des Updates (Nutze Kommas für Listenpunkte)').setRequired(true))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('embed')
+    .setDescription('Sendet ein strukturiertes Embed')
+    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Zielkanal').setRequired(true))
+    .addStringOption(opt => opt.setName('titel').setDescription('Der Titel des Embeds').setRequired(true))
+    .addStringOption(opt => opt.setName('text').setDescription('Die Beschreibung / Haupttext').setRequired(true))
+    .addStringOption(opt => opt.setName('farbe').setDescription('HEX-Farbe (z.B. #ff0000 oder #ffffff)').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('dm')
+    .setDescription('Sendet eine Direktnachricht an einen User')
+    .addStringOption(opt => opt.setName('userid').setDescription('Die Discord-ID des Users').setRequired(true))
+    .addStringOption(opt => opt.setName('text').setDescription('Der Nachrichtentext').setRequired(true))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('news')
+    .setDescription('Sendet eine News-Nachricht mit integrierter Emoji-Ersetzung')
+    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Zielkanal').setRequired(true))
+    .addStringOption(opt => opt.setName('text').setDescription('Der Newstext (Nutze :emojiName:)').setRequired(true))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('reply')
+    .setDescription('Antwortet auf eine existierende Nachricht')
+    .addStringOption(opt => opt.setName('msgid').setDescription('Die ID der Nachricht').setRequired(true))
+    .addStringOption(opt => opt.setName('text').setDescription('Der Antworttext').setRequired(true))
+    .addChannelOption(opt => opt.setName('kanal').setDescription('Kanal der Nachricht (Standard: aktueller Kanal)').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+    new SlashCommandBuilder()
+    .setName('ping')
+    .setDescription('Zeigt die aktuelle Latenz des Bots an')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+    new SlashCommandBuilder()
+    .setName('clear')
+    .setDescription('Löscht eine bestimmte Anzahl an Nachrichten mit Filtern')
+    .addIntegerOption(opt => opt.setName('anzahl').setDescription('Menge an Nachrichten (max. 500, Standard: 100)').setRequired(false))
+    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Zielkanal (Standard: aktueller Kanal)').setRequired(false))
+    .addUserOption(opt => opt.setName('nutzer').setDescription('Filtert Nachrichten nach einem bestimmten User').setRequired(false))
+    .addStringOption(opt => opt.setName('zeitrahmen').setDescription('Zeitrahmen-Filter (z.B. 2h, 1d)').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+    new SlashCommandBuilder()
+    .setName('help')
+    .setDescription('Zeigt dir, wie du Hilfe oder Support erhalten kannst'),
+      new SlashCommandBuilder()
+    .setName('poll')
+    .setDescription('Verwaltet das Umfragen-System (Admin)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .addSubcommand(sub => sub
+      .setName('start')
+      .setDescription('Startet eine neue Umfrage')
+      .addStringOption(opt => opt.setName('frage').setDescription('Die Hauptfrage der Umfrage').setRequired(true))
+      .addIntegerOption(opt => opt.setName('minuten').setDescription('Dauer der Umfrage in Minuten').setRequired(true))
+      .addStringOption(opt => opt.setName('beschreibung').setDescription('Zusätzliche Details oder Erklärungen').setRequired(true))
+      .addStringOption(opt => opt.setName('option_1').setDescription('Erste Antwortmöglichkeit').setRequired(true))
+      .addStringOption(opt => opt.setName('option_2').setDescription('Zweite Antwortmöglichkeit').setRequired(true))
+      .addStringOption(opt => opt.setName('option_3').setDescription('Dritte Antwortmöglichkeit').setRequired(false))
+      .addStringOption(opt => opt.setName('option_4').setDescription('Vierte Antwortmöglichkeit').setRequired(false))
+      .addStringOption(opt => opt.setName('option_5').setDescription('Fünfte Antwortmöglichkeit').setRequired(false))
+      .addStringOption(opt => opt.setName('option_6').setDescription('Sechste Antwortmöglichkeit').setRequired(false))
+      .addStringOption(opt => opt.setName('option_7').setDescription('Siebte Antwortmöglichkeit').setRequired(false))
+      .addStringOption(opt => opt.setName('option_8').setDescription('Achte Antwortmöglichkeit').setRequired(false))
+      .addStringOption(opt => opt.setName('option_9').setDescription('Neunte Antwortmöglichkeit').setRequired(false))
+      .addStringOption(opt => opt.setName('option_10').setDescription('Zehnte Antwortmöglichkeit').setRequired(false)))
+    .addSubcommand(sub => sub
+      .setName('close')
+      .setDescription('Beendet eine aktive Umfrage vorzeitig')
+      .addStringOption(opt => opt.setName('id').setDescription('Die ID der zu beendenden Umfrage').setRequired(true))),
+
+  new SlashCommandBuilder()
+    .setName('listpolls')
+    .setDescription('Zeigt eine Übersicht aller aktiven Umfragen an'),
+  new SlashCommandBuilder()
+    .setName('moveadmin')
+    .setDescription('Verschiebt das aktuelle Ticket manuell in den Admin-Bereich')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+    new SlashCommandBuilder()
+    .setName('ticket-panel')
+    .setDescription('Sendet das Ticket-Panel mit Buttons in den aktuellen Kanal')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer),
+
+  new SlashCommandBuilder()
+    .setName('close')
+    .setDescription('Schließt und archiviert das aktuelle Ticket')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+  new SlashCommandBuilder()
+    .setName('block')
+    .setDescription('Sperrt einen User für eine bestimmte Anzahl an Tagen für das Ticket-System')
+    .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu sperrende Nutzer').setRequired(true))
+    .addIntegerOption(opt => opt.setName('tage').setDescription('Anzahl der Tage für die Sperre (Standard: 7)').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+    new SlashCommandBuilder()
+    .setName('timeout')
+    .setDescription('Versetzt ein Mitglied in ein Timeout')
+    .addUserOption(opt => opt.setName('nutzer').setDescription('Der betroffene Nutzer').setRequired(true))
+    .addStringOption(opt => opt.setName('dauer').setDescription('Dauer (z.B. 10s, 5m, 2h, 1d)').setRequired(true))
+    .addStringOption(opt => opt.setName('grund').setDescription('Grund für das Timeout').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('untimeout')
+    .setDescription('Hebt das Timeout eines Mitglieds vorzeitig auf')
+    .addUserOption(opt => opt.setName('nutzer').setDescription('Der betroffene Nutzer').setRequired(true))
+    .addStringOption(opt => opt.setName('grund').setDescription('Grund für die Aufhebung').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('kick')
+    .setDescription('Kickt ein Mitglied vom Server')
+    .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu kickende Nutzer').setRequired(true))
+    .addStringOption(opt => opt.setName('grund').setDescription('Grund für den Kick').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('ban')
+    .setDescription('Bannt einen User vom Server (auch per ID)')
+    .addStringOption(opt => opt.setName('userid').setDescription('Die Discord-ID oder Erwähnung des Users').setRequired(true))
+    .addStringOption(opt => opt.setName('grund').setDescription('Grund für den Ban').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('unban')
+    .setDescription('Hebt den Ban eines Users auf')
+    .addStringOption(opt => opt.setName('userid').setDescription('Die Discord-ID des Users').setRequired(true))
+    .addStringOption(opt => opt.setName('grund').setDescription('Grund für den Entban').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('warn')
+    .setDescription('Verwarnt ein Mitglied auf dem Server')
+    .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu verwarnende Nutzer').setRequired(true))
+    .addStringOption(opt => opt.setName('grund').setDescription('Grund für die Verwarnung').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('warns')
+    .setDescription('Zeigt alle Verwarnungen eines Nutzers an')
+    .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu prüfende Nutzer').setRequired(true))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('warn-remove')
+    .setDescription('Entfernt eine bestimmte Verwarnung eines Nutzers anhand der Nummer')
+    .addUserOption(opt => opt.setName('nutzer').setDescription('Der betroffene Nutzer').setRequired(true))
+    .addIntegerOption(opt => opt.setName('nummer').setDescription('Die Nummer des Warns (z.B. 1)').setRequired(true))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+    new SlashCommandBuilder()
+    .setName('setup-verify')
+    .setDescription('Erstellt das Verifizierungs-Panel mit Button im festgelegten Kanal')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+].map(cmd => cmd.toJSON());
+export function registerSlashCommands(client) {
+  client.once("ready", async () => {
+    const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
+
+    try {
+      console.log('🤖 Registriere Slash-Commands bei Discord...');
+      await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
+      console.log('✅ Slash-Commands erfolgreich im Discord-Menü registriert!');
+    } catch (error) {
+      console.error('❌ Fehler bei der Slash-Command-Registrierung:', error);
+    }
+  });
+
+  client.on("interactionCreate", async (interaction) => {
+    if (!interaction.isChatInputCommand()) return;
+    const { commandName, options, member, guild, user, channel: currentChannel } = interaction;
+    const logChannelId = "1423413348220796991";
+    const TEAM_ROLE = "1457906448234319922";
+    if (!member.roles.cache.has(TEAM_ROLE) && !member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
+      return interaction.reply({ content: "Du hast keine Berechtigung für diesen Befehl.", ephemeral: true });
+    }
+    const sendKekseLog = async (cmdName, target, content) => {
+      const logChannel = client.channels.cache.get(logChannelId);
+      if (logChannel) {
+        const kekseEmbed = new EmbedBuilder()
+          .setColor('#ffffff')
+          .setAuthor({ 
+              name: user.username, 
+              iconURL: user.displayAvatarURL({ size: 512 }) 
+          })
+          .setDescription(`**Aktion:** \`/${cmdName}\`\n**Ziel:** ${target}\n**Inhalt:**\n\`\`\`${content || "Kein Inhalt"}\`\`\``)
+          .setFooter({ text: 'Kekse Clan | Command Logs' })
+          .setTimestamp();
+
+        await logChannel.send({ embeds: [kekseEmbed] }).catch(() => {});
+      }
+    };
+    if (commandName === "send") {
+      const targetChannel = options.getChannel("kanal");
+      const text = options.getString("text");
+
+      await targetChannel.send(text);
+      await interaction.reply({ content: `Nachricht in ${targetChannel} gesendet.`, ephemeral: true });
+      await sendKekseLog("send", targetChannel.toString(), text);
+      globalBotStats.commandsRunned += 1;
+    }
+    if (commandName === "changelog") {
+      const changelogChannel = guild.channels.cache.get("1464993818968588379");
+      const eintrag = options.getString("eintrag");
+      if (!changelogChannel) return interaction.reply({ content: "Kanal nicht gefunden.", ephemeral: true });
+      const date = new Date().toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+      const updateList = eintrag.split(",").map(item => `- ${item.trim()}`).join("\n");
+      const messageFormat = `<@&1464994942345547857>\n**:wrench: Änderungen (${date})**\n${updateList}`;
+      await changelogChannel.send(messageFormat);
+      await interaction.reply({ content: "Changelog erfolgreich gepostet.", ephemeral: true });
+      await sendKekseLog("changelog", changelogChannel.toString(), updateList);
+      globalBotStats.commandsRunned += 1;
+    }
+
+    if (commandName === "embed") {
+      const targetChannel = options.getChannel("kanal");
+      const title = options.getString("titel");
+      const text = options.getString("text");
+      const color = options.getString("farbe") || "#ffffff";
+
+      const validColor = /^#[0-9A-F]{6}$/i.test(color) ? color : "#ffffff";
+
+      const embed = new EmbedBuilder().setTitle(title).setDescription(text).setColor(validColor);
+      await targetChannel.send({ embeds: [embed] });
+      await interaction.reply({ content: `Embed erfolgreich in ${targetChannel} gesendet.`, ephemeral: true });
+      await sendKekseLog("embed", targetChannel.toString(), `Titel: ${title}\nText: ${text}`);
+      globalBotStats.commandsRunned += 1;
+    }
+
+    if (commandName === "dm") {
+      const userId = options.getString("userid");
+      const text = options.getString("text");
+      const targetUser = await client.users.fetch(userId).catch(() => null);
+
+      if (!targetUser) {
+        return interaction.reply({ content: "❌ User konnte nicht gefunden werden. Ungültige ID?", ephemeral: true });
+      }
+
+      try {
+        await targetUser.send(text);
+        await interaction.reply({ content: `Direktnachricht an ${targetUser.tag} gesendet.`, ephemeral: true });
+        await sendKekseLog("dm", `${targetUser.tag} (${userId})`, text);
+        globalBotStats.commandsRunned += 1;
+      } catch (err) {
+        await interaction.reply({ content: "❌ Die DM konnte nicht zugestellt werden (Privatsphäre-Einstellungen des Users).", ephemeral: true });
+      }
+    }
+
+    if (commandName === "news") {
+      const targetChannel = options.getChannel("kanal");
+      const rawText = options.getString("text");
+
+      const emojiMap = { "regles": "1467246063122649180", "mail": "1467246078226334040", "like": "1467246068235501733", "management": "1467246065437642999", "moins": "1467246060689690849", "info": "1467246059561685238", "web": "1467246058341142833", "dislike": "1467246057070268681", "logs": "1467246054910070938", "check": "1467246053911957759", "staff": "1467246044772569218", "lien": "1467246043182924040", "identifiant": "1467246041668780227", "cybersecurite": "1467246039731015794", "statistiques": "1467246038497886311", "administrateur": "1467246035922321478", "croix": "1467246034580410429", "certifier": "1467246033389092904", "supprimer": "1467246032181006499", "profil": "1467246030998343733", "moderateur": "1467246028758712575", "crayon": "1467246026846109821", "stats": "1467246025411658012", "ouvert": "1467246023872352358", "discordoff": "1467246022668583147", "warningicon": "1467246020445339875", "2nd": "1467246019556282533", "discordon": "1467246018218430696", "1st": "1467246016926453810", "help": "1467246015332618372", "timeout": "1467246013487255705", "unstableping": "1467246011578712186", "yinfo": "1467246010349785119", "3rd": "1467246008734847138", "failed": "1467246005870264352", "mute": "1467246003890425928", "verified": "1467246002628202507", "cross": "1467246000258420767", "interruption": "1467245998043824128", "checkmark": "1467245996584210554", "moderatorprogramsalumnia": "1467245995510337659", "pingeveryone": "1453800508329558218", "ping": "1453799622303813714", "pepecookie": "1453796363442585660" };
+      const formattedText = rawText.replace(/:([a-zA-Z0-9_]+):/g, (match, name) => {
+        return emojiMap[name] ? `<:emoji:${emojiMap[name]}>` : match;
+      });
+
+      await targetChannel.send(formattedText);
+      await interaction.reply({ content: `News-Nachricht erfolgreich in ${targetChannel} gepostet.`, ephemeral: true });
+      await sendKekseLog("news", targetChannel.toString(), rawText);
+      globalBotStats.commandsRunned += 1;
+    }
+    if (commandName === "reply") {
+      const msgId = options.getString("msgid");
+      const text = options.getString("text");
+      const targetChannel = options.getChannel("kanal") || currentChannel;
+      try {
+        const targetMsg = await targetChannel.messages.fetch(msgId);
+        targetMsg.system ? await targetChannel.send(text) : await targetMsg.reply(text);
+        await interaction.reply({ content: "Erfolgreich auf die Nachricht geantwortet.", ephemeral: true });
+        await sendKekseLog("reply", `Nachricht ID ${msgId} in ${targetChannel}`, text);
+        globalBotStats.commandsRunned += 1;
+      } catch (err) {
+        await interaction.reply({ content: "❌ Nachricht im angegebenen Kanal nicht gefunden.", ephemeral: true });
+      }
+    }
+        if (commandName === "ping") {
+      if (!member.roles.cache.has(TEAM_ROLE)) {
+        return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
+      }
+
+      globalBotStats.commandsRunned += 1;
+
+      const start = Date.now();
+      await interaction.reply({ content: "🏓 Pinging...", ephemeral: true });
+      const end = Date.now();
+
+      const roundtrip = end - start;
+      const wsPing = client.ws.ping;
+
+      await interaction.editReply({
+        content: `🏓 **Pong!**\n- API-Latenz: \`${roundtrip}ms\`\n- WebSocket: \`${wsPing}ms\``
+      }).catch(() => {});
+
+      const logChannel = client.channels.cache.get(logChannelId);
+      if (logChannel) {
+        const kekseLog = new EmbedBuilder()
+          .setColor('#ffffff')
+          .setAuthor({ 
+              name: user.username, 
+              iconURL: user.displayAvatarURL({ size: 512 }) 
+          })
+          .setDescription(`**Aktion:** \`/ping\`\n**Ergebnis:** RT: \`${roundtrip}ms\` | WS: \`${wsPing}ms\``)
+          .setFooter({ text: 'Kekse Clan | System Check' })
+          .setTimestamp();
+
+        await logChannel.send({ embeds: [kekseLog] }).catch(() => {});
+      }
+    }
+        if (commandName === "clear") {
+      if (!member.roles.cache.has(TEAM_ROLE)) {
+        return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
+      }
+
+      const amount = Math.min(options.getInteger("anzahl") || 100, 500);
+      const targetChannel = options.getChannel("kanal") || currentChannel;
+      const targetUser = options.getUser("nutzer");
+      const timeframe = options.getString("zeitrahmen");
+
+      if (!targetChannel.isTextBased()) {
+        return interaction.reply({ content: "❌ Der ausgewählte Kanal ist kein Textkanal.", ephemeral: true });
+      }
+
+      await interaction.deferReply({ ephemeral: true });
+      const startTime = Date.now();
+
+      let messagesToDelete = [];
+      let lastId = null;
+      let deletedCount = 0;
+
+      try {
+        while (messagesToDelete.length < amount) {
+          const fetched = await targetChannel.messages.fetch({ limit: 100, before: lastId || undefined });
+          if (!fetched || fetched.size === 0) break;
+
+          for (const msg of fetched.values()) {
+            if (targetUser && msg.author.id !== targetUser.id) continue;
+            if (timeframe) {
+              const ms = parseTimeframe(timeframe);
+              if (Date.now() - msg.createdTimestamp > ms) continue;
+            }
+            messagesToDelete.push(msg);
+            if (messagesToDelete.length >= amount) break;
+          }
+
+          const lastMsg = fetched.last();
+          if (!lastMsg) break;
+          lastId = lastMsg.id;
+          if (fetched.size < 100) break;
+        }
+
+        if (messagesToDelete.length === 0) {
+          return interaction.editReply({ content: " Keine Nachrichten gefunden, die den Kriterien entsprechen." });
+        }
+
+        const fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
+        const youngMsgs = messagesToDelete.filter(m => m.createdTimestamp > fourteenDaysAgo);
+        const oldMsgs = messagesToDelete.filter(m => m.createdTimestamp <= fourteenDaysAgo);
+
+        if (youngMsgs.length > 0) {
+          await interaction.editReply({ content: ` Bulk-Löschung von ${youngMsgs.length} Nachrichten...` });
+          const deletedBulk = await targetChannel.bulkDelete(youngMsgs, true).catch(() => new Map());
+          deletedCount += deletedBulk.size;
+        }
+
+        if (oldMsgs.length > 0) {
+          for (let i = 0; i < oldMsgs.length; i++) {
+            await oldMsgs[i].delete().catch(() => {});
+            deletedCount++;
+            if (deletedCount % 5 === 0) {
+              await interaction.editReply({ content: ` Lösche alte Nachrichten: **${deletedCount}/${messagesToDelete.length}**...` }).catch(() => {});
+            }
+            await new Promise(r => setTimeout(r, 1200));
+          }
+        }
+      } catch (clearError) {
+        console.log(`[ClearCommand] Fehler bei der Ausführung: ${clearError.message}`);
+        return interaction.editReply({ content: "❌ Ein interner Fehler ist beim Löschen aufgetreten." });
+      }
+
+      const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+      
+      await interaction.editReply({
+        content: `✅ **Abschlussbericht:**\n- Gelöscht: **${deletedCount}**\n- Dauer: **${duration}s**\n- Kanal: <#${targetChannel.id}>`
+      });
+
+      const logChannel = client.channels.cache.get(logChannelId);
+      if (logChannel) {
+        const userList = targetUser ? `<@${targetUser.id}>` : "Alle User";
+        const logEmbed = new EmbedBuilder()
+          .setColor('#ffffff')
+          .setAuthor({ 
+              name: user.username, 
+              iconURL: user.displayAvatarURL({ size: 512 }) 
+          })
+          .setDescription(`**Aktion:** \`Clear\`\n\n**Kanal:** <#${targetChannel.id}>\n**Anzahl:** ${deletedCount}\n**Filter (User):** ${userList}\n**Zeitrahmen:** ${timeframe || "Keiner"}\n**Dauer:** ${duration}s`)
+          .setFooter({ text: 'Kekse Clan | Moderation System' })
+          .setTimestamp();
+        await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
+      }
+      globalBotStats.commandsRunned += 1;
+    }
+        if (commandName === "giveaway") {
+      if (!member.roles.cache.has(TEAM_ROLE)) {
+        return interaction.reply({ content: " Keine Rechte.", ephemeral: true });
+      }
+
+      const channel = options.getChannel("kanal");
+      const durationStr = options.getString("dauer");
+      const price = options.getString("preis");
+      const messageText = options.getString("text") || "Viel Glück 🍀";
+      const winnerCount = options.getInteger("gewinner") || 1;
+
+      if (!channel.isTextBased()) {
+        return interaction.reply({ content: "❌ Der ausgewählte Kanal ist kein Textkanal.", ephemeral: true });
+      }
+
+      const durationMs = parseDuration(durationStr);
+      if (durationMs <= 0) {
+        return interaction.reply({ content: "❌ Zeitformat ungültig (z.B. 1h, 30m, 1d).", ephemeral: true });
+      }
+
+      const startTime = Date.now();
+      const endTime = startTime + durationMs;
+
+      const embed = new EmbedBuilder()
+        .setTitle(`🎁 Giveaway: ${price}`)
+        .setDescription(`${messageText}\n\nEndet am: <t:${Math.floor(endTime / 1000)}:R> (<t:${Math.floor(endTime / 1000)}:f>)\nTeilnehmer: **0**\nGewinner: **${winnerCount}**`)
+        .setColor(EMBED_COLOR);
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`join_giveaway`)
+          .setLabel("Teilnehmen")
+          .setEmoji(GIVEAWAY_EMOJI)
+          .setStyle(ButtonStyle.Primary)
+      );
+
+      const giveawayMsg = await channel.send({
+        content: "<@&1424028650080178348>",
+        embeds: [embed],
+        components: [row]
+      });
+
+      const giveaways = await getGivData("activeGiveaways") || {};
+      giveaways[giveawayMsg.id] = {
+        channelId: channel.id,
+        startTime, endTime, price, messageText, winnerCount,
+        hostId: user.id,
+        participants: []
+      };
+      await setGivData("activeGiveaways", giveaways);
+
+      await interaction.reply({ content: `✅ Giveaway erfolgreich in ${channel} gestartet!`, ephemeral: true });
+
+      await sendKekseLog("Giveaway gestartet", user, `**Preis:** ${price}\n**Kanal:** ${channel}\n**Dauer:** ${durationStr}\n**Gewinner:** ${winnerCount}`);
+      
+      globalBotStats.commandsRunned += 1;
+      globalBotStats.giveawaysCreated += 1;
+    }
+        if (commandName === "help") {
+      console.log(`[HELP] Von ${user.username}`);
+      
+      await interaction.reply({
+        content: "Erstelle ein <#1423413348493430905>. Ein Moderator wird sich so schnell wie möglich um dein Anliegen kümmern.",
+        ephemeral: false
+      });
+
+      globalBotStats.commandsRunned += 1;
+    }
+        if (commandName === "poll") {
+      if (!member.roles.cache.has(TEAM_ROLE)) {
+        return interaction.reply({ content: "❌ Du hast keine Berechtigung.", ephemeral: true });
+      }
+
+      const subCommand = options.getSubcommand();
+
+      if (subCommand === "start") {
+        const question = options.getString("frage");
+        const time = options.getInteger("minuten");
+        const description = options.getString("beschreibung");
+
+        const rawOptions = [];
+        for (let i = 1; i <= 10; i++) {
+          const optValue = options.getString(`option_${i}`);
+          if (optValue) rawOptions.push(optValue);
+        }
+
+        const pollId = interaction.id;
+        const emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
+        const pollOptions = rawOptions.map((opt, i) => ({ text: opt, emoji: emojis[i], votes: 0 }));
+        const endTime = Date.now() + time * 60000;
+
+        const pollContent = createPollText(question, description, pollOptions, endTime, 0, pollId, user);
+        const components = createPollButtons(pollId, pollOptions);
+
+        await interaction.reply({ content: " Umfrage wird gestartet...", ephemeral: true });
+        const pollMsg = await currentChannel.send({ content: pollContent, components: components });
+
+        const polls = await getPollData("polls_data") || [];
+        polls.push({
+          id: pollId, messageId: pollMsg.id, channelId: currentChannel.id,
+          question, description, options: pollOptions, endTime,
+          creatorId: user.id, voters: [], closed: false
+        });
+        await setPollData("polls_data", polls);
+
+        await sendKekseLog("Umfrage gestartet", user, `**Frage:** ${question}\n**Dauer:** ${time} Min.\n**ID:** \`${pollId}\``);
+        globalBotStats.pollsCreated += 1;
+      }
+
+      if (subCommand === "close") {
+        const pollId = options.getString("id");
+        const polls = await getPollData("polls_data") || [];
+        const poll = polls.find(p => p.id === pollId && !p.closed);
+
+        if (!poll) {
+          return interaction.reply({ content: "❌ Poll nicht gefunden.", ephemeral: true });
+        }
+
+        await closePoll(poll, polls, user);
+        await interaction.reply({ content: `✅ Die Umfrage mit der ID \`${pollId}\` wurde erfolgreich geschlossen.`, ephemeral: true });
+        globalBotStats.commandsRunned += 1;
+      }
+    }
+    if (commandName === "listpolls") {
+      const polls = await getPollData("polls_data") || [];
+      const activePolls = polls.filter(p => !p.closed);
+      if (activePolls.length === 0) {
+        return interaction.reply({ content: "Keine aktiven Umfragen vorhanden.", ephemeral: true });
+      }
+      const list = activePolls.map(p => `ID: \`${p.id}\` | ${p.question}`).join("\n");
+      await interaction.reply({ content: `**Aktive Umfragen:**\n${list}`, ephemeral: false });
+      globalBotStats.commandsRunned += 1;
+    }
+    if (commandName === "moveadmin") {
+      if (!member.roles.cache.has(TEAM_ROLE)) {
+        return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
+      }
+
+      await interaction.reply({ content: "⏳ Verschiebe Ticket in den Admin-Bereich...", ephemeral: true });
+      await moveChannelToAdmin(currentChannel, true);
+      globalBotStats.commandsRunned += 1;
+    }
+        if (commandName === "ticket-panel") {
+      if (!member.roles.cache.has("1454169207838216253")) {
+        return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
+      }
+
+      await interaction.reply({ content: "⏳ Sende Ticket-Panel...", ephemeral: true });
+      await sendTicketPanel(currentChannel);
+      globalBotStats.commandsRunned += 1;
+    }
+
+    if (commandName === "close") {
+      if (!member.roles.cache.has(TEAM_ROLE)) {
+        return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
+      }
+      await interaction.reply({ content: "⏳ Ticket-Schließung initiiert...", ephemeral: true });
+      await closeTicket(currentChannel, user);
+      globalBotStats.commandsRunned += 1;
+    }
+    if (commandName === "block") {
+      if (!member.roles.cache.has(TEAM_ROLE)) {
+        return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
+      }
+      const targetUser = options.getUser("nutzer");
+      const days = options.getInteger("tage") || 7;
+
+      await blockUser(targetUser.id, targetUser.username, days * 24 * 60 * 60 * 1000);
+      await interaction.reply({ content: `✅ <@${targetUser.id}> wurde für ${days} Tage gesperrt.`, ephemeral: true });
+      globalBotStats.commandsRunned += 1;
+    }
+        if (!member.roles.cache.has(TEAM_ROLE) || !hasPerm(member)) {
+      if (["timeout", "untimeout", "kick", "ban", "unban", "warn", "warns", "warn-remove"].includes(commandName)) {
+        return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
+      }
+    }
+
+    let moderationData = await getMData("moderation") || { warns: {} };
+
+    const sendModLog = async (action, target, reason, extra = null) => {
+      const logChannel = await client.channels.fetch(logChannelId).catch(() => null);
+      if (!logChannel) return;
+
+      const kekseEmbed = new EmbedBuilder()
+        .setColor('#ffffff')
+        .setAuthor({ 
+            name: user.username, 
+            iconURL: user.displayAvatarURL({ size: 512 }) 
+        })
+        .setTitle(`🛠️ Mod-Aktion: ${action}`)
+        .setDescription(`**Target:** ${target.tag || target.id} (\`${target.id}\`)\n**Grund:** ${reason}${extra ? `\n**Info:** ${extra}` : ""}`)
+        .setFooter({ text: 'Kekse Clan | Moderation Logs' })
+        .setTimestamp();
+
+      await logChannel.send({ embeds: [kekseEmbed] }).catch(() => {});
+    };
+
+    if (commandName === "timeout") {
+      const targetUser = options.getUser("nutzer");
+      const durationStr = options.getString("dauer");
+      const reason = options.getString("grund") || "Kein Grund";
+
+      const match = durationStr.match(/^(\d+)([smhd])$/);
+      if (!match) return interaction.reply({ content: " Format: 10s, 5m, 2h, 1d", ephemeral: true });
+
+      const durationMs = parseTimeframe(durationStr);
+      if (durationMs === 0) return interaction.reply({ content: " Ungültige Zeitangabe.", ephemeral: true });
+
+      try {
+        const targetMember = await guild.members.fetch(targetUser.id);
+        await targetMember.timeout(durationMs, reason);
+        await interaction.reply({ content: ` **Timeout**: <@${targetUser.id}> für ${durationStr}.`, ephemeral: true });
+        await sendModLog("Timeout", targetUser, reason, `Dauer: ${durationStr}`);
+        globalBotStats.commandsRunned += 1;
+      } catch (err) {
+        await interaction.reply({ content: " Fehler: User nicht auf Server oder fehlende Rechte.", ephemeral: true });
+      }
+    }
+
+    if (commandName === "untimeout") {
+      const targetUser = options.getUser("nutzer");
+      const reason = options.getString("grund") || "Kein Grund";
+
+      try {
+        const targetMember = await guild.members.fetch(targetUser.id);
+        await targetMember.timeout(null, reason);
+        await interaction.reply({ content: `✅ **Untimeout**: <@${targetUser.id}>`, ephemeral: true });
+        await sendModLog("Untimeout", targetUser, reason);
+        globalBotStats.commandsRunned += 1;
+      } catch (err) {
+        await interaction.reply({ content: "❌ Fehler beim Untimeout.", ephemeral: true });
+      }
+    }
+
+    if (commandName === "kick") {
+      const targetUser = options.getUser("nutzer");
+      const reason = options.getString("grund") || "Kein Grund";
+
+      try {
+        await guild.members.kick(targetUser.id, reason);
+        await interaction.reply({ content: `✅ **Kick**: <@${targetUser.id}>`, ephemeral: true });
+        await sendModLog("Kick", targetUser, reason);
+        globalBotStats.commandsRunned += 1;
+      } catch (err) {
+        await interaction.reply({ content: "❌ Fehler beim Kick.", ephemeral: true });
+      }
+    }
+
+    if (commandName === "ban") {
+      const idInput = options.getString("userid").replace(/[<@!>]/g, "");
+      const reason = options.getString("grund") || "Kein Grund";
+
+      if (!/^\d{17,20}$/.test(idInput)) {
+        return interaction.reply({ content: "❌ Gültige ID/Erwähnung angeben.", ephemeral: true });
+      }
+
+      try {
+        const fetchedUser = await client.users.fetch(idInput).catch(() => ({ id: idInput, tag: "Unknown#0000" }));
+        await guild.members.ban(idInput, { reason });
+        await interaction.reply({ content: `✅ **Ban**: ${fetchedUser.tag || idInput} wurde gebannt.`, ephemeral: true });
+        await sendModLog("Ban", fetchedUser, reason);
+        globalBotStats.commandsRunned += 1;
+      } catch (err) {
+        await interaction.reply({ content: "❌ Fehler beim Ban (Rechte?).", ephemeral: true });
+      }
+    }
+
+    if (commandName === "unban") {
+      const idInput = options.getString("userid").replace(/[<@!>]/g, "");
+      const reason = options.getString("grund") || "Kein Grund";
+
+      try {
+        const fetchedUser = await client.users.fetch(idInput).catch(() => ({ id: idInput, tag: idInput }));
+        await guild.members.unban(idInput, reason);
+        await interaction.reply({ content: `✅ **Unban**: ${fetchedUser.tag || idInput}`, ephemeral: true });
+        await sendModLog("Unban", fetchedUser, reason);
+        globalBotStats.commandsRunned += 1;
+      } catch (err) {
+        await interaction.reply({ content: "❌ User nicht gebannt oder ID falsch.", ephemeral: true });
+      }
+    }
+
+    if (commandName === "warn") {
+      const targetUser = options.getUser("nutzer");
+      const reason = options.getString("grund") || "Kein Grund";
+
+      moderationData.warns[targetUser.id] ??= [];
+      moderationData.warns[targetUser.id].push({ reason, by: user.id, date: Date.now() });
+      await setMData("moderation", moderationData);
+
+      await interaction.reply({ content: `⚠️ **Warn**: <@${targetUser.id}> (Gesamt: ${moderationData.warns[targetUser.id].length})`, ephemeral: true });
+      await sendModLog("Warnung", targetUser, reason, `Warn-Stand: ${moderationData.warns[targetUser.id].length}`);
+      globalBotStats.commandsRunned += 1;
+    }
+
+    if (commandName === "warns") {
+      const targetUser = options.getUser("nutzer");
+      const userWarns = moderationData.warns[targetUser.id] || [];
+
+      if (userWarns.length === 0) {
+        return interaction.reply({ content: "✅ Keine Warnungen.", ephemeral: true });
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle(`Warnungen: ${targetUser.username}`)
+        .setColor('#ffffff')
+        .setDescription(userWarns.map((w, i) => `**${i + 1}.** ${w.reason} (von <@${w.by}>)`).join("\n"))
+        .setFooter({ text: 'Kekse Clan' });
+
+      await interaction.reply({ embeds: [embed] });
+      globalBotStats.commandsRunned += 1;
+    }
+
+    if (commandName === "warn-remove") {
+      const targetUser = options.getUser("nutzer");
+      const index = options.getInteger("nummer") - 1;
+
+      if (!moderationData.warns[targetUser.id]?.[index]) {
+        return interaction.reply({ content: "❌ Ungültige Warn-Nummer.", ephemeral: true });
+      }
+
+      const removed = moderationData.warns[targetUser.id].splice(index, 1);
+      await setMData("moderation", moderationData);
+
+      await interaction.reply({ content: "✅ Warnung entfernt.", ephemeral: true });
+      await sendModLog("Warn entfernt", targetUser, `Grund war: ${removed[0].reason}`);
+      globalBotStats.commandsRunned += 1;
+    }
+        if (commandName === "setup-verify") {
+      if (!member.roles.cache.has(TEAM_ROLE)) {
+        return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
+      }
+
+      const targetChannel = client.channels.cache.get(VERIFY_CHANNEL_ID);
+      if (!targetChannel) {
+        return interaction.reply({ content: "❌ Verifizierungs-Kanal konnte nicht in der Cache gefunden werden.", ephemeral: true });
+      }
+
+      await interaction.deferReply({ ephemeral: true });
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("verify_user")
+          .setLabel("Verifizieren")
+          .setStyle(ButtonStyle.Success)
+      );
+
+      const imageUrl = new AttachmentBuilder('./verify.png');
+
+      await targetChannel.send({ 
+        content: "**Willkommen!** Klicke auf den Button, um die Verifizierung abzuschließen.",
+        files: [imageUrl],
+        components: [row] 
+      });
+
+      await interaction.editReply({ content: `✅ Das Verifizierungs-Panel wurde erfolgreich in ${targetChannel} aufgesetzt.` });
+      
+      await sendKekseLog("Verification Setup", user, `Das Verifizierungs-Panel wurde in <#${VERIFY_CHANNEL_ID}> neu aufgesetzt.`);
+      globalBotStats.commandsRunned += 1;
+    }
+  });
+}
 client.once("clientReady", async () => {
     try {
         await initCounting(client);
