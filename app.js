@@ -4041,6 +4041,33 @@ export function registerSlashCommands(client) {
 
       globalBotStats.commandsRunned += 1;
     }
+    const createPollText = (q, d, opts, end, count, id, author) => {
+  return `## ${q}\n${d}\n\n` +
+    opts.map(o => `${o.emoji} ${o.text}`).join("\n") + `\n\n` +
+    `<:info:1467246059561685238> Endet am: <t:${Math.floor(end / 1000)}:R>\n` +
+    `<:profil:1467246030998343733> Erstellt von: ${author}\n` +
+    `<:statistiques:1467246038497886311> Teilnehmer: **${count}**\n` +
+    `<:identifiant:1467246041668780227> ID: \`${id}\``;
+};
+
+const createPollButtons = (pollId, opts) => {
+  const rows = [];
+  let currentRow = new ActionRowBuilder();
+  opts.forEach((o, i) => {
+    if (i > 0 && i % 5 === 0) {
+      rows.push(currentRow);
+      currentRow = new ActionRowBuilder();
+    }
+    currentRow.addComponents(
+      new ButtonBuilder()
+        .setCustomId(`poll_vote_${pollId}_${i}`)
+        .setEmoji(o.emoji)
+        .setStyle(ButtonStyle.Secondary)
+    );
+  });
+  if (currentRow.components.length > 0) rows.push(currentRow);
+  return rows;
+};
         if (commandName === "poll") {
       if (!member.roles.cache.has(TEAM_ROLE)) {
         return interaction.reply({ content: "❌ Du hast keine Berechtigung.", ephemeral: true });
@@ -4358,7 +4385,7 @@ client.once("clientReady", async () => {
         await initBotBalance(client);
         handleEconomyInteractions(client); 
         client.user.setPresence({
-            activities: [{ name: "!help", type: 0 }],
+            activities: [{ name: "/help", type: 0 }],
             status: "online"
         });
         console.log(`Bot online: ${client.user.tag}`);
