@@ -864,10 +864,10 @@ navigator.serviceWorker.register('sw.js');
     container.classList.toggle("open");
     if (container.classList.contains("open")) {
       openedLogUsers.add(userId);
-      btn.textContent = "Verbergen";
+      btn.textContent = "Hide";
     } else {
       openedLogUsers.delete(userId);
-      btn.textContent = "Anzeigen";
+      btn.textContent = "Show";
     }
   }
 };
