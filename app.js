@@ -4332,7 +4332,6 @@ client.once("clientReady", async () => {
         await initTickets(client);
         await initGiveaway(client);
         initReactions(client);
-        initTicketCategory(client);
         await initPoll(client);
         initVoiceChannels(client);
         initReminder(client);
