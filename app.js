@@ -4108,7 +4108,38 @@ const createPollButtons = (pollId, opts) => {
         await sendKekseLog("Umfrage gestartet", user, `**Frage:** ${question}\n**Dauer:** ${time} Min.\n**ID:** \`${pollId}\``);
         globalBotStats.pollsCreated += 1;
       }
-
+      const closePoll = async (poll, polls, closer) => {
+  poll.closed = true;
+  const channel = await client.channels.fetch(poll.channelId).catch(() => null);
+  const pollMsg = await channel?.messages.fetch(poll.messageId).catch(() => null);
+  if (pollMsg) {
+    await pollMsg.edit({ components: [] }).catch(() => {});
+  }
+  const total = poll.voters.length;
+  let resultsText = `## <:statistiques:1467246038497886311> Ergebnisse: ${poll.question}\n\n`;
+  if (total === 0) {
+    resultsText += "Keine Teilnehmer.";
+  } else {
+    const winnerVotes = Math.max(...poll.options.map(o => o.votes));
+    poll.options.forEach(o => {
+      const perc = Math.round((o.votes / total) * 100);
+      resultsText += `${o.emoji} **${o.text}**\n**${o.votes} Stimmen** (${perc}%)${o.votes === winnerVotes && total > 0 ? " <:checkmark:1467245996584210554>" : ""}\n\n`;
+    });
+  }
+  if (channel) await channel.send(resultsText).catch(() => {});
+  const logChannel = client.channels.cache.get("1423413348220796991");
+  if (logChannel) {
+    const logEmbed = new EmbedBuilder()
+      .setColor('#ffffff')
+      .setAuthor({ name: closer.username, iconURL: closer.displayAvatarURL() })
+      .setDescription(`**Aktion:** \`Umfrage beendet\`\n**Frage:** ${poll.question}\n**Teilnehmer:** ${total}\n**ID:** \`${poll.id}\``)
+      .setFooter({ text: 'Kekse Clan | Poll System' })
+      .setTimestamp();
+    await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
+  }
+  const updatedPolls = polls.filter(p => p.id !== poll.id);
+  await setPollData("polls_data", updatedPolls);
+};
       if (subCommand === "close") {
         const pollId = options.getString("id");
         const polls = await getPollData("polls_data") || [];
