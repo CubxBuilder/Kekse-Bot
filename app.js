@@ -361,9 +361,7 @@ return existingKekse;
 console.error("Fehler beim Berechnen der existingKekse:", err);
 return 0; 
 } 
-} 
-Fehler beim Berechnen der existingKekse:", err);
-Fehler beim Berechnen der existingKekse:", err); 
+}
 let isBalanceListenerRegistered = false; 
 export async function initBotBalance(client) { 
 const existingKekse = await initEconomyGetKekse(client); 
