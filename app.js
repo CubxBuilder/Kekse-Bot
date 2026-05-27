@@ -4483,7 +4483,7 @@ const commands = [
     .setName('set-number')
     .setDescription('Admin: Setzt die nächste zu zählende Nummer manuell fest')
     .addIntegerOption(opt => opt.setName('nummer').setDescription('Die neue Zielzahl').setRequired(true))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer)
 ].map(cmd => cmd.toJSON());
 export function registerSlashCommands(client) {
   client.once("ready", async () => {
@@ -5215,129 +5215,6 @@ const createPollButtons = (pollId, opts) => {
       }
 
       await interaction.reply({ content: ` Die nächste Zahl wurde auf **${newNum}** gesetzt.`, ephemeral: true });
-      globalBotStats.commandsRunned += 1;
-    }
-    if (commandName === "commands") {
-      const isTeam = member.roles.cache.has(TEAM_ROLE);
-      const isDev = user.id === "1151971830983311441";
-
-      if (isDev) {
-        await interaction.deferReply({ ephemeral: true });
-
-        const devEmbed1 = new EmbedBuilder()
-          .setTitle("⚙️ Entwickler-Befehle (Teil 1)")
-          .setColor("#ffffff")
-          .setDescription(
-            "**/bank see** - Zeigt den Kontostand eines Mitglieds an.\n" +
-            "**/bank add** - Fügt einem Bankkonto einen Betrag hinzu.\n" +
-            "**/bank remove** - Zieht einen Betrag von einem Bankkonto ab.\n" +
-            "**/balance see** - Zeigt die aktuelle globale Bot-Balance.\n" +
-            "**/balance add** - Fügt Coins zur globalen Bot-Balance hinzu.\n" +
-            "**/balance remove** - Zieht Coins von der globalen Bot-Balance ab.\n" +
-            "**/set-number** - Setzt im Counting die aktuelle Zahl fest.\n" +
-            "**/setup-verify** - Richtet das Verifizierungssystem für den Server ein.\n" +
-            "**/ticket-panel** - Sendet das Panel zum Erstellen von Support-Tickets.\n" +
-            "**/eco-stats** - Zeigt aktuellen Umrechnungskurs von Keksen.\n" +
-            "**/top** - Zeigt die Top 10 vom Counting an.\n" +
-            "**/listpolls** - Listet alle aktuell laufenden Umfragen auf.\n" +
-            "**/help** - Zeigt Informationen zum Support an."
-          );
-
-        const devEmbed2 = new EmbedBuilder()
-          .setTitle("⚙️ Entwickler-Befehle (Teil 2)")
-          .setColor("#ffffff")
-          .setDescription(
-            "**/clear** - Löscht Nachrichten mit flexiblen Filtern (User, Zeitrahmen, Kanal).\n" +
-            "**/giveaway** - Startet ein Giveaway mit einstellbarer Zeit, Gewinnern und Preis.\n" +
-            "**/poll start** - Erstellt eine Umfrage mit bis zu 10 Auswahlmöglichkeiten.\n" +
-            "**/poll close** - Schließt eine Umfrage vorzeitig via ID.\n" +
-            "**/changelog** - Postet ein Update oder Changelog als formatierte Liste.\n" +
-            "**/send** - Sendet eine Textnachricht in einen bestimmten Kanal.\n" +
-            "**/embed** - Erstellt ein Embed mit Titel, Beschreibung und HEX-Farbe.\n" +
-            "**/news** - Sendet eine Ankündigung mit automatischer Emoji-Ersetzung.\n" +
-            "**/reply** - Antwortet auf eine Nachricht via ID in einem Kanal.\n" +
-            "**/dm** - Sendet eine Direktnachricht an eine User-ID.\n" +
-            "**/moveadmin** - Verschiebt das aktuelle Ticket manuell in den Admin-Bereich.\n" +
-            "**/close** - Schließt und archiviert das aktuelle Ticket.\n" +
-            "**/delete** - Löscht den aktuellen Kanal nach einer kurzen Verzögerung.\n" +
-            "**/timeout** - Versetzt ein Mitglied für eine bestimmte Dauer in den Timeout.\n" +
-            "**/untimeout** - Hebt den Timeout eines Mitglieds vorzeitig auf.\n" +
-            "**/kick** - Kickt das erwähnte Mitglied vom Server.\n" +
-            "**/ban** - Sperrt ein Mitglied dauerhaft (auch per ID).\n" +
-            "**/unban** - Hebt die Server-Sperre für ein Mitglied auf.\n" +
-            "**/warn** - Erteilt einem Mitglied eine Verwarnung.\n" +
-            "**/warns** - Zeigt alle Verwarnungen eines Nutzers an.\n" +
-            "**/warn-remove** - Entfernt eine spezifische Verwarnung anhand der Nummer.\n" +
-            "**/block** - Sperrt einen User temporär für das Ticket-System."
-          );
-
-        await interaction.editReply({ embeds: [devEmbed1, devEmbed2] });
-      } else if (isTeam) {
-        await interaction.deferReply({ ephemeral: true });
-
-        const teamEmbed1 = new EmbedBuilder()
-          .setTitle("🛠️ Team-Befehle (Teil 1)")
-          .setColor("#ffffff")
-          .setDescription(
-            "**/eco-stats** - Zeigt aktuellen Umrechnungskurs von Keksen.\n" +
-            "**/top** - Zeigt die Top 10 vom Counting an.\n" +
-            "**/listpolls** - Listet alle aktuell laufenden Umfragen auf.\n" +
-            "**/help** - Zeigt Informationen zum Support an.\n" +
-            "**/clear** - Löscht Nachrichten mit flexiblen Filtern (User, Zeitrahmen, Kanal).\n" +
-            "**/giveaway** - Startet ein Giveaway mit einstellbarer Zeit, Gewinnern und Preis.\n" +
-            "**/poll start** - Erstellt eine Umfrage mit bis zu 10 Auswahlmöglichkeiten.\n" +
-            "**/poll close** - Schließt eine Umfrage vorzeitig via ID.\n" +
-            "**/changelog** - Postet ein Update oder Changelog als formatierte Liste.\n" +
-            "**/send** - Sendet eine Textnachricht in einen bestimmten Kanal.\n" +
-            "**/embed** - Erstellt ein Embed mit Titel, Beschreibung und HEX-Farbe."
-          );
-
-        const teamEmbed2 = new EmbedBuilder()
-          .setTitle("🛠️ Team-Befehle (Teil 2)")
-          .setColor("#ffffff")
-          .setDescription(
-            "**/news** - Sendet eine Ankündigung mit automatischer Emoji-Ersetzung.\n" +
-            "**/reply** - Antwortet auf eine Nachricht via ID in einem Kanal.\n" +
-            "**/dm** - Sendet eine Direktnachricht an eine User-ID.\n" +
-            "**/moveadmin** - Verschiebt das aktuelle Ticket manuell in den Admin-Bereich.\n" +
-            "**/close** - Schließt und archiviert das aktuelle Ticket.\n" +
-            "**/timeout** - Versetzt ein Mitglied für eine bestimmte Dauer in den Timeout.\n" +
-            "**/untimeout** - Hebt den Timeout eines Mitglieds vorzeitig auf.\n" +
-            "**/kick** - Kickt das erwähnte Mitglied vom Server.\n" +
-            "**/ban** - Sperrt ein Mitglied dauerhaft (auch per ID).\n" +
-            "**/unban** - Hebt die Server-Sperre für ein Mitglied auf.\n" +
-            "**/warn** - Erteilt einem Mitglied eine Verwarnung.\n" +
-            "**/warns** - Zeigt alle Verwarnungen eines Nutzers an.\n" +
-            "**/warn-remove** - Entfernt eine spezifische Verwarnung anhand der Nummer.\n" +
-            "**/block** - Sperrt einen User temporär für das Ticket-System."
-          );
-
-        await interaction.editReply({ embeds: [teamEmbed1, teamEmbed2] });
-      } else {
-        await interaction.deferReply({ ephemeral: false });
-
-        const userEmbed = new EmbedBuilder()
-          .setTitle("🎮 Verfügbare Befehle")
-          .setColor("#ffffff")
-          .setDescription(
-            "**/bank** - Zeigt die Übersicht deines Bankkontos an.\n" +
-            "**/bank create** - Erstellt ein neues Bankkonto für dich.\n" +
-            "**/bank help** - Zeigt die Hilfe-Menüs für die Bank-Befehle an.\n" +
-            "**/bank pay** - Übertrage Kekse an das Konto eines anderen Users.\n" +
-            "**/eco-stats** - Zeigt aktuellen Umrechnungskurs von Keksen (Währung).\n" +
-            "**/casino roulette** - Setzt Kekse beim Roulette auf Farbe, Zahl oder Bereich.\n" +
-            "**/casino coinflip** - Macht einen Münzwurf mit Kopf- oder Zahl-Tipp.\n" +
-            "**/casino jackpot** - Zahlt Kekse in den aktuellen Jackpot ein.\n" +
-            "**/casino crash** - Multipliziere deine Kekse im Crash-Spiel.\n" +
-            "**/casino highlow** - Errate, ob die nächste Karte höher oder niedriger ist.\n" +
-            "**/casino blackjack** - Spiele eine klassische Runde Blackjack gegen den Bot.\n" +
-            "**/listpolls** - Listet alle aktuell laufenden Umfragen auf.\n" +
-            "**/remind** - Erstellt eine automatische Erinnerung.\n" +
-            "**/top** - Zeigt die Top 10 vom Counting an."
-          );
-
-        await interaction.editReply({ embeds: [userEmbed] });
-      }
       globalBotStats.commandsRunned += 1;
     }
   });
