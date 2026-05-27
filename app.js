@@ -4577,8 +4577,12 @@ const commands = [
   new SlashCommandBuilder()
     .setName('decline')
     .setDescription('Team: Lehnt den aktuellen Keks- oder Coin-Tausch ab und erstattet ggf. Kekse zurück')
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
-
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+    new SlashCommandBuilder()
+    .setName('remind')
+    .setDescription('Erstellt eine persönliche Erinnerung')
+    .addStringOption(opt => opt.setName('zeit').setDescription('Zeitspanne bis zur Erinnerung (z.B. 10s, 5m, 1h, 2d)').setRequired(true))
+    .addStringOption(opt => opt.setName('grund').setDescription('Waran soll der Bot dich erinnern?').setRequired(true))
 ].map(cmd => cmd.toJSON());
 export function registerSlashCommands(client) {
   client.once("ready", async () => {
@@ -6103,6 +6107,41 @@ const createPollButtons = (pollId, opts) => {
         await interaction.reply({ content: "❌ Der Vorgang wurde vom Team abgelehnt. Eventuell eingefrorene Kekse wurden zurückerstattet." });
         return initEconomyTransferSystem(client, currentChannel);
       }
+    }
+          if (commandName === "remind") {
+      const timeStr = options.getString("zeit");
+      const reason = options.getString("grund");
+
+      const ms = parseTimeframe(timeStr);
+      if (!ms || ms < 10000) {
+        return interaction.reply({ content: "❌ Ungültige Zeitangabe. Mindestens 10 Sekunden (z.B. 10s, 5m, 1h, 2d).", ephemeral: true });
+      }
+
+      const reminderData = await getRData("reminders") || { reminders: [] };
+      const newReminder = {
+        userId: user.id,
+        channelId: currentChannel.id,
+        time: Date.now() + ms,
+        reason: reason
+      };
+
+      reminderData.reminders.push(newReminder);
+      await setRData("reminders", reminderData);
+
+      await interaction.reply({ content: `✅ Ich werde dich in **${timeStr}** an folgendes erinnern: ${reason}`, ephemeral: false });
+      
+      const logChannel = client.channels.cache.get(logChannelId);
+      if (logChannel) {
+        const logEmbed = new EmbedBuilder()
+          .setColor('#ffffff')
+          .setAuthor({ name: user.username, iconURL: user.displayAvatarURL({ size: 512 }) })
+          .setDescription(`**Aktion:** \`Reminder gesetzt\`\n**Zeitraum:** ${timeStr}\n**Grund:** ${reason}`)
+          .setFooter({ text: 'Kekse Clan | Reminder System' })
+          .setTimestamp();
+        await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
+      }
+
+      globalBotStats.commandsRunned += 1;
     }
     }
   });
