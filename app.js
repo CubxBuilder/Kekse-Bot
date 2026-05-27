@@ -3620,6 +3620,15 @@ const commands = [
     .addStringOption(opt => opt.setName('zeitrahmen').setDescription('Zeitrahmen-Filter (z.B. 2h, 1d)').setRequired(false))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
     new SlashCommandBuilder()
+    .setName('giveaway')
+    .setDescription('Startet ein neues Giveaway im ausgewählten Kanal')
+    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Kanal, in dem das Giveaway stattfinden soll').setRequired(true))
+    .addStringOption(opt => opt.setName('dauer').setDescription('Dauer des Giveaways (z.B. 1h, 30m, 1d)').setRequired(true))
+    .addStringOption(opt => opt.setName('preis').setDescription('Der Gewinn / Preis des Giveaways').setRequired(true))
+    .addStringOption(opt => opt.setName('text').setDescription('Beschreibungstext für das Giveaway').setRequired(false))
+    .addIntegerOption(opt => opt.setName('gewinner').setDescription('Anzahl der Gewinner (Standard: 1)').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+    new SlashCommandBuilder()
     .setName('help')
     .setDescription('Zeigt dir, wie du Hilfe oder Support erhalten kannst'),
       new SlashCommandBuilder()
