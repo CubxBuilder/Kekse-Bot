@@ -4478,7 +4478,7 @@ const commands = [
     new SlashCommandBuilder()
     .setName('setup-verify')
     .setDescription('Erstellt das Verifizierungs-Panel mit Button im festgelegten Kanal')
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer),
     new SlashCommandBuilder()
     .setName('top')
     .setDescription('Zeigt die Top 10 User mit den meisten Punkten im Counting-System'),
@@ -4493,13 +4493,13 @@ const commands = [
     .setDescription('Entwickler: Richtet ein tägliches Belohnungssystem mit Button ein')
     .addStringOption(opt => opt.setName('id').setDescription('Eine eindeutige ID für dieses Setup (z.B. event1)').setRequired(true))
     .addStringOption(opt => opt.setName('beschreibung').setDescription('Zusätzlicher Beschreibungstext für das Einlösen').setRequired(false))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer),
 
   new SlashCommandBuilder()
     .setName('shop-setup')
     .setDescription('Entwickler: Richtet den Server-Shop im festgelegten Kanal ein')
     .addStringOption(opt => opt.setName('beschreibung').setDescription('Zusätzlicher Beschreibungstext für den Shop').setRequired(false))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer),
     new SlashCommandBuilder()
     .setName('casino')
     .setDescription('Zeigt eine Übersicht aller verfügbaren Casino-Spiele an'),
@@ -4535,40 +4535,7 @@ const commands = [
     .setName('blackjack')
     .setDescription('Spiele eine Runde Blackjack gegen den Bot')
     .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true)),
-    new SlashCommandBuilder()
-    .setName('bank')
-    .setDescription('Nutze das integrierte Bank- und Währungssystem')
-    .addSubcommand(sub => sub
-      .setName('status')
-      .setDescription('Zeigt dir privat deinen aktuellen Kontostand an'))
-    .addSubcommand(sub => sub
-      .setName('create')
-      .setDescription('Erstellt dein persönliches Bankkonto (Minecraft-Name erforderlich)'))
-    .addSubcommand(sub => sub
-      .setName('help')
-      .setDescription('Zeigt die Hilfe-Übersicht des Bank-Systems an'))
-    .addSubcommand(sub => sub
-      .setName('pay')
-      .setDescription('Überweist Kekse an das Konto eines anderen Spielers')
-      .addUserOption(opt => opt.setName('nutzer').setDescription('Der Empfänger der Kekse').setRequired(true))
-      .addIntegerOption(opt => opt.setName('anzahl').setDescription('Die Menge an Keksen').setRequired(true)))
-    .addSubcommand(sub => sub
-      .setName('see')
-      .setDescription('Entwickler: Zeigt detaillierte Kontoinformationen eines Nutzers')
-      .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu prüfende Nutzer').setRequired(true)))
-    .addSubcommand(sub => sub
-      .setName('add')
-      .setDescription('Entwickler: Fügt dem Konto eines Nutzers Kekse hinzu')
-      .addIntegerOption(opt => opt.setName('anzahl').setDescription('Die Menge an Keksen').setRequired(true))
-      .addUserOption(opt => opt.setName('nutzer').setDescription('Optionale Zielperson (sonst man selbst)').setRequired(false)))
-    .addSubcommand(sub => sub
-      .setName('remove')
-      .setDescription('Entwickler: Zieht vom Konto eines Nutzers Kekse ab')
-      .addIntegerOption(opt => opt.setName('anzahl').setDescription('Die Menge an Keksen').setRequired(true))
-      .addUserOption(opt => opt.setName('nutzer').setDescription('Optionale Zielperson (sonst man selbst)').setRequired(false)))
-    .addSubcommand(sub => sub
-      .setName('get')
-      .setDescription('Entwickler: Zeigt an, wie viele Kekse insgesamt im Umlauf sind')),
+   
     new SlashCommandBuilder()
     .setName('confirm')
     .setDescription('Team: Bestätigt und schließt den aktuellen Keks- oder Coin-Tausch ab')
@@ -5875,39 +5842,47 @@ const createPollButtons = (pollId, opts) => {
         });
         return;
       }
-          if (commandName === "bank") {
+              if (commandName === "bank") {
       const subCommand = options.getSubcommand();
       const hasEcoRole = member.roles.cache.has("1506732560837771284");
       const isDev = user.id === "1151971830983311441";
 
-      if (["add", "remove", "see", "get"].includes(subCommand)) {
-        if (!isDev) {
-          return interaction.reply({ content: "Du hast nicht die Berechtigung diese Funktion zu nutzen. Wenn es sich um einen Fehler handelt wende dich bitte an den Support.", ephemeral: true });
+      if (["add", "remove"].includes(subCommand)) {
+        if (!member.permissions.has(PermissionsBitField.Flags.ManageServer) && !isDev) {
+          return interaction.reply({ content: "❌ Dieser Befehl ist der Serverleitung vorbehalten.", ephemeral: true });
         }
+      }
 
-        if (subCommand === "see") {
-          const targetUser = options.getUser("nutzer");
-          const data = await getEcoData(targetUser.id);
-          const dmEmbed = new EmbedBuilder()
-            .setTitle(`Konto-Details von ${targetUser.username}`)
-            .setColor(0xFFFFFF)
-            .addFields(
-              { name: "User ID", value: data.userId || targetUser.id },
-              { name: "Discord Name", value: data.username || "Kein Name" },
-              { name: "Minecraft Name", value: data.mcUsername || "Nicht registriert" },
-              { name: "Kontostand", value: `${data.balance || 0} Kekse` },
-              { name: "Gesperrt?", value: data.blocked ? "Ja" : "Nein" }
-            );
-
-          await user.send({ embeds: [dmEmbed] }).catch(() => {});
-          return interaction.reply({ content: `✅ Die Kontodetails von ${targetUser.username} wurden dir per DM zugestellt.`, ephemeral: true });
+      if (["see", "get"].includes(subCommand)) {
+        if (!member.permissions.has(PermissionsBitField.Flags.ManageMessages) && !member.permissions.has(PermissionsBitField.Flags.ManageServer) && !isDev) {
+          return interaction.reply({ content: "❌ Du hast keine Berechtigung, um Kontoinformationen einzusehen.", ephemeral: true });
         }
+      }
 
-        if (subCommand === "get") {
-          const existingKekse = await initEconomyGetKekse(client);
-          return interaction.reply({ content: `Es sind aktuell ${existingKekse} Kekse im Umlauf.`, ephemeral: true });
-        }
+      if (subCommand === "see") {
+        const targetUser = options.getUser("nutzer");
+        const data = await getEcoData(targetUser.id);
+        const dmEmbed = new EmbedBuilder()
+          .setTitle(`Konto-Details von ${targetUser.username}`)
+          .setColor(0xFFFFFF)
+          .addFields(
+            { name: "User ID", value: data.userId || targetUser.id },
+            { name: "Discord Name", value: data.username || "Kein Name" },
+            { name: "Minecraft Name", value: data.mcUsername || "Nicht registriert" },
+            { name: "Kontostand", value: `${data.balance || 0} Kekse` },
+            { name: "Gesperrt?", value: data.blocked ? "Ja" : "Nein" }
+          );
 
+        await user.send({ embeds: [dmEmbed] }).catch(() => {});
+        return interaction.reply({ content: `✅ Die Kontodetails von ${targetUser.username} wurden dir per DM zugestellt.`, ephemeral: true });
+      }
+
+      if (subCommand === "get") {
+        const existingKekse = await initEconomyGetKekse(client);
+        return interaction.reply({ content: `Es sind aktuell ${existingKekse} Kekse im Umlauf.`, ephemeral: true });
+      }
+
+      if (["add", "remove"].includes(subCommand)) {
         const amount = options.getInteger("anzahl");
         const targetUser = options.getUser("nutzer") || user;
 
@@ -6008,7 +5983,7 @@ const createPollButtons = (pollId, opts) => {
 
         const payEmbed = new EmbedBuilder()
           .setTitle("Überweisung erfolgreich")
-          .setDescription(`Du hast **${amount} Kekse** an <@${targetUser.id}> überweisen.`)
+          .setDescription(`Du hast **${amount} Kekse** an <@${targetUser.id}> überwiesen.`)
           .addFields({ name: "Neuer Kontostand", value: `${userData.balance} Kekse` })
           .setColor(0xFFFFFF);
 
@@ -6037,7 +6012,7 @@ const createPollButtons = (pollId, opts) => {
           return interaction.reply({ content: "Dein Konto ist aktuell gesperrt. Bitte wende dich an den Support.", ephemeral: true });
         }
 
-        await user.send({ content: `Dein aktueller Kontostand beträgt: **${userData.balance || 0} Kekse** 🍪\nFür Auszahlungen öffne bitte ein Ticket in https://discord.com/channels/1423413347168157718/1423413348493430905` }).catch(() => {});
+        await user.send({ content: `Dein aktueller Kontostand beträgt: **${userData.balance || 0} Kekse** 🍪\nFür Auszahlungen öffne bitte ein Ticket in https://discord.com` }).catch(() => {});
         return interaction.reply({ content: "✅ Dein aktueller Kontostand wurde dir per DM zugestellt.", ephemeral: true });
       }
     }
