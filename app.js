@@ -1,4 +1,4 @@
-import { Client, ModalBuilder, REST, Routes, GatewayIntentBits, Partials, ChannelType, PermissionFlagsBits, EmbedBuilder, Events, AuditLogEvent, MessageFlags, MessageType, PermissionsBitField, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, TextInputBuilder, TextInputStyle, ComponentType} from "discord.js"
+import { Client, ModalBuilder, REST, Routes, SlashCommandBuilder, GatewayIntentBits, Partials, ChannelType, PermissionFlagsBits, EmbedBuilder, Events, AuditLogEvent, MessageFlags, MessageType, PermissionsBitField, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, TextInputBuilder, TextInputStyle, ComponentType} from "discord.js"
 import https from "https";
 import "dotenv/config"
 import path from "path"
@@ -47,6 +47,210 @@ const client = new Client({
     Partials.GuildMember, Partials.User, Partials.ThreadMember
     ]
 });
+const commands = [
+  new SlashCommandBuilder()
+    .setName('send')
+    .setDescription('Sendet eine Nachricht in einen bestimmten Kanal')
+    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Zielkanal').setRequired(true))
+    .addStringOption(opt => opt.setName('text').setDescription('Der Nachrichtentext').setRequired(true))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('changelog')
+    .setDescription('Erstellt einen neuen Changelog-Eintrag')
+    .addStringOption(opt => opt.setName('eintrag').setDescription('Inhalt des Updates (Nutze Kommas für Listenpunkte)').setRequired(true))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('embed')
+    .setDescription('Sendet ein strukturiertes Embed')
+    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Zielkanal').setRequired(true))
+    .addStringOption(opt => opt.setName('titel').setDescription('Der Titel des Embeds').setRequired(true))
+    .addStringOption(opt => opt.setName('text').setDescription('Die Beschreibung / Haupttext').setRequired(true))
+    .addStringOption(opt => opt.setName('farbe').setDescription('HEX-Farbe (z.B. #ff0000 oder #ffffff)').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('dm')
+    .setDescription('Sendet eine Direktnachricht an einen User')
+    .addStringOption(opt => opt.setName('userid').setDescription('Die Discord-ID des Users').setRequired(true))
+    .addStringOption(opt => opt.setName('text').setDescription('Der Nachrichtentext').setRequired(true))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('news')
+    .setDescription('Sendet eine News-Nachricht mit integrierter Emoji-Ersetzung')
+    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Zielkanal').setRequired(true))
+    .addStringOption(opt => opt.setName('text').setDescription('Der Newstext (Nutze :emojiName:)').setRequired(true))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('reply')
+    .setDescription('Antwortet auf eine existierende Nachricht')
+    .addStringOption(opt => opt.setName('msgid').setDescription('Die ID der Nachricht').setRequired(true))
+    .addStringOption(opt => opt.setName('text').setDescription('Der Antworttext').setRequired(true))
+    .addChannelOption(opt => opt.setName('kanal').setDescription('Kanal der Nachricht (Standard: aktueller Kanal)').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+    new SlashCommandBuilder()
+    .setName('ping')
+    .setDescription('Zeigt die aktuelle Latenz des Bots an')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+].map(cmd => cmd.toJSON());
+export function registerSlashCommands(client) {
+  client.once("ready", async () => {
+    const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
+
+    try {
+      console.log('🤖 Registriere Slash-Commands bei Discord...');
+      await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
+      console.log('✅ Slash-Commands erfolgreich im Discord-Menü registriert!');
+    } catch (error) {
+      console.error('❌ Fehler bei der Slash-Command-Registrierung:', error);
+    }
+  });
+
+  client.on("interactionCreate", async (interaction) => {
+    if (!interaction.isChatInputCommand()) return;
+    const { commandName, options, member, guild, user, channel: currentChannel } = interaction;
+    const logChannelId = "1423413348220796991";
+    if (!member.roles.cache.has(TEAM_ROLE) && !member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
+      return interaction.reply({ content: "Du hast keine Berechtigung für diesen Befehl.", ephemeral: true });
+    }
+    const sendKekseLog = async (cmdName, target, content) => {
+      const logChannel = client.channels.cache.get(logChannelId);
+      if (logChannel) {
+        const kekseEmbed = new EmbedBuilder()
+          .setColor('#ffffff')
+          .setAuthor({ 
+              name: user.username, 
+              iconURL: user.displayAvatarURL({ size: 512 }) 
+          })
+          .setDescription(`**Aktion:** \`/${cmdName}\`\n**Ziel:** ${target}\n**Inhalt:**\n\`\`\`${content || "Kein Inhalt"}\`\`\``)
+          .setFooter({ text: 'Kekse Clan | Command Logs' })
+          .setTimestamp();
+
+        await logChannel.send({ embeds: [kekseEmbed] }).catch(() => {});
+      }
+    };
+    if (commandName === "send") {
+      const targetChannel = options.getChannel("kanal");
+      const text = options.getString("text");
+
+      await targetChannel.send(text);
+      await interaction.reply({ content: `Nachricht in ${targetChannel} gesendet.`, ephemeral: true });
+      await sendKekseLog("send", targetChannel.toString(), text);
+      globalBotStats.commandsRunned += 1;
+    }
+    if (commandName === "changelog") {
+      const changelogChannel = guild.channels.cache.get("1464993818968588379");
+      const eintrag = options.getString("eintrag");
+      if (!changelogChannel) return interaction.reply({ content: "Kanal nicht gefunden.", ephemeral: true });
+      const date = new Date().toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+      const updateList = eintrag.split(",").map(item => `- ${item.trim()}`).join("\n");
+      const messageFormat = `<@&1464994942345547857>\n**:wrench: Änderungen (${date})**\n${updateList}`;
+      await changelogChannel.send(messageFormat);
+      await interaction.reply({ content: "Changelog erfolgreich gepostet.", ephemeral: true });
+      await sendKekseLog("changelog", changelogChannel.toString(), updateList);
+      globalBotStats.commandsRunned += 1;
+    }
+
+    if (commandName === "embed") {
+      const targetChannel = options.getChannel("kanal");
+      const title = options.getString("titel");
+      const text = options.getString("text");
+      const color = options.getString("farbe") || "#ffffff";
+
+      const validColor = /^#[0-9A-F]{6}$/i.test(color) ? color : "#ffffff";
+
+      const embed = new EmbedBuilder().setTitle(title).setDescription(text).setColor(validColor);
+      await targetChannel.send({ embeds: [embed] });
+      await interaction.reply({ content: `Embed erfolgreich in ${targetChannel} gesendet.`, ephemeral: true });
+      await sendKekseLog("embed", targetChannel.toString(), `Titel: ${title}\nText: ${text}`);
+      globalBotStats.commandsRunned += 1;
+    }
+
+    if (commandName === "dm") {
+      const userId = options.getString("userid");
+      const text = options.getString("text");
+      const targetUser = await client.users.fetch(userId).catch(() => null);
+
+      if (!targetUser) {
+        return interaction.reply({ content: "❌ User konnte nicht gefunden werden. Ungültige ID?", ephemeral: true });
+      }
+
+      try {
+        await targetUser.send(text);
+        await interaction.reply({ content: `Direktnachricht an ${targetUser.tag} gesendet.`, ephemeral: true });
+        await sendKekseLog("dm", `${targetUser.tag} (${userId})`, text);
+        globalBotStats.commandsRunned += 1;
+      } catch (err) {
+        await interaction.reply({ content: "❌ Die DM konnte nicht zugestellt werden (Privatsphäre-Einstellungen des Users).", ephemeral: true });
+      }
+    }
+
+    if (commandName === "news") {
+      const targetChannel = options.getChannel("kanal");
+      const rawText = options.getString("text");
+
+      const emojiMap = { "regles": "1467246063122649180", "mail": "1467246078226334040", "like": "1467246068235501733", "management": "1467246065437642999", "moins": "1467246060689690849", "info": "1467246059561685238", "web": "1467246058341142833", "dislike": "1467246057070268681", "logs": "1467246054910070938", "check": "1467246053911957759", "staff": "1467246044772569218", "lien": "1467246043182924040", "identifiant": "1467246041668780227", "cybersecurite": "1467246039731015794", "statistiques": "1467246038497886311", "administrateur": "1467246035922321478", "croix": "1467246034580410429", "certifier": "1467246033389092904", "supprimer": "1467246032181006499", "profil": "1467246030998343733", "moderateur": "1467246028758712575", "crayon": "1467246026846109821", "stats": "1467246025411658012", "ouvert": "1467246023872352358", "discordoff": "1467246022668583147", "warningicon": "1467246020445339875", "2nd": "1467246019556282533", "discordon": "1467246018218430696", "1st": "1467246016926453810", "help": "1467246015332618372", "timeout": "1467246013487255705", "unstableping": "1467246011578712186", "yinfo": "1467246010349785119", "3rd": "1467246008734847138", "failed": "1467246005870264352", "mute": "1467246003890425928", "verified": "1467246002628202507", "cross": "1467246000258420767", "interruption": "1467245998043824128", "checkmark": "1467245996584210554", "moderatorprogramsalumnia": "1467245995510337659", "pingeveryone": "1453800508329558218", "ping": "1453799622303813714", "pepecookie": "1453796363442585660" };
+      const formattedText = rawText.replace(/:([a-zA-Z0-9_]+):/g, (match, name) => {
+        return emojiMap[name] ? `<:emoji:${emojiMap[name]}>` : match;
+      });
+
+      await targetChannel.send(formattedText);
+      await interaction.reply({ content: `News-Nachricht erfolgreich in ${targetChannel} gepostet.`, ephemeral: true });
+      await sendKekseLog("news", targetChannel.toString(), rawText);
+      globalBotStats.commandsRunned += 1;
+    }
+    if (commandName === "reply") {
+      const msgId = options.getString("msgid");
+      const text = options.getString("text");
+      const targetChannel = options.getChannel("kanal") || currentChannel;
+      try {
+        const targetMsg = await targetChannel.messages.fetch(msgId);
+        targetMsg.system ? await targetChannel.send(text) : await targetMsg.reply(text);
+        await interaction.reply({ content: "Erfolgreich auf die Nachricht geantwortet.", ephemeral: true });
+        await sendKekseLog("reply", `Nachricht ID ${msgId} in ${targetChannel}`, text);
+        globalBotStats.commandsRunned += 1;
+      } catch (err) {
+        await interaction.reply({ content: "❌ Nachricht im angegebenen Kanal nicht gefunden.", ephemeral: true });
+      }
+    }
+        if (commandName === "ping") {
+      if (!member.roles.cache.has(TEAM_ROLE_ID)) {
+        return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
+      }
+
+      globalBotStats.commandsRunned += 1;
+
+      const start = Date.now();
+      await interaction.reply({ content: "🏓 Pinging...", ephemeral: true });
+      const end = Date.now();
+
+      const roundtrip = end - start;
+      const wsPing = client.ws.ping;
+
+      await interaction.editReply({
+        content: `🏓 **Pong!**\n- API-Latenz: \`${roundtrip}ms\`\n- WebSocket: \`${wsPing}ms\``
+      }).catch(() => {});
+
+      const logChannel = client.channels.cache.get(logChannelId);
+      if (logChannel) {
+        const kekseLog = new EmbedBuilder()
+          .setColor('#ffffff')
+          .setAuthor({ 
+              name: user.username, 
+              iconURL: user.displayAvatarURL({ size: 512 }) 
+          })
+          .setDescription(`**Aktion:** \`/ping\`\n**Ergebnis:** RT: \`${roundtrip}ms\` | WS: \`${wsPing}ms\``)
+          .setFooter({ text: 'Kekse Clan | System Check' })
+          .setTimestamp();
+
+        await logChannel.send({ embeds: [kekseLog] }).catch(() => {});
+      }
+    }
+  });
+}
 setInterval(async () => {
   if (client && client.ws) {
     const currentPing = client.ws.ping;
@@ -328,6 +532,126 @@ export async function setEcoData(key, value) {
 export async function getEcoData(key) {
  const data = await dbGet("economy", key);
  return data || {};
+}
+export function registerSlashCommands(client) {
+  client.on("interactionCreate", async (interaction) => {
+    if (!interaction.isChatInputCommand()) return;
+
+    const { commandName, options, member, guild, user, channel: currentChannel } = interaction;
+    const logChannelId = "1423413348220796991";
+
+    if (!member.roles.cache.has(TEAM_ROLE) && !member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
+      return interaction.reply({ content: "Du hast keine Berechtigung für diesen Befehl.", ephemeral: true });
+    }
+
+    const sendKekseLog = async (cmdName, target, content) => {
+      const logChannel = client.channels.cache.get(logChannelId);
+      if (logChannel) {
+        const kekseEmbed = new EmbedBuilder()
+          .setColor('#ffffff')
+          .setAuthor({ 
+              name: user.username, 
+              iconURL: user.displayAvatarURL({ size: 512 }) 
+          })
+          .setDescription(`**Aktion:** \`/${cmdName}\`\n**Ziel:** ${target}\n**Inhalt:**\n\`\`\`${content || "Kein Inhalt"}\`\`\``)
+          .setFooter({ text: 'Kekse Clan | Command Logs' })
+          .setTimestamp();
+
+        await logChannel.send({ embeds: [kekseEmbed] }).catch(() => {});
+      }
+    };
+
+    if (commandName === "send") {
+      const targetChannel = options.getChannel("kanal");
+      const text = options.getString("text");
+
+      await targetChannel.send(text);
+      await interaction.reply({ content: `Nachricht in ${targetChannel} gesendet.`, ephemeral: true });
+      await sendKekseLog("send", targetChannel.toString(), text);
+      globalBotStats.commandsRunned += 1;
+    }
+
+    if (commandName === "changelog") {
+      const changelogChannel = guild.channels.cache.get("1464993818968588379");
+      const eintrag = options.getString("eintrag");
+      if (!changelogChannel) return interaction.reply({ content: "Kanal nicht gefunden.", ephemeral: true });
+
+      const date = new Date().toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+      const updateList = eintrag.split(",").map(item => `- ${item.trim()}`).join("\n");
+      const messageFormat = `<@&1464994942345547857>\n**:wrench: Änderungen (${date})**\n${updateList}`;
+
+      await changelogChannel.send(messageFormat);
+      await interaction.reply({ content: "Changelog erfolgreich gepostet.", ephemeral: true });
+      await sendKekseLog("changelog", changelogChannel.toString(), updateList);
+      globalBotStats.commandsRunned += 1;
+    }
+
+    if (commandName === "embed") {
+      const targetChannel = options.getChannel("kanal");
+      const title = options.getString("titel");
+      const text = options.getString("text");
+      const color = options.getString("farbe") || "#ffffff";
+
+      const validColor = /^#[0-9A-F]{6}$/i.test(color) ? color : "#ffffff";
+
+      const embed = new EmbedBuilder().setTitle(title).setDescription(text).setColor(validColor);
+      await targetChannel.send({ embeds: [embed] });
+      await interaction.reply({ content: `Embed erfolgreich in ${targetChannel} gesendet.`, ephemeral: true });
+      await sendKekseLog("embed", targetChannel.toString(), `Titel: ${title}\nText: ${text}`);
+      globalBotStats.commandsRunned += 1;
+    }
+
+    if (commandName === "dm") {
+      const userId = options.getString("userid");
+      const text = options.getString("text");
+      const targetUser = await client.users.fetch(userId).catch(() => null);
+
+      if (!targetUser) {
+        return interaction.reply({ content: "❌ User konnte nicht gefunden werden. Ungültige ID?", ephemeral: true });
+      }
+
+      try {
+        await targetUser.send(text);
+        await interaction.reply({ content: `Direktnachricht an ${targetUser.tag} gesendet.`, ephemeral: true });
+        await sendKekseLog("dm", `${targetUser.tag} (${userId})`, text);
+        globalBotStats.commandsRunned += 1;
+      } catch (err) {
+        await interaction.reply({ content: "❌ Die DM konnte nicht zugestellt werden (Privatsphäre-Einstellungen des Users).", ephemeral: true });
+      }
+    }
+
+    if (commandName === "news") {
+      const targetChannel = options.getChannel("kanal");
+      const rawText = options.getString("text");
+
+      const emojiMap = { "regles": "1467246063122649180", "mail": "1467246078226334040", "like": "1467246068235501733", "management": "1467246065437642999", "moins": "1467246060689690849", "info": "1467246059561685238", "web": "1467246058341142833", "dislike": "1467246057070268681", "logs": "1467246054910070938", "check": "1467246053911957759", "staff": "1467246044772569218", "lien": "1467246043182924040", "identifiant": "1467246041668780227", "cybersecurite": "1467246039731015794", "statistiques": "1467246038497886311", "administrateur": "1467246035922321478", "croix": "1467246034580410429", "certifier": "1467246033389092904", "supprimer": "1467246032181006499", "profil": "1467246030998343733", "moderateur": "1467246028758712575", "crayon": "1467246026846109821", "stats": "1467246025411658012", "ouvert": "1467246023872352358", "discordoff": "1467246022668583147", "warningicon": "1467246020445339875", "2nd": "1467246019556282533", "discordon": "1467246018218430696", "1st": "1467246016926453810", "help": "1467246015332618372", "timeout": "1467246013487255705", "unstableping": "1467246011578712186", "yinfo": "1467246010349785119", "3rd": "1467246008734847138", "failed": "1467246005870264352", "mute": "1467246003890425928", "verified": "1467246002628202507", "cross": "1467246000258420767", "interruption": "1467245998043824128", "checkmark": "1467245996584210554", "moderatorprogramsalumnia": "1467245995510337659", "pingeveryone": "1453800508329558218", "ping": "1453799622303813714", "pepecookie": "1453796363442585660" };
+      const formattedText = rawText.replace(/:([a-zA-Z0-9_]+):/g, (match, name) => {
+        return emojiMap[name] ? `<:emoji:${emojiMap[name]}>` : match;
+      });
+
+      await targetChannel.send(formattedText);
+      await interaction.reply({ content: `News-Nachricht erfolgreich in ${targetChannel} gepostet.`, ephemeral: true });
+      await sendKekseLog("news", targetChannel.toString(), rawText);
+      globalBotStats.commandsRunned += 1;
+    }
+
+    if (commandName === "reply") {
+      const msgId = options.getString("msgid");
+      const text = options.getString("text");
+      const targetChannel = options.getChannel("kanal") || currentChannel;
+
+      try {
+        const targetMsg = await targetChannel.messages.fetch(msgId);
+        targetMsg.system ? await targetChannel.send(text) : await targetMsg.reply(text);
+
+        await interaction.reply({ content: "Erfolgreich auf die Nachricht geantwortet.", ephemeral: true });
+        await sendKekseLog("reply", `Nachricht ID ${msgId} in ${targetChannel}`, text);
+        globalBotStats.commandsRunned += 1;
+      } catch (err) {
+        await interaction.reply({ content: "❌ Nachricht im angegebenen Kanal nicht gefunden.", ephemeral: true });
+      }
+    }
+  });
 }
 export async function initEconomyGetKekse(client) {
   try {
@@ -3075,153 +3399,6 @@ export function initHelp(client) {
     globalBotStats.commandsRunned += 1;
   });
 }
-export function registerMessageCommands(client) {
-  client.on("messageCreate", async (msg) => {
-    if (msg.author.bot || !msg.content.startsWith("!")) return;
-    const logChannelId = "1423413348220796991";
-    if (!msg.member.roles.cache.has(TEAM_ROLE) && !msg.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) return;
-    const args = msg.content.slice(1).match(/(?:[^\s"]+|"[^"]*")+/g)?.map(a => a.replace(/"/g, "")) || [];
-    const cmd = args.shift().toLowerCase();
-    const deleteCmd = () => msg.delete().catch(() => {});
-
-    const sendKekseLog = async (commandName, target, content) => {
-      const logChannel = client.channels.cache.get(logChannelId);
-      if (logChannel) {
-        const kekseEmbed = new EmbedBuilder()
-          .setColor('#ffffff')
-          .setAuthor({ 
-              name: msg.author.username, 
-              iconURL: msg.author.displayAvatarURL({ size: 512 }) 
-          })
-          .setDescription(`**Aktion:** \`!${commandName}\`\n**Ziel:** ${target}\n**Inhalt:**\n\`\`\`${content || "Kein Inhalt"}\`\`\``)
-          .setFooter({ text: 'Kekse Clan | Command Logs' })
-          .setTimestamp();
-
-        await logChannel.send({ embeds: [kekseEmbed] });
-      }
-    };
-
-    if (cmd === "send") {
-      await deleteCmd();
-      const channel = msg.mentions.channels.first();
-      const text = msg.content.replace(/^!send\s+<#[0-9]+>\s?/, "").trim();
-      if (channel && text) {
-        await channel.send(text);
-        await sendKekseLog("send", channel.toString(), text);
-        globalBotStats.commandsRunned += 1;
-      }
-    }
-
-    if (cmd === "changelog") {
-      await deleteCmd();
-      const changelogChannel = msg.guild.channels.cache.get("1464993818968588379");
-      if (!changelogChannel || args.length === 0) return;
-      const date = new Date().toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
-      const updateList = args.map(item => `- ${item}`).join("\n");
-      const messageFormat = `<@&1464994942345547857>\n**:wrench: Änderungen (${date})**\n${updateList}`;
-      await changelogChannel.send(messageFormat);
-      await sendKekseLog("changelog", changelogChannel.toString(), updateList);
-      globalBotStats.commandsRunned += 1;
-    }
-
-    if (cmd === "embed") {
-      await deleteCmd();
-      const channel = msg.mentions.channels.first();
-      const title = args[1];
-      const text = args[2];
-      const color = args[3] || "#ffffff";
-      if (channel && title && text) {
-        const embed = new EmbedBuilder().setTitle(title).setDescription(text).setColor(color);
-        await channel.send({ embeds: [embed] });
-        await sendKekseLog("embed", channel.toString(), `Titel: ${title}\nText: ${text}`);
-        globalBotStats.commandsRunned += 1;
-      }
-    }
-
-    if (cmd === "dm") {
-      await deleteCmd();
-      const userId = args[0];
-      const text = args.slice(1).join(" ");
-      const user = await client.users.fetch(userId).catch(() => null);
-      if (user && text) {
-        await user.send(text).catch(() => {});
-        await sendKekseLog("dm", `${user.tag} (${userId})`, text);
-        globalBotStats.commandsRunned += 1;
-      }
-    }
-
-    if (cmd === "news") {
-      await deleteCmd();
-      const channel = msg.mentions.channels.first();
-      if (!channel) return;
-      let rawText = msg.content.replace(/^!news\s+<#[0-9]+>\s?/, "").trim();
-      if (!rawText) return;
-      const emojiMap = { "regles": "1467246063122649180", "mail": "1467246078226334040", "like": "1467246068235501733", "management": "1467246065437642999", "moins": "1467246060689690849", "info": "1467246059561685238", "web": "1467246058341142833", "dislike": "1467246057070268681", "logs": "1467246054910070938", "check": "1467246053911957759", "staff": "1467246044772569218", "lien": "1467246043182924040", "identifiant": "1467246041668780227", "cybersecurite": "1467246039731015794", "statistiques": "1467246038497886311", "administrateur": "1467246035922321478", "croix": "1467246034580410429", "certifier": "1467246033389092904", "supprimer": "1467246032181006499", "profil": "1467246030998343733", "moderateur": "1467246028758712575", "crayon": "1467246026846109821", "stats": "1467246025411658012", "ouvert": "1467246023872352358", "discordoff": "1467246022668583147", "warningicon": "1467246020445339875", "2nd": "1467246019556282533", "discordon": "1467246018218430696", "1st": "1467246016926453810", "help": "1467246015332618372", "timeout": "1467246013487255705", "unstableping": "1467246011578712186", "yinfo": "1467246010349785119", "3rd": "1467246008734847138", "failed": "1467246005870264352", "mute": "1467246003890425928", "verified": "1467246002628202507", "cross": "1467246000258420767", "interruption": "1467245998043824128", "checkmark": "1467245996584210554", "moderatorprogramsalumnia": "1467245995510337659", "pingeveryone": "1453800508329558218", "ping": "1453799622303813714", "pepecookie": "1453796363442585660" };
-      const formattedText = rawText.replace(/:([a-zA-Z0-9_]+):/g, (match, name) => {
-        return emojiMap[name] ? `<:emoji:${emojiMap[name]}>` : match;
-      });
-      await channel.send(formattedText);
-      await sendKekseLog("news", channel.toString(), rawText);
-      globalBotStats.commandsRunned += 1;
-    }
-
-    if (cmd === "reply") {
-      await deleteCmd();
-      const channelMention = msg.mentions.channels.first() || msg.channel;
-      const msgId = args.find(a => /^\d{17,20}$/.test(a));
-      let text = args.filter(a => !a.includes(msgId) && !a.startsWith("<#")).join(" ");
-      if (!msgId || !text) return;
-      globalBotStats.commandsRunned += 1;
-      try {
-        const targetMsg = await channelMention.messages.fetch(msgId);
-        targetMsg.system ? await channelMention.send(text) : await targetMsg.reply(text);
-        await sendKekseLog("reply", `Nachricht ID ${msgId}`, text);
-      } catch (err) {
-        await msg.channel.send("❌ Nachricht nicht gefunden.").then(m => setTimeout(() => m.delete(), 3000));
-      }
-    }
-  });
-}
-export function initPing(client) {
-  client.on("messageCreate", async msg => {
-    if (!msg.content.startsWith("!ping") || msg.author.bot) return;
-    if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) {
-      const warn = await msg.channel.send("❌ Keine Berechtigung.");
-      return setTimeout(() => {
-        warn.delete().catch(() => {});
-        msg.delete().catch(() => {});
-      }, 5000);
-    }
-    globalBotStats.commandsRunned += 1;
-    const start = Date.now();
-    const sentMsg = await msg.channel.send("🏓 Pinging...").catch(() => null);
-    if (!sentMsg) return;
-    const end = Date.now();
-    const roundtrip = end - start;
-    const wsPing = client.ws.ping; 
-    await sentMsg.edit({
-      content: `🏓 **Pong!**\n- API-Latenz: \`${roundtrip}ms\`\n- WebSocket: \`${wsPing}ms\``
-    }).catch(() => {});
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
-    if (logChannel) {
-      const kekseLog = new EmbedBuilder()
-        .setColor('#ffffff')
-        .setAuthor({ 
-            name: msg.author.username, 
-            iconURL: msg.author.displayAvatarURL({ size: 512 }) 
-        })
-        .setDescription(`**Aktion:** \`!ping\`\n**Ergebnis:** RT: \`${roundtrip}ms\` | WS: \`${wsPing}ms\``)
-        .setFooter({ text: 'Kekse Clan | System Check' })
-        .setTimestamp();
-
-      await logChannel.send({ embeds: [kekseLog] });
-    }
-    setTimeout(() => {
-        sentMsg.delete().catch(() => {});
-        msg.delete().catch(() => {});
-    }, 10000);
-  });
-}
 export async function initPoll(client) {
   const sendKekseLog = async (action, user, details) => {
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
@@ -4356,6 +4533,7 @@ app.get("/api/stats_internal", (req, res) => {
 client.setMaxListeners(50);
 client.on("error", console.error)
 client.on("warn", console.warn)
+registerSlashCommands(client);
 mongoose.connect(process.env.MONGODB_URI)
   .then(async () => {
     console.log('🍃 MongoDB verbunden!');
