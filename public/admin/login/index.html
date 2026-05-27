@@ -137,55 +137,56 @@
         </form>
     </div>
     <script>
-        let num1, num2, correctCaptchaResult;
-        function generateCaptcha() {
-            num1 = Math.floor(Math.random() * 9) + 2;
-            num2 = Math.floor(Math.random() * 9) + 2;
-            correctCaptchaResult = num1 + num2;
-            document.getElementById("captchaText").innerText = `${num1} + ${num2} =`;
-            document.getElementById("captchaAnswer").value = "";
+    let num1, num2, correctCaptchaResult;
+    function generateCaptcha() {
+        num1 = Math.floor(Math.random() * 9) + 2;
+        num2 = Math.floor(Math.random() * 9) + 2;
+        correctCaptchaResult = num1 + num2;
+        document.getElementById("captchaText").innerText = `${num1} + ${num2} =`;
+        document.getElementById("captchaAnswer").value = "";
+    }
+    async function sha256(string) {
+        const utf8 = new TextEncoder().encode(string);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', utf8);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    async function handleLogin(event) {
+        event.preventDefault();
+        const passwordInput = document.getElementById("password").value;
+        const captchaInput = parseInt(document.getElementById("captchaAnswer").value);
+        const errorElement = document.getElementById("errorMsg");
+        if (captchaInput !== correctCaptchaResult) {
+            errorElement.innerText = "❌ Mensch-Abfrage inkorrekt. Bitte versuche es erneut.";
+            errorElement.style.display = "block";
+            generateCaptcha();
+            return;
         }
-        async function sha256(string) {
-            const utf8 = new TextEncoder().encode(string);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', utf8);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        }
-        async function handleLogin(event) {
-            event.preventDefault();
-            const passwordInput = document.getElementById("password").value;
-            const captchaInput = parseInt(document.getElementById("captchaAnswer").value);
-            const errorElement = document.getElementById("errorMsg");
-            if (captchaInput !== correctCaptchaResult) {
-                errorElement.innerText = "❌ Mensch-Abfrage inkorrekt. Bitte versuche es erneut.";
+        try {
+            const hashedToken = await sha256(passwordInput); 
+            const apiUrl = `${window.location.origin}/api/tickets?token=${encodeURIComponent(hashedToken)}`;
+            const res = await fetch(apiUrl);
+            if (res.ok) {
+                localStorage.setItem("admin_token", hashedToken);
+                
+                const loginBtn = document.querySelector(".login-btn");
+                if (loginBtn) {
+                    loginBtn.innerText = "⏳ Erstelle Admin-Sitzung...";
+                    loginBtn.style.backgroundColor = "#43b581";
+                }
+                setTimeout(() => {
+                    window.location.replace(window.location.origin + "/");
+                }, 250);
+            } else {
+                errorElement.innerText = "❌ Passwort inkorrekt. Zugriff verweigert.";
                 errorElement.style.display = "block";
                 generateCaptcha();
-                return;
             }
-            try {
-                const token = passwordInput; 
-                const apiUrl = window.location.origin + "/api/tickets?token=" + encodeURIComponent(token);
-                const res = await fetch(apiUrl);
-                        if (res.ok) {
-                            localStorage.setItem("admin_token", token);
-                            const loginBtn = document.querySelector(".login-btn");
-                            if (loginBtn) {
-                                loginBtn.innerText = "⏳ Erstelle Admin-Sitzung...";
-                                loginBtn.style.backgroundColor = "#43b581";
-                            }
-                            setTimeout(() => {
-                                window.location.replace(window.location.origin + "/");
-                            }, 250);
-                        } else {
-                    errorElement.innerText = "❌ Passwort inkorrekt. Zugriff verweigert.";
-                    errorElement.style.display = "block";
-                    generateCaptcha();
-                }
-            } catch (err) {
-                window.location.replace(window.location.origin + "/612.html");
-            }
+        } catch (err) {
+            window.location.replace(window.location.origin + "/err612");
         }
-        generateCaptcha();
-    </script>
+    }
+    generateCaptcha();
+</script>
 </body>
 </html>
