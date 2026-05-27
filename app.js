@@ -226,6 +226,7 @@ export function registerSlashCommands(client) {
     if (!interaction.isChatInputCommand()) return;
     const { commandName, options, member, guild, user, channel: currentChannel } = interaction;
     const logChannelId = "1423413348220796991";
+    const TEAM_ROLE = "1457906448234319922";
     if (!member.roles.cache.has(TEAM_ROLE) && !member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
       return interaction.reply({ content: "Du hast keine Berechtigung für diesen Befehl.", ephemeral: true });
     }
@@ -363,7 +364,7 @@ export function registerSlashCommands(client) {
       }
     }
         if (commandName === "clear") {
-      if (!member.roles.cache.has("1457906448234319922")) {
+      if (!member.roles.cache.has(TEAM_ROLE)) {
         return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
       }
 
@@ -456,7 +457,7 @@ export function registerSlashCommands(client) {
       globalBotStats.commandsRunned += 1;
     }
         if (commandName === "giveaway") {
-      if (!member.roles.cache.has(TEAM_ROLE_ID)) {
+      if (!member.roles.cache.has(TEAM_ROLE)) {
         return interaction.reply({ content: " Keine Rechte.", ephemeral: true });
       }
 
@@ -524,7 +525,7 @@ export function registerSlashCommands(client) {
       globalBotStats.commandsRunned += 1;
     }
         if (commandName === "poll") {
-      if (!member.roles.cache.has(TEAM_ROLE_ID)) {
+      if (!member.roles.cache.has(TEAM_ROLE)) {
         return interaction.reply({ content: "❌ Du hast keine Berechtigung.", ephemeral: true });
       }
 
@@ -598,7 +599,7 @@ export function registerSlashCommands(client) {
       globalBotStats.commandsRunned += 1;
     }
         if (commandName === "ticket-panel") {
-      if (!member.roles.cache.has(TEAM_ROLE_ID)) {
+      if (!member.roles.cache.has("1454169207838216253")) {
         return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
       }
 
@@ -608,7 +609,7 @@ export function registerSlashCommands(client) {
     }
 
     if (commandName === "close") {
-      if (!member.roles.cache.has(TEAM_ROLE_ID)) {
+      if (!member.roles.cache.has(TEAM_ROLE)) {
         return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
       }
       await interaction.reply({ content: "⏳ Ticket-Schließung initiiert...", ephemeral: true });
@@ -616,7 +617,7 @@ export function registerSlashCommands(client) {
       globalBotStats.commandsRunned += 1;
     }
     if (commandName === "block") {
-      if (!member.roles.cache.has(TEAM_ROLE_ID)) {
+      if (!member.roles.cache.has(TEAM_ROLE)) {
         return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
       }
       const targetUser = options.getUser("nutzer");
@@ -626,7 +627,7 @@ export function registerSlashCommands(client) {
       await interaction.reply({ content: `✅ <@${targetUser.id}> wurde für ${days} Tage gesperrt.`, ephemeral: true });
       globalBotStats.commandsRunned += 1;
     }
-        if (!member.roles.cache.has(TEAM_ROLE_ID) || !hasPerm(member)) {
+        if (!member.roles.cache.has(TEAM_ROLE) || !hasPerm(member)) {
       if (["timeout", "untimeout", "kick", "ban", "unban", "warn", "warns", "warn-remove"].includes(commandName)) {
         return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
       }
