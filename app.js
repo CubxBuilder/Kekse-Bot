@@ -5919,617 +5919,198 @@ process.on("unhandledRejection", (reason, promise) => {
 process.on("uncaughtException", (err) => {
   console.error("[Process] Uncaught Exception:", err);
 });
+import { REST, Routes, SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
+
 const commands = [
   new SlashCommandBuilder()
-    .setName("send")
-    .setDescription("Sendet eine Nachricht in einen bestimmten Kanal")
-    .addChannelOption((opt) =>
-      opt.setName("kanal").setDescription("Der Zielkanal").setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("text")
-        .setDescription("Der Nachrichtentext")
-        .setRequired(true),
-    )
+    .setName('send')
+    .setDescription('Sendet eine Nachricht in einen bestimmten Kanal')
+    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Zielkanal').setRequired(true))
+    .addStringOption(opt => opt.setName('text').setDescription('Der Nachrichtentext').setRequired(true))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName("changelog")
-    .setDescription("Erstellt einen neuen Changelog-Eintrag")
-    .addStringOption((opt) =>
-      opt
-        .setName("eintrag")
-        .setDescription("Inhalt des Updates (Nutze Kommas für Listenpunkte)")
-        .setRequired(true),
-    )
+    .setName('changelog')
+    .setDescription('Erstellt einen neuen Changelog-Eintrag')
+    .addStringOption(opt => opt.setName('eintrag').setDescription('Inhalt des Updates (Nutze Kommas für Listenpunkte)').setRequired(true))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName("embed")
-    .setDescription("Sendet ein strukturiertes Embed")
-    .addChannelOption((opt) =>
-      opt.setName("kanal").setDescription("Der Zielkanal").setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("titel")
-        .setDescription("Der Titel des Embeds")
-        .setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("text")
-        .setDescription("Die Beschreibung / Haupttext")
-        .setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("farbe")
-        .setDescription("HEX-Farbe (z.B. #ff0000 oder #ffffff)")
-        .setRequired(false),
-    )
+    .setName('embed')
+    .setDescription('Sendet ein strukturiertes Embed')
+    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Zielkanal').setRequired(true))
+    .addStringOption(opt => opt.setName('titel').setDescription('Der Titel des Embeds').setRequired(true))
+    .addStringOption(opt => opt.setName('text').setDescription('Die Beschreibung / Haupttext').setRequired(true))
+    .addStringOption(opt => opt.setName('farbe').setDescription('HEX-Farbe (z.B. #ff0000 oder #ffffff)').setRequired(false))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName("dm")
-    .setDescription("Sendet eine Direktnachricht an einen User")
-    .addStringOption((opt) =>
-      opt
-        .setName("userid")
-        .setDescription("Die Discord-ID des Users")
-        .setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("text")
-        .setDescription("Der Nachrichtentext")
-        .setRequired(true),
-    )
+    .setName('dm')
+    .setDescription('Sendet eine Direktnachricht an einen User')
+    .addStringOption(opt => opt.setName('userid').setDescription('Die Discord-ID des Users').setRequired(true))
+    .addStringOption(opt => opt.setName('text').setDescription('Der Nachrichtentext').setRequired(true))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName("news")
-    .setDescription(
-      "Sendet eine News-Nachricht mit integrierter Emoji-Ersetzung",
-    )
-    .addChannelOption((opt) =>
-      opt.setName("kanal").setDescription("Der Zielkanal").setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("text")
-        .setDescription("Der Newstext (Nutze :emojiName:)")
-        .setRequired(true),
-    )
+    .setName('news')
+    .setDescription('Sendet eine News-Nachricht mit integrierter Emoji-Ersetzung')
+    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Zielkanal').setRequired(true))
+    .addStringOption(opt => opt.setName('text').setDescription('Der Newstext (Nutze :emojiName:)').setRequired(true))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName("reply")
-    .setDescription("Antwortet auf eine existierende Nachricht")
-    .addStringOption((opt) =>
-      opt
-        .setName("msgid")
-        .setDescription("Die ID der Nachricht")
-        .setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt.setName("text").setDescription("Der Antworttext").setRequired(true),
-    )
-    .addChannelOption((opt) =>
-      opt
-        .setName("kanal")
-        .setDescription("Kanal der Nachricht (Standard: aktueller Kanal)")
-        .setRequired(false),
-    )
+    .setName('reply')
+    .setDescription('Antwortet auf eine existierende Nachricht')
+    .addStringOption(opt => opt.setName('msgid').setDescription('Die ID der Nachricht').setRequired(true))
+    .addStringOption(opt => opt.setName('text').setDescription('Der Antworttext').setRequired(true))
+    .addChannelOption(opt => opt.setName('kanal').setDescription('Kanal der Nachricht (Standard: aktueller Kanal)').setRequired(false))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-  new SlashCommandBuilder()
-    .setName("ping")
-    .setDescription("Zeigt die aktuelle Latenz des Bots an")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-  new SlashCommandBuilder()
-    .setName("clear")
-    .setDescription("Löscht eine bestimmte Anzahl an Nachrichten mit Filtern")
-    .addIntegerOption((opt) =>
-      opt
-        .setName("anzahl")
-        .setDescription("Menge an Nachrichten (max. 500, Standard: 100)")
-        .setRequired(false),
-    )
-    .addChannelOption((opt) =>
-      opt
-        .setName("kanal")
-        .setDescription("Der Zielkanal (Standard: aktueller Kanal)")
-        .setRequired(false),
-    )
-    .addUserOption((opt) =>
-      opt
-        .setName("nutzer")
-        .setDescription("Filtert Nachrichten nach einem bestimmten User")
-        .setRequired(false),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("zeitrahmen")
-        .setDescription("Zeitrahmen-Filter (z.B. 2h, 1d)")
-        .setRequired(false),
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-  new SlashCommandBuilder()
-    .setName("giveaway")
-    .setDescription("Startet ein neues Giveaway im ausgewählten Kanal")
-    .addChannelOption((opt) =>
-      opt
-        .setName("kanal")
-        .setDescription("Der Kanal, in dem das Giveaway stattfinden soll")
-        .setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("dauer")
-        .setDescription("Dauer des Giveaways (z.B. 1h, 30m, 1d)")
-        .setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("preis")
-        .setDescription("Der Gewinn / Preis des Giveaways")
-        .setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("text")
-        .setDescription("Beschreibungstext für das Giveaway")
-        .setRequired(false),
-    )
-    .addIntegerOption((opt) =>
-      opt
-        .setName("gewinner")
-        .setDescription("Anzahl der Gewinner (Standard: 1)")
-        .setRequired(false),
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-  new SlashCommandBuilder()
-    .setName("help")
-    .setDescription("Zeigt dir, wie du Hilfe oder Support erhalten kannst"),
-  new SlashCommandBuilder()
-    .setName("poll")
-    .setDescription("Verwaltet das Umfragen-System (Admin)")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
-    .addSubcommand((sub) =>
-      sub
-        .setName("start")
-        .setDescription("Startet eine neue Umfrage")
-        .addStringOption((opt) =>
-          opt
-            .setName("frage")
-            .setDescription("Die Hauptfrage der Umfrage")
-            .setRequired(true),
-        )
-        .addIntegerOption((opt) =>
-          opt
-            .setName("minuten")
-            .setDescription("Dauer der Umfrage in Minuten")
-            .setRequired(true),
-        )
-        .addStringOption((opt) =>
-          opt
-            .setName("beschreibung")
-            .setDescription("Zusätzliche Details oder Erklärungen")
-            .setRequired(true),
-        )
-        .addStringOption((opt) =>
-          opt
-            .setName("option_1")
-            .setDescription("Erste Antwortmöglichkeit")
-            .setRequired(true),
-        )
-        .addStringOption((opt) =>
-          opt
-            .setName("option_2")
-            .setDescription("Zweite Antwortmöglichkeit")
-            .setRequired(true),
-        )
-        .addStringOption((opt) =>
-          opt
-            .setName("option_3")
-            .setDescription("Dritte Antwortmöglichkeit")
-            .setRequired(false),
-        )
-        .addStringOption((opt) =>
-          opt
-            .setName("option_4")
-            .setDescription("Vierte Antwortmöglichkeit")
-            .setRequired(false),
-        )
-        .addStringOption((opt) =>
-          opt
-            .setName("option_5")
-            .setDescription("Fünfte Antwortmöglichkeit")
-            .setRequired(false),
-        )
-        .addStringOption((opt) =>
-          opt
-            .setName("option_6")
-            .setDescription("Sechste Antwortmöglichkeit")
-            .setRequired(false),
-        )
-        .addStringOption((opt) =>
-          opt
-            .setName("option_7")
-            .setDescription("Siebte Antwortmöglichkeit")
-            .setRequired(false),
-        )
-        .addStringOption((opt) =>
-          opt
-            .setName("option_8")
-            .setDescription("Achte Antwortmöglichkeit")
-            .setRequired(false),
-        )
-        .addStringOption((opt) =>
-          opt
-            .setName("option_9")
-            .setDescription("Neunte Antwortmöglichkeit")
-            .setRequired(false),
-        )
-        .addStringOption((opt) =>
-          opt
-            .setName("option_10")
-            .setDescription("Zehnte Antwortmöglichkeit")
-            .setRequired(false),
-        ),
-    )
-    .addSubcommand((sub) =>
-      sub
-        .setName("close")
-        .setDescription("Beendet eine aktive Umfrage vorzeitig")
-        .addStringOption((opt) =>
-          opt
-            .setName("id")
-            .setDescription("Die ID der zu beendenden Umfrage")
-            .setRequired(true),
-        ),
-    ),
 
   new SlashCommandBuilder()
-    .setName("listpolls")
-    .setDescription("Zeigt eine Übersicht aller aktiven Umfragen an"),
-  new SlashCommandBuilder()
-    .setName("moveadmin")
-    .setDescription(
-      "Verschiebt das aktuelle Ticket manuell in den Admin-Bereich",
-    )
+    .setName('ping')
+    .setDescription('Zeigt die aktuelle Latenz des Bots an')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
   new SlashCommandBuilder()
-    .setName("ticket-panel")
-    .setDescription(
-      "Sendet das Ticket-Panel mit Buttons in den aktuellen Kanal",
-    )
+    .setName('clear')
+    .setDescription('Löscht eine bestimmte Anzahl an Nachrichten mit Filtern')
+    .addIntegerOption(opt => opt.setName('anzahl').setDescription('Menge an Nachrichten (max. 500, Standard: 100)').setRequired(false))
+    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Zielkanal (Standard: aktueller Kanal)').setRequired(false))
+    .addUserOption(opt => opt.setName('nutzer').setDescription('Filtert Nachrichten nach einem bestimmten User').setRequired(false))
+    .addStringOption(opt => opt.setName('zeitrahmen').setDescription('Zeitrahmen-Filter (z.B. 2h, 1d)').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('giveaway')
+    .setDescription('Startet ein neues Giveaway im ausgewählten Kanal')
+    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Kanal, in dem das Giveaway stattfinden soll').setRequired(true))
+    .addStringOption(opt => opt.setName('dauer').setDescription('Dauer des Giveaways (z.B. 1h, 30m, 1d)').setRequired(true))
+    .addStringOption(opt => opt.setName('preis').setDescription('Der Gewinn / Preis des Giveaways').setRequired(true))
+    .addStringOption(opt => opt.setName('text').setDescription('Beschreibungstext für das Giveaway').setRequired(false))
+    .addIntegerOption(opt => opt.setName('gewinner').setDescription('Anzahl der Gewinner (Standard: 1)').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('help')
+    .setDescription('Zeigt dir, wie du Hilfe oder Support erhalten kannst'),
+
+  new SlashCommandBuilder()
+    .setName('moveadmin')
+    .setDescription('Verschiebt das aktuelle Ticket manuell in den Admin-Bereich')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('setup-verify')
+    .setDescription('Erstellt das Verifizierungs-Panel mit Button im festgelegten Kanal')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('top')
+    .setDescription('Zeigt die Top 10 User mit den meisten Punkten im Counting-System'),
+
+  new SlashCommandBuilder()
+    .setName('set-number')
+    .setDescription('Admin: Setzt die nächste zu zählende Nummer manuell fest')
+    .addIntegerOption(opt => opt.setName('nummer').setDescription('Die neue Zielzahl').setRequired(true))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer),
 
   new SlashCommandBuilder()
-    .setName("close")
-    .setDescription("Schließt und archiviert das aktuelle Ticket")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-  new SlashCommandBuilder()
-    .setName("block")
-    .setDescription(
-      "Sperrt einen User für eine bestimmte Anzahl an Tagen für das Ticket-System",
-    )
-    .addUserOption((opt) =>
-      opt
-        .setName("nutzer")
-        .setDescription("Der zu sperrende Nutzer")
-        .setRequired(true),
-    )
-    .addIntegerOption((opt) =>
-      opt
-        .setName("tage")
-        .setDescription("Anzahl der Tage für die Sperre (Standard: 7)")
-        .setRequired(false),
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-  new SlashCommandBuilder()
-    .setName("timeout")
-    .setDescription("Versetzt ein Mitglied in ein Timeout")
-    .addUserOption((opt) =>
-      opt
-        .setName("nutzer")
-        .setDescription("Der betroffene Nutzer")
-        .setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("dauer")
-        .setDescription("Dauer (z.B. 10s, 5m, 2h, 1d)")
-        .setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("grund")
-        .setDescription("Grund für das Timeout")
-        .setRequired(false),
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName("untimeout")
-    .setDescription("Hebt das Timeout eines Mitglieds vorzeitig auf")
-    .addUserOption((opt) =>
-      opt
-        .setName("nutzer")
-        .setDescription("Der betroffene Nutzer")
-        .setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("grund")
-        .setDescription("Grund für die Aufhebung")
-        .setRequired(false),
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName("kick")
-    .setDescription("Kickt ein Mitglied vom Server")
-    .addUserOption((opt) =>
-      opt
-        .setName("nutzer")
-        .setDescription("Der zu kickende Nutzer")
-        .setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("grund")
-        .setDescription("Grund für den Kick")
-        .setRequired(false),
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName("ban")
-    .setDescription("Bannt einen User vom Server (auch per ID)")
-    .addStringOption((opt) =>
-      opt
-        .setName("userid")
-        .setDescription("Die Discord-ID oder Erwähnung des Users")
-        .setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("grund")
-        .setDescription("Grund für den Ban")
-        .setRequired(false),
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName("unban")
-    .setDescription("Hebt den Ban eines Users auf")
-    .addStringOption((opt) =>
-      opt
-        .setName("userid")
-        .setDescription("Die Discord-ID des Users")
-        .setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("grund")
-        .setDescription("Grund für den Entban")
-        .setRequired(false),
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName("warn")
-    .setDescription("Verwarnt ein Mitglied auf dem Server")
-    .addUserOption((opt) =>
-      opt
-        .setName("nutzer")
-        .setDescription("Der zu verwarnende Nutzer")
-        .setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("grund")
-        .setDescription("Grund für die Verwarnung")
-        .setRequired(false),
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName("warns")
-    .setDescription("Zeigt alle Verwarnungen eines Nutzers an")
-    .addUserOption((opt) =>
-      opt
-        .setName("nutzer")
-        .setDescription("Der zu prüfende Nutzer")
-        .setRequired(true),
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName("warn-remove")
-    .setDescription(
-      "Entfernt eine bestimmte Verwarnung eines Nutzers anhand der Nummer",
-    )
-    .addUserOption((opt) =>
-      opt
-        .setName("nutzer")
-        .setDescription("Der betroffene Nutzer")
-        .setRequired(true),
-    )
-    .addIntegerOption((opt) =>
-      opt
-        .setName("nummer")
-        .setDescription("Die Nummer des Warns (z.B. 1)")
-        .setRequired(true),
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-  new SlashCommandBuilder()
-    .setName("setup-verify")
-    .setDescription(
-      "Erstellt das Verifizierungs-Panel mit Button im festgelegten Kanal",
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer),
-  new SlashCommandBuilder()
-    .setName("top")
-    .setDescription(
-      "Zeigt die Top 10 User mit den meisten Punkten im Counting-System",
-    ),
-
-  new SlashCommandBuilder()
-    .setName("set-number")
-    .setDescription("Admin: Setzt die nächste zu zählende Nummer manuell fest")
-    .addIntegerOption((opt) =>
-      opt
-        .setName("nummer")
-        .setDescription("Die neue Zielzahl")
-        .setRequired(true),
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer),
-  new SlashCommandBuilder()
-    .setName("daily-setup")
-    .setDescription(
-      "Entwickler: Richtet ein tägliches Belohnungssystem mit Button ein",
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("id")
-        .setDescription("Eine eindeutige ID für dieses Setup (z.B. event1)")
-        .setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("beschreibung")
-        .setDescription("Zusätzlicher Beschreibungstext für das Einlösen")
-        .setRequired(false),
-    )
+    .setName('ticket-panel')
+    .setDescription('Sendet das Ticket-Panel mit Buttons in den aktuellen Kanal')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer),
 
   new SlashCommandBuilder()
-    .setName("shop-setup")
-    .setDescription(
-      "Entwickler: Richtet den Server-Shop im festgelegten Kanal ein",
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("beschreibung")
-        .setDescription("Zusätzlicher Beschreibungstext für den Shop")
-        .setRequired(false),
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer),
-  new SlashCommandBuilder()
-    .setName("casino")
-    .setDescription("Zeigt eine Übersicht aller verfügbaren Casino-Spiele an"),
-
-  new SlashCommandBuilder()
-    .setName("roulette")
-    .setDescription("Spiele eine Runde Roulette")
-    .addIntegerOption((opt) =>
-      opt
-        .setName("einsatz")
-        .setDescription("Einsatz in Keksen")
-        .setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("typ")
-        .setDescription(
-          "Wettart: red, black, even, odd, Zahl 0-36, 1-18, 19-36",
-        )
-        .setRequired(true),
-    ),
-
-  new SlashCommandBuilder()
-    .setName("coinflip")
-    .setDescription("Mache einen Münzwurf")
-    .addIntegerOption((opt) =>
-      opt
-        .setName("einsatz")
-        .setDescription("Einsatz in Keksen")
-        .setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("seite")
-        .setDescription("Kopf oder Zahl?")
-        .setRequired(true)
-        .addChoices(
-          { name: "Kopf (Heads)", value: "heads" },
-          { name: "Zahl (Tails)", value: "tails" },
-        ),
-    ),
-
-  new SlashCommandBuilder()
-    .setName("jackpot")
-    .setDescription("Zahle Kekse in den aktuellen Jackpot ein")
-    .addIntegerOption((opt) =>
-      opt
-        .setName("einsatz")
-        .setDescription("Einsatz in Keksen")
-        .setRequired(true),
-    ),
-
-  new SlashCommandBuilder()
-    .setName("crash")
-    .setDescription("Starte ein Crash-Multiplikator-Spiel")
-    .addIntegerOption((opt) =>
-      opt
-        .setName("einsatz")
-        .setDescription("Einsatz in Keksen")
-        .setRequired(true),
-    ),
-
-  new SlashCommandBuilder()
-    .setName("highlow")
-    .setDescription("Errate, ob die nächste Karte höher oder niedriger ist")
-    .addIntegerOption((opt) =>
-      opt
-        .setName("einsatz")
-        .setDescription("Einsatz in Keksen")
-        .setRequired(true),
-    ),
-
-  new SlashCommandBuilder()
-    .setName("blackjack")
-    .setDescription("Spiele eine Runde Blackjack gegen den Bot")
-    .addIntegerOption((opt) =>
-      opt
-        .setName("einsatz")
-        .setDescription("Einsatz in Keksen")
-        .setRequired(true),
-    ),
-
-  new SlashCommandBuilder()
-    .setName("confirm")
-    .setDescription(
-      "Team: Bestätigt und schließt den aktuellen Keks- oder Coin-Tausch ab",
-    )
+    .setName('close')
+    .setDescription('Schließt und archiviert das aktuelle Ticket')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName("decline")
-    .setDescription(
-      "Team: Lehnt den aktuellen Keks- oder Coin-Tausch ab und erstattet ggf. Kekse zurück",
-    )
+    .setName('delete')
+    .setDescription('Löscht den aktuellen Kanal nach einer kurzen Verzögerung')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
   new SlashCommandBuilder()
-    .setName("remind")
-    .setDescription("Erstellt eine persönliche Erinnerung")
-    .addStringOption((opt) =>
-      opt
-        .setName("zeit")
-        .setDescription("Zeitspanne bis zur Erinnerung (z.B. 10s, 5m, 1h, 2d)")
-        .setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("grund")
-        .setDescription("Waran soll der Bot dich erinnern?")
-        .setRequired(true),
-    ),
+    .setName('block')
+    .setDescription('Sperrt einen User für eine bestimmte Anzahl an Tagen für das Ticket-System')
+    .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu sperrende Nutzer').setRequired(true))
+    .addIntegerOption(opt => opt.setName('tage').setDescription('Anzahl der Tage für die Sperre (Standard: 7)').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('commands')
+    .setDescription('Zeigt eine Liste aller verfügbaren Slash-Commands auf dem Server an'),
+
+  new SlashCommandBuilder()
+    .setName('daily-setup')
+    .setDescription('Entwickler: Richtet ein tägliches Belohnungssystem mit Button ein')
+    .addStringOption(opt => opt.setName('id').setDescription('Eine eindeutige ID für dieses Setup (z.B. event1)').setRequired(true))
+    .addStringOption(opt => opt.setName('beschreibung').setDescription('Zusätzlicher Beschreibungstext für das Einlösen').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('shop-setup')
+    .setDescription('Entwickler: Richtet den Server-Shop im festgelegten Kanal ein')
+    .addStringOption(opt => opt.setName('beschreibung').setDescription('Zusätzlicher Beschreibungstext für den Shop').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('casino')
+    .setDescription('Zeigt eine Übersicht aller verfügbaren Casino-Spiele an'),
+
+  new SlashCommandBuilder()
+    .setName('roulette')
+    .setDescription('Spiele eine Runde Roulette')
+    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true))
+    .addStringOption(opt => opt.setName('typ').setDescription('Wettart: red, black, even, odd, Zahl 0-36, 1-18, 19-36').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('coinflip')
+    .setDescription('Mache einen Münzwurf')
+    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true))
+    .addStringOption(opt => opt.setName('seite').setDescription('Kopf oder Zahl?').setRequired(true).addChoices({ name: 'Kopf (Heads)', value: 'heads' }, { name: 'Zahl (Tails)', value: 'tails' })),
+
+  new SlashCommandBuilder()
+    .setName('jackpot')
+    .setDescription('Zahle Kekse in den aktuellen Jackpot ein')
+    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('crash')
+    .setDescription('Starte ein Crash-Multiplikator-Spiel')
+    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('highlow')
+    .setDescription('Errate, ob die nächste Karte höher oder niedriger ist')
+    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('blackjack')
+    .setDescription('Spiele eine Runde Blackjack gegen den Bot')
+    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true)),
     new SlashCommandBuilder()
+    .setName('bank')
+    .setDescription('Nutze das integrierte Bank- und Währungssystem')
+    .addSubcommand(sub => sub.setName('status').setDescription('Zeigt dir privat deinen aktuellen Kontostand an'))
+    .addSubcommand(sub => sub.setName('create').setDescription('Erstellt dein persönliches Bankkonto'))
+    .addSubcommand(sub => sub.setName('help').setDescription('Zeigt die Hilfe-Übersicht des Bank-Systems an'))
+    .addSubcommand(sub => sub.setName('pay').setDescription('Überweist Kekse an einen anderen Spieler').addUserOption(opt => opt.setName('nutzer').setDescription('Empfänger').setRequired(true)).addIntegerOption(opt => opt.setName('anzahl').setDescription('Menge').setRequired(true))),
+
+  new SlashCommandBuilder()
+    .setName('bank-admin')
+    .setDescription('Serverleitung: Konten von Mitgliedern modifizieren')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer)
+    .addSubcommand(sub => sub.setName('add').setDescription('Fügt einem Konto Kekse hinzu').addIntegerOption(opt => opt.setName('anzahl').setDescription('Menge').setRequired(true)).addUserOption(opt => opt.setName('nutzer').setRequired(false)))
+    .addSubcommand(sub => sub.setName('remove').setDescription('Zieht von einem Konto Kekse ab').addIntegerOption(opt => opt.setName('anzahl').setDescription('Menge').setRequired(true)).addUserOption(opt => opt.setName('nutzer').setRequired(false))),
+
+  new SlashCommandBuilder()
+    .setName('bank-mod')
+    .setDescription('Team: Kontoinformationen und Umläufe einsehen')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .addSubcommand(sub => sub.setName('see').setDescription('Zeigt detaillierte Kontoinformationen eines Nutzers').addUserOption(opt => opt.setName('nutzer').setDescription('Nutzer').setRequired(true)))
+    .addSubcommand(sub => sub.setName('get').setDescription('Zeigt an, wie viele Kekse insgesamt im Umlauf sind')),
+
+  new SlashCommandBuilder()
     .setName('zweitaccount')
     .setDescription('Verwaltet die Zweitaccounts von Mitgliedern')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
@@ -6541,22 +6122,57 @@ const commands = [
     .addSubcommand(sub => sub
       .setName('remove')
       .setDescription('Löst eine bestimmte Account-Verknüpfung auf')
-      .addStringOption(opt => opt.setName('nutzer').setDescription('ID oder Erwähnung des zu entfernenden Accounts').setRequired(true)))
-].map((cmd) => cmd.toJSON());
-export function registerSlashCommands(client) {
-  client.once("ready", async () => {
-    const rest = new REST({ version: "10" }).setToken(process.env.BOT_TOKEN);
-    try {
-      console.log("🤖 Registriere Slash-Commands bei Discord...");
-      await rest.put(Routes.applicationGuildCommands(client.user.id, "1423413347168157718"), {
-        body: commands,
-      });
-      console.log("✅ Slash-Commands erfolgreich im Discord-Menü registriert!");
-    } catch (error) {
-      console.error("❌ Fehler bei der Slash-Command-Registrierung:", error);
-    }
-  });
+      .addStringOption(opt => opt.setName('nutzer').setDescription('ID oder Erwähnung des zu entfernenden Accounts').setRequired(true))),
 
+  new SlashCommandBuilder()
+    .setName('remind')
+    .setDescription('Erstellt eine persönliche Erinnerung')
+    .addStringOption(opt => opt.setName('zeit').setDescription('Zeitspanne bis zur Erinnerung (z.B. 10s, 5m, 1h, 2d)').setRequired(true))
+    .addStringOption(opt => opt.setName('grund').setDescription('Waran soll der Bot dich erinnern?').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('listpolls')
+    .setDescription('Zeigt eine Übersicht aller aktiven Umfragen an'),
+
+  new SlashCommandBuilder()
+    .setName('poll')
+    .setDescription('Verwaltet das Umfragen-System (Admin)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .addSubcommand(sub => sub
+      .setName('start')
+      .setDescription('Startet eine neue Umfrage')
+      .addStringOption(opt => opt.setName('frage').setDescription('Die Hauptfrage').setRequired(true))
+      .addIntegerOption(opt => opt.setName('minuten').setDescription('Dauer in Minuten').setRequired(true))
+      .addStringOption(opt => opt.setName('beschreibung').setDescription('Zusätzliche Details').setRequired(true))
+      .addStringOption(opt => opt.setName('option_1').setDescription('Option 1').setRequired(true))
+      .addStringOption(opt => opt.setName('option_2').setDescription('Option 2').setRequired(true))
+      .addStringOption(opt => opt.setName('option_3').setDescription('Option 3').setRequired(false))
+      .addStringOption(opt => opt.setName('option_4').setDescription('Option 4').setRequired(false))
+      .addStringOption(opt => opt.setName('option_5').setDescription('Option 5').setRequired(false)))
+    .addSubcommand(sub => sub
+      .setName('close')
+      .setDescription('Beendet eine aktive Umfrage vorzeitig')
+      .addStringOption(opt => opt.setName('id').setDescription('Die ID der Umfrage').setRequired(true)))
+].map(cmd => cmd.toJSON());
+export async function deploySlashCommands() {
+  if (!process.env.BOT_TOKEN) {
+    console.error('❌ Fehler: BOT_TOKEN fehlt in den Umgebungsvariablen!');
+    return;
+  }
+
+  const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
+
+  try {
+    console.log('📡 Starte SOFORTIGE Server-Befehlsregistrierung...');
+    await rest.put(
+      Routes.applicationGuildCommands("1151971830983311441", "1423413347168157718"),
+      { body: commands }
+    );
+    console.log('✅ ALLE Befehle erfolgreich auf dem Testserver registriert!');
+  } catch (error) {
+    console.error('❌ Fehler bei der direkten Registrierung:', error);
+  }
+}
   client.on("interactionCreate", async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
     const {
@@ -9141,6 +8757,7 @@ export function registerSlashCommands(client) {
 }
 client.once("clientReady", async () => {
   try {
+    await deploySlashCommands();
     await initCounting(client);
     registerMessageCommands(client);
     await initTickets(client);
@@ -9158,7 +8775,6 @@ client.once("clientReady", async () => {
     clear(client);
     warning(client);
     initModSend(client);
-    registerSlashCommands(client);
     await violations(client);
     await initStatistics(client);
     await initDashboard(app, client, globalBotStats);
