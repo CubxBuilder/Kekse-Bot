@@ -6162,7 +6162,7 @@ export async function deploySlashCommands() {
   try {
     console.log('📡 Starte SOFORTIGE Server-Befehlsregistrierung...');
     await rest.put(
-      Routes.applicationGuildCommands("1151971830983311441", "1423413347168157718"),
+      Routes.applicationGuildCommands("1423413347168157718"),
       { body: commands }
     );
     console.log('✅ ALLE Befehle erfolgreich auf dem Testserver registriert!');
