@@ -764,20 +764,20 @@ export async function initEconomySystem(client) {
         return msg.reply({
           content:
             "Du benötigst ein Bankkonto, um am Casino teilzunehmen. Nutze `!bank create`.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
       if (msg.channelId !== "1507385550825459812") {
         return msg.reply({
           content: "Das Casino ist nur in <#1507385550825459812> nutzbar.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
       const userData = await getEcoData(msg.author.id);
       if (userData.blocked) {
         return msg.reply({
           content: "Dein Konto ist gesperrt. Bitte wende dich an den Support.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
       if (subCommand === "roulette") {
@@ -787,20 +787,20 @@ export async function initEconomySystem(client) {
           return msg.reply({
             content:
               "Nutzung: `!casino roulette <Einsatz> <red|black|even|odd|0-36|1-18|19-36>`",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
         if (!betType) {
           return msg.reply({
             content:
               "Bitte gib eine Wettart an: `red`, `black`, `even`, `odd`, eine Zahl `0`-`36`, `1-18` oder `19-36`.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
         if (betAmount > (userData.balance || 0)) {
           return msg.reply({
             content: "Du hast nicht genug Kekse für diesen Einsatz.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -849,7 +849,7 @@ export async function initEconomySystem(client) {
           return msg.reply({
             content:
               "Ungültige Wettart. Nutze: `red`, `black`, `even`, `odd`, eine Zahl (0–36), `1-18` oder `19-36`.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -881,19 +881,19 @@ export async function initEconomySystem(client) {
         if (isNaN(betAmount) || betAmount <= 0) {
           return msg.reply({
             content: "Nutzung: `!casino coinflip <Einsatz> <heads|tails>`",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
         if (choice !== "heads" && choice !== "tails") {
           return msg.reply({
             content: "Bitte wähle `heads` (Kopf) oder `tails` (Zahl).",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
         if (betAmount > (userData.balance || 0)) {
           return msg.reply({
             content: "Du hast nicht genug Kekse für diesen Einsatz.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -927,19 +927,19 @@ export async function initEconomySystem(client) {
         if (isNaN(betAmount) || betAmount <= 0) {
           return msg.reply({
             content: "Nutzung: `!casino jackpot <Einsatz>`",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
         if (betAmount > (userData.balance || 0)) {
           return msg.reply({
             content: "Du hast nicht genug Kekse für diesen Einsatz.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
         if (jackpotState.entries.find((e) => e.userId === msg.author.id)) {
           return msg.reply({
             content: "Du bist bereits im Jackpot! Warte auf die Ziehung.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -994,7 +994,7 @@ export async function initEconomySystem(client) {
           jackpotState.announceMessage = jMsg;
           return msg.reply({
             content: `Du bist dem Jackpot beigetreten! Einsatz: **${betAmount} Kekse** (${userChance}% Chance)`,
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -1028,7 +1028,7 @@ export async function initEconomySystem(client) {
         }
         return msg.reply({
           content: `Du bist dem Jackpot beigetreten! Einsatz: **${betAmount} Kekse** (${userChance}% Chance)\nPool: **${jackpotState.totalPool} Kekse**`,
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
       if (subCommand === "crash") {
@@ -1036,19 +1036,19 @@ export async function initEconomySystem(client) {
         if (isNaN(betAmount) || betAmount <= 0) {
           return msg.reply({
             content: "Nutzung: `!casino crash <Einsatz>`",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
         if (betAmount > (userData.balance || 0)) {
           return msg.reply({
             content: "Du hast nicht genug Kekse für diesen Einsatz.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
         if (crashGames.has(msg.author.id)) {
           return msg.reply({
             content: "Du hast bereits ein aktives Crash-Spiel!",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
         userData.balance -= betAmount;
@@ -1176,19 +1176,19 @@ export async function initEconomySystem(client) {
         if (isNaN(betAmount) || betAmount <= 0) {
           return msg.reply({
             content: "Nutzung: `!casino highlow <Einsatz>`",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
         if (betAmount > (userData.balance || 0)) {
           return msg.reply({
             content: "Du hast nicht genug Kekse für diesen Einsatz.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
         if (hlGames.has(msg.author.id)) {
           return msg.reply({
             content: "Du hast bereits ein aktives Higher/Lower-Spiel!",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -1421,13 +1421,13 @@ export async function initEconomySystem(client) {
           return msg.reply({
             content:
               "Bitte gib einen gültigen Einsatz an (z.B. `!casino blackjack 10`).",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
         if (betAmount > (userData.balance || 0)) {
           return msg.reply({
             content: "Du hast nicht genug Kekse für diesen Einsatz.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -1652,7 +1652,7 @@ export async function initEconomySystem(client) {
           if (!targetUser)
             return msg.reply({
               content: "Bitte erwähne einen Nutzer.",
-              ephemeral: true,
+              flags: [MessageFlags.Ephemeral],
             });
           const data = await getEcoData(targetUser.id);
           const dmEmbed = new EmbedBuilder()
@@ -1682,7 +1682,7 @@ export async function initEconomySystem(client) {
         if (isNaN(amount) || amount <= 0) {
           return msg.reply({
             content: "Bitte gib eine gültige Anzahl an Keksen an.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -1719,7 +1719,7 @@ export async function initEconomySystem(client) {
         if (hasEcoRole) {
           return msg.reply({
             content: "Du besitzt bereits ein registriertes Bankkonto.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -1765,7 +1765,7 @@ export async function initEconomySystem(client) {
             },
           );
 
-        return msg.reply({ embeds: [helpEmbed], ephemeral: true });
+        return msg.reply({ embeds: [helpEmbed], flags: [MessageFlags.Ephemeral] });
       }
       if (subCommand === "pay") {
         let targetArg = args[2];
@@ -1778,21 +1778,21 @@ export async function initEconomySystem(client) {
         if (!targetUserId || isNaN(amount) || amount <= 0) {
           return msg.reply({
             content: "Nutzung: `!bank pay @User <Betrag>`",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
         if (targetUserId === msg.author.id) {
           return msg.reply({
             content: "Du kannst dir selbst keine Kekse überweisen.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
         if (amount > (userData.balance || 0)) {
           return msg.reply({
             content: "Du hast nicht genug Kekse für diese Überweisung.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -1800,7 +1800,7 @@ export async function initEconomySystem(client) {
         if (!targetData || targetData.blocked) {
           return msg.reply({
             content: "Der Zielnutzer hat kein aktives Konto oder ist gesperrt.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -1847,7 +1847,7 @@ export async function initEconomySystem(client) {
           })
           .setColor(0xffffff);
 
-        await msg.reply({ embeds: [payEmbed], ephemeral: true });
+        await msg.reply({ embeds: [payEmbed], flags: [MessageFlags.Ephemeral] });
 
         try {
           const targetUser = await msg.client.users.fetch(targetUserId);
@@ -1874,7 +1874,7 @@ export async function initEconomySystem(client) {
           return msg.reply({
             content:
               "Du hast noch kein Konto. Nutze `!bank create`, um dich zu registrieren.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -1884,7 +1884,7 @@ export async function initEconomySystem(client) {
           return msg.reply({
             content:
               "Dein Konto ist aktuell gesperrt. Bitte wende dich an den Support.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
         const userName = msg.author;
@@ -1909,7 +1909,7 @@ export async function initEconomySystem(client) {
           return interaction.reply({
             content:
               "Du kannst diesen Button nicht nutzen, da du den Befehl nicht eingegeben hast.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -1919,7 +1919,7 @@ export async function initEconomySystem(client) {
         if (hasEcoRole) {
           return interaction.reply({
             content: "Du besitzt bereits ein registriertes Bankkonto.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -1947,7 +1947,7 @@ export async function initEconomySystem(client) {
           return interaction.reply({
             content:
               "Du benötigst zuerst ein registriertes Bankkonto (`!bank create`).",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -1963,7 +1963,7 @@ export async function initEconomySystem(client) {
         if (userData.claimedDailies[setupId] === localizedDateStr) {
           return interaction.reply({
             content: `Du hast deine Kekse für **dieses spezifische Event** heute bereits abgeholt! Versuche es nach 00:00 Uhr erneut.`,
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
         const payout = 10;
@@ -1981,7 +1981,7 @@ export async function initEconomySystem(client) {
         return interaction.reply({
           content:
             "Erfolgreich! Dir wurden 10 Kekse auf dein Bankkonto gutgeschrieben.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
       if (interaction.customId.startsWith("shop_")) {
@@ -3298,19 +3298,19 @@ export function initModeration(client) {
       if (!user || !durationStr)
         return msg.reply({
           content: " Syntax: `!timeout @user 10m Grund`.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       const match = durationStr.match(/^(\d+)([smhd])$/);
       if (!match)
         return msg.reply({
           content: " Format: 10s, 5m, 2h, 1d",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       const durationMs = parseTimeframe(durationStr);
       if (durationMs === 0)
         return msg.reply({
           content: " Ungültige Zeitangabe.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       try {
         const member = await msg.guild.members.fetch(user.id);
@@ -3318,12 +3318,12 @@ export function initModeration(client) {
         await sendModLog("Timeout", user, reason, `Dauer: ${durationStr}`);
         await msg.reply({
           content: ` **Timeout**: <@${user.id}> für ${durationStr}.`,
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       } catch (err) {
         await msg.reply({
           content: " Fehler: User nicht auf Server oder fehlende Rechte.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
       globalBotStats.commandsRunned += 1;
@@ -3334,7 +3334,7 @@ export function initModeration(client) {
       if (!user)
         return msg.reply({
           content: "❌ User nicht gefunden.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
 
       try {
@@ -3343,12 +3343,12 @@ export function initModeration(client) {
         await sendModLog("Untimeout", user, reason);
         await msg.reply({
           content: `✅ **Untimeout**: <@${user.id}>`,
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       } catch (err) {
         await msg.reply({
           content: "❌ Fehler beim Untimeout.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
       globalBotStats.commandsRunned += 1;
@@ -3360,7 +3360,7 @@ export function initModeration(client) {
       if (!user)
         return msg.reply({
           content: "❌ User nicht gefunden.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
 
       try {
@@ -3368,10 +3368,10 @@ export function initModeration(client) {
         await sendModLog("Kick", user, reason);
         await msg.reply({
           content: `✅ **Kick**: <@${user.id}>`,
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       } catch (err) {
-        await msg.reply({ content: "❌ Fehler beim Kick.", ephemeral: true });
+        await msg.reply({ content: "❌ Fehler beim Kick.", flags: [MessageFlags.Ephemeral] });
       }
       globalBotStats.commandsRunned += 1;
     }
@@ -3382,7 +3382,7 @@ export function initModeration(client) {
       if (!idInput || !/^\d{17,20}$/.test(idInput))
         return msg.reply({
           content: "❌ Gültige ID/Erwähnung angeben.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
 
       try {
@@ -3393,12 +3393,12 @@ export function initModeration(client) {
         await sendModLog("Ban", user, reason);
         await msg.reply({
           content: `✅ **Ban**: ${user.tag || idInput} wurde gebannt.`,
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       } catch (err) {
         await msg.reply({
           content: "❌ Fehler beim Ban (Rechte?).",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
       globalBotStats.commandsRunned += 1;
@@ -3408,7 +3408,7 @@ export function initModeration(client) {
       const idInput = args[0]?.replace(/[<@!>]/g, "");
       const reason = args.slice(1).join(" ") || "Kein Grund";
       if (!idInput)
-        return msg.reply({ content: "❌ ID angeben.", ephemeral: true });
+        return msg.reply({ content: "❌ ID angeben.", flags: [MessageFlags.Ephemeral] });
 
       try {
         const user = await client.users
@@ -3418,12 +3418,12 @@ export function initModeration(client) {
         await sendModLog("Unban", user, reason);
         await msg.reply({
           content: `✅ **Unban**: ${user.tag || idInput}`,
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       } catch (err) {
         await msg.reply({
           content: "❌ User nicht gebannt oder ID falsch.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
       globalBotStats.commandsRunned += 1;
@@ -3435,7 +3435,7 @@ export function initModeration(client) {
       if (!user)
         return msg.reply({
           content: "❌ User nicht gefunden.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
 
       data.warns[user.id] ??= [];
@@ -3450,7 +3450,7 @@ export function initModeration(client) {
       );
       await msg.reply({
         content: `⚠️ **Warn**: <@${user.id}> (Gesamt: ${data.warns[user.id].length})`,
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
       globalBotStats.commandsRunned += 1;
     }
@@ -3459,11 +3459,11 @@ export function initModeration(client) {
       if (!user)
         return msg.reply({
           content: "❌ User nicht gefunden.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       const userWarns = data.warns[user.id] || [];
       if (userWarns.length === 0)
-        return msg.reply({ content: "✅ Keine Warnungen.", ephemeral: true });
+        return msg.reply({ content: "✅ Keine Warnungen.", flags: [MessageFlags.Ephemeral] });
       const embed = new EmbedBuilder()
         .setTitle(`Warnungen: ${user.username}`)
         .setColor("#ffffff")
@@ -3480,7 +3480,7 @@ export function initModeration(client) {
       const user = await getUser(args[0]);
       const index = parseInt(args[1]) - 1;
       if (!user || isNaN(index) || !data.warns[user.id]?.[index])
-        return msg.reply({ content: "❌ Ungültiger Index.", ephemeral: true });
+        return msg.reply({ content: "❌ Ungültiger Index.", flags: [MessageFlags.Ephemeral] });
       const removed = data.warns[user.id].splice(index, 1);
       await setMData("moderation", data);
       await sendModLog(
@@ -3488,7 +3488,7 @@ export function initModeration(client) {
         user,
         `Grund war: ${removed[0].reason}`,
       );
-      await msg.reply({ content: "✅ Warnung entfernt.", ephemeral: true });
+      await msg.reply({ content: "✅ Warnung entfernt.", flags: [MessageFlags.Ephemeral] });
       globalBotStats.commandsRunned += 1;
     }
   });
@@ -3524,7 +3524,7 @@ export function initVerification(client) {
     if (!member.roles.cache.has(UNVERIFIED_ROLE_ID)) {
       return interaction.reply({
         content: "Du bist bereits verifiziert.",
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     }
     try {
@@ -3537,7 +3537,7 @@ export function initVerification(client) {
 
       await interaction.reply({
         content: "Erfolgreich verifiziert!",
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
       globalBotStats.usersVerified += 1;
       globalBotStats.commandsRunned += 1;
@@ -3545,7 +3545,7 @@ export function initVerification(client) {
       await interaction.reply({
         content:
           "Fehler: Meine Rolle steht in der Liste vermutlich unter der Verifizierungs-Rolle.",
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     }
   });
@@ -4234,10 +4234,10 @@ export async function initGiveaway(client) {
     const giveaways = await getGivData("activeGiveaways") || {};
     const data = giveaways[interaction.message.id];
     if (!data) {
-      return interaction.reply({ content: " Dieses Giveaway ist nicht mehr aktiv.", ephemeral: true });
+      return interaction.reply({ content: " Dieses Giveaway ist nicht mehr aktiv.", flags: [MessageFlags.Ephemeral] });
     }
     if (data.participants.includes(interaction.user.id)) {
-      return interaction.reply({ content: " Du nimmst bereits an diesem Giveaway teil!", ephemeral: true });
+      return interaction.reply({ content: " Du nimmst bereits an diesem Giveaway teil!", flags: [MessageFlags.Ephemeral] });
     }
 
     const networks = await getSaData("alt_networks") || {};
@@ -4246,7 +4246,7 @@ export async function initGiveaway(client) {
     if (linkedAccounts.length > 0) {
       const hasAltInGiveaway = linkedAccounts.some(altId => data.participants.includes(altId));
       if (hasAltInGiveaway) {
-        return interaction.reply({ content: "❌ Du kannst nicht teilnehmen, da bereits ein registrierter Zweitaccount von dir im Giveaway ist!", ephemeral: true });
+        return interaction.reply({ content: "❌ Du kannst nicht teilnehmen, da bereits ein registrierter Zweitaccount von dir im Giveaway ist!", flags: [MessageFlags.Ephemeral] });
       }
     }
 
@@ -4266,7 +4266,7 @@ export async function initGiveaway(client) {
     } else if (totalTickets === 4) {
       replyText += " (Inklusive **4-facher Chance**, da du beide Rollen besitzt!)";
     }
-    return interaction.followUp({ content: replyText, ephemeral: true }).catch(() => {});
+    return interaction.followUp({ content: replyText, flags: [MessageFlags.Ephemeral] }).catch(() => {});
   }
   });
 }
@@ -4780,13 +4780,13 @@ export async function initPoll(client) {
       return interaction.reply({
         content:
           "❌ Diese Umfrage existiert nicht mehr oder ist bereits beendet.",
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     }
     if (poll.voters.includes(interaction.user.id)) {
       return interaction.reply({
         content: "❌ Du hast bereits für diese Umfrage abgestimmt!",
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     }
     poll.voters.push(interaction.user.id);
@@ -4810,7 +4810,7 @@ export async function initPoll(client) {
       .catch(() => {});
     await interaction.reply({
       content: "✅ Deine Stimme wurde gezählt!",
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
   });
   setInterval(async () => {
@@ -4973,7 +4973,7 @@ export function initTicketCategory(client) {
           content: isGerman
             ? "Nur der Ticket-Ersteller kann das entscheiden."
             : "Only the ticket creator can decide.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
@@ -5688,7 +5688,7 @@ export async function initScammProtection(client) {
       if (!data) {
         return interaction.reply({
           content: "Fall nicht gefunden.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
@@ -5729,7 +5729,7 @@ export async function initScammProtection(client) {
 
         await interaction.reply({
           content: "Scam bestätigt.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       } else {
         if (member) {
@@ -5762,7 +5762,7 @@ export async function initScammProtection(client) {
 
         await interaction.reply({
           content: "False Positive markiert.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
     } catch (err) {
@@ -6260,7 +6260,7 @@ export async function deploySlashCommands() {
 }
   client.on("interactionCreate", async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
-    const { commandName, options, member, guild, user, channelId } = interaction;
+    const { commandName, options, member, guild, user, channelId, channel: currentChannel } = interaction;
     const logChannelId = "1423413348220796991";
     const TEAM_ROLE = "1457906448234319922";
     if (
@@ -6269,7 +6269,7 @@ export async function deploySlashCommands() {
     ) {
       return interaction.reply({
         content: "Du hast keine Berechtigung für diesen Befehl.",
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     }
     const sendKekseLog = async (cmdName, target, content) => {
@@ -6297,7 +6297,7 @@ export async function deploySlashCommands() {
       await targetChannel.send(text);
       await interaction.reply({
         content: `Nachricht in ${targetChannel} gesendet.`,
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
       await sendKekseLog("send", targetChannel.toString(), text);
       globalBotStats.commandsRunned += 1;
@@ -6308,7 +6308,7 @@ export async function deploySlashCommands() {
       if (!changelogChannel)
         return interaction.reply({
           content: "Kanal nicht gefunden.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       const date = new Date().toLocaleDateString("de-DE", {
         day: "2-digit",
@@ -6323,7 +6323,7 @@ export async function deploySlashCommands() {
       await changelogChannel.send(messageFormat);
       await interaction.reply({
         content: "Changelog erfolgreich gepostet.",
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
       await sendKekseLog("changelog", changelogChannel.toString(), updateList);
       globalBotStats.commandsRunned += 1;
@@ -6344,7 +6344,7 @@ export async function deploySlashCommands() {
       await targetChannel.send({ embeds: [embed] });
       await interaction.reply({
         content: `Embed erfolgreich in ${targetChannel} gesendet.`,
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
       await sendKekseLog(
         "embed",
@@ -6362,7 +6362,7 @@ export async function deploySlashCommands() {
       if (!targetUser) {
         return interaction.reply({
           content: "❌ User konnte nicht gefunden werden. Ungültige ID?",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
@@ -6370,7 +6370,7 @@ export async function deploySlashCommands() {
         await targetUser.send(text);
         await interaction.reply({
           content: `Direktnachricht an ${targetUser.tag} gesendet.`,
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
         await sendKekseLog("dm", `${targetUser.tag} (${userId})`, text);
         globalBotStats.commandsRunned += 1;
@@ -6378,7 +6378,7 @@ export async function deploySlashCommands() {
         await interaction.reply({
           content:
             "❌ Die DM konnte nicht zugestellt werden (Privatsphäre-Einstellungen des Users).",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
     }
@@ -6443,7 +6443,7 @@ export async function deploySlashCommands() {
       await targetChannel.send(formattedText);
       await interaction.reply({
         content: `News-Nachricht erfolgreich in ${targetChannel} gepostet.`,
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
       await sendKekseLog("news", targetChannel.toString(), rawText);
       globalBotStats.commandsRunned += 1;
@@ -6459,7 +6459,7 @@ export async function deploySlashCommands() {
           : await targetMsg.reply(text);
         await interaction.reply({
           content: "Erfolgreich auf die Nachricht geantwortet.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
         await sendKekseLog(
           "reply",
@@ -6470,7 +6470,7 @@ export async function deploySlashCommands() {
       } catch (err) {
         await interaction.reply({
           content: "❌ Nachricht im angegebenen Kanal nicht gefunden.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
     }
@@ -6478,14 +6478,14 @@ export async function deploySlashCommands() {
       if (!member.roles.cache.has(TEAM_ROLE)) {
         return interaction.reply({
           content: "❌ Keine Berechtigung.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
       globalBotStats.commandsRunned += 1;
 
       const start = Date.now();
-      await interaction.reply({ content: "🏓 Pinging...", ephemeral: true });
+      await interaction.reply({ content: "🏓 Pinging...", flags: [MessageFlags.Ephemeral] });
       const end = Date.now();
 
       const roundtrip = end - start;
@@ -6518,7 +6518,7 @@ export async function deploySlashCommands() {
       if (!member.roles.cache.has(TEAM_ROLE)) {
         return interaction.reply({
           content: "❌ Keine Berechtigung.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
@@ -6530,11 +6530,11 @@ export async function deploySlashCommands() {
       if (!targetChannel.isTextBased()) {
         return interaction.reply({
           content: "❌ Der ausgewählte Kanal ist kein Textkanal.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
       const startTime = Date.now();
 
       let messagesToDelete = [];
@@ -6641,7 +6641,7 @@ export async function deploySlashCommands() {
       if (!member.roles.cache.has(TEAM_ROLE)) {
         return interaction.reply({
           content: " Keine Rechte.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
@@ -6654,7 +6654,7 @@ export async function deploySlashCommands() {
       if (!channel.isTextBased()) {
         return interaction.reply({
           content: "❌ Der ausgewählte Kanal ist kein Textkanal.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
@@ -6662,7 +6662,7 @@ export async function deploySlashCommands() {
       if (durationMs <= 0) {
         return interaction.reply({
           content: "❌ Zeitformat ungültig (z.B. 1h, 30m, 1d).",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
@@ -6705,7 +6705,7 @@ export async function deploySlashCommands() {
 
       await interaction.reply({
         content: `✅ Giveaway erfolgreich in ${channel} gestartet!`,
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
 
       await sendKekseLog(
@@ -6762,7 +6762,7 @@ export async function deploySlashCommands() {
       if (!member.roles.cache.has(TEAM_ROLE)) {
         return interaction.reply({
           content: "❌ Du hast keine Berechtigung.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
@@ -6813,7 +6813,7 @@ export async function deploySlashCommands() {
 
         await interaction.reply({
           content: " Umfrage wird gestartet...",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
         const pollMsg = await currentChannel.send({
           content: pollContent,
@@ -6891,14 +6891,14 @@ export async function deploySlashCommands() {
         if (!poll) {
           return interaction.reply({
             content: "❌ Poll nicht gefunden.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
         await closePoll(poll, polls, user);
         await interaction.reply({
           content: `✅ Die Umfrage mit der ID \`${pollId}\` wurde erfolgreich geschlossen.`,
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
         globalBotStats.commandsRunned += 1;
       }
@@ -6909,7 +6909,7 @@ export async function deploySlashCommands() {
       if (activePolls.length === 0) {
         return interaction.reply({
           content: "Keine aktiven Umfragen vorhanden.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
       const list = activePolls
@@ -6925,13 +6925,13 @@ export async function deploySlashCommands() {
       if (!member.roles.cache.has(TEAM_ROLE)) {
         return interaction.reply({
           content: "❌ Keine Berechtigung.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
       await interaction.reply({
         content: "⏳ Verschiebe Ticket in den Admin-Bereich...",
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
       await moveChannelToAdmin(currentChannel, true);
       globalBotStats.commandsRunned += 1;
@@ -6940,13 +6940,13 @@ export async function deploySlashCommands() {
       if (!member.roles.cache.has("1454169207838216253")) {
         return interaction.reply({
           content: "❌ Keine Berechtigung.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
       await interaction.reply({
         content: "⏳ Sende Ticket-Panel...",
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
       await sendTicketPanel(currentChannel);
       globalBotStats.commandsRunned += 1;
@@ -6987,12 +6987,12 @@ export async function deploySlashCommands() {
       if (!member.roles.cache.has(TEAM_ROLE)) {
         return interaction.reply({
           content: "❌ Keine Berechtigung.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
       await interaction.reply({
         content: "⏳ Ticket-Schließung initiiert...",
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
       await closeTicket(currentChannel, user);
       globalBotStats.commandsRunned += 1;
@@ -7001,7 +7001,7 @@ export async function deploySlashCommands() {
       if (!member.roles.cache.has(TEAM_ROLE)) {
         return interaction.reply({
           content: "❌ Keine Berechtigung.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
       const targetUser = options.getUser("nutzer");
@@ -7014,7 +7014,7 @@ export async function deploySlashCommands() {
       );
       await interaction.reply({
         content: `✅ <@${targetUser.id}> wurde für ${days} Tage gesperrt.`,
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
       globalBotStats.commandsRunned += 1;
     }
@@ -7033,7 +7033,7 @@ export async function deploySlashCommands() {
       ) {
         return interaction.reply({
           content: "❌ Keine Berechtigung.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
     }
@@ -7071,14 +7071,14 @@ export async function deploySlashCommands() {
       if (!match)
         return interaction.reply({
           content: " Format: 10s, 5m, 2h, 1d",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
 
       const durationMs = parseTimeframe(durationStr);
       if (durationMs === 0)
         return interaction.reply({
           content: " Ungültige Zeitangabe.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
 
       try {
@@ -7086,7 +7086,7 @@ export async function deploySlashCommands() {
         await targetMember.timeout(durationMs, reason);
         await interaction.reply({
           content: ` **Timeout**: <@${targetUser.id}> für ${durationStr}.`,
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
         await sendModLog(
           "Timeout",
@@ -7098,7 +7098,7 @@ export async function deploySlashCommands() {
       } catch (err) {
         await interaction.reply({
           content: " Fehler: User nicht auf Server oder fehlende Rechte.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
     }
@@ -7112,14 +7112,14 @@ export async function deploySlashCommands() {
         await targetMember.timeout(null, reason);
         await interaction.reply({
           content: `✅ **Untimeout**: <@${targetUser.id}>`,
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
         await sendModLog("Untimeout", targetUser, reason);
         globalBotStats.commandsRunned += 1;
       } catch (err) {
         await interaction.reply({
           content: "❌ Fehler beim Untimeout.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
     }
@@ -7132,14 +7132,14 @@ export async function deploySlashCommands() {
         await guild.members.kick(targetUser.id, reason);
         await interaction.reply({
           content: `✅ **Kick**: <@${targetUser.id}>`,
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
         await sendModLog("Kick", targetUser, reason);
         globalBotStats.commandsRunned += 1;
       } catch (err) {
         await interaction.reply({
           content: "❌ Fehler beim Kick.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
     }
@@ -7151,7 +7151,7 @@ export async function deploySlashCommands() {
       if (!/^\d{17,20}$/.test(idInput)) {
         return interaction.reply({
           content: "❌ Gültige ID/Erwähnung angeben.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
@@ -7162,14 +7162,14 @@ export async function deploySlashCommands() {
         await guild.members.ban(idInput, { reason });
         await interaction.reply({
           content: `✅ **Ban**: ${fetchedUser.tag || idInput} wurde gebannt.`,
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
         await sendModLog("Ban", fetchedUser, reason);
         globalBotStats.commandsRunned += 1;
       } catch (err) {
         await interaction.reply({
           content: "❌ Fehler beim Ban (Rechte?).",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
     }
@@ -7185,14 +7185,14 @@ export async function deploySlashCommands() {
         await guild.members.unban(idInput, reason);
         await interaction.reply({
           content: `✅ **Unban**: ${fetchedUser.tag || idInput}`,
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
         await sendModLog("Unban", fetchedUser, reason);
         globalBotStats.commandsRunned += 1;
       } catch (err) {
         await interaction.reply({
           content: "❌ User nicht gebannt oder ID falsch.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
     }
@@ -7211,7 +7211,7 @@ export async function deploySlashCommands() {
 
       await interaction.reply({
         content: `⚠️ **Warn**: <@${targetUser.id}> (Gesamt: ${moderationData.warns[targetUser.id].length})`,
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
       await sendModLog(
         "Warnung",
@@ -7229,7 +7229,7 @@ export async function deploySlashCommands() {
       if (userWarns.length === 0) {
         return interaction.reply({
           content: "✅ Keine Warnungen.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
@@ -7254,7 +7254,7 @@ export async function deploySlashCommands() {
       if (!moderationData.warns[targetUser.id]?.[index]) {
         return interaction.reply({
           content: "❌ Ungültige Warn-Nummer.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
@@ -7263,7 +7263,7 @@ export async function deploySlashCommands() {
 
       await interaction.reply({
         content: "✅ Warnung entfernt.",
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
       await sendModLog(
         "Warn entfernt",
@@ -7276,7 +7276,7 @@ export async function deploySlashCommands() {
       if (!member.roles.cache.has(TEAM_ROLE)) {
         return interaction.reply({
           content: "❌ Keine Berechtigung.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
@@ -7285,11 +7285,11 @@ export async function deploySlashCommands() {
         return interaction.reply({
           content:
             "❌ Verifizierungs-Kanal konnte nicht in der Cache gefunden werden.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
@@ -7342,7 +7342,7 @@ export async function deploySlashCommands() {
       if (user.id !== "1151971830983311441") {
         return interaction.reply({
           content: "❌ Nur der Haupt-Admin darf diesen Befehl nutzen.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
@@ -7371,7 +7371,7 @@ export async function deploySlashCommands() {
 
       await interaction.reply({
         content: ` Die nächste Zahl wurde auf **${newNum}** gesetzt.`,
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
       globalBotStats.commandsRunned += 1;
     }
@@ -7379,7 +7379,7 @@ export async function deploySlashCommands() {
       if (user.id !== "1151971830983311441") {
         return interaction.reply({
           content: "❌ Nur der Haupt-Admin darf diesen Befehl nutzen.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
@@ -7415,7 +7415,7 @@ export async function deploySlashCommands() {
 
       await interaction.reply({
         content: "✅ Daily Setup erfolgreich platziert.",
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
       globalBotStats.commandsRunned += 1;
     }
@@ -7424,7 +7424,7 @@ export async function deploySlashCommands() {
       if (user.id !== "1151971830983311441") {
         return interaction.reply({
           content: "❌ Nur der Haupt-Admin darf diesen Befehl nutzen.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
@@ -7436,7 +7436,7 @@ export async function deploySlashCommands() {
       if (!shopChannel) {
         return interaction.reply({
           content: "❌ Shop-Kanal wurde auf diesem Server nicht gefunden!",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
@@ -7495,7 +7495,7 @@ export async function deploySlashCommands() {
 
       await interaction.reply({
         content: `✅ Shop erfolgreich im Kanal <#${SHOP_CHANNEL_ID}> eingerichtet!`,
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
       globalBotStats.commandsRunned += 1;
     }
@@ -7506,7 +7506,7 @@ export async function deploySlashCommands() {
       if (channelId !== CASINO_CHANNEL_ID) {
         return interaction.reply({
           content: `Das Casino ist nur in <#${CASINO_CHANNEL_ID}> nutzbar.`,
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
@@ -7541,14 +7541,14 @@ export async function deploySlashCommands() {
         return interaction.reply({
           content:
             "Du benötigst ein Bankkonto, um am Casino teilzunehmen. Nutze `/bank create`.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
       if (channelId !== CASINO_CHANNEL_ID) {
         return interaction.reply({
           content: `Das Casino ist nur in <#${CASINO_CHANNEL_ID}> nutzbar.`,
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
@@ -7556,7 +7556,7 @@ export async function deploySlashCommands() {
       if (userData.blocked) {
         return interaction.reply({
           content: "Dein Konto ist gesperrt. Bitte wende dich an den Support.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
@@ -7564,14 +7564,14 @@ export async function deploySlashCommands() {
       if (betAmount <= 0) {
         return interaction.reply({
           content: "Bitte gib einen gültigen Einsatz über 0 an.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
       if (betAmount > (userData.balance || 0)) {
         return interaction.reply({
           content: "Du hast nicht genug Kekse für diesen Einsatz.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
@@ -7625,7 +7625,7 @@ export async function deploySlashCommands() {
           return interaction.reply({
             content:
               "Ungültige Wettart. Nutze: `red`, `black`, `even`, `odd`, eine Zahl (0–36), `1-18` oder `19-36`.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -7691,7 +7691,7 @@ export async function deploySlashCommands() {
         if (jackpotState.entries.find((e) => e.userId === user.id)) {
           return interaction.reply({
             content: "Du bist bereits im Jackpot! Warte auf die Ziehung.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -7744,7 +7744,7 @@ export async function deploySlashCommands() {
           jackpotState.announceMessage = jMsg;
           return interaction.reply({
             content: `Du bist dem Jackpot beigetreten! Einsatz: **${betAmount} Kekse** (${userChance}% Chance)`,
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -7779,7 +7779,7 @@ export async function deploySlashCommands() {
 
         return interaction.reply({
           content: `Du bist dem Jackpot beigetreten! Einsatz: **${betAmount} Kekse** (${userChance}% Chance)\nPool: **${jackpotState.totalPool} Kekse**`,
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
 
@@ -7790,7 +7790,7 @@ export async function deploySlashCommands() {
         if (crashGames.has(user.id)) {
           return interaction.reply({
             content: "Du hast bereits ein aktives Crash-Spiel!",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -7914,7 +7914,7 @@ export async function deploySlashCommands() {
         if (hlGames.has(user.id)) {
           return interaction.reply({
             content: "Du hast bereits ein aktives Higher/Lower-Spiel!",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -8330,7 +8330,7 @@ export async function deploySlashCommands() {
 
       if (subCommand === "create") {
         if (hasEcoRole) {
-          return interaction.reply({ content: "Du besitzt bereits ein registriertes Bankkonto.", ephemeral: true });
+          return interaction.reply({ content: "Du besitzt bereits ein registriertes Bankkonto.", flags: [MessageFlags.Ephemeral] });
         }
 
         const row = new ActionRowBuilder().addComponents(
@@ -8343,7 +8343,7 @@ export async function deploySlashCommands() {
         return interaction.reply({
           content: "Klicke auf den Button unten, um dein Konto zu erstellen. Dieser Button funktioniert nur für dich.",
           components: [row],
-          ephemeral: true
+          flags: [MessageFlags.Ephemeral]
         });
       }
 
@@ -8359,7 +8359,7 @@ export async function deploySlashCommands() {
             { name: "⚠️ Wichtiger Hinweis", value: "Für Änderungen am Konto oder Auszahlungen eröffne bitte ein Ticket in <#1423413348493430905>." }
           );
 
-        return interaction.reply({ embeds: [helpEmbed], ephemeral: true });
+        return interaction.reply({ embeds: [helpEmbed], flags: [MessageFlags.Ephemeral] });
       }
 
       if (subCommand === "pay") {
@@ -8368,20 +8368,20 @@ export async function deploySlashCommands() {
         const userData = await getEcoData(user.id);
 
         if (amount <= 0) {
-          return interaction.reply({ content: "Bitte gib eine gültige Anzahl an Keksen an.", ephemeral: true });
+          return interaction.reply({ content: "Bitte gib eine gültige Anzahl an Keksen an.", flags: [MessageFlags.Ephemeral] });
         }
 
         if (targetUser.id === user.id) {
-          return interaction.reply({ content: "Du kannst dir selbst keine Kekse überweisen.", ephemeral: true });
+          return interaction.reply({ content: "Du kannst dir selbst keine Kekse überweisen.", flags: [MessageFlags.Ephemeral] });
         }
 
         if (amount > (userData.balance || 0)) {
-          return interaction.reply({ content: "Du hast nicht genug Kekse für diese Überweisung.", ephemeral: true });
+          return interaction.reply({ content: "Du hast nicht genug Kekse für diese Überweisung.", flags: [MessageFlags.Ephemeral] });
         }
 
         const targetData = await getEcoData(targetUser.id);
         if (!targetData || targetData.blocked) {
-          return interaction.reply({ content: "Der Zielnutzer hat kein aktives Konto oder ist gesperrt.", ephemeral: true });
+          return interaction.reply({ content: "Der Zielnutzer hat kein aktives Konto oder ist gesperrt.", flags: [MessageFlags.Ephemeral] });
         }
 
         userData.balance -= amount;
@@ -8406,7 +8406,7 @@ export async function deploySlashCommands() {
           .addFields({ name: "Neuer Kontostand", value: `${targetData.balance} Kekse` })
           .setColor(0xFFFFFF);
 
-        await interaction.reply({ embeds: [payEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [payEmbed], flags: [MessageFlags.Ephemeral] });
 
         await targetUser.send({ embeds: [getEmbed] }).catch(() => {
           console.log(`Konnte keine DM an ${targetUser.id} senden.`);
@@ -8416,17 +8416,17 @@ export async function deploySlashCommands() {
 
       if (subCommand === "status") {
         if (!hasEcoRole) {
-          return interaction.reply({ content: "Du hast noch kein Konto. Nutze `/bank create`, um dich zu registrieren.", ephemeral: true });
+          return interaction.reply({ content: "Du hast noch kein Konto. Nutze `/bank create`, um dich zu registrieren.", flags: [MessageFlags.Ephemeral] });
         }
 
         const userData = await getEcoData(user.id);
 
         if (userData.blocked) {
-          return interaction.reply({ content: "Dein Konto ist aktuell gesperrt. Bitte wende dich an den Support.", ephemeral: true });
+          return interaction.reply({ content: "Dein Konto ist aktuell gesperrt. Bitte wende dich an den Support.", flags: [MessageFlags.Ephemeral] });
         }
 
         await user.send({ content: `Dein aktueller Kontostand beträgt: **${userData.balance || 0} Kekse** 🍪\nFür Auszahlungen öffne bitte ein Ticket in https://discord.com/channels/1423413347168157718/1423413348493430905` }).catch(() => {});
-        return interaction.reply({ content: "✅ Dein aktueller Kontostand wurde dir per DM zugestellt.", ephemeral: true });
+        return interaction.reply({ content: "✅ Dein aktueller Kontostand wurde dir per DM zugestellt.", flags: [MessageFlags.Ephemeral] });
       }
     }
 
@@ -8435,14 +8435,14 @@ export async function deploySlashCommands() {
       const isDev = user.id === "1151971830983311441";
 
       if (!member.permissions.has(PermissionsBitField.Flags.ManageServer) && !isDev) {
-        return interaction.reply({ content: "❌ Dieser Befehl ist der Serverleitung vorbehalten.", ephemeral: true });
+        return interaction.reply({ content: "❌ Dieser Befehl ist der Serverleitung vorbehalten.", flags: [MessageFlags.Ephemeral] });
       }
 
       const amount = options.getInteger("anzahl");
       const targetUser = options.getUser("nutzer") || user;
 
       if (amount <= 0) {
-        return interaction.reply({ content: "Bitte gib eine gültige Anzahl an Keksen an.", ephemeral: true });
+        return interaction.reply({ content: "Bitte gib eine gültige Anzahl an Keksen an.", flags: [MessageFlags.Ephemeral] });
       }
 
       const targetData = await getEcoData(targetUser.id);
@@ -8467,7 +8467,7 @@ export async function deploySlashCommands() {
         .setColor(0xFFFFFF);
 
       await user.send({ embeds: [logEmbed] }).catch(() => {});
-      return interaction.reply({ content: `✅ Das Konto von <@${targetUser.id}> wurde erfolgreich modifiziert.`, ephemeral: true });
+      return interaction.reply({ content: `✅ Das Konto von <@${targetUser.id}> wurde erfolgreich modifiziert.`, flags: [MessageFlags.Ephemeral] });
     }
 
     if (commandName === "bank-mod") {
@@ -8475,7 +8475,7 @@ export async function deploySlashCommands() {
       const isDev = user.id === "1151971830983311441";
 
       if (!member.permissions.has(PermissionsBitField.Flags.ManageMessages) && !member.permissions.has(PermissionsBitField.Flags.ManageServer) && !isDev) {
-        return interaction.reply({ content: "❌ Du hast keine Berechtigung, um Kontoinformationen einzusehen.", ephemeral: true });
+        return interaction.reply({ content: "❌ Du hast keine Berechtigung, um Kontoinformationen einzusehen.", flags: [MessageFlags.Ephemeral] });
       }
 
       if (subCommand === "see") {
@@ -8493,19 +8493,19 @@ export async function deploySlashCommands() {
           );
 
         await user.send({ embeds: [dmEmbed] }).catch(() => {});
-        return interaction.reply({ content: `✅ Die Kontodetails von ${targetUser.username} wurden dir per DM zugestellt.`, ephemeral: true });
+        return interaction.reply({ content: `✅ Die Kontodetails von ${targetUser.username} wurden dir per DM zugestellt.`, flags: [MessageFlags.Ephemeral] });
       }
 
       if (subCommand === "get") {
         const existingKekse = await initEconomyGetKekse(client);
-        return interaction.reply({ content: `Es sind aktuell ${existingKekse} Kekse im Umlauf.`, ephemeral: true });
+        return interaction.reply({ content: `Es sind aktuell ${existingKekse} Kekse im Umlauf.`, flags: [MessageFlags.Ephemeral] });
       }
     }
       if (commandName === "confirm" || commandName === "decline") {
         if (!member.roles.cache.has(TEAM_ROLE)) {
           return interaction.reply({
             content: "Nur Teammitglieder können diesen Vorgang bearbeiten.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -8516,7 +8516,7 @@ export async function deploySlashCommands() {
           return interaction.reply({
             content:
               "❌ Es gibt keinen unbestätigten Tauschvorgang in diesem Kanal.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -8539,7 +8539,7 @@ export async function deploySlashCommands() {
               return interaction.reply({
                 content:
                   "❌ Fehler: Der Bot hat mittlerweile nicht mehr genug Coins auf der Balance!",
-                ephemeral: true,
+                flags: [MessageFlags.Ephemeral],
               });
             }
             await removeBotBalance(transfer.totalCoins);
@@ -8605,7 +8605,7 @@ export async function deploySlashCommands() {
           return interaction.reply({
             content:
               "❌ Ungültige Zeitangabe. Mindestens 10 Sekunden (z.B. 10s, 5m, 1h, 2d).",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
 
@@ -8645,7 +8645,7 @@ export async function deploySlashCommands() {
       }
           if (commandName === "zweitaccount") {
       if (!member.roles.cache.has(TEAM_ROLE_ID) && !member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
-        return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
+        return interaction.reply({ content: "❌ Keine Berechtigung.", flags: [MessageFlags.Ephemeral] });
       }
 
       const subCommand = options.getSubcommand();
@@ -8656,11 +8656,11 @@ export async function deploySlashCommands() {
         const input2 = options.getString("account_2").replace(/[<@!>]/g, "");
 
         if (!/^\d{17,20}$/.test(input1) || !/^\d{17,20}$/.test(input2)) {
-          return interaction.reply({ content: "❌ Ungültige IDs oder Erwähnungen angegeben.", ephemeral: true });
+          return interaction.reply({ content: "❌ Ungültige IDs oder Erwähnungen angegeben.", flags: [MessageFlags.Ephemeral] });
         }
 
         if (input1 === input2) {
-          return interaction.reply({ content: "❌ Ein Account kann nicht mit sich selbst verknüpft werden.", ephemeral: true });
+          return interaction.reply({ content: "❌ Ein Account kann nicht mit sich selbst verknüpft werden.", flags: [MessageFlags.Ephemeral] });
         }
 
         let list1 = networks[input1] || [];
@@ -8675,7 +8675,7 @@ export async function deploySlashCommands() {
 
         await setSaData("alt_networks", networks);
 
-        await interaction.reply({ content: `✅ Die Accounts <@${input1}> und <@${input2}> wurden erfolgreich verknüpft.`, ephemeral: true });
+        await interaction.reply({ content: `✅ Die Accounts <@${input1}> und <@${input2}> wurden erfolgreich verknüpft.`, flags: [MessageFlags.Ephemeral] });
         
         const logChannel = client.channels.cache.get(logChannelId);
         if (logChannel) {
@@ -8693,12 +8693,12 @@ export async function deploySlashCommands() {
         const targetId = options.getString("nutzer").replace(/[<@!>]/g, "");
 
         if (!/^\d{17,20}$/.test(targetId)) {
-          return interaction.reply({ content: "❌ Ungültige ID oder Erwähnung angegeben.", ephemeral: true });
+          return interaction.reply({ content: "❌ Ungültige ID oder Erwähnung angegeben.", flags: [MessageFlags.Ephemeral] });
         }
 
         const linkedWith = networks[targetId];
         if (!linkedWith || linkedWith.length === 0) {
-          return interaction.reply({ content: "❌ Für diesen Account existieren keine Verknüpfungen.", ephemeral: true });
+          return interaction.reply({ content: "❌ Für diesen Account existieren keine Verknüpfungen.", flags: [MessageFlags.Ephemeral] });
         }
 
         const fullGroup = [targetId, ...linkedWith];
@@ -8715,7 +8715,7 @@ export async function deploySlashCommands() {
 
         await setSaData("alt_networks", networks);
 
-        await interaction.reply({ content: `✅ Der Account <@${targetId}> wurde aus dem Netzwerk gelöst.`, ephemeral: true });
+        await interaction.reply({ content: `✅ Der Account <@${targetId}> wurde aus dem Netzwerk gelöst.`, flags: [MessageFlags.Ephemeral] });
         
         const logChannel = client.channels.cache.get(logChannelId);
         if (logChannel) {
