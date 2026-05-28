@@ -8242,6 +8242,7 @@ export async function deploySlashCommands() {
         });
         return;
       }
+    }
       if (commandName === "bank") {
         const subCommand = options.getSubcommand();
         const hasEcoRole = member.roles.cache.has("1506732560837771284");
@@ -8749,8 +8750,6 @@ export async function deploySlashCommands() {
         }
         globalBotStats.commandsRunned += 1;
       }
-    }
-    }
   });
 }
 client.once("clientReady", async () => {
