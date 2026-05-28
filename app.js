@@ -6158,11 +6158,16 @@ export async function deploySlashCommands() {
     console.error('❌ Fehler: BOT_TOKEN fehlt in den Umgebungsvariablen!');
     return;
   }
+
   const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
+
   try {
-    console.log('📡 Starte SOFORTIGE Server-Befehlsregistrierung...');
+    const base64Token = process.env.BOT_TOKEN.split('.')[0];
+    const botId = Buffer.from(base64Token, 'base64').toString('utf-8');
+
+    console.log(`📡 Starte SOFORTIGE Server-Befehlsregistrierung für Bot-ID: ${botId}...`);
     await rest.put(
-      Routes.applicationGuildCommands("1423413347168157718"),
+      Routes.applicationGuildCommands(botId, "1423413347168157718"),
       { body: commands }
     );
     console.log('✅ ALLE Befehle erfolgreich auf dem Testserver registriert!');
@@ -8650,7 +8655,6 @@ export async function deploySlashCommands() {
   });
 client.once("clientReady", async () => {
   try {
-    await deploySlashCommands();
     await initCounting(client);
     registerMessageCommands(client);
     await initTickets(client);
@@ -8704,11 +8708,11 @@ app.get("/api/stats_internal", (req, res) => {
 client.setMaxListeners(50);
 client.on("error", console.error);
 client.on("warn", console.warn);
-mongoose
-  .connect(process.env.MONGODB_URI)
+mongoose.connect(process.env.MONGODB_URI)
   .then(async () => {
-    console.log("🍃 MongoDB verbunden!");
+    console.log('🍃 MongoDB verbunden!');
     await startStorages();
+    await deploySlashCommands();
     client.login(process.env.BOT_TOKEN);
   })
-  .catch((err) => console.error("❌ MongoDB Fehler:", err));
+  .catch(err => console.error('❌ MongoDB Fehler:', err));
