@@ -6086,26 +6086,26 @@ const commands = [
     .setName('blackjack')
     .setDescription('Spiele eine Runde Blackjack gegen den Bot')
     .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true)),
-    new SlashCommandBuilder()
+      new SlashCommandBuilder()
     .setName('bank')
     .setDescription('Nutze das integrierte Bank- und Währungssystem')
     .addSubcommand(sub => sub.setName('status').setDescription('Zeigt dir privat deinen aktuellen Kontostand an'))
     .addSubcommand(sub => sub.setName('create').setDescription('Erstellt dein persönliches Bankkonto'))
     .addSubcommand(sub => sub.setName('help').setDescription('Zeigt die Hilfe-Übersicht des Bank-Systems an'))
-    .addSubcommand(sub => sub.setName('pay').setDescription('Überweist Kekse an einen anderen Spieler').addUserOption(opt => opt.setName('nutzer').setDescription('Empfänger').setRequired(true)).addIntegerOption(opt => opt.setName('anzahl').setDescription('Menge').setRequired(true))),
+    .addSubcommand(sub => sub.setName('pay').setDescription('Überweist Kekse an einen anderen Spieler').addUserOption(opt => opt.setName('nutzer').setDescription('Der Empfänger der Kekse').setRequired(true)).addIntegerOption(opt => opt.setName('anzahl').setDescription('Die Menge an Keksen').setRequired(true))),
 
   new SlashCommandBuilder()
     .setName('bank-admin')
     .setDescription('Serverleitung: Konten von Mitgliedern modifizieren')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer)
-    .addSubcommand(sub => sub.setName('add').setDescription('Fügt einem Konto Kekse hinzu').addIntegerOption(opt => opt.setName('anzahl').setDescription('Menge').setRequired(true)).addUserOption(opt => opt.setName('nutzer').setRequired(false)))
-    .addSubcommand(sub => sub.setName('remove').setDescription('Zieht von einem Konto Kekse ab').addIntegerOption(opt => opt.setName('anzahl').setDescription('Menge').setRequired(true)).addUserOption(opt => opt.setName('nutzer').setRequired(false))),
+    .addSubcommand(sub => sub.setName('add').setDescription('Fügt einem Konto Kekse hinzu').addIntegerOption(opt => opt.setName('anzahl').setDescription('Die Menge an Keksen').setRequired(true)).addUserOption(opt => opt.setName('nutzer').setDescription('Der Zielnutzer').setRequired(false)))
+    .addSubcommand(sub => sub.setName('remove').setDescription('Zieht von einem Konto Kekse ab').addIntegerOption(opt => opt.setName('anzahl').setDescription('Die Menge an Keksen').setRequired(true)).addUserOption(opt => opt.setName('nutzer').setDescription('Der Zielnutzer').setRequired(false))),
 
   new SlashCommandBuilder()
     .setName('bank-mod')
     .setDescription('Team: Kontoinformationen und Umläufe einsehen')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
-    .addSubcommand(sub => sub.setName('see').setDescription('Zeigt detaillierte Kontoinformationen eines Nutzers').addUserOption(opt => opt.setName('nutzer').setDescription('Nutzer').setRequired(true)))
+    .addSubcommand(sub => sub.setName('see').setDescription('Zeigt detaillierte Kontoinformationen eines Nutzers').addUserOption(opt => opt.setName('nutzer').setDescription('Der zu prüfende Nutzer').setRequired(true)))
     .addSubcommand(sub => sub.setName('get').setDescription('Zeigt an, wie viele Kekse insgesamt im Umlauf sind')),
 
   new SlashCommandBuilder()
@@ -6152,14 +6152,13 @@ const commands = [
       .setDescription('Beendet eine aktive Umfrage vorzeitig')
       .addStringOption(opt => opt.setName('id').setDescription('Die ID der Umfrage').setRequired(true)))
 ].map(cmd => cmd.toJSON());
+
 export async function deploySlashCommands() {
   if (!process.env.BOT_TOKEN) {
     console.error('❌ Fehler: BOT_TOKEN fehlt in den Umgebungsvariablen!');
     return;
   }
-
   const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
-
   try {
     console.log('📡 Starte SOFORTIGE Server-Befehlsregistrierung...');
     await rest.put(
