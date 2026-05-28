@@ -8348,7 +8348,7 @@ export async function deploySlashCommands() {
           return interaction.reply({ content: "Dein Konto ist aktuell gesperrt. Bitte wende dich an den Support.", ephemeral: true });
         }
 
-        await user.send({ content: `Dein aktueller Kontostand beträgt: **${userData.balance || 0} Kekse** 🍪\nFür Auszahlungen öffne bitte ein Ticket in https://discord.com` }).catch(() => {});
+        await user.send({ content: `Dein aktueller Kontostand beträgt: **${userData.balance || 0} Kekse** 🍪\nFür Auszahlungen öffne bitte ein Ticket in https://discord.com/channels/1423413347168157718/1423413348493430905` }).catch(() => {});
         return interaction.reply({ content: "✅ Dein aktueller Kontostand wurde dir per DM zugestellt.", ephemeral: true });
       }
     }
