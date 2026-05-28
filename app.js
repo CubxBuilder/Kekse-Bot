@@ -6729,16 +6729,16 @@ export async function deploySlashCommands() {
       globalBotStats.commandsRunned += 1;
     }
     const createPollText = (q, d, opts, end, count, id, author) => {
-      return (
-        `## ${q}\n${d}\n\n` +
-        opts.map((o) => `${o.emoji} ${o.text}`).join("\n") +
-        `\n\n` +
-        `<:info:1467246059561685238> Endet am: <t:${Math.floor(end / 1000)}:R>\n` +
-        `<:profil:1467246030998343733> Erstellt von: ${author}\n` +
-        `<:statistiques:1467246038497886311> Teilnehmer: **${count}**\n` +
-        `<:identifiant:1467246041668780227> ID: \`${id}\``
-      );
-    };
+  const optionsArray = Array.isArray(opts) ? opts : (opts ? Array.from(opts) : []);
+  
+  return `## ${q}\n${d}\n\n` +
+    optionsArray.map(o => `${o.emoji} ${o.text}`).join("\n") + `\n\n` +
+    `<:info:1467246059561685238> Endet am: <t:${Math.floor(end / 1000)}:R>\n` +
+    `<:profil:1467246030998343733> Erstellt von: ${author}\n` +
+    `<:statistiques:1467246038497886311> Teilnehmer: **${count}**\n` +
+    `<:identifiant:1467246041668780227> ID: \`${id}\``;
+};
+
 
     const createPollButtons = (pollId, opts) => {
       const rows = [];
