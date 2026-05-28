@@ -8750,6 +8750,7 @@ export async function deploySlashCommands() {
         }
         globalBotStats.commandsRunned += 1;
       }
+    }
   });
 client.once("clientReady", async () => {
   try {
