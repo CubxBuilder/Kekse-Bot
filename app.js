@@ -5999,7 +5999,9 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('help')
-    .setDescription('Zeigt dir, wie du Hilfe oder Support erhalten kannst'),
+    .setDescription('Zeigt dir, wie du Hilfe oder Support erhalten kannst')
+    .setContexts(0)
+    .setIntegrationTypes(0),
 
   new SlashCommandBuilder()
     .setName('moveadmin')
@@ -6013,7 +6015,9 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('top')
-    .setDescription('Zeigt die Top 10 User mit den meisten Punkten im Counting-System'),
+    .setDescription('Zeigt die Top 10 User mit den meisten Punkten im Counting-System')
+    .setContexts(0)
+    .setIntegrationTypes(0),
 
   new SlashCommandBuilder()
     .setName('set-number')
@@ -6042,11 +6046,6 @@ const commands = [
     .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu sperrende Nutzer').setRequired(true))
     .addIntegerOption(opt => opt.setName('tage').setDescription('Anzahl der Tage für die Sperre (Standard: 7)').setRequired(false))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName('commands')
-    .setDescription('Zeigt eine Liste aller verfügbaren Slash-Commands auf dem Server an'),
-
   new SlashCommandBuilder()
     .setName('daily-setup')
     .setDescription('Entwickler: Richtet ein tägliches Belohnungssystem mit Button ein')
@@ -6062,46 +6061,62 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('casino')
-    .setDescription('Zeigt eine Übersicht aller verfügbaren Casino-Spiele an'),
+    .setDescription('Zeigt eine Übersicht aller verfügbaren Casino-Spiele an')
+    .setContexts(0)
+    .setIntegrationTypes(0),
 
   new SlashCommandBuilder()
     .setName('roulette')
     .setDescription('Spiele eine Runde Roulette')
     .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true))
-    .addStringOption(opt => opt.setName('typ').setDescription('Wettart: red, black, even, odd, Zahl 0-36, 1-18, 19-36').setRequired(true)),
+    .addStringOption(opt => opt.setName('typ').setDescription('Wettart: red, black, even, odd, Zahl 0-36, 1-18, 19-36').setRequired(true))
+    .setContexts(0)
+    .setIntegrationTypes(0),
 
   new SlashCommandBuilder()
     .setName('coinflip')
     .setDescription('Mache einen Münzwurf')
     .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true))
-    .addStringOption(opt => opt.setName('seite').setDescription('Kopf oder Zahl?').setRequired(true).addChoices({ name: 'Kopf (Heads)', value: 'heads' }, { name: 'Zahl (Tails)', value: 'tails' })),
-
+    .addStringOption(opt => opt.setName('seite').setDescription('Kopf oder Zahl?').setRequired(true).addChoices({ name: 'Kopf (Heads)', value: 'heads' }, { name: 'Zahl (Tails)', value: 'tails' }))
+    .setContexts(0)
+    .setIntegrationTypes(0),
   new SlashCommandBuilder()
     .setName('jackpot')
     .setDescription('Zahle Kekse in den aktuellen Jackpot ein')
-    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true)),
+    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true))
+    .setContexts(0)
+    .setIntegrationTypes(0),
 
   new SlashCommandBuilder()
     .setName('crash')
     .setDescription('Starte ein Crash-Multiplikator-Spiel')
-    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true)),
+    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true))
+    .setContexts(0)
+    .setIntegrationTypes(0),
 
   new SlashCommandBuilder()
     .setName('highlow')
     .setDescription('Errate, ob die nächste Karte höher oder niedriger ist')
-    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true)),
+    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true))
+    .setContexts(0)
+    .setIntegrationTypes(0),
 
   new SlashCommandBuilder()
     .setName('blackjack')
     .setDescription('Spiele eine Runde Blackjack gegen den Bot')
-    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true)),
+    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true))
+    .setContexts(0)
+    .setIntegrationTypes(0), 
+  
       new SlashCommandBuilder()
     .setName('bank')
     .setDescription('Nutze das integrierte Bank- und Währungssystem')
     .addSubcommand(sub => sub.setName('status').setDescription('Zeigt dir privat deinen aktuellen Kontostand an'))
     .addSubcommand(sub => sub.setName('create').setDescription('Erstellt dein persönliches Bankkonto'))
     .addSubcommand(sub => sub.setName('help').setDescription('Zeigt die Hilfe-Übersicht des Bank-Systems an'))
-    .addSubcommand(sub => sub.setName('pay').setDescription('Überweist Kekse an einen anderen Spieler').addUserOption(opt => opt.setName('nutzer').setDescription('Der Empfänger der Kekse').setRequired(true)).addIntegerOption(opt => opt.setName('anzahl').setDescription('Die Menge an Keksen').setRequired(true))),
+    .addSubcommand(sub => sub.setName('pay').setDescription('Überweist Kekse an einen anderen Spieler').addUserOption(opt => opt.setName('nutzer').setDescription('Der Empfänger der Kekse').setRequired(true)).addIntegerOption(opt => opt.setName('anzahl').setDescription('Die Menge an Keksen').setRequired(true)))
+    .setContexts(0)
+    .setIntegrationTypes(0),
 
   new SlashCommandBuilder()
     .setName('bank-admin')
@@ -6135,11 +6150,15 @@ const commands = [
     .setName('remind')
     .setDescription('Erstellt eine persönliche Erinnerung')
     .addStringOption(opt => opt.setName('zeit').setDescription('Zeitspanne bis zur Erinnerung (z.B. 10s, 5m, 1h, 2d)').setRequired(true))
-    .addStringOption(opt => opt.setName('grund').setDescription('Waran soll der Bot dich erinnern?').setRequired(true)),
+    .addStringOption(opt => opt.setName('grund').setDescription('Waran soll der Bot dich erinnern?').setRequired(true))
+    .setContexts(0)
+    .setIntegrationTypes(0),
 
   new SlashCommandBuilder()
     .setName('listpolls')
-    .setDescription('Zeigt eine Übersicht aller aktiven Umfragen an'),
+    .setDescription('Zeigt eine Übersicht aller aktiven Umfragen an')
+    .setContexts(0)
+    .setIntegrationTypes(0),
 
   new SlashCommandBuilder()
     .setName('poll')
