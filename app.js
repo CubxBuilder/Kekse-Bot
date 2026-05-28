@@ -6165,14 +6165,20 @@ export async function deploySlashCommands() {
     const base64Token = process.env.BOT_TOKEN.split('.')[0];
     const botId = Buffer.from(base64Token, 'base64').toString('utf-8');
 
+    console.log('🧹 Lösche alte Server-Befehle...');
+    await rest.put(
+      Routes.applicationGuildCommands(botId, "1423413347168157718"),
+      { body: [] }
+    );
+
     console.log(`📡 Starte GLOBALE Befehlsregistrierung für Bot-ID: ${botId}...`);
     await rest.put(
       Routes.applicationCommands(botId),
       { body: commands }
     );
-    console.log('✅ ALLE Befehle erfolgreich GLOBALE bei Discord registriert!');
+    console.log('✅ ALLE Befehle erfolgreich GLOBAL registriert und Server-Duplikate entfernt!');
   } catch (error) {
-    console.error('❌ Fehler bei der globalen Registrierung:', error);
+    console.error('❌ Fehler bei der Bereinigung/Registrierung:', error);
   }
 }
   client.on("interactionCreate", async (interaction) => {
