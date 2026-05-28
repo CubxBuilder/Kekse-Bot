@@ -5919,8 +5919,6 @@ process.on("unhandledRejection", (reason, promise) => {
 process.on("uncaughtException", (err) => {
   console.error("[Process] Uncaught Exception:", err);
 });
-import { REST, Routes, SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
-
 const commands = [
   new SlashCommandBuilder()
     .setName('send')
