@@ -8243,286 +8243,183 @@ export async function deploySlashCommands() {
         return;
       }
     }
-      if (commandName === "bank") {
-        const subCommand = options.getSubcommand();
-        const hasEcoRole = member.roles.cache.has("1506732560837771284");
-        const isDev = user.id === "1151971830983311441";
+          if (commandName === "bank") {
+      const subCommand = options.getSubcommand();
+      const hasEcoRole = member.roles.cache.has("1506732560837771284");
 
-        if (["add", "remove"].includes(subCommand)) {
-          if (
-            !member.permissions.has(PermissionsBitField.Flags.ManageServer) &&
-            !isDev
-          ) {
-            return interaction.reply({
-              content: "❌ Dieser Befehl ist der Serverleitung vorbehalten.",
-              ephemeral: true,
-            });
-          }
+      if (subCommand === "create") {
+        if (hasEcoRole) {
+          return interaction.reply({ content: "Du besitzt bereits ein registriertes Bankkonto.", ephemeral: true });
         }
 
-        if (["see", "get"].includes(subCommand)) {
-          if (
-            !member.permissions.has(PermissionsBitField.Flags.ManageMessages) &&
-            !member.permissions.has(PermissionsBitField.Flags.ManageServer) &&
-            !isDev
-          ) {
-            return interaction.reply({
-              content:
-                "❌ Du hast keine Berechtigung, um Kontoinformationen einzusehen.",
-              ephemeral: true,
-            });
-          }
-        }
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`open_bank_modal_${user.id}`)
+            .setLabel("Registrierungsformular öffnen")
+            .setStyle(ButtonStyle.Primary)
+        );
 
-        if (subCommand === "see") {
-          const targetUser = options.getUser("nutzer");
-          const data = await getEcoData(targetUser.id);
-          const dmEmbed = new EmbedBuilder()
-            .setTitle(`Konto-Details von ${targetUser.username}`)
-            .setColor(0xffffff)
-            .addFields(
-              { name: "User ID", value: data.userId || targetUser.id },
-              { name: "Discord Name", value: data.username || "Kein Name" },
-              {
-                name: "Minecraft Name",
-                value: data.mcUsername || "Nicht registriert",
-              },
-              { name: "Kontostand", value: `${data.balance || 0} Kekse` },
-              { name: "Gesperrt?", value: data.blocked ? "Ja" : "Nein" },
-            );
-
-          await user.send({ embeds: [dmEmbed] }).catch(() => {});
-          return interaction.reply({
-            content: `✅ Die Kontodetails von ${targetUser.username} wurden dir per DM zugestellt.`,
-            ephemeral: true,
-          });
-        }
-
-        if (subCommand === "get") {
-          const existingKekse = await initEconomyGetKekse(client);
-          return interaction.reply({
-            content: `Es sind aktuell ${existingKekse} Kekse im Umlauf.`,
-            ephemeral: true,
-          });
-        }
-
-        if (["add", "remove"].includes(subCommand)) {
-          const amount = options.getInteger("anzahl");
-          const targetUser = options.getUser("nutzer") || user;
-
-          if (amount <= 0) {
-            return interaction.reply({
-              content: "Bitte gib eine gültige Anzahl an Keksen an.",
-              ephemeral: true,
-            });
-          }
-
-          const targetData = await getEcoData(targetUser.id);
-          let currentBalance = targetData.balance || 0;
-
-          if (subCommand === "add") {
-            currentBalance += amount;
-          } else {
-            currentBalance = Math.max(0, currentBalance - amount);
-          }
-
-          targetData.balance = currentBalance;
-          await setEcoData(targetUser.id, targetData);
-
-          const logEmbed = new EmbedBuilder()
-            .setTitle("Konto-Aktualisierung")
-            .setDescription(`Konto von <@${targetUser.id}> wurde aktualisiert.`)
-            .addFields(
-              {
-                name: "Aktion",
-                value:
-                  subCommand === "add"
-                    ? `+${amount} Kekse`
-                    : `-${amount} Kekse`,
-              },
-              { name: "Neuer Kontostand", value: `${currentBalance} Kekse` },
-            )
-            .setColor(0xffffff);
-
-          await user.send({ embeds: [logEmbed] }).catch(() => {});
-          return interaction.reply({
-            content: `✅ Das Konto von <@${targetUser.id}> wurde erfolgreich modifiziert.`,
-            ephemeral: true,
-          });
-        }
-
-        if (subCommand === "create") {
-          if (hasEcoRole) {
-            return interaction.reply({
-              content: "Du besitzt bereits ein registriertes Bankkonto.",
-              ephemeral: true,
-            });
-          }
-
-          const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-              .setCustomId(`open_bank_modal_${user.id}`)
-              .setLabel("Registrierungsformular öffnen")
-              .setStyle(ButtonStyle.Primary),
-          );
-
-          return interaction.reply({
-            content:
-              "Klicke auf den Button unten, um dein Konto zu erstellen. Dieser Button funktioniert nur für dich.",
-            components: [row],
-            ephemeral: true,
-          });
-        }
-
-        if (subCommand === "help") {
-          const helpEmbed = new EmbedBuilder()
-            .setTitle("🏦 Bank-System Hilfe")
-            .setColor(0xffffff)
-            .setDescription("Hier findest du alle verfügbaren Befehle:")
-            .addFields(
-              {
-                name: "`/bank create`",
-                value:
-                  "Erstellt dein persönliches Bankkonto (Erfordert Minecraft-Namen).",
-              },
-              {
-                name: "`/bank status`",
-                value:
-                  "Zeigt dir deinen aktuellen Kontostand (Privat für dich).",
-              },
-              {
-                name: "`/bank pay`",
-                value:
-                  "Überträgt Kekse sicher auf das Konto eines Mitspielers.",
-              },
-              {
-                name: "⚠️ Wichtiger Hinweis",
-                value:
-                  "Für Änderungen am Konto oder Auszahlungen eröffne bitte ein Ticket in <#1423413348493430905>.",
-              },
-            );
-
-          return interaction.reply({ embeds: [helpEmbed], ephemeral: true });
-        }
-
-        if (subCommand === "pay") {
-          const targetUser = options.getUser("nutzer");
-          const amount = options.getInteger("anzahl");
-          const userData = await getEcoData(user.id);
-
-          if (amount <= 0) {
-            return interaction.reply({
-              content: "Bitte gib eine gültige Anzahl an Keksen an.",
-              ephemeral: true,
-            });
-          }
-
-          if (targetUser.id === user.id) {
-            return interaction.reply({
-              content: "Du kannst dir selbst keine Kekse überweisen.",
-              ephemeral: true,
-            });
-          }
-
-          if (amount > (userData.balance || 0)) {
-            return interaction.reply({
-              content: "Du hast nicht genug Kekse für diese Überweisung.",
-              ephemeral: true,
-            });
-          }
-
-          const targetData = await getEcoData(targetUser.id);
-          if (!targetData || targetData.blocked) {
-            return interaction.reply({
-              content:
-                "Der Zielnutzer hat kein aktives Konto oder ist gesperrt.",
-              ephemeral: true,
-            });
-          }
-
-          userData.balance -= amount;
-          targetData.balance = (targetData.balance || 0) + amount;
-
-          await logTransaction(
-            user.id,
-            amount,
-            "minus",
-            `Pay an ${targetData.username}`,
-          );
-          await logTransaction(
-            targetUser.id,
-            amount,
-            "plus",
-            `Pay von ${userData.username}`,
-          );
-          await setEcoData(user.id, userData);
-          await setEcoData(targetUser.id, targetData);
-
-          console.log(
-            `[Economy] Überweisung von ${userData.username || user.username} an ${targetData.username || targetUser.id} für ${amount} Kekse.`,
-          );
-
-          const payEmbed = new EmbedBuilder()
-            .setTitle("Überweisung erfolgreich")
-            .setDescription(
-              `Du hast **${amount} Kekse** an <@${targetUser.id}> überwiesen.`,
-            )
-            .addFields({
-              name: "Neuer Kontostand",
-              value: `${userData.balance} Kekse`,
-            })
-            .setColor(0xffffff);
-
-          const getEmbed = new EmbedBuilder()
-            .setTitle("Kekse erhalten!")
-            .setDescription(
-              `Du hast **${amount} Kekse** von <@${user.id}> erhalten.`,
-            )
-            .addFields({
-              name: "Neuer Kontostand",
-              value: `${targetData.balance} Kekse`,
-            })
-            .setColor(0xffffff);
-
-          await interaction.reply({ embeds: [payEmbed], ephemeral: true });
-
-          await targetUser.send({ embeds: [getEmbed] }).catch(() => {
-            console.log(`Konnte keine DM an ${targetUser.id} senden.`);
-          });
-          return;
-        }
-
-        if (subCommand === "status") {
-          if (!hasEcoRole) {
-            return interaction.reply({
-              content:
-                "Du hast noch kein Konto. Nutze `/bank create`, um dich zu registrieren.",
-              ephemeral: true,
-            });
-          }
-
-          const userData = await getEcoData(user.id);
-
-          if (userData.blocked) {
-            return interaction.reply({
-              content:
-                "Dein Konto ist aktuell gesperrt. Bitte wende dich an den Support.",
-              ephemeral: true,
-            });
-          }
-
-          await user
-            .send({
-              content: `Dein aktueller Kontostand beträgt: **${userData.balance || 0} Kekse** 🍪\nFür Auszahlungen öffne bitte ein Ticket in https://discord.com`,
-            })
-            .catch(() => {});
-          return interaction.reply({
-            content:
-              "✅ Dein aktueller Kontostand wurde dir per DM zugestellt.",
-            ephemeral: true,
-          });
-        }
+        return interaction.reply({
+          content: "Klicke auf den Button unten, um dein Konto zu erstellen. Dieser Button funktioniert nur für dich.",
+          components: [row],
+          ephemeral: true
+        });
       }
+
+      if (subCommand === "help") {
+        const helpEmbed = new EmbedBuilder()
+          .setTitle("🏦 Bank-System Hilfe")
+          .setColor(0xFFFFFF)
+          .setDescription("Hier findest du alle verfügbaren Befehle:")
+          .addFields(
+            { name: "`/bank create`", value: "Erstellt dein persönliches Bankkonto (Erfordert Minecraft-Namen)." },
+            { name: "`/bank status`", value: "Zeigt dir deinen aktuellen Kontostand (Privat für dich)." },
+            { name: "`/bank pay`", value: "Überträgt Kekse sicher auf das Konto eines Mitspielers." },
+            { name: "⚠️ Wichtiger Hinweis", value: "Für Änderungen am Konto oder Auszahlungen eröffne bitte ein Ticket in <#1423413348493430905>." }
+          );
+
+        return interaction.reply({ embeds: [helpEmbed], ephemeral: true });
+      }
+
+      if (subCommand === "pay") {
+        const targetUser = options.getUser("nutzer");
+        const amount = options.getInteger("anzahl");
+        const userData = await getEcoData(user.id);
+
+        if (amount <= 0) {
+          return interaction.reply({ content: "Bitte gib eine gültige Anzahl an Keksen an.", ephemeral: true });
+        }
+
+        if (targetUser.id === user.id) {
+          return interaction.reply({ content: "Du kannst dir selbst keine Kekse überweisen.", ephemeral: true });
+        }
+
+        if (amount > (userData.balance || 0)) {
+          return interaction.reply({ content: "Du hast nicht genug Kekse für diese Überweisung.", ephemeral: true });
+        }
+
+        const targetData = await getEcoData(targetUser.id);
+        if (!targetData || targetData.blocked) {
+          return interaction.reply({ content: "Der Zielnutzer hat kein aktives Konto oder ist gesperrt.", ephemeral: true });
+        }
+
+        userData.balance -= amount;
+        targetData.balance = (targetData.balance || 0) + amount;
+        
+        await logTransaction(user.id, amount, "minus", `Pay an ${targetData.username}`);
+        await logTransaction(targetUser.id, amount, "plus", `Pay von ${userData.username}`);
+        await setEcoData(user.id, userData);
+        await setEcoData(targetUser.id, targetData);
+
+        console.log(`[Economy] Überweisung von ${userData.username || user.username} an ${targetData.username || targetUser.id} für ${amount} Kekse.`);
+
+        const payEmbed = new EmbedBuilder()
+          .setTitle("Überweisung erfolgreich")
+          .setDescription(`Du hast **${amount} Kekse** an <@${targetUser.id}> überwiesen.`)
+          .addFields({ name: "Neuer Kontostand", value: `${userData.balance} Kekse` })
+          .setColor(0xFFFFFF);
+
+        const getEmbed = new EmbedBuilder()
+          .setTitle("Kekse erhalten!")
+          .setDescription(`Du hast **${amount} Kekse** von <@${user.id}> erhalten.`)
+          .addFields({ name: "Neuer Kontostand", value: `${targetData.balance} Kekse` })
+          .setColor(0xFFFFFF);
+
+        await interaction.reply({ embeds: [payEmbed], ephemeral: true });
+
+        await targetUser.send({ embeds: [getEmbed] }).catch(() => {
+          console.log(`Konnte keine DM an ${targetUser.id} senden.`);
+        });
+        return;
+      }
+
+      if (subCommand === "status") {
+        if (!hasEcoRole) {
+          return interaction.reply({ content: "Du hast noch kein Konto. Nutze `/bank create`, um dich zu registrieren.", ephemeral: true });
+        }
+
+        const userData = await getEcoData(user.id);
+
+        if (userData.blocked) {
+          return interaction.reply({ content: "Dein Konto ist aktuell gesperrt. Bitte wende dich an den Support.", ephemeral: true });
+        }
+
+        await user.send({ content: `Dein aktueller Kontostand beträgt: **${userData.balance || 0} Kekse** 🍪\nFür Auszahlungen öffne bitte ein Ticket in https://discord.com` }).catch(() => {});
+        return interaction.reply({ content: "✅ Dein aktueller Kontostand wurde dir per DM zugestellt.", ephemeral: true });
+      }
+    }
+
+    if (commandName === "bank-admin") {
+      const subCommand = options.getSubcommand();
+      const isDev = user.id === "1151971830983311441";
+
+      if (!member.permissions.has(PermissionsBitField.Flags.ManageServer) && !isDev) {
+        return interaction.reply({ content: "❌ Dieser Befehl ist der Serverleitung vorbehalten.", ephemeral: true });
+      }
+
+      const amount = options.getInteger("anzahl");
+      const targetUser = options.getUser("nutzer") || user;
+
+      if (amount <= 0) {
+        return interaction.reply({ content: "Bitte gib eine gültige Anzahl an Keksen an.", ephemeral: true });
+      }
+
+      const targetData = await getEcoData(targetUser.id);
+      let currentBalance = targetData.balance || 0;
+
+      if (subCommand === "add") {
+        currentBalance += amount;
+      } else if (subCommand === "remove") {
+        currentBalance = Math.max(0, currentBalance - amount);
+      }
+
+      targetData.balance = currentBalance;
+      await setEcoData(targetUser.id, targetData);
+
+      const logEmbed = new EmbedBuilder()
+        .setTitle("Konto-Aktualisierung")
+        .setDescription(`Konto von <@${targetUser.id}> wurde aktualisiert.`)
+        .addFields(
+          { name: "Aktion", value: subCommand === "add" ? `+${amount} Kekse` : `-${amount} Kekse` },
+          { name: "Neuer Kontostand", value: `${currentBalance} Kekse` }
+        )
+        .setColor(0xFFFFFF);
+
+      await user.send({ embeds: [logEmbed] }).catch(() => {});
+      return interaction.reply({ content: `✅ Das Konto von <@${targetUser.id}> wurde erfolgreich modifiziert.`, ephemeral: true });
+    }
+
+    if (commandName === "bank-mod") {
+      const subCommand = options.getSubcommand();
+      const isDev = user.id === "1151971830983311441";
+
+      if (!member.permissions.has(PermissionsBitField.Flags.ManageMessages) && !member.permissions.has(PermissionsBitField.Flags.ManageServer) && !isDev) {
+        return interaction.reply({ content: "❌ Du hast keine Berechtigung, um Kontoinformationen einzusehen.", ephemeral: true });
+      }
+
+      if (subCommand === "see") {
+        const targetUser = options.getUser("nutzer");
+        const data = await getEcoData(targetUser.id);
+        const dmEmbed = new EmbedBuilder()
+          .setTitle(`Konto-Details von ${targetUser.username}`)
+          .setColor(0xFFFFFF)
+          .addFields(
+            { name: "User ID", value: data.userId || targetUser.id },
+            { name: "Discord Name", value: data.username || "Kein Name" },
+            { name: "Minecraft Name", value: data.mcUsername || "Nicht registriert" },
+            { name: "Kontostand", value: `${data.balance || 0} Kekse` },
+            { name: "Gesperrt?", value: data.blocked ? "Ja" : "Nein" }
+          );
+
+        await user.send({ embeds: [dmEmbed] }).catch(() => {});
+        return interaction.reply({ content: `✅ Die Kontodetails von ${targetUser.username} wurden dir per DM zugestellt.`, ephemeral: true });
+      }
+
+      if (subCommand === "get") {
+        const existingKekse = await initEconomyGetKekse(client);
+        return interaction.reply({ content: `Es sind aktuell ${existingKekse} Kekse im Umlauf.`, ephemeral: true });
+      }
+    }
       if (commandName === "confirm" || commandName === "decline") {
         if (!member.roles.cache.has(TEAM_ROLE)) {
           return interaction.reply({
