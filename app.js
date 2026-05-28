@@ -4709,7 +4709,6 @@ export async function initPoll(client) {
       }));
       const endTime = Date.now() + time * 60000;
       const pollContent = createPollText(
-        "<@&1424028924387786762>",
         question,
         description,
         pollOptions,
@@ -4720,7 +4719,7 @@ export async function initPoll(client) {
       );
       const components = createPollButtons(pollId, pollOptions);
       const pollMsg = await msg.channel.send({
-        content: pollContent,
+        content: `<@&1424028924387786762>\n${pollContent}`,
         components: components,
       });
       const polls = (await getPollData("polls_data")) || [];
@@ -6800,7 +6799,6 @@ export async function deploySlashCommands() {
         const endTime = Date.now() + time * 60000;
 
         const pollContent = createPollText(
-          "<@&1424028924387786762>",
           question,
           description,
           pollOptions,
@@ -6816,7 +6814,7 @@ export async function deploySlashCommands() {
           flags: [MessageFlags.Ephemeral],
         });
         const pollMsg = await currentChannel.send({
-          content: pollContent,
+          content: `<@&1424028924387786762>\n${pollContent}`,
           components: components,
         });
 
