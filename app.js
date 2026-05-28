@@ -6193,20 +6193,20 @@ export async function deploySlashCommands() {
     const base64Token = process.env.BOT_TOKEN.split('.')[0];
     const botId = Buffer.from(base64Token, 'base64').toString('utf-8');
 
-    console.log('🧹 Lösche alte Server-Befehle...');
+    console.log(`🧹 Lösche alte globale Befehle (um Cache zu leeren)...`);
     await rest.put(
-      Routes.applicationGuildCommands(botId, "1423413347168157718"),
+      Routes.applicationCommands(botId),
       { body: [] }
     );
 
-    console.log(`📡 Starte GLOBALE Befehlsregistrierung für Bot-ID: ${botId}...`);
+    console.log(`📡 Registriere Befehle DIREKT auf dem Server für Bot-ID: ${botId}...`);
     await rest.put(
-      Routes.applicationCommands(botId),
+      Routes.applicationGuildCommands(botId, "1423413347168157718"),
       { body: commands }
     );
-    console.log('✅ ALLE Befehle erfolgreich GLOBAL registriert und Server-Duplikate entfernt!');
+    console.log('✅ ALLE Befehle erfolgreich auf dem Server registriert! Sie sind JETZT sofort da.');
   } catch (error) {
-    console.error('❌ Fehler bei der Bereinigung/Registrierung:', error);
+    console.error('❌ Fehler bei der Server-Registrierung:', error);
   }
 }
   client.on("interactionCreate", async (interaction) => {
