@@ -413,6 +413,13 @@ export async function getScammData(key) {
   const data = await dbGet("scamm", key);
   return data || {};
 }
+export async function setSaData(key, value) {
+  await dbSet("sa", key, value);
+}
+export async function getSaData(key) {
+  const data = await dbGet("sa", key);
+  return data || {};
+}
 export async function setEcoData(key, value) {
   await dbSet("economy", key, value);
 }
@@ -4214,56 +4221,44 @@ export async function initGiveaway(client) {
     await msg.delete().catch(() => {});
   });
   client.on("interactionCreate", async (interaction) => {
-    if (!interaction.isButton() || interaction.customId !== "join_giveaway")
-      return;
-    const giveaways = (await getGivData("activeGiveaways")) || {};
+       if (interaction.isButton() && interaction.customId === "join_giveaway") {
+    const giveaways = await getGivData("activeGiveaways") || {};
     const data = giveaways[interaction.message.id];
     if (!data) {
-      return interaction.reply({
-        content: "❌ Dieses Giveaway ist nicht mehr aktiv.",
-        ephemeral: true,
-      });
+      return interaction.reply({ content: " Dieses Giveaway ist nicht mehr aktiv.", ephemeral: true });
     }
     if (data.participants.includes(interaction.user.id)) {
-      return interaction.reply({
-        content: "ℹ️ Du nimmst bereits an diesem Giveaway teil!",
-        ephemeral: true,
-      });
+      return interaction.reply({ content: " Du nimmst bereits an diesem Giveaway teil!", ephemeral: true });
     }
+
+    const networks = await getSaData("alt_networks") || {};
+    const linkedAccounts = networks[interaction.user.id] || [];
+    
+    if (linkedAccounts.length > 0) {
+      const hasAltInGiveaway = linkedAccounts.some(altId => data.participants.includes(altId));
+      if (hasAltInGiveaway) {
+        return interaction.reply({ content: "❌ Du kannst nicht teilnehmen, da bereits ein registrierter Zweitaccount von dir im Giveaway ist!", ephemeral: true });
+      }
+    }
+
     const bonusRoles = ["1464202435638722621", "1506164984202264656"];
-    const activeBonusCount = interaction.member.roles.cache.filter((role) =>
-      bonusRoles.includes(role.id),
-    ).size;
-    const totalTickets =
-      activeBonusCount === 2 ? 4 : activeBonusCount === 1 ? 2 : 1;
+    const activeBonusCount = interaction.member.roles.cache.filter(role => bonusRoles.includes(role.id)).size;
+    const totalTickets = activeBonusCount === 2 ? 4 : (activeBonusCount === 1 ? 2 : 1);
     for (let i = 0; i < totalTickets; i++) {
       data.participants.push(interaction.user.id);
     }
     await setGivData("activeGiveaways", giveaways);
-    const updatedEmbed = EmbedBuilder.from(
-      interaction.message.embeds,
-    ).setDescription(
-      `${data.messageText}\n\nEndet am: <t:${Math.floor(data.endTime / 1000)}:R> (<t:${Math.floor(data.endTime / 1000)}:f>)\nTeilnehmer: **${data.participants.length}**\nGewinner: **${data.winnerCount}**`,
-    );
+    const updatedEmbed = EmbedBuilder.from(interaction.message.embeds)
+      .setDescription(`${data.messageText}\n\nEndet am: <t:${Math.floor(data.endTime / 1000)}:R> (<t:${Math.floor(data.endTime / 1000)}:f>)\nTeilnehmer: **${data.participants.length}**\nGewinner: **${data.winnerCount}**`);
     await interaction.update({ embeds: [updatedEmbed] }).catch(() => {});
-    let replyText = "🎉 Du hast das Giveaway erfolgreich betreten!";
+    let replyText = " Du hast das Giveaway erfolgreich betreten!";
     if (totalTickets === 2) {
       replyText += " (Inklusive **doppelter Chance** durch deine Rolle!)";
-      if (interaction.member.roles.cache.has("1506164984202264656")) {
-        await interaction.member.roles
-          .remove("1506164984202264656")
-          .catch(console.error);
-      }
     } else if (totalTickets === 4) {
-      replyText +=
-        " (Inklusive **4-facher Chance**, da du beide Rollen besitzt!)";
-      await interaction.member.roles
-        .remove("1506164984202264656")
-        .catch(console.error);
+      replyText += " (Inklusive **4-facher Chance**, da du beide Rollen besitzt!)";
     }
-    await interaction
-      .followUp({ content: replyText, ephemeral: true })
-      .catch(() => {});
+    return interaction.followUp({ content: replyText, ephemeral: true }).catch(() => {});
+  }
   });
 }
 async function endGiveaway(client, msg, data, logFunc) {
@@ -6534,6 +6529,19 @@ const commands = [
         .setDescription("Waran soll der Bot dich erinnern?")
         .setRequired(true),
     ),
+    new SlashCommandBuilder()
+    .setName('zweitaccount')
+    .setDescription('Verwaltet die Zweitaccounts von Mitgliedern')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .addSubcommand(sub => sub
+      .setName('add')
+      .setDescription('Verknüpft zwei Accounts miteinander (ID oder Erwähnung)')
+      .addStringOption(opt => opt.setName('account_1').setDescription('Erster Account (ID oder Erwähnung)').setRequired(true))
+      .addStringOption(opt => opt.setName('account_2').setDescription('Zweiter Account (ID oder Erwähnung)').setRequired(true)))
+    .addSubcommand(sub => sub
+      .setName('remove')
+      .setDescription('Löst eine bestimmte Account-Verknüpfung auf')
+      .addStringOption(opt => opt.setName('nutzer').setDescription('ID oder Erwähnung des zu entfernenden Accounts').setRequired(true)))
 ].map((cmd) => cmd.toJSON());
 export function registerSlashCommands(client) {
   client.once("ready", async () => {
@@ -9042,6 +9050,92 @@ export function registerSlashCommands(client) {
 
         globalBotStats.commandsRunned += 1;
       }
+          if (commandName === "zweitaccount") {
+      if (!member.roles.cache.has(TEAM_ROLE_ID) && !member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
+        return interaction.reply({ content: "❌ Keine Berechtigung.", ephemeral: true });
+      }
+
+      const subCommand = options.getSubcommand();
+      let networks = await getSaData("alt_networks") || {};
+
+      if (subCommand === "add") {
+        const input1 = options.getString("account_1").replace(/[<@!>]/g, "");
+        const input2 = options.getString("account_2").replace(/[<@!>]/g, "");
+
+        if (!/^\d{17,20}$/.test(input1) || !/^\d{17,20}$/.test(input2)) {
+          return interaction.reply({ content: "❌ Ungültige IDs oder Erwähnungen angegeben.", ephemeral: true });
+        }
+
+        if (input1 === input2) {
+          return interaction.reply({ content: "❌ Ein Account kann nicht mit sich selbst verknüpft werden.", ephemeral: true });
+        }
+
+        let list1 = networks[input1] || [];
+        let list2 = networks[input2] || [];
+
+        let allLinked = new Set([input1, input2, ...list1, ...list2]);
+        const finalGroup = Array.from(allLinked);
+
+        for (const id of finalGroup) {
+          networks[id] = finalGroup.filter(uid => uid !== id);
+        }
+
+        await setSaData("alt_networks", networks);
+
+        await interaction.reply({ content: `✅ Die Accounts <@${input1}> und <@${input2}> wurden erfolgreich verknüpft.`, ephemeral: true });
+        
+        const logChannel = client.channels.cache.get(logChannelId);
+        if (logChannel) {
+          const logEmbed = new EmbedBuilder()
+            .setColor('#ffffff')
+            .setAuthor({ name: user.username, iconURL: user.displayAvatarURL({ size: 512 }) })
+            .setDescription(`**Aktion:** \`Zweitaccount verknüpft\`\n**Accounts:** <@${input1}> und <@${input2}>\n**Gruppe Gesamt:** ${finalGroup.map(uid => `<@${uid}>`).join(', ')}`)
+            .setTimestamp();
+          await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
+        }
+        globalBotStats.commandsRunned += 1;
+      }
+
+      if (subCommand === "remove") {
+        const targetId = options.getString("nutzer").replace(/[<@!>]/g, "");
+
+        if (!/^\d{17,20}$/.test(targetId)) {
+          return interaction.reply({ content: "❌ Ungültige ID oder Erwähnung angegeben.", ephemeral: true });
+        }
+
+        const linkedWith = networks[targetId];
+        if (!linkedWith || linkedWith.length === 0) {
+          return interaction.reply({ content: "❌ Für diesen Account existieren keine Verknüpfungen.", ephemeral: true });
+        }
+
+        const fullGroup = [targetId, ...linkedWith];
+        delete networks[targetId];
+
+        for (const id of linkedWith) {
+          if (networks[id]) {
+            networks[id] = networks[id].filter(uid => uid !== targetId);
+            if (networks[id].length === 0) {
+              delete networks[id];
+            }
+          }
+        }
+
+        await setSaData("alt_networks", networks);
+
+        await interaction.reply({ content: `✅ Der Account <@${targetId}> wurde aus dem Netzwerk gelöst.`, ephemeral: true });
+        
+        const logChannel = client.channels.cache.get(logChannelId);
+        if (logChannel) {
+          const logEmbed = new EmbedBuilder()
+            .setColor('#ffffff')
+            .setAuthor({ name: user.username, iconURL: user.displayAvatarURL({ size: 512 }) })
+            .setDescription(`**Aktion:** \`Zweitaccount entfernt\`\n**Account:** <@${targetId}>\n**Vorherige Gruppe:** ${fullGroup.map(uid => `<@${uid}>`).join(', ')}`)
+            .setTimestamp();
+          await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
+        }
+        globalBotStats.commandsRunned += 1;
+      }
+    }
     }
   });
 }
