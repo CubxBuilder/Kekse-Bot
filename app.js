@@ -6177,14 +6177,7 @@ export async function deploySlashCommands() {
 }
   client.on("interactionCreate", async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
-    const {
-      commandName,
-      options,
-      member,
-      guild,
-      user,
-      channel: currentChannel,
-    } = interaction;
+    const { commandName, options, member, guild, user, channelId } = interaction;
     const logChannelId = "1423413348220796991";
     const TEAM_ROLE = "1457906448234319922";
     if (
