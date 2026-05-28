@@ -4709,6 +4709,7 @@ export async function initPoll(client) {
       }));
       const endTime = Date.now() + time * 60000;
       const pollContent = createPollText(
+        "<@&1424028924387786762>",
         question,
         description,
         pollOptions,
@@ -6799,6 +6800,7 @@ export async function deploySlashCommands() {
         const endTime = Date.now() + time * 60000;
 
         const pollContent = createPollText(
+          "<@&1424028924387786762>",
           question,
           description,
           pollOptions,
