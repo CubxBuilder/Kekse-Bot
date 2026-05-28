@@ -114,6 +114,15 @@ setInterval(async () => {
     }
   }
 }, 30000);
+const hlGames = new Map();
+const crashGames = new Map();
+const jackpotState = {
+  entries: [],
+  totalPool: 0,
+  countdownTimer: null,
+  countdownEndTime: null,
+  announceMessage: null
+};
 let archives = [];
 let logs = [];
 let backendPingHistory = [];
