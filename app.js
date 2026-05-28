@@ -6178,7 +6178,62 @@ const commands = [
     .addSubcommand(sub => sub
       .setName('close')
       .setDescription('Beendet eine aktive Umfrage vorzeitig')
-      .addStringOption(opt => opt.setName('id').setDescription('Die ID der Umfrage').setRequired(true)))
+      .addStringOption(opt => opt.setName('id').setDescription('Die ID der Umfrage').setRequired(true))),
+    new SlashCommandBuilder()
+    .setName('timeout')
+    .setDescription('Versetzt ein Mitglied in ein Timeout')
+    .addUserOption(opt => opt.setName('nutzer').setDescription('Der betroffene Nutzer').setRequired(true))
+    .addStringOption(opt => opt.setName('dauer').setDescription('Dauer (z.B. 10s, 5m, 2h, 1d)').setRequired(true))
+    .addStringOption(opt => opt.setName('grund').setDescription('Grund für das Timeout').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('untimeout')
+    .setDescription('Hebt das Timeout eines Mitglieds vorzeitig auf')
+    .addUserOption(opt => opt.setName('nutzer').setDescription('Der betroffene Nutzer').setRequired(true))
+    .addStringOption(opt => opt.setName('grund').setDescription('Grund für die Aufhebung').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('kick')
+    .setDescription('Kickt ein Mitglied vom Server')
+    .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu kickende Nutzer').setRequired(true))
+    .addStringOption(opt => opt.setName('grund').setDescription('Grund für den Kick').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('ban')
+    .setDescription('Bannt einen User vom Server (auch per ID)')
+    .addStringOption(opt => opt.setName('userid').setDescription('Die Discord-ID oder Erwähnung des Users').setRequired(true))
+    .addStringOption(opt => opt.setName('grund').setDescription('Grund für den Ban').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('unban')
+    .setDescription('Hebt den Ban eines Users auf')
+    .addStringOption(opt => opt.setName('userid').setDescription('Die Discord-ID des Users').setRequired(true))
+    .addStringOption(opt => opt.setName('grund').setDescription('Grund für den Entban').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('warn')
+    .setDescription('Verwarnt ein Mitglied auf dem Server')
+    .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu verwarnende Nutzer').setRequired(true))
+    .addStringOption(opt => opt.setName('grund').setDescription('Grund für die Verwarnung').setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('warns')
+    .setDescription('Zeigt alle Verwarnungen eines Nutzers an')
+    .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu prüfende Nutzer').setRequired(true))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('warn-remove')
+    .setDescription('Entfernt eine bestimmte Verwarnung eines Nutzers anhand der Nummer')
+    .addUserOption(opt => opt.setName('nutzer').setDescription('Der betroffene Nutzer').setRequired(true))
+    .addIntegerOption(opt => opt.setName('nummer').setDescription('Die Nummer des Warns (z.B. 1)').setRequired(true))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
 ].map(cmd => cmd.toJSON());
 
 export async function deploySlashCommands() {
