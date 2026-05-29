@@ -6300,6 +6300,7 @@ export async function deploySlashCommands() {
       });
       await sendKekseLog("send", targetChannel.toString(), text);
       globalBotStats.commandsRunned += 1;
+      console.log(`${user.username} hat die "send"-Funktion genutzt`)
     }
     if (commandName === "changelog") {
       const changelogChannel = guild.channels.cache.get("1464993818968588379");
@@ -6326,6 +6327,7 @@ export async function deploySlashCommands() {
       });
       await sendKekseLog("changelog", changelogChannel.toString(), updateList);
       globalBotStats.commandsRunned += 1;
+      console.log(`${user.username} hat die "changelog"-Funktion genutzt`)
     }
 
     if (commandName === "embed") {
@@ -6351,6 +6353,7 @@ export async function deploySlashCommands() {
         `Titel: ${title}\nText: ${text}`,
       );
       globalBotStats.commandsRunned += 1;
+      console.log(`${user.username} hat die "embed"-Funktion genutzt`)
     }
 
     if (commandName === "dm") {
@@ -6373,6 +6376,7 @@ export async function deploySlashCommands() {
         });
         await sendKekseLog("dm", `${targetUser.tag} (${userId})`, text);
         globalBotStats.commandsRunned += 1;
+        console.log(`${user.username} hat die "dm"-Funktion genutzt`)
       } catch (err) {
         await interaction.reply({
           content:
@@ -6446,6 +6450,7 @@ export async function deploySlashCommands() {
       });
       await sendKekseLog("news", targetChannel.toString(), rawText);
       globalBotStats.commandsRunned += 1;
+      console.log(`${user.username} hat die "news"-Funktion genutzt`)
     }
     if (commandName === "reply") {
       const msgId = options.getString("msgid");
@@ -6466,6 +6471,7 @@ export async function deploySlashCommands() {
           text,
         );
         globalBotStats.commandsRunned += 1;
+        console.log(`${user.username} hat die "reply"-Funktion genutzt`)
       } catch (err) {
         await interaction.reply({
           content: "❌ Nachricht im angegebenen Kanal nicht gefunden.",
@@ -6497,6 +6503,7 @@ export async function deploySlashCommands() {
         .catch(() => {});
 
       const logChannel = client.channels.cache.get(logChannelId);
+      console.log(`${user.username} hat eine Pingabfrage gestartet. Antwort: API-Latenz:${roundtrip}ms , WebSocket:${wsPing}ms`)
       if (logChannel) {
         const kekseLog = new EmbedBuilder()
           .setColor("#ffffff")
@@ -6617,7 +6624,7 @@ export async function deploySlashCommands() {
       await interaction.editReply({
         content: `✅ **Abschlussbericht:**\n- Gelöscht: **${deletedCount}**\n- Dauer: **${duration}s**\n- Kanal: <#${targetChannel.id}>`,
       });
-
+      console.log(`${user.username} hat die "clear"-Funktion genutzt: ${deletedCount} innerhalb von ${duration}s in ${targetChannel} gelöscht`)
       const logChannel = client.channels.cache.get(logChannelId);
       if (logChannel) {
         const userList = targetUser ? `<@${targetUser.id}>` : "Alle User";
@@ -6712,6 +6719,7 @@ export async function deploySlashCommands() {
         user,
         `**Preis:** ${price}\n**Kanal:** ${channel}\n**Dauer:** ${durationStr}\n**Gewinner:** ${winnerCount}`,
       );
+      console.log(`${user.username} hat ein Giveaway für ${price} in ${channel} erstellt.`)
 
       globalBotStats.commandsRunned += 1;
       globalBotStats.giveawaysCreated += 1;
@@ -6724,7 +6732,7 @@ export async function deploySlashCommands() {
           "Erstelle ein <#1423413348493430905>. Ein Moderator wird sich so schnell wie möglich um dein Anliegen kümmern.",
         ephemeral: false,
       });
-
+      console.log(`${user.username} hat die "help"-Funktion genutzt`)
       globalBotStats.commandsRunned += 1;
     }
     const createPollText = (q, d, opts, end, count, id, author) => {
@@ -6838,6 +6846,7 @@ export async function deploySlashCommands() {
           user,
           `**Frage:** ${question}\n**Dauer:** ${time} Min.\n**ID:** \`${pollId}\``,
         );
+        console.log(`${user.username} hat einen Poll gestartet: ${question}`)
         globalBotStats.pollsCreated += 1;
       }
       const closePoll = async (poll, polls, closer) => {
@@ -6898,6 +6907,7 @@ export async function deploySlashCommands() {
           content: `✅ Die Umfrage mit der ID \`${pollId}\` wurde erfolgreich geschlossen.`,
           flags: [MessageFlags.Ephemeral],
         });
+        console.log(`${user.username} hat den Poll ${pollId} vorzeitig geschlossen`)
         globalBotStats.commandsRunned += 1;
       }
     }
@@ -6917,6 +6927,7 @@ export async function deploySlashCommands() {
         content: `**Aktive Umfragen:**\n${list}`,
         ephemeral: false,
       });
+      console.log(`${user.username} hat die "listpolls"-Funktion genutzt`)
       globalBotStats.commandsRunned += 1;
     }
     if (commandName === "moveadmin") {
@@ -6932,6 +6943,7 @@ export async function deploySlashCommands() {
         flags: [MessageFlags.Ephemeral],
       });
       await moveChannelToAdmin(currentChannel, true);
+      console.log(`${user.username} hat ein Ticket in die Admin-Kategorie verschoben`)
       globalBotStats.commandsRunned += 1;
     }
     if (commandName === "ticket-panel") {
@@ -6947,6 +6959,7 @@ export async function deploySlashCommands() {
         flags: [MessageFlags.Ephemeral],
       });
       await sendTicketPanel(currentChannel);
+      console.log(`${user.username} hat ein neues Ticket-Panel erstellt`)
       globalBotStats.commandsRunned += 1;
     }
     async function closeTicket(channel, moderator) {
@@ -6993,6 +7006,7 @@ export async function deploySlashCommands() {
         flags: [MessageFlags.Ephemeral],
       });
       await closeTicket(currentChannel, user);
+      console.log(`${user.username hat ${currentChannel} geschlossen`)
       globalBotStats.commandsRunned += 1;
     }
     if (commandName === "block") {
@@ -7010,6 +7024,7 @@ export async function deploySlashCommands() {
         targetUser.username,
         days * 24 * 60 * 60 * 1000,
       );
+      console.log(`${user.username} hat ${targetUser.username} von der Erstellung von Tickets ausgeschlossen`)
       await interaction.reply({
         content: `✅ <@${targetUser.id}> wurde für ${days} Tage gesperrt.`,
         flags: [MessageFlags.Ephemeral],
@@ -7092,6 +7107,7 @@ export async function deploySlashCommands() {
           reason,
           `Dauer: ${durationStr}`,
         );
+        console.log(`${user.username} hat ${targetUser} wegen ${reason} für ${durationStr} in den timeout versetzt`)
         globalBotStats.commandsRunned += 1;
       } catch (err) {
         await interaction.reply({
@@ -7113,6 +7129,7 @@ export async function deploySlashCommands() {
           flags: [MessageFlags.Ephemeral],
         });
         await sendModLog("Untimeout", targetUser, reason);
+        console.log(`${user.username} hat ${targetUser} wegen ${reason} aus dem timeout geholt`)
         globalBotStats.commandsRunned += 1;
       } catch (err) {
         await interaction.reply({
@@ -7133,6 +7150,7 @@ export async function deploySlashCommands() {
           flags: [MessageFlags.Ephemeral],
         });
         await sendModLog("Kick", targetUser, reason);
+        console.log(`${user.username} hat ${targetUser} wegen ${reason} vom Server gekickt`)
         globalBotStats.commandsRunned += 1;
       } catch (err) {
         await interaction.reply({
@@ -7163,6 +7181,7 @@ export async function deploySlashCommands() {
           flags: [MessageFlags.Ephemeral],
         });
         await sendModLog("Ban", fetchedUser, reason);
+        console.log(`${user.username} hat ${fetchedUser} wegen ${reason} vom Server gebannt`)
         globalBotStats.commandsRunned += 1;
       } catch (err) {
         await interaction.reply({
@@ -7186,6 +7205,7 @@ export async function deploySlashCommands() {
           flags: [MessageFlags.Ephemeral],
         });
         await sendModLog("Unban", fetchedUser, reason);
+        console.log(`${user.username} hat ${fetchedUser} wegen ${reason} vom Server entbannt`)
         globalBotStats.commandsRunned += 1;
       } catch (err) {
         await interaction.reply({
@@ -7217,6 +7237,7 @@ export async function deploySlashCommands() {
         reason,
         `Warn-Stand: ${moderationData.warns[targetUser.id].length}`,
       );
+      console.log(`${user.username} hat ${targetUser} wegen ${reason} gewarnt`)
       globalBotStats.commandsRunned += 1;
     }
 
@@ -7242,6 +7263,7 @@ export async function deploySlashCommands() {
         .setFooter({ text: "Kekse Clan" });
 
       await interaction.reply({ embeds: [embed] });
+      console.log(`${user.username} hat sich die Warnungen von ${targetUser} angeschaut`)
       globalBotStats.commandsRunned += 1;
     }
 
@@ -7268,6 +7290,7 @@ export async function deploySlashCommands() {
         targetUser,
         `Grund war: ${removed[0].reason}`,
       );
+      console.log(`${user.username} hat ${targetUser} für ${removed[0].reason} entwarnt`)
       globalBotStats.commandsRunned += 1;
     }
     if (commandName === "setup-verify") {
@@ -7276,6 +7299,7 @@ export async function deploySlashCommands() {
           content: "❌ Keine Berechtigung.",
           flags: [MessageFlags.Ephemeral],
         });
+        console.log(`${user.username} hat ein Verifikations-Setup erstellt`)
       }
 
       const targetChannel = client.channels.cache.get(VERIFY_CHANNEL_ID);
@@ -7333,6 +7357,7 @@ export async function deploySlashCommands() {
         .setFooter({ text: "Kekse Clan" });
 
       await interaction.reply({ embeds: [embed] });
+      console.log(`${user.username} hat die "top"-Funktion genutzt`)
       globalBotStats.commandsRunned += 1;
     }
 
@@ -7371,6 +7396,7 @@ export async function deploySlashCommands() {
         content: ` Die nächste Zahl wurde auf **${newNum}** gesetzt.`,
         flags: [MessageFlags.Ephemeral],
       });
+      console.log(`${user.username} hat die Zahl im Counting auf ${newNum} gesetzt`)
       globalBotStats.commandsRunned += 1;
     }
     if (commandName === "daily-setup") {
@@ -7415,6 +7441,7 @@ export async function deploySlashCommands() {
         content: "✅ Daily Setup erfolgreich platziert.",
         flags: [MessageFlags.Ephemeral],
       });
+      console.log(`${user.username} hat ein neues Daily-Setup erstellt`)
       globalBotStats.commandsRunned += 1;
     }
 
@@ -7495,6 +7522,7 @@ export async function deploySlashCommands() {
         content: `✅ Shop erfolgreich im Kanal <#${SHOP_CHANNEL_ID}> eingerichtet!`,
         flags: [MessageFlags.Ephemeral],
       });
+      console.log(`${user.username} hat ein neues Shop-Setup erstellt`)
       globalBotStats.commandsRunned += 1;
     }
     const CASINO_CHANNEL_ID = "1507385550825459812";
@@ -8343,6 +8371,7 @@ export async function deploySlashCommands() {
           components: [row],
           flags: [MessageFlags.Ephemeral]
         });
+        console.log(`${user.username} hat eine Konto-Erstellung gestartet`)
       }
 
       if (subCommand === "help") {
@@ -8358,6 +8387,7 @@ export async function deploySlashCommands() {
           );
 
         return interaction.reply({ embeds: [helpEmbed], flags: [MessageFlags.Ephemeral] });
+        console.log(`${user.username} hat die "bank help"-Funktion genutzt`)
       }
 
       if (subCommand === "pay") {
@@ -8425,6 +8455,7 @@ export async function deploySlashCommands() {
 
         await user.send({ content: `Dein aktueller Kontostand beträgt: **${userData.balance || 0} Kekse** 🍪\nFür Auszahlungen öffne bitte ein Ticket in https://discord.com/channels/1423413347168157718/1423413348493430905` }).catch(() => {});
         return interaction.reply({ content: "✅ Dein aktueller Kontostand wurde dir per DM zugestellt.", flags: [MessageFlags.Ephemeral] });
+        console.log(`${user.username} hat seinen Kontostand eingesehen.`)
       }
     }
 
@@ -8448,8 +8479,10 @@ export async function deploySlashCommands() {
 
       if (subCommand === "add") {
         currentBalance += amount;
+        console.log(`${user.username} hat sich ${amount} Kekse hinzugefügt`)
       } else if (subCommand === "remove") {
         currentBalance = Math.max(0, currentBalance - amount);
+        console.log(`${user.username} hat sich ${amount} Kekse entfernt`)
       }
 
       targetData.balance = currentBalance;
@@ -8492,11 +8525,13 @@ export async function deploySlashCommands() {
 
         await user.send({ embeds: [dmEmbed] }).catch(() => {});
         return interaction.reply({ content: `✅ Die Kontodetails von ${targetUser.username} wurden dir per DM zugestellt.`, flags: [MessageFlags.Ephemeral] });
+        console.log(`${user.username} hat den Kontostand von ${targetUser.username} eingesehen`)
       }
 
       if (subCommand === "get") {
         const existingKekse = await initEconomyGetKekse(client);
         return interaction.reply({ content: `Es sind aktuell ${existingKekse} Kekse im Umlauf.`, flags: [MessageFlags.Ephemeral] });
+        console.log(`${user.username} hat die "bank get"-Funktion genutzt`)
       }
     }
       if (commandName === "confirm" || commandName === "decline") {
@@ -8530,6 +8565,7 @@ export async function deploySlashCommands() {
               "plus",
               "Transaction",
             );
+            console.log(`${user.username} hat eine Transaktion bestätigt`)
             await setEcoData(transfer.userId, userData);
             await addBotBalance(transfer.totalCoins);
           } else {
@@ -8583,6 +8619,7 @@ export async function deploySlashCommands() {
             );
             await setEcoData(transfer.userId, userData);
           }
+          console.log(`${user.username} hat eine Transaktion abgebrochen`)
 
           activeTransfers.delete(transfer.id);
           await saveActiveTransfers();
@@ -8617,6 +8654,7 @@ export async function deploySlashCommands() {
 
         reminderData.reminders.push(newReminder);
         await setRData("reminders", reminderData);
+        console.log(`${user.username} hat einen Reminder für sich gestartet`)
 
         await interaction.reply({
           content: `✅ Ich werde dich in **${timeStr}** an folgendes erinnern: ${reason}`,
@@ -8684,6 +8722,7 @@ export async function deploySlashCommands() {
             .setTimestamp();
           await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
         }
+        console.log(`${user.username} hat einen Zweitaccount verifiziert`)
         globalBotStats.commandsRunned += 1;
       }
 
@@ -8724,6 +8763,7 @@ export async function deploySlashCommands() {
             .setTimestamp();
           await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
         }
+        console.log(`${user.username} hat einen Zweitaccount entfernt`)
         globalBotStats.commandsRunned += 1;
       }
     }
