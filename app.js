@@ -7006,7 +7006,7 @@ export async function deploySlashCommands() {
         flags: [MessageFlags.Ephemeral],
       });
       await closeTicket(currentChannel, user);
-      console.log(`${user.username hat ${currentChannel} geschlossen`)
+      console.log(`${user.username} hat ${currentChannel} geschlossen`)
       globalBotStats.commandsRunned += 1;
     }
     if (commandName === "block") {
