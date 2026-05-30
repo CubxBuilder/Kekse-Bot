@@ -6235,17 +6235,18 @@ const commands = [
     .addUserOption(opt => opt.setName('nutzer').setDescription('Der betroffene Nutzer').setRequired(true))
     .addIntegerOption(opt => opt.setName('nummer').setDescription('Die Nummer des Warns (z.B. 1)').setRequired(true))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+  
     new SlashCommandBuilder()
     .setName('promote')
     .setDescription('Befördert ein Mitglied auf den nächsthöheren Rang')
     .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu befördernde Nutzer').setRequired(true))
-    .setDefaultMemberPermission(PermissionFlagsBits.SendMessagesInThreads),
+    .setDefaultMemberPermissions(PermissionFlagsBits.SendMessagesInThreads),
 
   new SlashCommandBuilder()
     .setName('demote')
     .setDescription('Degradiert ein Mitglied auf einen niedrigeren Rang')
     .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu degradierende Nutzer').setRequired(true))
-    .setDefaultMemberPermission(PermissionFlagsBits.SendMessagesInThreads)
+    .setDefaultMemberPermissions(PermissionFlagsBits.SendMessagesInThreads)
 ].map(cmd => cmd.toJSON());
 
 export async function deploySlashCommands() {
