@@ -22,6 +22,7 @@ import {
   TextInputStyle,
   ComponentType,
 } from "discord.js";
+import { handleMemberUpdate, syncAllMembers } from "./mcRoleSync.js";
 import https from "https";
 import "dotenv/config";
 import path from "path";
@@ -8801,6 +8802,9 @@ client.once("clientReady", async () => {
       activities: [{ name: "!help", type: 0 }],
       status: "online",
     });
+    const guild = client.guilds.cache.get("1423413347168157718");
+    await syncAllMembers(guild);
+    console.log(`Server-Sync gestartet...`)
     console.log(`Bot online: ${client.user.tag}`);
     await startStorages();
   } catch (err) {
