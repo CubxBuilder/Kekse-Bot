@@ -695,12 +695,29 @@ if (d.ping?.history && d.ping.history.length > 0) {
  chart.update("none");
 }
 if (d.logs?.length) {
- const con = $("console");
- con.innerHTML = d.logs.map(l => {
- const timeStr = new Date(l.t).toLocaleTimeString("de-DE");
- return `<div><span style="color:var(--text-muted)">[${timeStr}]</span> ${escapeHTML(l.m)}</div>`;
- }).join("");
- con.scrollTop = con.scrollHeight;
+  const con = $("console");
+  const isScrolledToBottom = con.scrollHeight - con.clientHeight <= con.scrollTop + 10;
+
+  con.innerHTML = d.logs.map(l => {
+    const dateObj = new Date(l.t);
+    const dateStr = dateObj.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+    const timeStr = dateObj.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    
+    const logText = l.m || "";
+    let logColor = "var(--text-secondary)";
+    
+    if (/feh|err|fail|crit|missing|wrong/i.test(logText)) {
+      logColor = "#f87171";
+    } else if (/economy|storage|transfer|mcrolesync/i.test(logText)) {
+      logColor = "#ffffff";
+    }
+
+    return `<div style="color:${logColor}; border-bottom: 1px solid #161616; padding: 2px 0;"><span style="color:var(--text-muted)">[${dateStr} ${timeStr}]</span> ${escapeHTML(logText)}</div>`;
+  }).join("");
+
+  if (isScrolledToBottom) {
+    con.scrollTop = con.scrollHeight;
+  }
 }
 } catch(e) { console.error(e); }
 }
