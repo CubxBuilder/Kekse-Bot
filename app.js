@@ -5774,9 +5774,9 @@ export async function initDashboard(app, client, globalBotStats) {
   const logs = [];
   const _log = console.log.bind(console);
   console.log = (...a) => {
-    _log(...a);
-    logs.push({ t: Date.now(), m: a.join(" ") });
-    if (logs.length > 100) logs.shift();
+    const message = a.join(" ");
+    _log(message);
+    logs.push({ t: Date.now(), m: message });
   };
 }
 app.get("/api/stats", async (req, res) => {
