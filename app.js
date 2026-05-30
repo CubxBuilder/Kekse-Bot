@@ -6234,7 +6234,18 @@ const commands = [
     .setDescription('Entfernt eine bestimmte Verwarnung eines Nutzers anhand der Nummer')
     .addUserOption(opt => opt.setName('nutzer').setDescription('Der betroffene Nutzer').setRequired(true))
     .addIntegerOption(opt => opt.setName('nummer').setDescription('Die Nummer des Warns (z.B. 1)').setRequired(true))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+    new SlashCommandBuilder()
+    .setName('promote')
+    .setDescription('Befördert ein Mitglied auf den nächsthöheren Rang')
+    .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu befördernde Nutzer').setRequired(true))
+    .setDefaultMemberPermission(PermissionFlagsBits.SendMessagesInThreads),
+
+  new SlashCommandBuilder()
+    .setName('demote')
+    .setDescription('Degradiert ein Mitglied auf einen niedrigeren Rang')
+    .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu degradierende Nutzer').setRequired(true))
+    .setDefaultMemberPermission(PermissionFlagsBits.SendMessagesInThreads)
 ].map(cmd => cmd.toJSON());
 
 export async function deploySlashCommands() {
@@ -8766,6 +8777,135 @@ export async function deploySlashCommands() {
         }
         console.log(`${user.username} hat einen Zweitaccount entfernt`)
         globalBotStats.commandsRunned += 1;
+      }
+    }
+        const ROLE_VIP = "1434555291252297728";
+    const ROLE_MEMBER = "1506732560837771284";
+    const ROLE_TEAM = TEAM_ROLE_ID;
+    const ROLE_ADMIN = ADMIN_ROLE_ID;
+    const DEV_ID = "1151971830983311441";
+
+    if (commandName === "promote" || commandName === "demote") {
+      const targetUser = options.getUser("nutzer");
+      
+      try {
+        const targetMember = await guild.members.fetch(targetUser.id);
+        const executorMember = member;
+
+        const isDev = executorMember.id === DEV_ID;
+        const isAdmin = executorMember.roles.cache.has(ROLE_ADMIN);
+        const isTeam = executorMember.roles.cache.has(ROLE_TEAM);
+        const isMember = executorMember.roles.cache.has(ROLE_MEMBER);
+
+        if (!isMember && !isTeam && !isAdmin && !isDev) {
+          return interaction.reply({ content: "❌ Du hast keine Berechtigung, das Rangänderungs-System zu nutzen.", flags: [MessageFlags.Ephemeral] });
+        }
+
+        const targetHasAdmin = targetMember.roles.cache.has(ROLE_ADMIN);
+        const targetHasTeam = targetMember.roles.cache.has(ROLE_TEAM);
+        const targetHasMember = targetMember.roles.cache.has(ROLE_MEMBER);
+        const targetHasVip = targetMember.roles.cache.has(ROLE_VIP);
+
+        if (commandName === "promote") {
+          if (!targetHasVip && !targetHasMember && !targetHasTeam && !targetHasAdmin) {
+            await targetMember.roles.add(ROLE_VIP);
+            console.log(`[Promote] ${user.username} hat ${targetUser.username} zu VIP befördert.`);
+            await interaction.reply({ content: `✅ <@${targetUser.id}> wurde erfolgreich zum **VIP** befördert.` });
+            await sendKekseLog("Promote", targetUser.toString(), "Rang auf **VIP** erhöht.");
+            globalBotStats.commandsRunned += 1;
+            return;
+          }
+
+          if (targetHasVip && !targetHasMember && !targetHasTeam && !targetHasAdmin) {
+            if (!isTeam && !isAdmin && !isDev) {
+              return interaction.reply({ content: "❌ Nur Teammitglieder oder höher können zum Mitglied befördern.", flags: [MessageFlags.Ephemeral] });
+            }
+            await targetMember.roles.add(ROLE_MEMBER);
+            console.log(`[Promote] ${user.username} hat ${targetUser.username} zum Mitglied befördert.`);
+            await interaction.reply({ content: `✅ <@${targetUser.id}> wurde erfolgreich zum **Mitglied** befördert.` });
+            await sendKekseLog("Promote", targetUser.toString(), "Rang auf **Mitglied** erhöht.");
+            globalBotStats.commandsRunned += 1;
+            return;
+          }
+
+          if (targetHasMember && !targetHasTeam && !targetHasAdmin) {
+            if (!isAdmin && !isDev) {
+              return interaction.reply({ content: "❌ Nur Admins oder Entwickler können zum Teammitglied befördern.", flags: [MessageFlags.Ephemeral] });
+            }
+            await targetMember.roles.add(ROLE_TEAM);
+            console.log(`[Promote] ${user.username} hat ${targetUser.username} zum Teammitglied befördert.`);
+            await interaction.reply({ content: `✅ <@${targetUser.id}> wurde erfolgreich zum **Teammitglied** befördert.` });
+            await sendKekseLog("Promote", targetUser.toString(), "Rang auf **Teammitglied** erhöht.");
+            globalBotStats.commandsRunned += 1;
+            return;
+          }
+
+          if (targetHasTeam && !targetHasAdmin) {
+            if (!isDev) {
+              return interaction.reply({ content: "❌ Nur der Entwickler kann zum Admin befördern.", flags: [MessageFlags.Ephemeral] });
+            }
+            await targetMember.roles.add(ROLE_ADMIN);
+            console.log(`[Promote] ${user.username} hat ${targetUser.username} zum Admin befördert.`);
+            await interaction.reply({ content: `✅ <@${targetUser.id}> wurde erfolgreich zum **Admin** befördert.` });
+            await sendKekseLog("Promote", targetUser.toString(), "Rang auf **Admin** erhöht.");
+            globalBotStats.commandsRunned += 1;
+            return;
+          }
+
+          return interaction.reply({ content: "❌ Dieser Nutzer hat bereits den höchsten beförderbaren Rang.", flags: [MessageFlags.Ephemeral] });
+        }
+
+        if (commandName === "demote") {
+          if (targetHasAdmin) {
+            if (!isDev) {
+              return interaction.reply({ content: "❌ Nur der Entwickler darf Admins degradieren.", flags: [MessageFlags.Ephemeral] });
+            }
+            await targetMember.roles.remove(ROLE_ADMIN);
+            console.log(`[Demote] ${user.username} hat Admin ${targetUser.username} degradiert.`);
+            await interaction.reply({ content: `⚠️ <@${targetUser.id}> wurde vom **Admin** zum **Teammitglied** degradiert.` });
+            await sendKekseLog("Demote", targetUser.toString(), "Vom **Admin** herabgestuft.");
+            globalBotStats.commandsRunned += 1;
+            return;
+          }
+
+          if (targetHasTeam) {
+            if (!isDev) {
+              return interaction.reply({ content: "❌ Nur der Entwickler darf Teammitglieder degradieren.", flags: [MessageFlags.Ephemeral] });
+            }
+            await targetMember.roles.remove(ROLE_TEAM);
+            console.log(`[Demote] ${user.username} hat Teammitglied ${targetUser.username} degradiert.`);
+            await interaction.reply({ content: `⚠️ <@${targetUser.id}> wurde vom **Teammitglied** zum **Mitglied** degradiert.` });
+            await sendKekseLog("Demote", targetUser.toString(), "Vom **Teammitglied** herabgestuft.");
+            globalBotStats.commandsRunned += 1;
+            return;
+          }
+
+          if (targetHasMember) {
+            if (!isAdmin && !isDev) {
+              return interaction.reply({ content: "❌ Nur Admins dürfen reguläre Mitglieder degradieren.", flags: [MessageFlags.Ephemeral] });
+            }
+            await targetMember.roles.remove(ROLE_MEMBER);
+            console.log(`[Demote] ${user.username} hat Mitglied ${targetUser.username} degradiert.`);
+            await interaction.reply({ content: `⚠️ <@${targetUser.id}> wurde vom **Mitglied** zum **VIP** degradiert.` });
+            await sendKekseLog("Demote", targetUser.toString(), "Vom **Mitglied** herabgestuft.");
+            globalBotStats.commandsRunned += 1;
+            return;
+          }
+
+          if (targetHasVip) {
+            await targetMember.roles.remove(ROLE_VIP);
+            console.log(`[Demote] ${user.username} hat VIP ${targetUser.username} degradiert.`);
+            await interaction.reply({ content: `⚠️ <@${targetUser.id}> hat den **VIP** Status verloren.` });
+            await sendKekseLog("Demote", targetUser.toString(), "Vom **VIP** herabgestuft.");
+            globalBotStats.commandsRunned += 1;
+            return;
+          }
+
+          return interaction.reply({ content: "❌ Dieser Nutzer hat keinen Rang, der herabgestuft werden kann.", flags: [MessageFlags.Ephemeral] });
+        }
+
+      } catch (err) {
+        return interaction.reply({ content: "❌ Der Nutzer konnte nicht auf dem Server gefunden werden oder der Bot hat nicht genügend Rechte, um seine Rollen anzupassen.", flags: [MessageFlags.Ephemeral] });
       }
     }
   });
