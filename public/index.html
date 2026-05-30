@@ -694,9 +694,11 @@ if (d.ping?.history && d.ping.history.length > 0) {
  chart.data.datasets[0].data = d.ping.history;
  chart.update("none");
 }
-if (d.logs?.length) {
+if (d.logs && d.logs.length) {
   const con = $("console");
-  const isScrolledToBottom = con.scrollHeight - con.clientHeight <= con.scrollTop + 10;
+  const currentScrollTop = con.scrollTop;
+  const currentScrollHeight = con.scrollHeight;
+  const isAtBottom = currentScrollHeight - con.clientHeight <= currentScrollTop + 15;
 
   con.innerHTML = d.logs.map(l => {
     const dateObj = new Date(l.t);
@@ -704,19 +706,21 @@ if (d.logs?.length) {
     const timeStr = dateObj.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
     
     const logText = l.m || "";
-    let logColor = "var(--text-secondary)";
+    let logColor = "var(--text-primary)";
     
-    if (/feh|err|fail|crit|missing|wrong/i.test(logText)) {
+    if (/warning|fehler|error|fail|crit|❌/i.test(logText)) {
       logColor = "#f87171";
     } else if (/economy|storage|transfer|mcrolesync/i.test(logText)) {
       logColor = "#ffffff";
     }
 
-    return `<div style="color:${logColor}; border-bottom: 1px solid #161616; padding: 2px 0;"><span style="color:var(--text-muted)">[${dateStr} ${timeStr}]</span> ${escapeHTML(logText)}</div>`;
+    return `<div style="color:${logColor}; border-bottom: 1px solid #161616; padding: 4px 0; font-family: monospace; font-size: 13px;"><span style="color:var(--text-muted); margin-right: 8px;">[${dateStr} ${timeStr}]</span> ${escapeHTML(logText)}</div>`;
   }).join("");
 
-  if (isScrolledToBottom) {
+  if (isAtBottom) {
     con.scrollTop = con.scrollHeight;
+  } else {
+    con.scrollTop = currentScrollTop;
   }
 }
 } catch(e) { console.error(e); }
