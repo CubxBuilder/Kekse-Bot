@@ -1056,8 +1056,8 @@ export async function initEconomySystem(client) {
         await logTransaction(msg.author.id, betAmount, "minus", "Casino Crash");
         await setEcoData(msg.author.id, userData);
         const crashPoint = parseFloat(
-          Math.max(1.01, 0.97 / (1 - Math.random())).toFixed(2),
-        );
+  Math.max(1.01, 0.70 / (1 - Math.random())).toFixed(2),
+);
         let multiplier = 1.0;
         const cashoutRow = () =>
           new ActionRowBuilder().addComponents(
