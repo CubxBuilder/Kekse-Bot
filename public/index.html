@@ -708,7 +708,7 @@ if (d.logs && d.logs.length) {
     const logText = l.m || "";
     let logColor = "var(--text-primary)";
     
-    if (/warning|fehler|error|fail|crit|❌/i.test(logText)) {
+    if (/warning|fehler|error|fail|crit/i.test(logText)) {
       logColor = "#f87171";
     } else if (/economy|storage|transfer|mcrolesync/i.test(logText)) {
       logColor = "#ffffff";
