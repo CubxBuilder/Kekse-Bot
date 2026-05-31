@@ -350,7 +350,6 @@ async function logTransaction(userId, amount, type, description) {
       type: type,
       description: description,
     });
-    if (data.history.length > 50) data.history.pop();
     await dbSet("economy", key, data);
   } catch (err) {
     console.error(err);
