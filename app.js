@@ -339,7 +339,6 @@ function captureLog(type, args) {
     message: message,
   };
   logs.push(logEntry);
-  if (logs.length > 100) logs.shift();
 }
 async function logTransaction(userId, amount, type, description) {
   try {
