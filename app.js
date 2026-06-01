@@ -4304,6 +4304,14 @@ async function endGiveaway(client, msg, data, logFunc) {
       `🎉 Glückwunsch ${winnerMentions}! Du hast **${data.price}** gewonnen!\nMelde dich bitte zeitnah im Support.`,
     );
   }
+  const BONUS_ROLE_REMOVE = "1506164984202264656";
+const uniqueParticipants = [...new Set(participants)];
+for (const userId of uniqueParticipants) {
+  const member = await guild.members.fetch(userId).catch(() => null);
+  if (member && member.roles.cache.has(BONUS_ROLE_REMOVE)) {
+    await member.roles.remove(BONUS_ROLE_REMOVE).catch(() => {});
+  }
+}
   const host = await client.users.fetch(data.hostId).catch(() => client.user);
   await logFunc(
     "Giveaway beendet",
