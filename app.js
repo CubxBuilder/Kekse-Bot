@@ -1977,7 +1977,6 @@ export async function initEconomySystem(client) {
         } else {
           userData.claimedDailies = { ...userData.claimedDailies };
         }
-
         await setEcoData(interaction.user.id, userData);
         return interaction.reply({
           content:
@@ -3970,6 +3969,11 @@ export async function initCounting(client) {
         countingData.lastMessageId = msg.id;
         await saveCounting();
         await msg.react("✅").catch(() => {});
+        const userData = (await getEcoData(msg.author.id)) || {};
+        const payout = 1;
+        userData.balance = (userData.balance || 0) + payout;
+        await logTransaction(msg.author.id, payout, "plus", "Counting");
+        await setEcoData(msg.author.id, userData);
         return;
       }
     }
@@ -3995,6 +3999,11 @@ export async function initCounting(client) {
         }
         countingData.lastMessageId = msg.id;
         await saveCounting();
+        const userData = (await getEcoData(msg.author.id)) || {};
+        const payout = 1;
+        userData.balance = (userData.balance || 0) + payout;
+        await logTransaction(msg.author.id, payout, "plus", "Counting");
+        await setEcoData(msg.author.id, userData);
         await msg.react("🟨").catch(() => {});
         return;
       }
@@ -4037,6 +4046,11 @@ export async function initCounting(client) {
     }
     countingData.lastMessageId = msg.id;
     await saveCounting();
+    const userData = (await getEcoData(msg.author.id)) || {};
+        const payout = 1;
+        userData.balance = (userData.balance || 0) + payout;
+        await logTransaction(msg.author.id, payout, "plus", "Counting");
+        await setEcoData(msg.author.id, userData);
     await msg.react("✅").catch(() => {});
   };
   const runSync = async () => {
