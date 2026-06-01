@@ -3883,6 +3883,7 @@ let countingData = {
   lastCountingTime: null,
   scoreboard: {},
 };
+
 async function loadCounting() {
   const stored = await getCouData("counting");
   if (stored) {
@@ -3911,7 +3912,24 @@ export async function initCounting(client) {
 
     await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
   };
-
+const checkMilestone = async (userId, channel) => {
+  const score = countingData.scoreboard[userId];
+  const milestones = {};
+  for (let i = 10; i <= 90; i += 10) milestones[i] = i;
+  for (let i = 100; i <= 900; i += 100) milestones[i] = i * 10;
+  for (let i = 1000; i <= 100000; i += 1000) milestones[i] = 50000;
+  if (!milestones[score]) return;
+  countingData.milestonesClaimed = countingData.milestonesClaimed || {};
+  const claimKey = `${userId}_${score}`;
+  if (countingData.milestonesClaimed[claimKey]) return;
+  countingData.milestonesClaimed[claimKey] = true;
+  const reward = milestones[score];
+  const mileUserData = (await getEcoData(userId)) || {};
+  mileUserData.balance = (mileUserData.balance || 0) + reward;
+  await logTransaction(userId, reward, "plus", `Counting Meilenstein ${score}`);
+  await setEcoData(userId, mileUserData);
+  await channel.send(`🎉 <@${userId}> hat **${score} Zählungen** erreicht und erhält **${reward} Kekse** als Belohnung!`);
+};
   const handleCounting = async (msg, syncMode = false) => {
     if (!syncMode && msg.author.bot) return;
     if (msg.channel.id !== COUNTING_CHANNEL) return;
@@ -3965,6 +3983,7 @@ export async function initCounting(client) {
           if (msg.member.roles.cache.has(COUNTING_XP)) {
             countingData.scoreboard[msg.author.id]++;
           }
+          await checkMilestone(msg.author.id, msg.channel);
         }
         countingData.lastMessageId = msg.id;
         await saveCounting();
@@ -3995,6 +4014,7 @@ export async function initCounting(client) {
           if (msg.member.roles.cache.has(COUNTING_XP)) {
             countingData.scoreboard[msg.author.id]++;
           }
+          await checkMilestone(msg.author.id, msg.channel);
           countingData.lastMessageId = msg.id;
         }
         countingData.lastMessageId = msg.id;
@@ -4043,6 +4063,7 @@ export async function initCounting(client) {
     if (!excludedUsers.includes(msg.author.id)) {
       countingData.scoreboard[msg.author.id] ??= 0;
       countingData.scoreboard[msg.author.id]++;
+      await checkMilestone(msg.author.id, msg.channel);
     }
     countingData.lastMessageId = msg.id;
     await saveCounting();
