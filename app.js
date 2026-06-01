@@ -3882,6 +3882,8 @@ let countingData = {
   lastUserId: null,
   lastCountingTime: null,
   scoreboard: {},
+  systemPuffer: 0,
+  lastPufferGranted: 0,
 };
 
 async function loadCounting() {
@@ -3973,6 +3975,12 @@ const checkMilestone = async (userId, channel) => {
       if (num === 1 || num === -1) {
         countingData.direction = num;
         countingData.currentNumber = num + countingData.direction;
+        const currentHundred = Math.floor(Math.abs(countingData.currentNumber) / 100);
+        if (currentHundred > countingData.lastPufferGranted) {
+            countingData.lastPufferGranted = currentHundred;
+            countingData.systemPuffer = 1;
+            await msg.channel.send(`🛡️ Puffer aufgeladen! Der nächste Fehler wird abgefangen.`);
+        }
         countingData.lastUserId = msg.author.id;
         countingData.lastCountingTime = msg.createdTimestamp;
         const excludedUsers = ["1151971830983311441", "1274320881585356892"];
@@ -4004,6 +4012,12 @@ const checkMilestone = async (userId, channel) => {
       if (msg.member.roles.cache.has(COUNTING_PUFFER)) {
         msg.member.roles.remove(COUNTING_PUFFER);
         countingData.currentNumber = num + countingData.direction;
+        const currentHundred = Math.floor(Math.abs(countingData.currentNumber) / 100);
+        if (currentHundred > countingData.lastPufferGranted) {
+            countingData.lastPufferGranted = currentHundred;
+            countingData.systemPuffer = 1;
+            await msg.channel.send(`🛡️ Puffer aufgeladen! Der nächste Fehler wird abgefangen.`);
+        }
         countingData.lastUserId = msg.author.id;
         countingData.lastCountingTime = msg.createdTimestamp;
         const excludedUsers = ["1151971830983311441", "1274320881585356892"];
@@ -4027,6 +4041,13 @@ const checkMilestone = async (userId, channel) => {
         await msg.react("🟨").catch(() => {});
         return;
       }
+      if (countingData.systemPuffer > 0) {
+          countingData.systemPuffer = 0;
+          await saveCounting();
+          await msg.react("🛡️").catch(() => {});
+          await msg.channel.send(`🛡️ Puffer verbraucht! Weiter zählen ab **${countingData.currentNumber}**.`);
+          return;
+      }
       const reason =
         num !== countingData.currentNumber
           ? `Falsche Zahl (${num} statt ${countingData.currentNumber})`
@@ -4040,6 +4061,8 @@ const checkMilestone = async (userId, channel) => {
       }
       countingData.currentNumber = 1;
       countingData.direction = 1;
+      countingData.lastPufferGranted = 0;
+      countingData.systemPuffer = 0;
       countingData.lastUserId = null;
       countingData.lastCountingTime = msg.createdTimestamp;
       countingData.lastMessageId = msg.id;
@@ -4056,6 +4079,12 @@ const checkMilestone = async (userId, channel) => {
       return;
     }
     countingData.currentNumber = num + (countingData.direction || 1);
+    const currentHundred = Math.floor(Math.abs(countingData.currentNumber) / 100);
+    if (currentHundred > countingData.lastPufferGranted) {
+         countingData.lastPufferGranted = currentHundred;
+         countingData.systemPuffer = 1;
+        await msg.channel.send(`🛡️ Puffer aufgeladen! Der nächste Fehler wird abgefangen.`);
+    }
     countingData.lastUserId = msg.author.id;
     countingData.lastCountingTime = msg.createdTimestamp;
 
