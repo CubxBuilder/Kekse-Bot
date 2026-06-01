@@ -563,12 +563,13 @@ export async function getEconomyStats(client) {
   const prozent = parseFloat(((kurs / basisWertProKeks) * 100).toFixed(1));
 
   return {
-    existingKekse,
-    botBalance,
-    kurs,
-    kekseProCoin,
-    prozent,
-  };
+  existingKekse,
+  botBalance,
+  kurs,
+  kekseProCoin,
+  prozent,
+  kaufpreis: 1.0,
+};
 }
 export async function initEconomySystem(client) {
   const crashGames = new Map();
@@ -753,8 +754,9 @@ export async function initEconomySystem(client) {
       const stats = await getEconomyStats(msg.client);
       return msg.reply(
         `📊 **Wirtschafts-Statistiken:**\n\n` +
-          `• Aktueller Kurs: **${stats.kekseProCoin} Kekse = 1 Coin**\n` +
-          `• Wert pro Keks: **${stats.kurs}** Coins`,
+        `• Kaufpreis: **1 Coin = 1 Keks** (fest)\n` +
+        `• Verkaufskurs: **${stats.kurs} Coins pro Keks**\n` +
+        `• Kekse im Umlauf: **${stats.existingKekse}**\n`
       );
     }
     if (command === "!casino") {
@@ -2389,8 +2391,8 @@ export async function initEconomyTransferSystem(client, channel) {
       .setColor("#ffffff")
       .setDescription(
         `📊 **Aktuelle Kurse:**\n` +
-          `• Kurs: **${stats.kekseProCoin} Kekse = 1 Coin**\n` +
-          `• Wert pro Keks: **${stats.kurs}** Coins`,
+        `• Kaufpreis: **1 Coin = 1 Keks** (fest)\n` +
+        `• Verkaufskurs: **${stats.kurs} Coins pro Keks**\n`,
       );
 
     const row = new ActionRowBuilder().addComponents(
@@ -2530,7 +2532,7 @@ export async function handleEconomyInteractions(client) {
         const stats = await getEconomyStats(client);
         const userData = await getEcoData(int.user.id);
         const currentBalance = userData.balance || 0;
-        const totalCoins = parseFloat((amount * stats.kurs).toFixed(4));
+        const totalCoins = isBuy ? amount * 1.0 : parseFloat((amount * stats.kurs).toFixed(4));
         if (!isBuy) {
           if (currentBalance < amount) {
             await int.editReply(
@@ -2565,7 +2567,8 @@ export async function handleEconomyInteractions(client) {
             `Bitte überprüfe deine Angaben genau:\n\n` +
               `• Aktion: **${isBuy ? "Kekse kaufen (➔ Kekse)" : "Kekse verkaufen (➔ Coins)"}**\n` +
               `• Keksmenge: **${amount} Kekse**\n` +
-              `• Gegenwert: **${totalCoins} Minevale Coins**\n\n` +
+              `• Gegenwert: **${totalCoins} Minevale Coins**\n` +
+              `• Kurs: **${isBuy ? "1 Coin pro Keks" : stats.kurs + " pro Keks"}**\n\n` +
               `Bist du dir sicher, dass du diesen Tausch durchführen möchtest?`,
           );
 
