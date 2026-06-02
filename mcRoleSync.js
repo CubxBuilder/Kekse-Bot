@@ -1,15 +1,10 @@
-// mcRoleSync.js
-// Synchronisiert Discord-Rollen mit LuckPerms-Gruppen auf dem Minecraft-Server
-// Einbinden in deinen Bot: import { syncRoles, handleMemberUpdate } from "./mcRoleSync.js";
-
 import net from "net";
 import { getEcoData } from "./app.js";
 
-// ─── Konfiguration ────────────────────────────────────────────────────────────
-
-const RCON_HOST = "127.0.0.1";
-const RCON_PORT = 25575;
-const RCON_PASSWORD = "t20_2j0f1hmt";
+const SERVERS = [
+  { host: "127.0.0.1",      port: 25575, password: "t20_2j0f1hmt" },
+  { host: "92.211.35.164",  port: 25575, password: "t20_2j0f1hmt" },
+];
 
 const ROLE_MAP = [
   { roleId: "1454169207838216253", group: "developer", priority: 4 },
@@ -17,8 +12,6 @@ const ROLE_MAP = [
   { roleId: "1424020019070898186", group: "moderator", priority: 2 },
   { roleId: "1423428139790499983", group: "member",    priority: 1 },
 ];
-
-// ─── RCON Client ──────────────────────────────────────────────────────────────
 
 const RCON_PACKET_TYPE = {
   AUTH: 3,
@@ -39,7 +32,7 @@ function createPacket(id, type, body) {
   return buf;
 }
 
-async function rconCommand(command) {
+async function rconCommand(command, host, port, password) {
   return new Promise((resolve, reject) => {
     const socket = new net.Socket();
     let authenticated = false;
@@ -51,8 +44,8 @@ async function rconCommand(command) {
       reject(new Error("RCON Timeout"));
     }, 5000);
 
-    socket.connect(RCON_PORT, RCON_HOST, () => {
-      socket.write(createPacket(1, RCON_PACKET_TYPE.AUTH, RCON_PASSWORD));
+    socket.connect(port, host, () => {
+      socket.write(createPacket(1, RCON_PACKET_TYPE.AUTH, password));
     });
 
     socket.on("data", (data) => {
@@ -91,11 +84,6 @@ async function rconCommand(command) {
   });
 }
 
-// ─── Hilfsfunktionen ──────────────────────────────────────────────────────────
-
-/**
- * Gibt die höchste Rolle zurück die ein Member hat
- */
 function getHighestRole(member) {
   for (const { roleId, group } of ROLE_MAP) {
     if (member.roles.cache.has(roleId)) return group;
@@ -103,30 +91,29 @@ function getHighestRole(member) {
   return null;
 }
 
-/**
- * Alle LuckPerms-Gruppen des Users entfernen und neue setzen
- */
 async function applyLuckPermsGroup(mcUsername, group) {
-  // Alle bekannten Gruppen entfernen
-  for (const { group: g } of ROLE_MAP) {
-    await rconCommand(`lp user ${mcUsername} parent remove ${g}`);
+  for (const server of SERVERS) {
+    for (const { group: g } of ROLE_MAP) {
+      try {
+        await rconCommand(`lp user ${mcUsername} parent remove ${g}`, server.host, server.port, server.password);
+      } catch (err) {
+        console.error(`[mcRoleSync] Fehler bei ${server.host} (remove ${g}):`, err.message);
+      }
+    }
+
+    if (group) {
+      try {
+        const response = await rconCommand(`lp user ${mcUsername} parent set ${group}`, server.host, server.port, server.password);
+        console.log(`[mcRoleSync] ${mcUsername} → ${group} | ${server.host} | RCON: ${response}`);
+      } catch (err) {
+        console.error(`[mcRoleSync] Fehler bei ${server.host} (set ${group}):`, err.message);
+      }
+    }
   }
 
-  // Neue Gruppe setzen
-  if (group) {
-    const response = await rconCommand(`lp user ${mcUsername} parent set ${group}`);
-    console.log(`[mcRoleSync] ${mcUsername} → ${group} | RCON: ${response}`);
-    return true;
-  }
-
-  return false;
+  return !!group;
 }
 
-// ─── Haupt-Sync-Funktion ──────────────────────────────────────────────────────
-
-/**
- * Synchronisiert die Rollen eines einzelnen Discord-Members
- */
 export async function syncRoles(member) {
   try {
     const userId = member.id;
@@ -153,9 +140,6 @@ export async function syncRoles(member) {
   }
 }
 
-/**
- * Sync aller Server-Member beim Bot-Start
- */
 export async function syncAllMembers(guild) {
   console.log(`[mcRoleSync] Starte Massen-Sync für ${guild.name}...`);
 
@@ -169,20 +153,12 @@ export async function syncAllMembers(guild) {
     else if (result === false) skipped++;
     else failed++;
 
-    // Kurze Pause um RCON nicht zu überlasten
     await new Promise((r) => setTimeout(r, 300));
   }
 
   console.log(`[mcRoleSync] Sync abgeschlossen: ✅ ${success} | ⏭ ${skipped} | ❌ ${failed}`);
 }
 
-// ─── Event Handler ────────────────────────────────────────────────────────────
-
-/**
- * Wird bei guildMemberUpdate aufgerufen
- * In deinen Bot einbinden:
- *   client.on(Events.GuildMemberUpdate, handleMemberUpdate);
- */
 export async function handleMemberUpdate(oldMember, newMember) {
   const oldRoles = new Set(oldMember.roles.cache.keys());
   const newRoles = new Set(newMember.roles.cache.keys());
@@ -192,7 +168,7 @@ export async function handleMemberUpdate(oldMember, newMember) {
     (id) => oldRoles.has(id) !== newRoles.has(id)
   );
 
-  if (!changed) return; // Keine relevante Rollenänderung
+  if (!changed) return;
 
   console.log(`[mcRoleSync] Rollenänderung erkannt bei ${newMember.user.tag}`);
   await syncRoles(newMember);
