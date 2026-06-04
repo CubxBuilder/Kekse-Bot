@@ -5069,7 +5069,7 @@ export function initTicketCategory(client) {
       } else {
         await i.update({
           content: isGerman
-            ? "👍 Support übernimmt."
+            ? "👍 Support wird sich weiterhin darum kümmern"
             : "👍 Support will handle it.",
           components: [],
         });
@@ -5087,7 +5087,7 @@ export function initTicketCategory(client) {
 
 async function moveChannelToAdmin(channel, isGerman) {
   try {
-    await channel.setParent(ADMIN_CATEGORY, { lockPermissions: true });
+    await channel.setParent(ADMIN_CATEGORY);
     await channel.send(
       isGerman
         ? `✅ Dieses Ticket wurde zu den **Admins** verschoben.\n<@&${ADMIN_ROLE}>`
@@ -5111,6 +5111,7 @@ const CATEGORY_CHANNELS = {
   Abholung: "1423413348065611953",
   Bewerbung: "1434277752982474945",
   Economy: "1423413348065611953",
+  Admin: "1426271033047912582"
 };
 let ticketData = { lastId: 0, tickets: {} };
 async function loadTickets() {
