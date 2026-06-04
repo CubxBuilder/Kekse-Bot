@@ -3991,22 +3991,9 @@ export async function initCounting(client) {
         countingData.lastUserId = msg.author.id;
         countingData.lastCountingTime = msg.createdTimestamp;
         const excludedUsers = ["1151971830983311441", "1274320881585356892"];
-        if (!excludedUsers.includes(msg.author.id)) {
-          countingData.scoreboard[msg.author.id] ??= 0;
-          countingData.scoreboard[msg.author.id]++;
-          const COUNTING_XP = "1506164829029666827";
-          if (msg.member.roles.cache.has(COUNTING_XP)) {
-            countingData.scoreboard[msg.author.id]++;
-          }
-          await checkMilestone(msg.author.id, msg.channel);
-        }
         countingData.lastMessageId = msg.id;
         await saveCounting();
         if (!syncMode) await msg.react("✅").catch(() => {});
-        const userData = (await getEcoData(msg.author.id)) || {};
-        userData.balance = (userData.balance || 0) + 1;
-        await logTransaction(msg.author.id, 1, "plus", "Counting");
-        await setEcoData(msg.author.id, userData);
         return;
       }
     }
