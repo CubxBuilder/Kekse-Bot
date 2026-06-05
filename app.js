@@ -4077,8 +4077,8 @@ export async function initCounting(client) {
       if (!syncMode) {
         await msg.react("❌").catch(() => {});
         const replyContent = reason === "Doppel-Post"
-          ? `${msg.author.id} nicht zwei mal nacheinander! Zurück auf den Start (1 oder -1).`
-          : `${msg.author.id} hat falsch gezählt! Zurück auf den Start (1 oder -1).`;
+          ? `<@${msg.author.id}> nicht zwei mal nacheinander! Zurück auf den Start (1 oder -1).`
+          : `<@${msg.author.id}> hat falsch gezählt! Zurück auf den Start (1 oder -1).`;
         return msg.reply(replyContent);
       }
       return;
