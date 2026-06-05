@@ -3,7 +3,6 @@ import { getEcoData } from "./app.js";
 
 const SERVERS = [
   { host: "127.0.0.1",      port: 25575, password: "t20_2j0f1hmt" },
-  { host: "92.211.35.164",  port: 25575, password: "t20_2j0f1hmt" },
 ];
 
 const ROLE_MAP = [
