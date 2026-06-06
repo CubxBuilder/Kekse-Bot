@@ -640,6 +640,28 @@ export async function initEconomySystem(client) {
     const args = msg.content.trim().split(/ +/);
     const command = args[0].toLowerCase();
     const subCommand = args[1]?.toLowerCase();
+    if (command === "!leaderboard") {
+  const StorageModel = mongoose.model("BotStorage");
+  const allDocs = await StorageModel.find({ namespace: "economy" }).lean();
+  
+  const sorted = allDocs
+    .filter(doc => /^\d+$/.test(doc.key) && doc.value?.balance > 0)
+    .sort((a, b) => b.value.balance - a.value.balance)
+    .slice(0, 5);
+
+  const embed = new EmbedBuilder()
+    .setTitle("🏆 Top 5 Kekse Rangliste")
+    .setColor("#ffffff")
+    .setDescription(
+      sorted.map((doc, i) =>
+        `**${i + 1}.** <@${doc.key}> • 🍪 ${doc.value.balance.toLocaleString("de-DE")} Kekse`
+      ).join("\n") || "Keine Daten"
+    )
+    .setFooter({ text: "Kekse Clan" })
+    .setTimestamp();
+
+  return msg.reply({ embeds: [embed] });
+}
     if (command === "!daily_setup") {
       if (msg.author.id !== "1151971830983311441") return;
       const setupId = args[1];
@@ -6329,7 +6351,12 @@ const commands = [
     .setName('demote')
     .setDescription('Degradiert ein Mitglied auf einen niedrigeren Rang')
     .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu degradierende Nutzer').setRequired(true))
-    .setDefaultMemberPermissions(PermissionFlagsBits.SendMessagesInThreads)
+    .setDefaultMemberPermissions(PermissionFlagsBits.SendMessagesInThreads),
+  new SlashCommandBuilder()
+  .setName('leaderboard')
+  .setDescription('Zeigt die Top 5 Nutzer mit den meisten Keksen')
+  .setContexts(0)
+  .setIntegrationTypes(0)
 ].map(cmd => cmd.toJSON());
 
 export async function deploySlashCommands() {
@@ -6385,6 +6412,28 @@ export async function deploySlashCommands() {
         await logChannel.send({ embeds: [kekseEmbed] }).catch(() => {});
       }
     };
+    if (commandName === "leaderboard") {
+  const StorageModel = mongoose.model("BotStorage");
+  const allDocs = await StorageModel.find({ namespace: "economy" }).lean();
+
+  const sorted = allDocs
+    .filter(doc => /^\d+$/.test(doc.key) && doc.value?.balance > 0)
+    .sort((a, b) => b.value.balance - a.value.balance)
+    .slice(0, 5);
+
+  const embed = new EmbedBuilder()
+    .setTitle("🏆 Top 5 Kekse Rangliste")
+    .setColor("#ffffff")
+    .setDescription(
+      sorted.map((doc, i) =>
+        `**${i + 1}.** <@${doc.key}> • 🍪 ${doc.value.balance.toLocaleString("de-DE")} Kekse`
+      ).join("\n") || "Keine Daten"
+    )
+    .setFooter({ text: "Kekse Clan" })
+    .setTimestamp();
+
+  return interaction.reply({ embeds: [embed] });
+}
     if (commandName === "send") {
       const targetChannel = options.getChannel("kanal");
       const text = options.getString("text");
