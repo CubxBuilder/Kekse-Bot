@@ -723,23 +723,23 @@ export async function initEconomySystem(client) {
         .setColor(0xffffff)
         .addFields(
           {
-            name: "🎉 Double Chance Giveaway - `15.000 Kekse`",
+            name: "🎉 Double Chance Giveaway - `100.000 Kekse`",
             value: "Erhöht deine Gewinnchance bei Giveaways.",
             inline: false,
           },
           {
-            name: "🛡️ Counting Puffer - `2.500 Kekse`",
+            name: "🛡️ Counting Puffer - `25.000 Kekse`",
             value:
               "Erlaubt dir einen Fehler beim Zählen, ohne die Zahl zurückzusetzen.",
             inline: false,
           },
           {
-            name: "⚡ Counting XP Booster (30 Min) - `2.500 Kekse`",
+            name: "⚡ Counting XP Booster (30 Min) - `50.000 Kekse`",
             value: "Du erhältst 30 Minuten lang doppelte XP beim Zählen.",
             inline: false,
           },
           {
-            name: "🔥 Counting XP Booster (60 Min) - `5.000 Kekse`",
+            name: "🔥 Counting XP Booster (60 Min) - `100.000 Kekse`",
             value: "Du erhältst 60 Minuten lang doppelte XP beim Zählen.",
             inline: false,
           },
@@ -2014,25 +2014,25 @@ export async function initEconomySystem(client) {
             roleId: "1506164984202264656",
             name: "🎉 Double Chance Giveaway",
             duration: null,
-            price: 15000,
+            price: 100000,
           },
           puffer: {
             roleId: "1508050024355856494",
             name: "🛡️ Counting Puffer",
             duration: null,
-            price: 2500,
+            price: 25000,
           },
           xp30: {
             roleId: "1506164829029666827",
             name: "⚡ Counting XP Booster (30 Min)",
             duration: 30 * 60 * 1000,
-            price: 2500,
+            price: 50000,
           },
           xp60: {
             roleId: "1508054186930208768",
             name: "🔥 Counting XP Booster (60 Min)",
             duration: 60 * 60 * 1000,
-            price: 5000,
+            price: 100000,
           },
         };
 
@@ -2141,13 +2141,14 @@ export async function initEconomySystem(client) {
       if (interaction.customId.startsWith("bank_create_")) {
         const userId = interaction.customId.replace("bank_create_", "");
         if (interaction.user.id !== userId) return;
-
+        const userData = await getEcoData(interaction.user.id);
+        let prevBalance = userData?.balance;
         const mcUsername = interaction.fields.getTextInputValue("mc_username");
         const accountData = {
           userId: interaction.user.id,
           username: interaction.user.username,
           mcUsername: mcUsername,
-          balance: 100,
+          balance: (prevBalance || 0) + 100,
           blocked: false,
           claimedDailies: {},
         };
@@ -3941,8 +3942,8 @@ export async function initCounting(client) {
     const score = countingData.scoreboard[userId];
     const milestones = {};
     for (let i = 10; i <= 90; i += 10) milestones[i] = i;
-    for (let i = 100; i <= 900; i += 100) milestones[i] = i * 10;
-    for (let i = 1000; i <= 100000; i += 1000) milestones[i] = 50000;
+    for (let i = 100; i <= 900; i += 100) milestones[i] = i;
+    for (let i = 1000; i <= 100000; i += 1000) milestones[i] = 5000;
     if (!milestones[score]) return;
     countingData.milestonesClaimed = countingData.milestonesClaimed || {};
     const claimKey = `${userId}_${score}`;
@@ -7616,23 +7617,23 @@ export async function deploySlashCommands() {
         .setColor(0xffffff)
         .addFields(
           {
-            name: "🎉 Double Chance Giveaway - `15.000 Kekse`",
+            name: "🎉 Double Chance Giveaway - `100.000 Kekse`",
             value: "Erhöht deine Gewinnchance bei Giveaways.",
             inline: false,
           },
           {
-            name: "🛡️ Counting Puffer - `2.500 Kekse`",
+            name: "🛡️ Counting Puffer - `25.000 Kekse`",
             value:
               "Erlaubt dir einen Fehler beim Zählen, ohne die Zahl zurückzusetzen.",
             inline: false,
           },
           {
-            name: "⚡ Counting XP Booster (30 Min) - `2.500 Kekse`",
+            name: "⚡ Counting XP Booster (30 Min) - `50.000 Kekse`",
             value: "Du erhältst 30 Minuten lang doppelte XP beim Zählen.",
             inline: false,
           },
           {
-            name: "🔥 Counting XP Booster (60 Min) - `5.000 Kekse`",
+            name: "🔥 Counting XP Booster (60 Min) - `100.000 Kekse`",
             value: "Du erhältst 60 Minuten lang doppelte XP beim Zählen.",
             inline: false,
           },
