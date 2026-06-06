@@ -650,11 +650,11 @@ export async function initEconomySystem(client) {
     .slice(0, 5);
 
   const embed = new EmbedBuilder()
-    .setTitle("🏆 Top 5 Kekse Rangliste")
+    .setTitle("🏆 Top 5 Balance")
     .setColor("#ffffff")
     .setDescription(
       sorted.map((doc, i) =>
-        `**${i + 1}.** <@${doc.key}> • 🍪 ${doc.value.balance.toLocaleString("de-DE")} Kekse`
+        `**${i + 1}.** <@${doc.key}> • ${doc.value.balance.toLocaleString("de-DE")} Kekse`
       ).join("\n") || "Keine Daten"
     )
     .setFooter({ text: "Kekse Clan" })
@@ -6422,11 +6422,11 @@ export async function deploySlashCommands() {
     .slice(0, 5);
 
   const embed = new EmbedBuilder()
-    .setTitle("🏆 Top 5 Kekse Rangliste")
+    .setTitle("🏆 Top 5 Balance")
     .setColor("#ffffff")
     .setDescription(
       sorted.map((doc, i) =>
-        `**${i + 1}.** <@${doc.key}> • 🍪 ${doc.value.balance.toLocaleString("de-DE")} Kekse`
+        `**${i + 1}.** <@${doc.key}> • ${doc.value.balance.toLocaleString("de-DE")} Kekse`
       ).join("\n") || "Keine Daten"
     )
     .setFooter({ text: "Kekse Clan" })
