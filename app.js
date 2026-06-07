@@ -773,7 +773,7 @@ export async function initEconomySystem(client) {
         new ButtonBuilder()
           .setCustomId("shop_vip")
           .setLabel("VIP-Rolle")
-          .setStyle(ButtonStyle.Destructive)
+          .setStyle(ButtonStyle.Success)
           .setEmoji("💎"),
       );
 
