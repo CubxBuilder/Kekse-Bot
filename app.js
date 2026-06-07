@@ -743,6 +743,11 @@ export async function initEconomySystem(client) {
             value: "Du erhältst 60 Minuten lang doppelte XP beim Zählen.",
             inline: false,
           },
+          {
+            name: "💎 VIP Rolle (7d) - `100.000 Kekse`",
+            value: "Du wirst bei der Teilnahme an Events bevorzugt.",
+            inline: false,
+          },
         );
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
@@ -765,6 +770,11 @@ export async function initEconomySystem(client) {
           .setLabel("XP Booster 60m")
           .setStyle(ButtonStyle.Success)
           .setEmoji("🔥"),
+        new ButtonBuilder()
+          .setCustomId("shop_vip")
+          .setLabel("VIP-Rolle")
+          .setStyle(ButtonStyle.Success)
+          .setEmoji("💎"),
       );
 
       await shopChannel.send({ embeds: [shopEmbed], components: [row] });
@@ -2034,6 +2044,12 @@ export async function initEconomySystem(client) {
             duration: 60 * 60 * 1000,
             price: 100000,
           },
+          vip: {
+            roleId: "1434555291252297728",
+            name: "💎 VIP-Rolle (7d)",
+            duration: 7 * 24 * 60 * 60 * 1000,
+            price: 100000,
+          }
         };
 
         const item = SHOP_ITEMS[itemType];
