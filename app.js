@@ -7982,132 +7982,145 @@ export async function deploySlashCommands() {
       }
 
       // ==========================================
-      // GAME: /crash
-      // ==========================================
-      if (commandName === "crash") {
-        if (crashGames.has(user.id)) {
-          return interaction.reply({
-            content: "Du hast bereits ein aktives Crash-Spiel!",
-            flags: [MessageFlags.Ephemeral],
-          });
-        }
+// GAME: /crash
+// ==========================================
+if (commandName === "crash") {
+  if (crashGames.has(user.id)) {
+    return interaction.reply({
+      content: "Du hast bereits ein aktives Crash-Spiel!",
+      flags: [MessageFlags.Ephemeral],
+    });
+  }
 
-        userData.balance -= betAmount;
-        await logTransaction(user.id, betAmount, "minus", "Casino Crash");
-        await setEcoData(user.id, userData);
+  userData.balance -= betAmount;
+  await logTransaction(user.id, betAmount, "minus", "Casino Crash");
+  await setEcoData(user.id, userData);
 
-        const crashPoint = parseFloat(
-          Math.max(1.01, 0.97 / (1 - Math.random())).toFixed(2),
-        );
-        let multiplier = 1.0;
+  const crashPoint = parseFloat(
+    Math.max(1.01, 0.97 / (1 - Math.random())).toFixed(2),
+  );
+  let multiplier = 1.0;
+  let intervalHandle = null;
 
-        const cashoutRow = () =>
-          new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-              .setCustomId(`crash_cashout_${user.id}`)
-              .setLabel(
-                `Cash Out (${Math.floor(betAmount * multiplier)} Kekse)`,
-              )
-              .setStyle(ButtonStyle.Success),
-          );
-        const crashEmbed = (crashed = false, cashedAt = null) => {
-          if (crashed)
-            return new EmbedBuilder()
-              .setTitle("💥 CRASH!")
-              .setDescription(
-                `Gecrasht bei **${crashPoint.toFixed(2)}x**!\n\nEinsatz: **${betAmount} Kekse** — **Verloren!**\nNeuer Kontostand: **${userData.balance} Kekse**`,
-              )
-              .setColor(0x333333);
-          if (cashedAt !== null) {
-            const win = Math.floor(betAmount * cashedAt);
-            return new EmbedBuilder()
-              .setTitle("💰 Cash Out!")
-              .setDescription(
-                `Ausgecasht bei **${cashedAt.toFixed(2)}x**!\n\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${userData.balance + win} Kekse**`,
-              )
-              .setColor(0x333333);
-          }
-          return new EmbedBuilder()
-            .setTitle("Crash")
-            .setDescription(
-              `**${multiplier.toFixed(2)}x** — Steigt noch…\n\nEinsatz: **${betAmount} Kekse**\nMöglicher Gewinn: **${Math.floor(betAmount * multiplier)} Kekse**\n\nDrücke **Cash Out** bevor die Rakete crasht!`,
-            )
-            .setColor(0xffffff);
-        };
+  const cashoutRow = () =>
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`crash_cashout_${user.id}`)
+        .setLabel(`Cash Out (${Math.floor(betAmount * multiplier)} Kekse)`)
+        .setStyle(ButtonStyle.Success),
+    );
 
-        const gameMsg = await interaction.reply({
-          embeds: [crashEmbed()],
-          components: [cashoutRow()],
-          fetchReply: true,
-        });
-        crashGames.set(user.id, { betAmount, crashPoint, cashedOut: false });
+  const crashEmbed = (crashed = false, cashedAt = null) => {
+    if (crashed)
+      return new EmbedBuilder()
+        .setTitle("💥 CRASH!")
+        .setDescription(
+          `Gecrasht bei **${crashPoint.toFixed(2)}x**!\n\nEinsatz: **${betAmount} Kekse** — **Verloren!**\nNeuer Kontostand: **${userData.balance} Kekse**`,
+        )
+        .setColor(0x333333);
+    if (cashedAt !== null) {
+      const win = Math.floor(betAmount * cashedAt);
+      return new EmbedBuilder()
+        .setTitle("💰 Cash Out!")
+        .setDescription(
+          `Ausgecasht bei **${cashedAt.toFixed(2)}x**!\n\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${userData.balance + win} Kekse**`,
+        )
+        .setColor(0x333333);
+    }
+    return new EmbedBuilder()
+      .setTitle("Crash")
+      .setDescription(
+        `**${multiplier.toFixed(2)}x** — Steigt noch…\n\nEinsatz: **${betAmount} Kekse**\nMöglicher Gewinn: **${Math.floor(betAmount * multiplier)} Kekse**\n\nDrücke **Cash Out** bevor die Rakete crasht!`,
+      )
+      .setColor(0xffffff);
+  };
 
-        const collector = gameMsg.createMessageComponentCollector({
-          filter: (i) =>
-            i.user.id === user.id && i.customId === `crash_cashout_${user.id}`,
-          componentType: ComponentType.Button,
-          time: 120000,
-        });
+  const gameMsg = await interaction.reply({
+    embeds: [crashEmbed()],
+    components: [cashoutRow()],
+    fetchReply: true,
+  });
 
-        collector.on("collect", async (i) => {
-          await i.deferUpdate();
-          const game = crashGames.get(user.id);
-          if (game && !game.cashedOut) game.cashedOut = true;
-        });
+  crashGames.set(user.id, {
+    betAmount,
+    crashPoint,
+    cashedOut: false,
+    cashedAtMultiplier: null,
+  });
 
-        const interval = setInterval(async () => {
-          const game = crashGames.get(user.id);
-          if (!game) {
-            clearInterval(interval);
-            return;
-          }
-          multiplier = parseFloat((multiplier + 0.08).toFixed(2));
+  const collector = gameMsg.createMessageComponentCollector({
+    filter: (i) =>
+      i.user.id === user.id && i.customId === `crash_cashout_${user.id}`,
+    componentType: ComponentType.Button,
+    time: 120000,
+  });
 
-          if (game.cashedOut) {
-            clearInterval(interval);
-            crashGames.delete(user.id);
-            collector.stop("cashout");
-            const win = Math.floor(betAmount * multiplier);
-            const fresh = await getEcoData(user.id);
-            fresh.balance = (fresh.balance || 0) + win;
-            await logTransaction(user.id, win, "plus", "Casino Crash");
-            await setEcoData(user.id, fresh);
-            await gameMsg
-              .edit({ embeds: [crashEmbed(false, multiplier)], components: [] })
-              .catch(() => {});
-            return;
-          }
+  collector.on("collect", async (i) => {
+    const game = crashGames.get(user.id);
+    if (!game || game.cashedOut) {
+      await i.reply({
+        content: "Zu spät — das Spiel ist bereits beendet!",
+        flags: [MessageFlags.Ephemeral],
+      }).catch(() => {});
+      return;
+    }
 
-          if (multiplier >= game.crashPoint) {
-            clearInterval(interval);
-            crashGames.delete(user.id);
-            collector.stop("crashed");
-            await gameMsg
-              .edit({ embeds: [crashEmbed(true)], components: [] })
-              .catch(() => {});
-            return;
-          }
+    game.cashedOut = true;
+    game.cashedAtMultiplier = multiplier;
+    if (intervalHandle) clearInterval(intervalHandle);
+    crashGames.delete(user.id);
+    collector.stop("cashout");
 
-          await gameMsg
-            .edit({ embeds: [crashEmbed()], components: [cashoutRow()] })
-            .catch(() => {});
-        }, 600);
+    const win = Math.floor(betAmount * game.cashedAtMultiplier);
+    userData.balance += win;
+    await logTransaction(user.id, win, "plus", "Casino Crash");
+    await setEcoData(user.id, userData);
 
-        collector.on("end", async (collected, reason) => {
-          if (reason === "time") {
-            clearInterval(interval);
-            const game = crashGames.get(user.id);
-            if (game) {
-              crashGames.delete(user.id);
-              await gameMsg
-                .edit({ embeds: [crashEmbed(true)], components: [] })
-                .catch(() => {});
-            }
-          }
-        });
-        return;
+    await i.update({
+      embeds: [crashEmbed(false, game.cashedAtMultiplier)],
+      components: [],
+    }).catch(() => {});
+  });
+
+  intervalHandle = setInterval(async () => {
+    const game = crashGames.get(user.id);
+    if (!game) {
+      clearInterval(intervalHandle);
+      return;
+    }
+
+    multiplier = parseFloat((multiplier + 0.08).toFixed(2));
+
+    if (multiplier >= game.crashPoint) {
+      clearInterval(intervalHandle);
+      crashGames.delete(user.id);
+      collector.stop("crashed");
+      await gameMsg
+        .edit({ embeds: [crashEmbed(true)], components: [] })
+        .catch(() => {});
+      return;
+    }
+
+    await gameMsg
+      .edit({ embeds: [crashEmbed()], components: [cashoutRow()] })
+      .catch(() => {});
+  }, 600);
+
+  collector.on("end", async (collected, reason) => {
+    if (reason === "time") {
+      clearInterval(intervalHandle);
+      const game = crashGames.get(user.id);
+      if (game && !game.cashedOut) {
+        crashGames.delete(user.id);
+        await gameMsg
+          .edit({ embeds: [crashEmbed(true)], components: [] })
+          .catch(() => {});
       }
+    }
+  });
 
+  return;
+}
       if (commandName === "highlow") {
         if (hlGames.has(user.id)) {
           return interaction.reply({
