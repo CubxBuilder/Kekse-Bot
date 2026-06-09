@@ -1090,7 +1090,7 @@ export async function initEconomySystem(client) {
   await setEcoData(msg.author.id, userData);
 
   const crashPoint = parseFloat(
-    Math.max(1.01, 0.70 / (1 - Math.random())).toFixed(2),
+    Math.max(1.01, 0.50 / (1 - Math.random())).toFixed(2),
   );
   let multiplier = 1.0;
   let intervalHandle = null;
