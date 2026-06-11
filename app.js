@@ -1584,13 +1584,14 @@ export async function initEconomySystem(client) {
         });
 
         collector.on("collect", async (interaction) => {
+          try {
           await interaction.deferUpdate();
           const id = interaction.customId;
           if (id === `hl_cashout_${msg.author.id}`) {
             collector.stop("cashout");
             return;
           }
-
+          await gameMsg.edit({ components: [hlRow(true)] }).catch(() => {});
           const nextCard = getCard();
           const choice = id.startsWith(`hl_higher`) ? "higher" : "lower";
           const isTie = nextCard.value === currentCard.value;
@@ -1608,7 +1609,7 @@ export async function initEconomySystem(client) {
                     `🟡 Unentschieden! Neue Karte: **${nextCard.display}**\nStreak: **${streak}** | Multiplikator: **${multiplier.toFixed(2)}x**`,
                   ),
                 ],
-                components: [hlRow()],
+                components: [hlRow(false)],
               })
               .catch(() => {});
             return;
@@ -1632,7 +1633,11 @@ export async function initEconomySystem(client) {
           } else {
             collector.stop("wrong");
           }
-        });
+        
+      } catch (error) {
+            console.error("Fehler im HL-Collector abgefangen:", error);
+          }
+          });
 
         collector.on("end", async (collected, reason) => {
           hlGames.delete(msg.author.id);
@@ -1668,7 +1673,7 @@ export async function initEconomySystem(client) {
                     0x333333,
                   ),
                 ],
-                components: [],
+                components: [hlRow(false)], 
               })
               .catch(() => {});
           } else {
@@ -1690,7 +1695,7 @@ export async function initEconomySystem(client) {
                       0x333333,
                     ),
                   ],
-                  components: [],
+                  components: [hlRow(false)], 
                 })
                 .catch(() => {});
             } else {
@@ -1702,7 +1707,7 @@ export async function initEconomySystem(client) {
                       0x333333,
                     ),
                   ],
-                  components: [],
+                  components: [hlRow(false)], 
                 })
                 .catch(() => {});
             }
