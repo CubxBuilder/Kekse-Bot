@@ -1661,7 +1661,7 @@ export async function initEconomySystem(client) {
                     0x333333,
                   ),
                 ],
-                components: [hlRow(false)], 
+                components: [], 
               })
               .catch(() => {});
           } else if (reason === "wrong") {
@@ -1673,7 +1673,7 @@ export async function initEconomySystem(client) {
                     0x333333,
                   ),
                 ],
-                components: [hlRow(false)], 
+                components: [], 
               })
               .catch(() => {});
           } else {
@@ -1707,7 +1707,7 @@ export async function initEconomySystem(client) {
                       0x333333,
                     ),
                   ],
-                  components: [hlRow(false)], 
+                  components: [], 
                 })
                 .catch(() => {});
             }
