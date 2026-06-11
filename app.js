@@ -551,10 +551,7 @@ export async function getEconomyStats(client) {
   let kurs = basisWertProKeks;
   if (botBalance > 0 && existingKekse > 0) {
     const verhaeltnis = botBalance / existingKekse;
-    const berechneterKurs = basisWertProKeks * verhaeltnis;
-
-    kurs = Math.max(0.1, Math.min(1.0, berechneterKurs));
-    kurs = parseFloat(kurs.toFixed(4));
+    kurs = parseFloat((basisWertProKeks * verhaeltnis).toFixed(4));
   } else if (botBalance === 0) {
     kurs = basisWertProKeks;
   }
@@ -1542,7 +1539,7 @@ export async function initEconomySystem(client) {
 
   const hlEmbed = (desc, color = 0xffffff) =>
     new EmbedBuilder()
-      .setTitle("Higher or Lower 🃏")
+      .setTitle("Higher or Lower")
       .setDescription(desc)
       .setColor(color);
 
