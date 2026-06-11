@@ -4039,7 +4039,7 @@ export async function initCounting(client) {
         }
         countingData.lastUserId = msg.author.id;
         countingData.lastCountingTime = msg.createdTimestamp;
-        const excludedUsers = ["1151971830983311441", "1274320881585356892", "1435207719429603349", "1456362019706900593"];
+        const excludedUsers = ["1151971830983311441", "1274320881585356892"];
         countingData.lastMessageId = msg.id;
         await saveCounting();
         if (!syncMode) await msg.react("✅").catch(() => {});
@@ -4087,7 +4087,7 @@ export async function initCounting(client) {
         }
         countingData.lastUserId = msg.author.id;
         countingData.lastCountingTime = msg.createdTimestamp;
-        const excludedUsers = ["1151971830983311441", "1274320881585356892", "1435207719429603349", "1456362019706900593"];
+        const excludedUsers = ["1151971830983311441", "1274320881585356892"];
         if (!excludedUsers.includes(msg.author.id)) {
           countingData.scoreboard[msg.author.id] ??= 0;
           countingData.scoreboard[msg.author.id]++;
@@ -4144,7 +4144,7 @@ export async function initCounting(client) {
     countingData.lastUserId = msg.author.id;
     countingData.lastCountingTime = msg.createdTimestamp;
 
-    const excludedUsers = ["1151971830983311441", "1274320881585356892", "1435207719429603349", "1456362019706900593"];
+    const excludedUsers = ["1151971830983311441", "1274320881585356892"];
     if (!excludedUsers.includes(msg.author.id)) {
       countingData.scoreboard[msg.author.id] ??= 0;
       countingData.scoreboard[msg.author.id]++;
