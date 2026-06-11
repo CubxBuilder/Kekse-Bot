@@ -791,6 +791,259 @@ export async function initEconomySystem(client) {
         `• Kekse im Umlauf: **${stats.existingKekse}**\n`
       );
     }
+    if (command === "!coinflip") {
+  const targetUser = msg.mentions.users.first();
+  const betAmount = parseInt(args[2]);
+
+  if (!targetUser || isNaN(betAmount) || betAmount <= 0) {
+    return msg.reply({ content: "Nutzung: `!coinflip @User <Einsatz>`", flags: [MessageFlags.Ephemeral] });
+  }
+  if (targetUser.id === msg.author.id) {
+    return msg.reply({ content: "Du kannst nicht gegen dich selbst spielen.", flags: [MessageFlags.Ephemeral] });
+  }
+  if (msg.channelId !== "1507385550825459812") {
+    return msg.reply({ content: "Nur in <#1507385550825459812> nutzbar.", flags: [MessageFlags.Ephemeral] });
+  }
+
+  const challengerData = await getEcoData(msg.author.id);
+  const challengedData = await getEcoData(targetUser.id);
+
+  if ((challengerData.balance || 0) < betAmount) {
+    return msg.reply({ content: "Du hast nicht genug Kekse.", flags: [MessageFlags.Ephemeral] });
+  }
+  if ((challengedData.balance || 0) < betAmount) {
+    return msg.reply({ content: `<@${targetUser.id}> hat nicht genug Kekse.`, flags: [MessageFlags.Ephemeral] });
+  }
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`cf_accept_${msg.author.id}_${targetUser.id}_${betAmount}`)
+      .setLabel("Annehmen")
+      .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
+      .setCustomId(`cf_decline_${msg.author.id}_${targetUser.id}`)
+      .setLabel("Ablehnen")
+      .setStyle(ButtonStyle.Danger),
+  );
+
+  const challengeMsg = await msg.channel.send({
+    content: `<@${targetUser.id}>, du wurdest von <@${msg.author.id}> zu einem Coinflip um **${betAmount} Kekse** herausgefordert!`,
+    components: [row],
+  });
+
+  const collector = challengeMsg.createMessageComponentCollector({
+    filter: (i) => i.user.id === targetUser.id,
+    componentType: ComponentType.Button,
+    time: 30000,
+  });
+
+  collector.on("collect", async (interaction) => {
+    if (interaction.customId.startsWith("cf_decline_")) {
+      await interaction.update({ content: `<@${targetUser.id}> hat die Herausforderung abgelehnt.`, components: [] });
+      return collector.stop();
+    }
+    const freshChallenger = await getEcoData(msg.author.id);
+    const freshChallenged = await getEcoData(targetUser.id);
+
+    if ((freshChallenger.balance || 0) < betAmount || (freshChallenged.balance || 0) < betAmount) {
+      await interaction.update({ content: "❌ Jemand hat nicht mehr genug Kekse.", components: [] });
+      return collector.stop();
+    }
+
+    const flip = Math.random() < 0.5;
+    const winner = flip ? msg.author : targetUser;
+    const loser = flip ? targetUser : msg.author;
+
+    const winnerData = flip ? freshChallenger : freshChallenged;
+    const loserData = flip ? freshChallenged : freshChallenger;
+
+    winnerData.balance = (winnerData.balance || 0) + betAmount;
+    loserData.balance = (loserData.balance || 0) - betAmount;
+
+    await logTransaction(winner.id, betAmount, "plus", "Multiplayer Coinflip");
+    await logTransaction(loser.id, betAmount, "minus", "Multiplayer Coinflip");
+    await setEcoData(winner.id, winnerData);
+    await setEcoData(loser.id, loserData);
+
+    const resultEmbed = new EmbedBuilder()
+      .setTitle("🪙 Coinflip — Ergebnis")
+      .setDescription(
+        `**Gewinner:** <@${winner.id}> **+${betAmount} Kekse**\n**Verlierer:** <@${loser.id}> **-${betAmount} Kekse**`,
+      )
+      .setColor(0xffffff)
+      .setFooter({ text: "Kekse Clan Casino | Multiplayer Coinflip" });
+
+    await interaction.update({ content: "", embeds: [resultEmbed], components: [] });
+    collector.stop();
+  });
+
+  collector.on("end", (_, reason) => {
+    if (reason === "time") {
+      challengeMsg.edit({ content: "⏰ Die Herausforderung ist abgelaufen.", components: [] }).catch(() => {});
+    }
+  });
+}
+    if (command === "!ssp") {
+  const targetUser = msg.mentions.users.first();
+  const betAmount = parseInt(args[2]);
+
+  if (!targetUser || isNaN(betAmount) || betAmount <= 0) {
+    return msg.reply({ content: "Nutzung: `!ssp @User <Einsatz>`", flags: [MessageFlags.Ephemeral] });
+  }
+  if (targetUser.id === msg.author.id) {
+    return msg.reply({ content: "Du kannst nicht gegen dich selbst spielen.", flags: [MessageFlags.Ephemeral] });
+  }
+  if (msg.channelId !== "1507385550825459812") {
+    return msg.reply({ content: "Nur in <#1507385550825459812> nutzbar.", flags: [MessageFlags.Ephemeral] });
+  }
+
+  const challengerData = await getEcoData(msg.author.id);
+  const challengedData = await getEcoData(targetUser.id);
+
+  if ((challengerData.balance || 0) < betAmount) {
+    return msg.reply({ content: "Du hast nicht genug Kekse.", flags: [MessageFlags.Ephemeral] });
+  }
+  if ((challengedData.balance || 0) < betAmount) {
+    return msg.reply({ content: `<@${targetUser.id}> hat nicht genug Kekse.`, flags: [MessageFlags.Ephemeral] });
+  }
+
+  const SSP_CHOICES = ["schere", "stein", "papier"];
+  const SSP_EMOJI = { schere: "✂️", stein: "🪨", papier: "📄" };
+
+  // Wer gewinnt gegen wen
+  const beats = { schere: "papier", stein: "schere", papier: "stein" };
+
+  const makeChoiceRow = (userId) =>
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`ssp_${userId}_schere`).setLabel("✂️ Schere").setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(`ssp_${userId}_stein`).setLabel("🪨 Stein").setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(`ssp_${userId}_papier`).setLabel("📄 Papier").setStyle(ButtonStyle.Secondary),
+    );
+
+  // Herausforderung annehmen
+  const inviteRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`ssp_invite_accept_${msg.author.id}_${targetUser.id}_${betAmount}`)
+      .setLabel("Annehmen")
+      .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
+      .setCustomId(`ssp_invite_decline_${msg.author.id}`)
+      .setLabel("Ablehnen")
+      .setStyle(ButtonStyle.Danger),
+  );
+
+  const inviteMsg = await msg.channel.send({
+    content: `<@${targetUser.id}>, du wurdest von <@${msg.author.id}> zu **Schere Stein Papier** um **${betAmount} Kekse** herausgefordert!`,
+    components: [inviteRow],
+  });
+
+  const inviteCollector = inviteMsg.createMessageComponentCollector({
+    filter: (i) => i.user.id === targetUser.id,
+    componentType: ComponentType.Button,
+    time: 30000,
+    max: 1,
+  });
+
+  inviteCollector.on("collect", async (inviteInt) => {
+    if (inviteInt.customId.startsWith("ssp_invite_decline_")) {
+      return inviteInt.update({ content: `<@${targetUser.id}> hat abgelehnt.`, components: [] });
+    }
+
+    await inviteInt.update({ content: `✅ Herausforderung angenommen! Beide Spieler wählen jetzt ihre Geste per DM.`, components: [] });
+
+    const choices = {};
+
+    const askChoice = async (playerUser) => {
+      try {
+        const dm = await playerUser.send({
+          content: `Wähle deine Geste für das Spiel gegen <@${playerUser.id === msg.author.id ? targetUser.id : msg.author.id}> (Einsatz: **${betAmount} Kekse**):`,
+          components: [makeChoiceRow(playerUser.id)],
+        });
+
+        return new Promise((resolve) => {
+          const dmCollector = dm.createMessageComponentCollector({
+            filter: (i) => i.user.id === playerUser.id,
+            componentType: ComponentType.Button,
+            time: 60000,
+            max: 1,
+          });
+
+          dmCollector.on("collect", async (i) => {
+            const choice = i.customId.split("_")[2]; // ssp_<userId>_<choice>
+            choices[playerUser.id] = choice;
+            await i.update({ content: `Du hast **${SSP_EMOJI[choice]} ${choice}** gewählt. Warte auf deinen Gegner...`, components: [] });
+            resolve(choice);
+          });
+
+          dmCollector.on("end", (_, reason) => {
+            if (reason === "time") {
+              choices[playerUser.id] = choices[playerUser.id] || null;
+              resolve(null);
+            }
+          });
+        });
+      } catch {
+        // DMs geschlossen
+        choices[playerUser.id] = null;
+        return null;
+      }
+    };
+
+    await Promise.all([askChoice(msg.author), askChoice(targetUser)]);
+
+    const c1 = choices[msg.author.id];
+    const c2 = choices[targetUser.id];
+
+    // Timeout-Fall
+    if (!c1 || !c2) {
+      const whoTimeout = !c1 ? msg.author : targetUser;
+      return inviteMsg.channel.send(`⏰ <@${whoTimeout.id}> hat nicht rechtzeitig gewählt. Das Spiel wurde abgebrochen.`);
+    }
+
+    const freshChallenger = await getEcoData(msg.author.id);
+    const freshChallenged = await getEcoData(targetUser.id);
+
+    let resultText;
+    let winner = null;
+    let loser = null;
+
+    if (c1 === c2) {
+      resultText = `🤝 **Unentschieden!** Beide haben ${SSP_EMOJI[c1]} ${c1} gewählt. Kein Keksverlust.`;
+    } else if (beats[c1] === c2) {
+      winner = msg.author; loser = targetUser;
+      freshChallenger.balance = (freshChallenger.balance || 0) + betAmount;
+      freshChallenged.balance = (freshChallenged.balance || 0) - betAmount;
+      await logTransaction(winner.id, betAmount, "plus", "Multiplayer SSP");
+      await logTransaction(loser.id, betAmount, "minus", "Multiplayer SSP");
+      await setEcoData(winner.id, freshChallenger);
+      await setEcoData(loser.id, freshChallenged);
+      resultText = `**Gewinner:** <@${winner.id}> ${SSP_EMOJI[c1]} **+${betAmount} Kekse**\n**Verlierer:** <@${loser.id}> ${SSP_EMOJI[c2]} **-${betAmount} Kekse**`;
+    } else {
+      winner = targetUser; loser = msg.author;
+      freshChallenged.balance = (freshChallenged.balance || 0) + betAmount;
+      freshChallenger.balance = (freshChallenger.balance || 0) - betAmount;
+      await logTransaction(winner.id, betAmount, "plus", "Multiplayer SSP");
+      await logTransaction(loser.id, betAmount, "minus", "Multiplayer SSP");
+      await setEcoData(winner.id, freshChallenged);
+      await setEcoData(loser.id, freshChallenger);
+      resultText = `**Gewinner:** <@${winner.id}> ${SSP_EMOJI[c2]} **+${betAmount} Kekse**\n**Verlierer:** <@${loser.id}> ${SSP_EMOJI[c1]} **-${betAmount} Kekse**`;
+    }
+
+    const resultEmbed = new EmbedBuilder()
+      .setTitle("✂️🪨📄 Schere Stein Papier — Ergebnis")
+      .setDescription(`<@${msg.author.id}> hat **${SSP_EMOJI[c1]} ${c1}** gewählt.\n<@${targetUser.id}> hat **${SSP_EMOJI[c2]} ${c2}** gewählt.\n\n${resultText}`)
+      .setColor(0xffffff)
+      .setFooter({ text: "Kekse Clan Casino | Multiplayer SSP" });
+
+    await inviteMsg.channel.send({ embeds: [resultEmbed] });
+  });
+
+  inviteCollector.on("end", (collected, reason) => {
+    if (reason === "time") {
+      inviteMsg.edit({ content: "⏰ Die Herausforderung ist abgelaufen.", components: [] }).catch(() => {});
+    }
+  });
+}
     if (command === "!casino") {
       const hasEcoRole = msg.member.roles.cache.has("1506732560837771284");
       if (!hasEcoRole) {
