@@ -1468,254 +1468,236 @@ export async function initEconomySystem(client) {
   return;
 }
       if (subCommand === "highlow" || subCommand === "hl") {
-        const betAmount = parseInt(args[2]);
-        if (isNaN(betAmount) || betAmount <= 0) {
-          return msg.reply({
-            content: "Nutzung: `!casino highlow <Einsatz>`",
-            flags: [MessageFlags.Ephemeral],
-          });
-        }
-        if (betAmount > (userData.balance || 0)) {
-          return msg.reply({
-            content: "Du hast nicht genug Kekse für diesen Einsatz.",
-            flags: [MessageFlags.Ephemeral],
-          });
-        }
-        if (hlGames.has(msg.author.id)) {
-          return msg.reply({
-            content: "Du hast bereits ein aktives Higher/Lower-Spiel!",
-            flags: [MessageFlags.Ephemeral],
-          });
-        }
+  const betAmount = parseInt(args[0]); // Hinweis: args[0] statt args[2] falls es der erste Parameter nach "hl" ist
+  if (isNaN(betAmount) || betAmount <= 0) {
+    return msg.reply({
+      content: "Nutzung: `!casino highlow <Einsatz>`",
+      flags: [MessageFlags.Ephemeral],
+    });
+  }
+  if (betAmount > (userData.balance || 0)) {
+    return msg.reply({
+      content: "Du hast nicht genug Kekse für diesen Einsatz.",
+      flags: [MessageFlags.Ephemeral],
+    });
+  }
+  if (hlGames.has(msg.author.id)) {
+    return msg.reply({
+      content: "Du hast bereits ein aktives Higher/Lower-Spiel!",
+      flags: [MessageFlags.Ephemeral],
+    });
+  }
 
-        userData.balance -= betAmount;
-        await logTransaction(
-          msg.author.id,
-          betAmount,
-          "minus",
-          "Casino Higher Lower",
-        );
-        await setEcoData(msg.author.id, userData);
-        hlGames.set(msg.author.id, true);
+  // --- TÄGLICHES LIMIT PRÜFUNG & UPDATE ---
+  const todayStr = new Date().toISOString().split("T")[0]; // Format: "YYYY-MM-DD"
 
-        const cardNames = [
-          "2",
-          "3",
-          "4",
-          "5",
-          "6",
-          "7",
-          "8",
-          "9",
-          "10",
-          "J",
-          "Q",
-          "K",
-          "A",
-        ];
-        const cardVals = {
-          2: 2,
-          3: 3,
-          4: 4,
-          5: 5,
-          6: 6,
-          7: 7,
-          8: 8,
-          9: 9,
-          10: 10,
-          J: 11,
-          Q: 12,
-          K: 13,
-          A: 14,
-        };
-        const suits = ["♠️", "♥️", "♦️", "♣️"];
-        const getCard = () => {
-          const n = cardNames[Math.floor(Math.random() * cardNames.length)];
-          return {
-            display: `${n}${suits[Math.floor(Math.random() * 4)]}`,
-            value: cardVals[n],
-          };
-        };
+  // Wenn das gespeicherte Datum nicht von heute ist, Zähler zurücksetzen
+  if (userData.hl_cooldown_date !== todayStr) {
+    userData.hl_cooldown_date = todayStr;
+    userData.hl_today_count = 0;
+  }
 
-        let currentCard = getCard();
-        let streak = 0;
-        let multiplier = 1.0;
+  // Prüfen, ob das Limit von 10 Spielen erreicht ist
+  if ((userData.hl_today_count || 0) >= 10) {
+    return msg.reply({
+      content: "🛑 Du hast dein Limit von **10 Higher/Lower-Spielen** für heute bereits erreicht! Versuche es morgen wieder.",
+      flags: [MessageFlags.Ephemeral],
+    });
+  }
 
-        const hlRow = (disabled = false) =>
-          new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-              .setCustomId(`hl_higher_${msg.author.id}`)
-              .setLabel("⬆️ Higher")
-              .setStyle(ButtonStyle.Primary)
-              .setDisabled(disabled),
-            new ButtonBuilder()
-              .setCustomId(`hl_lower_${msg.author.id}`)
-              .setLabel("⬇️ Lower")
-              .setStyle(ButtonStyle.Danger)
-              .setDisabled(disabled),
-            new ButtonBuilder()
-              .setCustomId(`hl_cashout_${msg.author.id}`)
-              .setLabel(
-                `Cash Out (${Math.floor(betAmount * multiplier)} Kekse)`,
-              )
-              .setStyle(ButtonStyle.Success)
-              .setDisabled(disabled || streak === 0),
-          );
+  // Spiel counten und Daten speichern
+  userData.hl_today_count = (userData.hl_today_count || 0) + 1;
+  userData.balance -= betAmount;
 
-        const hlEmbed = (desc, color = 0xffffff) =>
-          new EmbedBuilder()
-            .setTitle("Higher or Lower")
-            .setDescription(desc)
-            .setColor(color);
+  await logTransaction(msg.author.id, betAmount, "minus", "Casino Higher Lower");
+  await setEcoData(msg.author.id, userData);
+  hlGames.set(msg.author.id, true);
 
-        const gameMsg = await msg.reply({
-          embeds: [
-            hlEmbed(
-              `Aktuelle Karte: **${currentCard.display}**\n\nStreak: **0** | Multiplikator: **1.00x**\nMöglicher Gewinn: **${betAmount} Kekse**\n\nIst die nächste Karte höher oder niedriger?`,
-            ),
-          ],
-          components: [hlRow()],
-        });
+  // --- AB HIER BLEIBT DER REST DEINES CARDS/COLLECTOR CODES GLEICH ---
+  const cardNames = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
+  const cardVals = { 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10, J: 11, Q: 12, K: 13, A: 14 };
+  const suits = ["♠️", "♥️", "♦️", "♣️"];
+  
+  const getCard = () => {
+    const n = cardNames[Math.floor(Math.random() * cardNames.length)];
+    return {
+      display: `${n}${suits[Math.floor(Math.random() * 4)]}`,
+      value: cardVals[n],
+    };
+  };
 
-        const collector = gameMsg.createMessageComponentCollector({
-          filter: (i) => i.user.id === msg.author.id,
-          componentType: ComponentType.Button,
-          time: 90000,
-        });
+  let currentCard = getCard();
+  let lastDrawnCard = null;
+  let streak = 0;
+  let multiplier = 1.0;
 
-        collector.on("collect", async (interaction) => {
-          try {
-          await interaction.deferUpdate();
-          const id = interaction.customId;
-          if (id === `hl_cashout_${msg.author.id}`) {
-            collector.stop("cashout");
-            return;
-          }
-          await gameMsg.edit({ components: [hlRow(true)] }).catch(() => {});
-          const nextCard = getCard();
-          const choice = id.startsWith(`hl_higher`) ? "higher" : "lower";
-          const isTie = nextCard.value === currentCard.value;
-          const correct =
-            !isTie &&
-            ((choice === "higher" && nextCard.value > currentCard.value) ||
-              (choice === "lower" && nextCard.value < currentCard.value));
+  const hlRow = (disabled = false) =>
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`hl_higher_${msg.author.id}`)
+        .setLabel("⬆️ Higher")
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(disabled),
+      new ButtonBuilder()
+        .setCustomId(`hl_lower_${msg.author.id}`)
+        .setLabel("⬇️ Lower")
+        .setStyle(ButtonStyle.Danger)
+        .setDisabled(disabled),
+      new ButtonBuilder()
+        .setCustomId(`hl_cashout_${msg.author.id}`)
+        .setLabel(`Cash Out (${Math.floor(betAmount * multiplier)} Kekse)`)
+        .setStyle(ButtonStyle.Success)
+        .setDisabled(disabled || streak === 0),
+    );
 
-          if (isTie) {
-            currentCard = nextCard;
-            await gameMsg
-              .edit({
-                embeds: [
-                  hlEmbed(
-                    `🟡 Unentschieden! Neue Karte: **${nextCard.display}**\nStreak: **${streak}** | Multiplikator: **${multiplier.toFixed(2)}x**`,
-                  ),
-                ],
-                components: [hlRow(false)],
-              })
-              .catch(() => {});
-            return;
-          }
+  const hlEmbed = (desc, color = 0xffffff) =>
+    new EmbedBuilder()
+      .setTitle("Higher or Lower 🃏")
+      .setDescription(desc)
+      .setColor(color);
 
-          if (correct) {
-            streak++;
-            multiplier = parseFloat((multiplier + 0.5).toFixed(2));
-            currentCard = nextCard;
-            await gameMsg
-              .edit({
-                embeds: [
-                  hlEmbed(
-                    `✅ Richtig! Nächste Karte war **${nextCard.display}**\n\nAktuelle Karte: **${currentCard.display}**\nStreak: **${streak}** | Multiplikator: **${multiplier.toFixed(2)}x**\nMöglicher Gewinn: **${Math.floor(betAmount * multiplier)} Kekse**`,
-                    0xffffff,
-                  ),
-                ],
-                components: [hlRow()],
-              })
-              .catch(() => {});
-          } else {
-            collector.stop("wrong");
-          }
-        
-      } catch (error) {
-            console.error("Fehler im HL-Collector abgefangen:", error);
-          }
-          });
+  // Dem Spieler direkt im Start-Embed anzeigen, das wievielte Spiel es heute ist
+  const gameMsg = await msg.reply({
+    embeds: [
+      hlEmbed(
+        `Aktuelle Karte: **${currentCard.display}**\n\nStreak: **0** | Multiplikator: **1.00x**\nMöglicher Gewinn: **${betAmount} Kekse**\n\nIst die nächste Karte höher oder niedriger?\n*(Spiel **${userData.hl_today_count}/10** heute)*`,
+      ),
+    ],
+    components: [hlRow()],
+  });
 
-        collector.on("end", async (collected, reason) => {
-          hlGames.delete(msg.author.id);
-          const fresh = await getEcoData(msg.author.id);
+  const collector = gameMsg.createMessageComponentCollector({
+    filter: (i) => i.user.id === msg.author.id,
+    componentType: ComponentType.Button,
+    time: 90000,
+  });
 
-          if (reason === "cashout") {
-            const win = Math.floor(betAmount * multiplier);
-            fresh.balance = (fresh.balance || 0) + win;
-            await logTransaction(
-              msg.author.id,
-              win,
-              "plus",
-              "Casino Higher Lower",
-            );
-            await setEcoData(msg.author.id, fresh);
-            await gameMsg
-              .edit({
-                embeds: [
-                  hlEmbed(
-                    `Cash Out bei **${multiplier.toFixed(2)}x**!\n\n**+${win - betAmount} Kekse** Gewinn\nNeuer Kontostand: **${fresh.balance} Kekse**`,
-                    0x333333,
-                  ),
-                ],
-                components: [], 
-              })
-              .catch(() => {});
-          } else if (reason === "wrong") {
-            await gameMsg
-              .edit({
-                embeds: [
-                  hlEmbed(
-                    `❌ Falsch! Du hast **${betAmount} Kekse** verloren.\nNeuer Kontostand: **${fresh.balance} Kekse**`,
-                    0x333333,
-                  ),
-                ],
-                components: [], 
-              })
-              .catch(() => {});
-          } else {
-            if (streak > 0) {
-              const win = Math.floor(betAmount * multiplier);
-              fresh.balance = (fresh.balance || 0) + win;
-              await logTransaction(
-                msg.author.id,
-                win,
-                "plus",
-                "Casino Higher Lower",
-              );
-              await setEcoData(msg.author.id, fresh);
-              await gameMsg
-                .edit({
-                  embeds: [
-                    hlEmbed(
-                      `Zeit abgelaufen! Auto Cash-Out bei **${multiplier.toFixed(2)}x**\n**+${win - betAmount} Kekse**\nNeuer Kontostand: **${fresh.balance} Kekse**`,
-                      0x333333,
-                    ),
-                  ],
-                  components: [], 
-                })
-                .catch(() => {});
-            } else {
-              await gameMsg
-                .edit({
-                  embeds: [
-                    hlEmbed(
-                      `Zeit abgelaufen! **${betAmount} Kekse** verloren.\nNeuer Kontostand: **${fresh.balance} Kekse**`,
-                      0x333333,
-                    ),
-                  ],
-                  components: [], 
-                })
-                .catch(() => {});
-            }
-          }
-        });
-
+  collector.on("collect", async (interaction) => {
+    try {
+      await interaction.deferUpdate();
+      const id = interaction.customId;
+      
+      if (id === `hl_cashout_${msg.author.id}`) {
+        collector.stop("cashout");
         return;
       }
+      
+      await gameMsg.edit({ components: [hlRow(true)] }).catch(() => {});
+      
+      const nextCard = getCard();
+      lastDrawnCard = nextCard;
+      const choice = id.startsWith(`hl_higher`) ? "higher" : "lower";
+      const isTie = nextCard.value === currentCard.value;
+      const correct =
+        !isTie &&
+        ((choice === "higher" && nextCard.value > currentCard.value) ||
+          (choice === "lower" && nextCard.value < currentCard.value));
+
+      if (isTie) {
+        currentCard = nextCard;
+        await gameMsg
+          .edit({
+            embeds: [
+              hlEmbed(
+                `🟡 Unentschieden! Neue Karte: **${nextCard.display}**\nStreak: **${streak}** | Multiplikator: **${multiplier.toFixed(2)}x**\n\nIst die nächste Karte höher oder niedriger?`,
+              ),
+            ],
+            components: [hlRow(false)],
+          })
+          .catch(() => {});
+        return;
+      }
+
+      if (correct) {
+        streak++;
+        multiplier = parseFloat((multiplier + 0.5).toFixed(2));
+        currentCard = nextCard;
+        await gameMsg
+          .edit({
+            embeds: [
+              hlEmbed(
+                `✅ Richtig! Nächste Karte war **${nextCard.display}**\n\nAktuelle Karte: **${currentCard.display}**\nStreak: **${streak}** | Multiplikator: **${multiplier.toFixed(2)}x**\nMöglicher Gewinn: **${Math.floor(betAmount * multiplier)} Kekse**\n\nWeiterhöhen oder auszahlen?`,
+                0x57f287,
+              ),
+            ],
+            components: [hlRow()],
+          })
+          .catch(() => {});
+      } else {
+        collector.stop("wrong");
+      }
+    } catch (error) {
+      console.error("Fehler im HL-Collector abgefangen:", error);
+    }
+  });
+
+  collector.on("end", async (collected, reason) => {
+    hlGames.delete(msg.author.id);
+    const fresh = await getEcoData(msg.author.id);
+
+    if (reason === "cashout") {
+      const win = Math.floor(betAmount * multiplier);
+      fresh.balance = (fresh.balance || 0) + win;
+      await logTransaction(msg.author.id, win, "plus", "Casino Higher Lower");
+      await setEcoData(msg.author.id, fresh);
+      await gameMsg
+        .edit({
+          embeds: [
+            hlEmbed(
+              `💰 **Cash Out!**\n\nMultiplikator: **${multiplier.toFixed(2)}x**\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${fresh.balance} Kekse**`,
+              0x57f287,
+            ),
+          ],
+          components: [],
+        })
+        .catch(() => {});
+    } else if (reason === "wrong") {
+      await gameMsg
+        .edit({
+          embeds: [
+            hlEmbed(
+              `❌ **Falsch gegambelt!**\n\nDie Karte war **${lastDrawnCard ? lastDrawnCard.display : "Unbekannt"}**.\nDu hast **${betAmount} Kekse** verloren.\nNeuer Kontostand: **${fresh.balance} Kekse**`,
+              0xed4245,
+            ),
+          ],
+          components: [],
+        })
+        .catch(() => {});
+    } else {
+      if (streak > 0) {
+        const win = Math.floor(betAmount * multiplier);
+        fresh.balance = (fresh.balance || 0) + win;
+        await logTransaction(msg.author.id, win, "plus", "Casino Higher Lower");
+        await setEcoData(msg.author.id, fresh);
+        await gameMsg
+          .edit({
+            embeds: [
+              hlEmbed(
+                `⏰ **Zeit abgelaufen!**\n\nAutomatischer Cash-Out bei **${multiplier.toFixed(2)}x**\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${fresh.balance} Kekse**`,
+                0xe67e22,
+              ),
+            ],
+            components: [],
+          })
+          .catch(() => {});
+      } else {
+        await gameMsg
+          .edit({
+            embeds: [
+              hlEmbed(
+                `⏰ **Zeit abgelaufen!**\n\nDu hast zu lange gebraucht und **${betAmount} Kekse** verloren.\nNeuer Kontostand: **${fresh.balance} Kekse**`,
+                0xed4245,
+              ),
+            ],
+            components: [],
+          })
+          .catch(() => {});
+      }
+    }
+  });
+
+  return;
+}
       if (subCommand === "blackjack") {
         const betAmount = parseInt(args[2]);
         if (isNaN(betAmount) || betAmount <= 0) {
