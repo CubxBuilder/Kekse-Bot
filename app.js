@@ -1468,7 +1468,7 @@ export async function initEconomySystem(client) {
   return;
 }
       if (subCommand === "highlow" || subCommand === "hl") {
-  const betAmount = parseInt(args[0]); // Hinweis: args[0] statt args[2] falls es der erste Parameter nach "hl" ist
+  const betAmount = args.map(Number).find(n => !isNaN(n) && n > 0);
   if (isNaN(betAmount) || betAmount <= 0) {
     return msg.reply({
       content: "Nutzung: `!casino highlow <Einsatz>`",
@@ -1487,33 +1487,23 @@ export async function initEconomySystem(client) {
       flags: [MessageFlags.Ephemeral],
     });
   }
-
-  // --- TÄGLICHES LIMIT PRÜFUNG & UPDATE ---
-  const todayStr = new Date().toISOString().split("T")[0]; // Format: "YYYY-MM-DD"
-
-  // Wenn das gespeicherte Datum nicht von heute ist, Zähler zurücksetzen
+  const todayStr = new Date().toISOString().split("T")[0];
   if (userData.hl_cooldown_date !== todayStr) {
     userData.hl_cooldown_date = todayStr;
     userData.hl_today_count = 0;
   }
-
-  // Prüfen, ob das Limit von 10 Spielen erreicht ist
   if ((userData.hl_today_count || 0) >= 10) {
     return msg.reply({
       content: "🛑 Du hast dein Limit von **10 Higher/Lower-Spielen** für heute bereits erreicht! Versuche es morgen wieder.",
       flags: [MessageFlags.Ephemeral],
     });
   }
-
-  // Spiel counten und Daten speichern
   userData.hl_today_count = (userData.hl_today_count || 0) + 1;
   userData.balance -= betAmount;
 
   await logTransaction(msg.author.id, betAmount, "minus", "Casino Higher Lower");
   await setEcoData(msg.author.id, userData);
   hlGames.set(msg.author.id, true);
-
-  // --- AB HIER BLEIBT DER REST DEINES CARDS/COLLECTOR CODES GLEICH ---
   const cardNames = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
   const cardVals = { 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10, J: 11, Q: 12, K: 13, A: 14 };
   const suits = ["♠️", "♥️", "♦️", "♣️"];
@@ -1556,7 +1546,6 @@ export async function initEconomySystem(client) {
       .setDescription(desc)
       .setColor(color);
 
-  // Dem Spieler direkt im Start-Embed anzeigen, das wievielte Spiel es heute ist
   const gameMsg = await msg.reply({
     embeds: [
       hlEmbed(
