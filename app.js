@@ -4535,6 +4535,7 @@ export function registerMessageCommands(client) {
         await channel.send(text);
         await sendKekseLog("send", channel.toString(), text);
         globalBotStats.commandsRunned += 1;
+        console.log(`${user.username} hat die "send"-Funktion genutzt`)
       }
     }
 
@@ -4554,6 +4555,7 @@ export function registerMessageCommands(client) {
       await changelogChannel.send(messageFormat);
       await sendKekseLog("changelog", changelogChannel.toString(), updateList);
       globalBotStats.commandsRunned += 1;
+      console.log(`${user.username} hat die "changelog"-Funktion genutzt`)
     }
 
     if (cmd === "embed") {
@@ -4574,6 +4576,7 @@ export function registerMessageCommands(client) {
           `Titel: ${title}\nText: ${text}`,
         );
         globalBotStats.commandsRunned += 1;
+        console.log(`${user.username} hat die "embed"-Funktion genutzt`)
       }
     }
 
@@ -4586,6 +4589,7 @@ export function registerMessageCommands(client) {
         await user.send(text).catch(() => {});
         await sendKekseLog("dm", `${user.tag} (${userId})`, text);
         globalBotStats.commandsRunned += 1;
+        console.log(`${user.username} hat die "dm"-Funktion genutzt`)
       }
     }
 
@@ -4661,6 +4665,7 @@ export function registerMessageCommands(client) {
         .join(" ");
       if (!msgId || !text) return;
       globalBotStats.commandsRunned += 1;
+      console.log(`${user.username} hat die "news"-Funktion genutzt`)
       try {
         const targetMsg = await channelMention.messages.fetch(msgId);
         targetMsg.system
@@ -4712,6 +4717,7 @@ export function initPing(client) {
         .setTimestamp();
 
       await logChannel.send({ embeds: [kekseLog] });
+      console.log(`${user.username} hat die "ping"-Funktion genutzt`)
     }
     setTimeout(() => {
       sentMsg.delete().catch(() => {});
@@ -4874,6 +4880,7 @@ export async function initPoll(client) {
         `**Frage:** ${question}\n**Dauer:** ${time} Min.\n**ID:** \`${pollId}\``,
       );
       globalBotStats.pollsCreated += 1;
+      console.log(`${user.username} hat einen Poll erstellt`);
     }
     if (cmd === "closepoll") {
       if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) return;
@@ -4883,6 +4890,7 @@ export async function initPoll(client) {
       if (!poll) return msg.reply("❌ Poll nicht gefunden.");
       await closePoll(poll, polls, msg.author);
       globalBotStats.commandsRunned += 1;
+      console.log(`${user.username} hat einen Poll geschlossen`);
     }
     if (cmd === "listpolls") {
       const polls = (await getPollData("polls_data")) || [];
@@ -4894,6 +4902,7 @@ export async function initPoll(client) {
         .join("\n");
       msg.reply(`**Aktive Polls:**\n${list}`);
       globalBotStats.commandsRunned += 1;
+      console.log(`${user.username} hat die polllist-Funktion verwendet`);
     }
   });
   client.on("interactionCreate", async (interaction) => {
@@ -4986,6 +4995,7 @@ export function initReactions(client) {
       try {
         console.log(`[REACTION] Keks-Reaktion für ${message.author.username}`);
         await message.channel.send("<:pepecookie:1453796363442585660>");
+        console.log(`${message.author.username} hat eine Reaktion ausgelöst`)
       } catch {}
     }
 
@@ -4995,6 +5005,7 @@ export function initReactions(client) {
           `[REACTION] Everyone-Ping-Reaktion für ${message.author.username}`,
         );
         await message.channel.send("<a:pingeveryone:1453800508329558218>");
+        console.log(`${message.author.username} hat eine Reaktion ausgelöst`)
       } catch {}
     } else if (message.mentions.has(client.user.id)) {
       try {
@@ -5002,6 +5013,7 @@ export function initReactions(client) {
           `[REACTION] Bot-Ping-Reaktion für ${message.author.username}`,
         );
         await message.channel.send("<:ping:1453799622303813714>");
+        console.log(`${message.author.username} hat eine Reaktion ausgelöst`)
       } catch {}
     }
   });
