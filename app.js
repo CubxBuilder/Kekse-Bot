@@ -1541,7 +1541,7 @@ export async function initEconomySystem(client) {
     new EmbedBuilder()
       .setTitle("Higher or Lower")
       .setDescription(desc)
-      .setColor(color);
+      .setColor(0xffffff);
 
   const gameMsg = await msg.reply({
     embeds: [
