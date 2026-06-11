@@ -866,7 +866,7 @@ export async function initEconomySystem(client) {
     await setEcoData(loser.id, loserData);
 
     const resultEmbed = new EmbedBuilder()
-      .setTitle("🪙 Coinflip — Ergebnis")
+      .setTitle("Coinflip Ergebnis")
       .setDescription(
         `**Gewinner:** <@${winner.id}> **+${betAmount} Kekse**\n**Verlierer:** <@${loser.id}> **-${betAmount} Kekse**`,
       )
@@ -1008,7 +1008,7 @@ export async function initEconomySystem(client) {
     let loser = null;
 
     if (c1 === c2) {
-      resultText = `🤝 **Unentschieden!** Beide haben ${SSP_EMOJI[c1]} ${c1} gewählt. Kein Keksverlust.`;
+      resultText = `**Unentschieden!** Beide haben ${c1} gewählt. Kein Keksverlust.`;
     } else if (beats[c1] === c2) {
       winner = msg.author; loser = targetUser;
       freshChallenger.balance = (freshChallenger.balance || 0) + betAmount;
@@ -1030,7 +1030,7 @@ export async function initEconomySystem(client) {
     }
 
     const resultEmbed = new EmbedBuilder()
-      .setTitle("✂️🪨📄 Schere Stein Papier — Ergebnis")
+      .setTitle("Schere-Stein-Papier Ergebnis")
       .setDescription(`<@${msg.author.id}> hat **${SSP_EMOJI[c1]} ${c1}** gewählt.\n<@${targetUser.id}> hat **${SSP_EMOJI[c2]} ${c2}** gewählt.\n\n${resultText}`)
       .setColor(0xffffff)
       .setFooter({ text: "Kekse Clan Casino | Multiplayer SSP" });
