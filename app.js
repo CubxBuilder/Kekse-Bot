@@ -1489,9 +1489,9 @@ export async function initEconomySystem(client) {
     userData.hl_cooldown_date = todayStr;
     userData.hl_today_count = 0;
   }
-  if ((userData.hl_today_count || 0) >= 10) {
+  if ((userData.hl_today_count || 0) >= 5) {
     return msg.reply({
-      content: "🛑 Du hast dein Limit von **10 Higher/Lower-Spielen** für heute bereits erreicht! Versuche es morgen wieder.",
+      content: "🛑 Du hast dein Limit von **5 Higher/Lower-Spielen** für heute bereits erreicht! Versuche es morgen wieder.",
       flags: [MessageFlags.Ephemeral],
     });
   }
