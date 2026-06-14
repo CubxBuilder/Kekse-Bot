@@ -5776,99 +5776,6 @@ export function initVoiceChannels(client) {
     }
   });
 }
-export async function initStatistics(client) {
-  const getStatsMessage = () => {
-    const uptime = Math.round(client.uptime / 60000);
-
-    return `
-============================================
-**Statistiken**
-- Mitglieder erschienen: ${globalBotStats.membersJoined}
-- Mitglieder verlassen: ${globalBotStats.membersLeft}
-- Gesendete Nachrichten: ${globalBotStats.messagesSent}
-- Commands ausgeführt: ${globalBotStats.commandsRunned}
-- Tickets erstellt: ${globalBotStats.ticketsCreated}
-- Giveaways erstellt: ${globalBotStats.giveawaysCreated}
-- Polls erstellt: ${globalBotStats.pollsCreated}
-- Erinnerungen erstellt: ${globalBotStats.remindersCreated}
-- Voice-Channels erstellt: ${globalBotStats.voiceChannelsCreated}
-- Voice-Channels gelöscht: ${globalBotStats.voiceChannelsDeleted}
-- Counting-Nachrichten gesendet: ${globalBotStats.countingMessagesSent}
-- Counting-Nachrichten fehlgeschlagen: ${globalBotStats.countingMessagesFailed}
-- Counting-Nachrichten wiederhergestellt: ${globalBotStats.countingMessagesRecovered}
-- Ping: ${globalBotStats.pingNow} ms
-- Durchschnittlicher Ping: ${Math.round(globalBotStats.pingAverage)} ms
-- Höchster Ping: ${globalBotStats.pingMaximum} ms
-- Niedrigster Ping: ${globalBotStats.pingMinimum} ms
-- Uptime: ${uptime} Minuten
-============================================`;
-  };
-
-  setInterval(() => {
-    const ping = client.ws.ping;
-
-    globalBotStats.pingNow = ping;
-    globalBotStats.pingAverage =
-      globalBotStats.pingAverage === 0
-        ? ping
-        : Math.round(
-            (globalBotStats.pingAverage * globalBotStats.pingCount + ping) /
-              (globalBotStats.pingCount + 1),
-          );
-
-    globalBotStats.pingMaximum = Math.max(globalBotStats.pingMaximum, ping);
-
-    globalBotStats.pingMinimum =
-      globalBotStats.pingMinimum === 0
-        ? ping
-        : Math.min(globalBotStats.pingMinimum, ping);
-  }, 60000);
-
-  client.on("messageCreate", async (message) => {
-    if (message.author.bot) return;
-    if (!message.content.startsWith("!")) return;
-
-    const args = message.content.slice(1).trim().split(/\s+/);
-    const cmd = args.shift()?.toLowerCase();
-
-    if (cmd === "stats") {
-      if (message.author.id !== "1151971830983311441") return;
-
-      if (message.channel.type !== 1) {
-        await message.channel.send(getStatsMessage());
-      } else {
-        await message.author.send(getStatsMessage());
-      }
-    }
-  });
-
-  let lastSentDay = null;
-
-  setInterval(async () => {
-    try {
-      const now = new Date(
-        new Date().toLocaleString("en-US", {
-          timeZone: "Europe/Berlin",
-        }),
-      );
-
-      const currentDay = now.toDateString();
-
-      if (
-        now.getHours() === 6 &&
-        now.getMinutes() === 0 &&
-        lastSentDay !== currentDay
-      ) {
-        lastSentDay = currentDay;
-        const user = await client.users.fetch("1151971830983311441");
-        await user.send(getStatsMessage());
-        console.log("Tägliche Statistik gesendet");
-      }
-    } catch (err) {
-      console.error("Fehler beim Senden der Statistik:", err);
-    }
-  }, 60000);
-}
 export async function initScammProtection(client) {
   const CONFIG = {
     logChannel: "LOG_CHANNEL_ID",
@@ -6225,14 +6132,6 @@ app.get("/api/stats", async (req, res) => {
         avg: globalBotStats.pingAverage || client.ws.ping || 0,
         max: globalBotStats.pingMaximum || client.ws.ping || 0,
         history: dbPingHistory,
-      },
-      stats: {
-        tickets: globalBotStats.ticketsCreated,
-        polls: globalBotStats.pollsCreated,
-        giveaways: globalBotStats.giveawaysCreated,
-        commands: globalBotStats.commandsRunned,
-        scams: globalBotStats.countingMessagesFailed,
-        deleted: globalBotStats.countingMessagesRecovered,
       },
       economy: {
         existingKekse: ecoStats.existingKekse,
@@ -9340,7 +9239,6 @@ client.once("clientReady", async () => {
     warning(client);
     initModSend(client);
     await violations(client);
-    await initStatistics(client);
     await initDashboard(app, client, globalBotStats);
     await initScammProtection(client);
     await initTicketArchive(app, getTickData, setTickData);
