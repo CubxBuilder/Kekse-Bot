@@ -1546,7 +1546,7 @@ export async function initEconomySystem(client) {
   const gameMsg = await msg.reply({
     embeds: [
       hlEmbed(
-        `Aktuelle Karte: **${currentCard.display}**\n\nStreak: **0** | Multiplikator: **1.00x**\nMöglicher Gewinn: **${betAmount} Kekse**\n\nIst die nächste Karte höher oder niedriger?\n*(Spiel **${userData.hl_today_count}/10** heute)*`,
+        `Aktuelle Karte: **${currentCard.display}**\n\nStreak: **0** | Multiplikator: **1.00x**\nMöglicher Gewinn: **${betAmount} Kekse**\n\nIst die nächste Karte höher oder niedriger?\n*(Spiel **${userData.hl_today_count}/5** heute)*`,
       ),
     ],
     components: [hlRow()],
