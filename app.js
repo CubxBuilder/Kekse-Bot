@@ -5510,6 +5510,7 @@ export async function initTickets(client) {
             allow: [
               PermissionFlagsBits.ViewChannel,
               PermissionFlagsBits.SendMessages,
+              PermissionFlagsBits.AttachFiles,
             ],
           },
         ],
