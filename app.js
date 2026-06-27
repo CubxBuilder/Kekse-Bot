@@ -6549,15 +6549,6 @@ export async function deploySlashCommands() {
     const { commandName, options, member, guild, user, channelId, channel: currentChannel } = interaction;
     const logChannelId = "1423413348220796991";
     const TEAM_ROLE = "1457906448234319922";
-    if (
-      !member.roles.cache.has(TEAM_ROLE) &&
-      !member.permissions.has(PermissionsBitField.Flags.ManageMessages)
-    ) {
-      return interaction.reply({
-        content: "Du hast keine Berechtigung für diesen Befehl.",
-        flags: [MessageFlags.Ephemeral],
-      });
-    }
     const sendKekseLog = async (cmdName, target, content) => {
       const logChannel = client.channels.cache.get(logChannelId);
       if (logChannel) {
