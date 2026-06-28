@@ -903,21 +903,15 @@ export async function initEconomySystem(client) {
   if ((challengedData.balance || 0) < betAmount) {
     return msg.reply({ content: `<@${targetUser.id}> hat nicht genug Kekse.`, flags: [MessageFlags.Ephemeral] });
   }
-
   const SSP_CHOICES = ["schere", "stein", "papier"];
   const SSP_EMOJI = { schere: "✂️", stein: "🪨", papier: "📄" };
-
-  // Wer gewinnt gegen wen
   const beats = { schere: "papier", stein: "schere", papier: "stein" };
-
   const makeChoiceRow = (userId) =>
     new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(`ssp_${userId}_schere`).setLabel("✂️ Schere").setStyle(ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId(`ssp_${userId}_stein`).setLabel("🪨 Stein").setStyle(ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId(`ssp_${userId}_papier`).setLabel("📄 Papier").setStyle(ButtonStyle.Secondary),
     );
-
-  // Herausforderung annehmen
   const inviteRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(`ssp_invite_accept_${msg.author.id}_${targetUser.id}_${betAmount}`)
@@ -956,7 +950,6 @@ export async function initEconomySystem(client) {
           content: `Wähle deine Geste für das Spiel gegen <@${playerUser.id === msg.author.id ? targetUser.id : msg.author.id}> (Einsatz: **${betAmount} Kekse**):`,
           components: [makeChoiceRow(playerUser.id)],
         });
-
         return new Promise((resolve) => {
           const dmCollector = dm.createMessageComponentCollector({
             filter: (i) => i.user.id === playerUser.id,
@@ -964,9 +957,8 @@ export async function initEconomySystem(client) {
             time: 60000,
             max: 1,
           });
-
           dmCollector.on("collect", async (i) => {
-            const choice = i.customId.split("_")[2]; // ssp_<userId>_<choice>
+            const choice = i.customId.split("_")[2];
             choices[playerUser.id] = choice;
             await i.update({ content: `Du hast **${SSP_EMOJI[choice]} ${choice}** gewählt. Warte auf deinen Gegner...`, components: [] });
             resolve(choice);
@@ -980,7 +972,6 @@ export async function initEconomySystem(client) {
           });
         });
       } catch {
-        // DMs geschlossen
         choices[playerUser.id] = null;
         return null;
       }
@@ -990,8 +981,6 @@ export async function initEconomySystem(client) {
 
     const c1 = choices[msg.author.id];
     const c2 = choices[targetUser.id];
-
-    // Timeout-Fall
     if (!c1 || !c2) {
       const whoTimeout = !c1 ? msg.author : targetUser;
       return inviteMsg.channel.send(`⏰ <@${whoTimeout.id}> hat nicht rechtzeitig gewählt. Das Spiel wurde abgebrochen.`);
@@ -4249,10 +4238,7 @@ export async function initCounting(client) {
       return msg.reply(`Die nächste Zahl wurde auf **${newNum}** gesetzt.`);
     }
     if (!match) return;
-
     const num = parseInt(match[0]);
-
-    // Erster Zug
     if (countingData.currentNumber === 1 && countingData.lastUserId === null) {
       if (num === 1 || num === -1) {
         countingData.direction = num;
@@ -4272,8 +4258,6 @@ export async function initCounting(client) {
         return;
       }
     }
-
-    // Falsche Zahl oder Doppel-Post
     if (
       num !== countingData.currentNumber ||
       msg.author.id === countingData.lastUserId
@@ -4285,8 +4269,6 @@ export async function initCounting(client) {
 
       const COUNTING_PUFFER = "1508050024355856494";
       const hasRolePuffer = msg.member.roles.cache.has(COUNTING_PUFFER);
-
-      // 1. System-Puffer hat Vorrang
       if (countingData.systemPuffer > 0) {
         countingData.systemPuffer = 0;
         await saveCounting();
@@ -4296,8 +4278,6 @@ export async function initCounting(client) {
         }
         return;
       }
-
-      // 2. Rollen-Puffer nur wenn kein System-Puffer mehr da
       if (hasRolePuffer) {
         try {
           await msg.member.roles.remove(COUNTING_PUFFER);
@@ -4332,8 +4312,6 @@ export async function initCounting(client) {
         if (!syncMode) await msg.react("🟨").catch(() => {});
         return;
       }
-
-      // 3. Kein Puffer mehr — Reset
       if (!syncMode) {
         await sendKekseLog(
           "Counting Fehler",
@@ -4358,8 +4336,6 @@ export async function initCounting(client) {
       }
       return;
     }
-
-    // Korrekte Zahl
     countingData.currentNumber = num + (countingData.direction || 1);
     const currentHundred = Math.floor(Math.abs(countingData.currentNumber) / 100);
     if (currentHundred > countingData.lastPufferGranted) {
@@ -7901,10 +7877,6 @@ export async function deploySlashCommands() {
           flags: [MessageFlags.Ephemeral],
         });
       }
-
-      // ==========================================
-      // GAME: /roulette
-      // ==========================================
       if (commandName === "roulette") {
         const betType = options.getString("typ").toLowerCase();
         const redNumbers = new Set([
@@ -7978,10 +7950,6 @@ export async function deploySlashCommands() {
 
         return interaction.reply({ embeds: [roulEmbed] });
       }
-
-      // ==========================================
-      // GAME: /coinflip
-      // ==========================================
       if (commandName === "coinflip") {
         const choice = options.getString("seite");
         const flip = Math.random() < 0.5 ? "heads" : "tails";
@@ -8010,10 +7978,6 @@ export async function deploySlashCommands() {
 
         return interaction.reply({ embeds: [cfEmbed] });
       }
-
-      // ==========================================
-      // GAME: /jackpot
-      // ==========================================
       if (commandName === "jackpot") {
         if (jackpotState.entries.find((e) => e.userId === user.id)) {
           return interaction.reply({
@@ -8109,10 +8073,6 @@ export async function deploySlashCommands() {
           flags: [MessageFlags.Ephemeral],
         });
       }
-
-      // ==========================================
-// GAME: /crash
-// ==========================================
 if (commandName === "crash") {
   if (crashGames.has(user.id)) {
     return interaction.reply({
