@@ -4239,6 +4239,13 @@ export async function initCounting(client) {
     }
     if (!match) return;
     const num = parseInt(match[0]);
+    if (num > Number.MAX_SAFE_INTEGER || num < -Number.MAX_SAFE_INTEGER) {
+      if (!syncMode) {
+        await msg.react("❌").catch(() => {});
+        await msg.reply("Diese Zahl ist viel zu groß für das System!");
+      }
+      return;
+    }
     if (countingData.currentNumber === 1 && countingData.lastUserId === null) {
       if (num === 1 || num === -1) {
         countingData.direction = num;
