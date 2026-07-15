@@ -4149,6 +4149,12 @@ let countingData = {
   systemPuffer: 0,
   lastPufferGranted: 0,
 };
+let countingLock = Promise.resolve();
+function withCountingLock(fn) {
+  const run = countingLock.then(() => fn());
+  countingLock = run.catch(() => {});
+  return run;
+}
 
 async function loadCounting() {
   const stored = await getCouData("counting");
@@ -4161,6 +4167,14 @@ async function loadCounting() {
 async function saveCounting() {
   await setCouData("counting", countingData);
 }
+function getMilestoneReward(score) {
+  if (score < 10) return null;
+  if (score <= 90) return score % 10 === 0 ? score : null;
+  if (score <= 900) return score % 100 === 0 ? score : null;
+  if (score <= 100000) return score % 1000 === 0 ? 5000 : null;
+  return null;
+}
+
 export async function initCounting(client) {
   const sendKekseLog = async (action, user, details) => {
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
@@ -4181,24 +4195,22 @@ export async function initCounting(client) {
 
   const checkMilestone = async (userId, channel) => {
     const score = countingData.scoreboard[userId];
-    const milestones = {};
-    for (let i = 10; i <= 90; i += 10) milestones[i] = i;
-    for (let i = 100; i <= 900; i += 100) milestones[i] = i;
-    for (let i = 1000; i <= 100000; i += 1000) milestones[i] = 5000;
-    if (!milestones[score]) return;
+    const reward = getMilestoneReward(score);
+    if (!reward) return;
     countingData.milestonesClaimed = countingData.milestonesClaimed || {};
     const claimKey = `${userId}_${score}`;
     if (countingData.milestonesClaimed[claimKey]) return;
     countingData.milestonesClaimed[claimKey] = true;
-    const reward = milestones[score];
     const mileUserData = (await getEcoData(userId)) || {};
     mileUserData.balance = (mileUserData.balance || 0) + reward;
     await logTransaction(userId, reward, "plus", `Counting Meilenstein ${score}`);
     await setEcoData(userId, mileUserData);
-    await channel.send(`🎉 <@${userId}> hat **${score} Zählungen** erreicht und erhält **${reward} Kekse** als Belohnung!`);
+    await channel
+      .send(`🎉 <@${userId}> hat **${score} Zählungen** erreicht und erhält **${reward} Kekse** als Belohnung!`)
+      .catch(() => {});
   };
 
-  const handleCounting = async (msg, syncMode = false) => {
+  const handleCountingInner = async (msg, syncMode = false) => {
     if (!syncMode && msg.author.bot) return;
     if (msg.channel.id !== COUNTING_CHANNEL) return;
     await loadCounting();
@@ -4217,7 +4229,7 @@ export async function initCounting(client) {
         .setColor("#ffffff")
         .setFooter({ text: "Kekse Clan" });
 
-      await msg.reply({ embeds: [embed] });
+      await msg.reply({ embeds: [embed] }).catch(() => {});
       return;
     }
 
@@ -4235,17 +4247,31 @@ export async function initCounting(client) {
         msg.author,
         `Die Zahl wurde manuell auf **${newNum}** gesetzt.`,
       );
-      return msg.reply(`Die nächste Zahl wurde auf **${newNum}** gesetzt.`);
+      await msg.reply(`Die nächste Zahl wurde auf **${newNum}** gesetzt.`).catch(() => {});
+      return;
     }
     if (!match) return;
+    if (!syncMode && !msg.member) {
+      try {
+        await msg.guild?.members.fetch(msg.author.id);
+      } catch {
+        return;
+      }
+    }
+    const member = msg.member;
+    if (!syncMode && !member) return;
+
     const num = parseInt(match[0]);
     if (num > Number.MAX_SAFE_INTEGER || num < -Number.MAX_SAFE_INTEGER) {
       if (!syncMode) {
         await msg.react("❌").catch(() => {});
-        await msg.reply("Diese Zahl ist viel zu groß für das System!");
+        await msg.reply("Diese Zahl ist viel zu groß für das System!").catch(() => {});
       }
       return;
     }
+
+    const excludedUsers = ["1151971830983311441", "1274320881585356892"];
+
     if (countingData.currentNumber === 1 && countingData.lastUserId === null) {
       if (num === 1 || num === -1) {
         countingData.direction = num;
@@ -4254,17 +4280,19 @@ export async function initCounting(client) {
         if (currentHundred > countingData.lastPufferGranted) {
           countingData.lastPufferGranted = currentHundred;
           countingData.systemPuffer = 1;
-          if (!syncMode) await msg.channel.send(`🛡️ Puffer aufgeladen! Der nächste Fehler wird abgefangen.`);
+          if (!syncMode) {
+            await msg.channel.send(`🛡️ Puffer aufgeladen! Der nächste Fehler wird abgefangen.`).catch(() => {});
+          }
         }
         countingData.lastUserId = msg.author.id;
         countingData.lastCountingTime = msg.createdTimestamp;
-        const excludedUsers = ["1151971830983311441", "1274320881585356892"];
         countingData.lastMessageId = msg.id;
         await saveCounting();
         if (!syncMode) await msg.react("✅").catch(() => {});
         return;
       }
     }
+
     if (
       num !== countingData.currentNumber ||
       msg.author.id === countingData.lastUserId
@@ -4275,19 +4303,23 @@ export async function initCounting(client) {
           : "Doppel-Post";
 
       const COUNTING_PUFFER = "1508050024355856494";
-      const hasRolePuffer = msg.member.roles.cache.has(COUNTING_PUFFER);
+      const hasRolePuffer = !syncMode && member ? member.roles.cache.has(COUNTING_PUFFER) : false;
+
       if (countingData.systemPuffer > 0) {
         countingData.systemPuffer = 0;
         await saveCounting();
         if (!syncMode) {
           await msg.react("🛡️").catch(() => {});
-          await msg.channel.send(`🛡️ Server-Puffer verbraucht! Weiter zählen ab **${countingData.currentNumber}**.`);
+          await msg.channel
+            .send(`🛡️ Server-Puffer verbraucht! Weiter zählen ab **${countingData.currentNumber}**.`)
+            .catch(() => {});
         }
         return;
       }
+
       if (hasRolePuffer) {
         try {
-          await msg.member.roles.remove(COUNTING_PUFFER);
+          await member.roles.remove(COUNTING_PUFFER);
         } catch {
           return;
         }
@@ -4296,16 +4328,17 @@ export async function initCounting(client) {
         if (currentHundred > countingData.lastPufferGranted) {
           countingData.lastPufferGranted = currentHundred;
           countingData.systemPuffer = 1;
-          if (!syncMode) await msg.channel.send(`🛡️ Puffer aufgeladen! Der nächste Fehler wird abgefangen.`);
+          if (!syncMode) {
+            await msg.channel.send(`🛡️ Puffer aufgeladen! Der nächste Fehler wird abgefangen.`).catch(() => {});
+          }
         }
         countingData.lastUserId = msg.author.id;
         countingData.lastCountingTime = msg.createdTimestamp;
-        const excludedUsers = ["1151971830983311441", "1274320881585356892"];
         if (!excludedUsers.includes(msg.author.id)) {
           countingData.scoreboard[msg.author.id] ??= 0;
           countingData.scoreboard[msg.author.id]++;
           const COUNTING_XP = "1506164829029666827";
-          if (msg.member.roles.cache.has(COUNTING_XP)) {
+          if (member.roles.cache.has(COUNTING_XP)) {
             countingData.scoreboard[msg.author.id]++;
           }
           await checkMilestone(msg.author.id, msg.channel);
@@ -4319,6 +4352,7 @@ export async function initCounting(client) {
         if (!syncMode) await msg.react("🟨").catch(() => {});
         return;
       }
+
       if (!syncMode) {
         await sendKekseLog(
           "Counting Fehler",
@@ -4339,26 +4373,28 @@ export async function initCounting(client) {
         const replyContent = reason === "Doppel-Post"
           ? `<@${msg.author.id}> nicht zwei mal nacheinander! Zurück auf den Start (1 oder -1).`
           : `<@${msg.author.id}> hat falsch gezählt! Zurück auf den Start (1 oder -1).`;
-        return msg.reply(replyContent);
+        await msg.reply(replyContent).catch(() => {});
       }
       return;
     }
+
     countingData.currentNumber = num + (countingData.direction || 1);
     const currentHundred = Math.floor(Math.abs(countingData.currentNumber) / 100);
     if (currentHundred > countingData.lastPufferGranted) {
       countingData.lastPufferGranted = currentHundred;
       countingData.systemPuffer = 1;
-      if (!syncMode) await msg.channel.send(`🛡️ Puffer aufgeladen! Der nächste Fehler wird abgefangen.`);
+      if (!syncMode) {
+        await msg.channel.send(`🛡️ Puffer aufgeladen! Der nächste Fehler wird abgefangen.`).catch(() => {});
+      }
     }
     countingData.lastUserId = msg.author.id;
     countingData.lastCountingTime = msg.createdTimestamp;
 
-    const excludedUsers = ["1151971830983311441", "1274320881585356892"];
     if (!excludedUsers.includes(msg.author.id)) {
       countingData.scoreboard[msg.author.id] ??= 0;
       countingData.scoreboard[msg.author.id]++;
       const COUNTING_XP = "1506164829029666827";
-      if (msg.member.roles.cache.has(COUNTING_XP)) {
+      if (member && member.roles.cache.has(COUNTING_XP)) {
         countingData.scoreboard[msg.author.id]++;
       }
       await checkMilestone(msg.author.id, msg.channel);
@@ -4371,6 +4407,8 @@ export async function initCounting(client) {
     await setEcoData(msg.author.id, userData);
     if (!syncMode) await msg.react("✅").catch(() => {});
   };
+  const handleCounting = (msg, syncMode = false) =>
+    withCountingLock(() => handleCountingInner(msg, syncMode));
 
   const runSync = async () => {
     console.log("Starte Counting-Synchronisation...");
@@ -4426,7 +4464,11 @@ export async function initCounting(client) {
 
   const registerLiveListener = () => {
     client.on(Events.MessageCreate, async (msg) => {
-      await handleCounting(msg, false);
+      try {
+        await handleCounting(msg, false);
+      } catch (err) {
+        console.error("Fehler im Counting-Handler:", err);
+      }
     });
     console.log("Live-Zähler aktiv. System bereit!");
   };
