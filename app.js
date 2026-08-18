@@ -5626,45 +5626,6 @@ function buildTicketInfoEmbeds({ idString, category, user, created, hasAccount, 
   }
   return embeds;
 }
-
-export async function initTickets(client) {
-  await loadTickets();
-
-  const sendKekseLog = async (action, user, details) => {
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
-    if (!logChannel) return;
-    const logEmbed = new EmbedBuilder()
-      .setColor("#ffffff")
-      .setAuthor({
-        name: user.username,
-        iconURL: user.displayAvatarURL({ size: 512 }),
-      })
-      .setDescription(`**Aktion:** \`${action}\`\n${details}`)
-      .setFooter({ text: "Kekse Clan | Ticket System" })
-      .setTimestamp();
-    await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
-  };
-
-  async function hasEconomyAccount(userId) {
-    const ecoData = await getEcoData(userId);
-    return Boolean(ecoData);
-  }
-
-  async function getStoredIngameName(userId) {
-    const ecoData = await getEcoData(userId);
-    return ecoData?.mcUsername || null;
-  }
-
-  function parseYesNo(input) {
-    if (!input) return false;
-    const normalized = input.trim().toLowerCase();
-    const yes = ["ja", "j", "yes", "y", "jo", "jup", "jep"];
-    const no = ["nein", "n", "no", "nope", "ne", "nö"];
-    if (yes.includes(normalized)) return true;
-    if (no.includes(normalized)) return false;
-    return /^(ja|yes|y|j)\b/.test(normalized);
-  }
-
   async function closeTicket(channel, moderator) {
     try {
       const stored = (await getTickData("tickets")) || { tickets: {} };
