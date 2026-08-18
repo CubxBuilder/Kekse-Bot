@@ -5888,8 +5888,7 @@ export async function initTickets(client) {
       msg.reply(`✅ <@${target.id}> für ${days} Tage gesperrt.`);
       globalBotStats.commandsRunned += 1;
     }
-  });
-}
+});
 const CREATOR_CHANNEL_ID = "1423413348220796991";
 const CATEGORY_ID = "1423413348493430902";
 const TRIGGER_CHANNEL_ID = "1423438527319900180";
