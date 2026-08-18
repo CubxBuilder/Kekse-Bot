@@ -5461,7 +5461,7 @@ const BEWERBUNG_VORLAGE_TEXT = `
 > \n
 > - Name & Ingame-Name\n
 > - Alter\n
-> - Auf welchem Minecraft Server bist du aktiv? Zur Auswahl stehen derzeit: `Minevale.de` `CraftValley.de`\n
+> - Auf welchem Minecraft Server bist du aktiv? Zur Auswahl stehen derzeit: \`Minevale.de\` \`CraftValley.de\`\n
 > - Weshalb du in den Clan willst\n
 > - In welchen Clans warst du bereits\n
 > - Warum du in unseren Clan aufgenommen werden solltest\n
