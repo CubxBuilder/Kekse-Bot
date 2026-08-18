@@ -5467,16 +5467,15 @@ const BEWERBUNG_VORLAGE_TEXT = `
 > - Warum du in unseren Clan aufgenommen werden solltest
 > - Deine Stärken
 > - Spielzeit: Minecraft & Minecraft Server
-> 
+>
 > **Weitere Informationen:**
 > - Schreibe in ganzen Sätzen
 > - Keine KI verwenden
 > - Achte auf eine säuberliche, äußere Form deiner Bewerbung
-> 
+>
 > **Voraussetzungen beachten:**
 > - Du hast noch nie gescammt
 > - Du bist aktiv auf dem Minecraft Server und diesem Discord-Server
-> 
 `;
 
 function buildModal(category, { needsIngameName }) {
