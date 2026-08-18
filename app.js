@@ -5477,7 +5477,8 @@ const BEWERBUNG_VORLAGE_TEXT = `
 > - Du hast noch nie gescammt\n
 > - Du bist aktiv auf dem Minecraft Server und diesem Discord-Server\n
 > `;
-export async function initTickets(client) {
+
+async function initTickets(client) {
   await loadTickets();
   const sendKekseLog = async (action, user, details) => {
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
