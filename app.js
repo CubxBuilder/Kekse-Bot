@@ -5461,7 +5461,8 @@ const BEWERBUNG_VORLAGE_TEXT = `
 > \n
 > - Name & Ingame-Name\n
 > - Alter\n
-> - Auf welchem Minecraft Server bist du aktiv? Zur Auswahl stehen derzeit: \`Minevale.de\` \`CraftValley.de\`\n
+> - Auf welchem Minecraft Server bist du aktiv? Zur Auswahl stehen derzeit: 
+\`Minevale.de\` \`CraftValley.de\`\n
 > - Weshalb du in den Clan willst\n
 > - In welchen Clans warst du bereits\n
 > - Warum du in unseren Clan aufgenommen werden solltest\n
@@ -5478,53 +5479,20 @@ const BEWERBUNG_VORLAGE_TEXT = `
 > - Du bist aktiv auf dem Minecraft Server und diesem Discord-Server\n
 > `;
 
-async function initTickets(client) {
-  await loadTickets();
-  const sendKekseLog = async (action, user, details) => {
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
-    if (!logChannel) return;
-    const logEmbed = new EmbedBuilder()
-      .setColor("#ffffff")
-      .setAuthor({
-        name: user.username,
-        iconURL: user.displayAvatarURL({ size: 512 }),
-      })
-      .setDescription(`**Aktion:** \`${action}\`\n${details}`)
-      .setFooter({ text: "Kekse Clan | Ticket System" })
-      .setTimestamp();
-    await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
-  };
-  async function hasEconomyAccount(userId) {
-    const ecoData = await getEcoData(userId);
-    return Boolean(ecoData);
-  }
-  async function getStoredIngameName(userId) {
-    const ecoData = await getEcoData(userId);
-    return ecoData?.mcUsername || null;
-  }
-  function parseYesNo(input) {
-    if (!input) return false;
-    const normalized = input.trim().toLowerCase();
-    const yes = ["ja", "j", "yes", "y", "jo", "jup", "jep"];
-    const no = ["nein", "n", "no", "nope", "ne", "nö"];
-    if (yes.includes(normalized)) return true;
-    if (no.includes(normalized)) return false;
-    return /^(ja|yes|y|j)\b/.test(normalized);
-  }
-  function buildModal(category, { needsIngameName }) {
+function buildModal(category, { needsIngameName }) {
   if (category === "Support") {
     const modal = new ModalBuilder()
       .setCustomId("tm_Support")
       .setTitle("Support-Ticket");
     const kurz = new TextInputBuilder()
       .setCustomId("kurz")
-      .setLabel("Beschreibe dein Anliegen in paar Worten. (2-4 Worte)")
+      .setLabel("Anliegen kurz (2-4 Worte)")
       .setStyle(TextInputStyle.Short)
       .setRequired(true)
       .setMaxLength(100);
     const lang = new TextInputBuilder()
       .setCustomId("lang")
-      .setLabel("Beschreibe dein Anliegen ausführlich. (1-3 Sätze)")
+      .setLabel("Beschreibe dein Anliegen ausführlich.")
       .setStyle(TextInputStyle.Paragraph)
       .setRequired(true)
       .setMaxLength(1000);
@@ -5626,6 +5594,45 @@ function buildTicketInfoEmbeds({ idString, category, user, created, hasAccount, 
   }
   return embeds;
 }
+
+export async function initTickets(client) {
+  await loadTickets();
+
+  const sendKekseLog = async (action, user, details) => {
+    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+    if (!logChannel) return;
+    const logEmbed = new EmbedBuilder()
+      .setColor("#ffffff")
+      .setAuthor({
+        name: user.username,
+        iconURL: user.displayAvatarURL({ size: 512 }),
+      })
+      .setDescription(`**Aktion:** \`${action}\`\n${details}`)
+      .setFooter({ text: "Kekse Clan | Ticket System" })
+      .setTimestamp();
+    await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
+  };
+
+  async function hasEconomyAccount(userId) {
+    const ecoData = await getEcoData(userId);
+    return Boolean(ecoData);
+  }
+
+  async function getStoredIngameName(userId) {
+    const ecoData = await getEcoData(userId);
+    return ecoData?.mcUsername || null;
+  }
+
+  function parseYesNo(input) {
+    if (!input) return false;
+    const normalized = input.trim().toLowerCase();
+    const yes = ["ja", "j", "yes", "y", "jo", "jup", "jep"];
+    const no = ["nein", "n", "no", "nope", "ne", "nö"];
+    if (yes.includes(normalized)) return true;
+    if (no.includes(normalized)) return false;
+    return /^(ja|yes|y|j)\b/.test(normalized);
+  }
+
   async function closeTicket(channel, moderator) {
     try {
       const stored = (await getTickData("tickets")) || { tickets: {} };
@@ -5646,7 +5653,7 @@ function buildTicketInfoEmbeds({ idString, category, user, created, hasAccount, 
       });
 
       delete stored.tickets[ticket.idString];
-      await setTickData("tickets", stored);
+      await saveTickData("tickets", stored);
       
       await archiveTicket(
         {
@@ -5654,7 +5661,7 @@ function buildTicketInfoEmbeds({ idString, category, user, created, hasAccount, 
           closedBy: moderator,
           channel: channel,
         },
-        setTickData
+        saveTickData
       );
     } catch (err) {
       console.error("[TICKET] Fehler:", err);
@@ -5747,241 +5754,7 @@ function buildTicketInfoEmbeds({ idString, category, user, created, hasAccount, 
         const category = interaction.customId.split("_")[1];
 
         if (await isBlocked(interaction.user.id) && !interaction.member.roles.cache.has(TEAM_ROLE_ID)) {
-          return interaction.reply({ content: "Du bist gesperrt.", ephemeral: true });
-        }
-
-        if (category === "Economy") {
-          await interaction.deferReply({ ephemeral: true });
-          const channel = await createTicket(category, interaction.user, interaction.guild);
-          return interaction.editReply({ content: `Dein Economy-Ticket wurde erstellt: ${channel}` });
-        }
-
-        const hasAccount = await hasEconomyAccount(interaction.user.id);
-        const storedName = await getStoredIngameName(interaction.user.id);
-        const needsIngameName = !hasAccount || !storedName;
-
-        const modal = buildModal(category, { needsIngameName });
-        if (modal) {
-          await interaction.showModal(modal);
-        } else {
-          return interaction.reply({ content: "Unbekannte Kategorie.", ephemeral: true });
-        }
-      }
-    }
-    if (interaction.isModalSubmit()) {
-      if (interaction.customId.startsWith("tm_")) {
-        await interaction.deferReply({ ephemeral: true });
-        const parts = interaction.customId.split("_");
-        const category = parts[1];
-        const extra = { anliegen: {} };
-        if (category === "Support") {
-          extra.anliegen["Kurzbeschreibung"] = interaction.fields.getTextInputValue("kurz");
-          extra.anliegen["Details"] = interaction.fields.getTextInputValue("lang");
-        } else if (category === "Abholung") {
-          if (parts[2] === "noacc") {
-            extra.ingame = interaction.fields.getTextInputValue("ingame");
-          }
-          extra.anliegen["Gewinn"] = interaction.fields.getTextInputValue("gewonnen");
-        } else if (category === "Bewerbung") {
-          extra.anliegen["Name"] = interaction.fields.getTextInputValue("name");
-          if (parts[2] === "noacc") {
-            extra.ingame = interaction.fields.getTextInputValue("ingame");
-          }
-          const vorlageInput = interaction.fields.getTextInputValue("vorlage");
-          extra.needsTemplate = parseYesNo(vorlageInput);
-        }
-        const channel = await createTicket(category, interaction.user, interaction.guild, extra);
-        if (channel) {
-          await interaction.editReply({ content: `Ein Ticket wurde erfolgreich erstellt: ${channel}` });
-      } else {
-          await interaction.editReply({ content: "Fehler beim Erstellen des Tickets." });
-        }
-      }
-    }
-  });
-  client.on("messageCreate", async (msg) => {
-    if (!msg.content.startsWith("!") || msg.author.bot) return;
-    const args = msg.content.slice(1).split(/\s+/);
-    const cmd = args.shift().toLowerCase();
-    if (cmd === "ticket_panel" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
-      await sendTicketPanel(msg.channel);
-      await msg.delete().catch(() => {});
-      globalBotStats.commandsRunned += 1;
-    }
-    if (cmd === "close" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
-      await closeTicket(msg.channel, msg.author);
-      globalBotStats.commandsRunned += 1;
-    }
-    if (cmd === "delete" && msg.member.roles.cache.has(ADMIN_ROLE_ID)) {
-      await msg.reply("Kanal wird gelöscht...");
-      setTimeout(() => msg.channel.delete().catch(() => {}), 3000);
-      globalBotStats.commandsRunned += 1;
-    }
-    if (cmd === "block" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
-      const target = msg.mentions.users.first() || { id: args[0], username: "Unbekannt" };
-      if (!target.id) return msg.reply("ID fehlt.");
-      const days = parseInt(args[1]) || 7;
-      await blockUser(target.id, target.username, days * 24 * 60 * 60 * 1000);
-      msg.reply(`<@${target.id}> für ${days} Tage gesperrt.`);
-      globalBotStats.commandsRunned += 1;
-    }
-  });
-  async function closeTicket(channel, moderator) {
-    try {
-      const stored = (await getTickData("tickets")) || { tickets: {} };
-      const allEntries = stored.tickets || {};
-      
-      const ticket = Object.values(allEntries).find(
-        (t) => typeof t === "object" && t.channelId === channel.id
-      );
-      if (!ticket) {
-        console.log("Gesuchte Channel-ID:", channel.id);
-        return channel.send(" Kein aktives Ticket in der Datenbank gefunden.");
-      }
-      await channel.permissionOverwrites.delete(ticket.userId).catch(() => {});
-      await channel.send({
-        content: ` **Ticket wird archiviert...**\nErstellt von: ${ticket.username}\nID: ${ticket.idString}`,
-      });
-      delete stored.tickets[ticket.idString];
-      await setTickData("tickets", stored);
-      await archiveTicket(
-        {
-          name: channel.name,
-          closedBy: moderator,
-          channel: channel,
-        },
-        setTickData
-      );
-    } catch (err) {
-      console.error("[TICKET] Fehler:", err);
-    }
-  }
-  async function createTicket(category, user, guild, extra = {}) {
-    if (await isBlocked(user.id)) return null;
-    const stored = (await getTickData("tickets")) || { tickets: { lastId: 0 } };
-    if (!stored.tickets) stored.tickets = { lastId: 0 };
-    const currentLastId = parseInt(stored.tickets.lastId) || 0;
-    const id = currentLastId + 1;
-    const idString = id.toString().padStart(4, "0");
-    stored.tickets.lastId = id;
-    const parentId = CATEGORY_CHANNELS[category];
-    try {
-      const channel = await guild.channels.create({
-        name: `${CATEGORY_EMOJI[category] || " "}-${category}-${idString}`,
-        type: ChannelType.GuildText,
-        parent: parentId,
-        permissionOverwrites: [
-          { id: guild.roles.everyone, deny: [PermissionFlagsBits.ViewChannel] },
-          { id: TEAM_ROLE_ID, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] },
-          { id: user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }
-        ],
-      });
-      const hasAccount = await hasEconomyAccount(user.id);
-      const ingameName = extra.ingame || (await getStoredIngameName(user.id));
-      const embeds = buildTicketInfoEmbeds({
-        idString,
-        category,
-        user,
-        created: Date.now(),
-        hasAccount,
-        ingameName,
-        anliegen: extra.anliegen || {}
-      });
-      const closeRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId(`ticket_close_${idString}`)
-          .setLabel("Ticket schließen")
-          .setEmoji("🗑️")
-          .setStyle(ButtonStyle.Danger)
-      );
-      await channel.send({ content: `${user} Willkommen in deinem Ticket!`, embeds, components: [closeRow] });
-      if (extra.needsTemplate) {
-        await channel.send({ content: BEWERBUNG_VORLAGE_TEXT });
-      }
-      stored.tickets[idString] = {
-        idString,
-        channelId: channel.id,
-        userId: user.id,
-        username: user.username,
-        category: category
-      };
-      await saveTickData("tickets", stored);
-      await sendKekseLog("Ticket Erstellt", user, `Kategorie: \`${category}\`\nKanal: ${channel}`);
-      return channel;
-    } catch (error) {
-      console.error("Fehler beim Erstellen des Tickets:", error);
-    }
-  }
-  client.on("interactionCreate", async (interaction) => {
-    if (interaction.isButton()) {
-      if (interaction.customId.startsWith("ticket_close_")) {
-        if (!interaction.member.roles.cache.has(TEAM_ROLE_ID)) {
-          return interaction.reply({
-            content: "Nur Teammitglieder können Tickets schließen.",
-            ephemeral: true,
-          });
-        }
-        await interaction.deferUpdate();
-        return closeTicket(interaction.channel, interaction.user);
-      }
-      if (interaction.customId.startsWith("t_")) {
-        const category = interaction.customId.split("_")[1];
-        if (await isBlocked(interaction.user.id) && !interaction.member.roles.cache.has(TEAM_ROLE_ID)) {
-          return interaction.reply({ content: "Du bist gesperrt.", ephemeral: true });
-        }
-        if (category === "Economy") {
-          await interaction.deferReply({ ephemeral: true });
-          const channel = await createTicket(category, interaction.user, interaction.guild);
-          return interaction.editReply({ content: `Dein Economy-Ticket wurde erstellt: ${channel}` });
-        }
-        const hasAccount = await hasEconomyAccount(interaction.user.id);
-        const storedName = await getStoredIngameName(interaction.user.id);
-        const needsIngameName = !hasAccount || !storedName;
-        const modal = buildModal(category, { needsIngameName });
-        if (modal) {
-          await interaction.showModal(modal);
-        } else {
-          return interaction.reply({ content: "Unbekannte Kategorie.", ephemeral: true });
-        }
-      }
-    }
-
-    if (interaction.isModalSubmit()) {
-      if (interaction.customId.startsWith("tm_")) {
-        await interaction.deferReply({ ephemeral: true });
-        
-        const parts = interaction.customId.split("_");
-        const category = parts[1];
-        const extra = { anliegen: {} };
-
-        // Formulardaten sauber auslesen und zuweisen
-        if (category === "Support") {
-          extra.anliegen["Kurzbeschreibung"] = interaction.fields.getTextInputValue("kurz");
-          extra.anliegen["Details"] = interaction.fields.getTextInputValue("lang");
-        } else if (category === "Abholung") {
-          if (parts[2] === "noacc") {
-            extra.ingame = interaction.fields.getTextInputValue("ingame");
-          }
-          extra.anliegen["Gewinn"] = interaction.fields.getTextInputValue("gewonnen");
-        } else if (category === "Bewerbung") {
-          extra.anliegen["Name"] = interaction.fields.getTextInputValue("name");
-          if (parts[2] === "noacc") {
-            extra.ingame = interaction.fields.getTextInputValue("ingame");
-          }
-          const vorlageInput = interaction.fields.getTextInputValue("vorlage");
-          extra.needsTemplate = parseYesNo(vorlageInput);
-        }
-
-        const channel = await createTicket(category, interaction.user, interaction.guild, extra);
-        if (channel) {
-          await interaction.editReply({ content: `Ein Ticket wurde erfolgreich erstellt: ${channel}` });
-        } else {
-          await interaction.editReply({ content: "Fehler beim Erstellen des Tickets (Eventuell bist du blockiert)." });
-        }
-      }
-    }
-  });
-}
+          return interaction.reply({ content: "Du bist gesperrt.", ephemeral: true });}if (category === "Economy") {await interaction.deferReply({ ephemeral: true });const channel = await createTicket(category, interaction.user, interaction.guild);return interaction.editReply({ content: `Dein Economy-Ticket wurde erstellt: ${channel}` });}const hasAccount = await hasEconomyAccount(interaction.user.id);const storedName = await getStoredIngameName(interaction.user.id);const needsIngameName = !hasAccount || !storedName;const modal = buildModal(category, { needsIngameName });if (modal) {await interaction.showModal(modal);} else {return interaction.reply({ content: "Unbekannte Kategorie.", ephemeral: true });}}}if (interaction.isModalSubmit()) {if (interaction.customId.startsWith("tm_")) {await interaction.deferReply({ ephemeral: true });const parts = interaction.customId.split("_");const category = parts[1];const extra = { anliegen: {} };if (category === "Support") {extra.anliegen["Kurzbeschreibung"] = interaction.fields.getTextInputValue("kurz");extra.anliegen["Details"] = interaction.fields.getTextInputValue("lang");} else if (category === "Abholung") {if (parts[2] === "noacc") {extra.ingame = interaction.fields.getTextInputValue("ingame");}extra.anliegen["Gewinn"] = interaction.fields.getTextInputValue("gewonnen");} else if (category === "Bewerbung") {extra.anliegen["Name"] = interaction.fields.getTextInputValue("name");if (parts[2] === "noacc") {extra.ingame = interaction.fields.getTextInputValue("ingame");}const vorlageInput = interaction.fields.getTextInputValue("vorlage");extra.needsTemplate = parseYesNo(vorlageInput);}const channel = await createTicket(category, interaction.user, interaction.guild, extra);if (channel) {await interaction.editReply({ content: `Ein Ticket wurde erfolgreich erstellt: ${channel}` });} else {await interaction.editReply({ content: "Fehler beim Erstellen des Tickets." });}}}});client.on("messageCreate", async (msg) => {if (!msg.content.startsWith("!") || msg.author.bot) return;const args = msg.content.slice(1).split(/\s+/);const cmd = args.shift().toLowerCase();if (cmd === "ticket_panel" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {await sendTicketPanel(msg.channel);await msg.delete().catch(() => {});globalBotStats.commandsRunned += 1;}if (cmd === "close" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {await closeTicket(msg.channel, msg.author);globalBotStats.commandsRunned += 1;}if (cmd === "delete" && msg.member.roles.cache.has(ADMIN_ROLE_ID)) {await msg.reply("Kanal wird gelöscht...");setTimeout(() => msg.channel.delete().catch(() => {}), 3000);globalBotStats.commandsRunned += 1;}if (cmd === "block" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {const target = msg.mentions.users.first() || { id: args[0], username: "Unbekannt" };if (!target.id) return msg.reply("ID fehlt.");const days = parseInt(args[1]) || 7;await blockUser(target.id, target.username, days * 24 * 60 * 60 * 1000);msg.reply(`<@${target.id}> für ${days} Tage gesperrt.`);globalBotStats.commandsRunned += 1;}});};
 const CREATOR_CHANNEL_ID = "1423413348220796991";
 const CATEGORY_ID = "1423413348493430902";
 const TRIGGER_CHANNEL_ID = "1423438527319900180";
