@@ -5661,7 +5661,7 @@ export async function initTickets(client) {
           closedBy: moderator,
           channel: channel,
         },
-        saveTickData
+        setTickData
       );
     } catch (err) {
       console.error("[TICKET] Fehler:", err);
@@ -5728,7 +5728,7 @@ export async function initTickets(client) {
         category: category
       };
 
-      await saveTickData("tickets", stored);
+      await setTickData("tickets", stored);
       await sendKekseLog("Ticket Erstellt", user, `Kategorie: \`${category}\`\nKanal: ${channel}`);
       
       return channel;
