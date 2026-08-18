@@ -5743,14 +5743,89 @@ export async function initTickets(client) {
           });
         }
         await interaction.deferUpdate();
-        return closeTicket(interaction.channel, interaction.user);
+        return await closeTicket(interaction.channel, interaction.user);
       }
 
       if (interaction.customId.startsWith("t_")) {
         const category = interaction.customId.split("_")[1];
 
         if (await isBlocked(interaction.user.id) && !interaction.member.roles.cache.has(TEAM_ROLE_ID)) {
-          return interaction.reply({ content: "Du bist gesperrt.", ephemeral: true });}if (category === "Economy") {await interaction.deferReply({ ephemeral: true });const channel = await createTicket(category, interaction.user, interaction.guild);return interaction.editReply({ content: `Dein Economy-Ticket wurde erstellt: ${channel}` });}const hasAccount = await hasEconomyAccount(interaction.user.id);const storedName = await getStoredIngameName(interaction.user.id);const needsIngameName = !hasAccount || !storedName;const modal = buildModal(category, { needsIngameName });if (modal) {await interaction.showModal(modal);} else {return interaction.reply({ content: "Unbekannte Kategorie.", ephemeral: true });}}}if (interaction.isModalSubmit()) {if (interaction.customId.startsWith("tm_")) {await interaction.deferReply({ ephemeral: true });const parts = interaction.customId.split("_");const category = parts[1];const extra = { anliegen: {} };if (category === "Support") {extra.anliegen["Kurzbeschreibung"] = interaction.fields.getTextInputValue("kurz");extra.anliegen["Details"] = interaction.fields.getTextInputValue("lang");} else if (category === "Abholung") {if (parts[2] === "noacc") {extra.ingame = interaction.fields.getTextInputValue("ingame");}extra.anliegen["Gewinn"] = interaction.fields.getTextInputValue("gewonnen");} else if (category === "Bewerbung") {extra.anliegen["Name"] = interaction.fields.getTextInputValue("name");if (parts[2] === "noacc") {extra.ingame = interaction.fields.getTextInputValue("ingame");}const vorlageInput = interaction.fields.getTextInputValue("vorlage");extra.needsTemplate = parseYesNo(vorlageInput);}const channel = await createTicket(category, interaction.user, interaction.guild, extra);if (channel) {await interaction.editReply({ content: `Ein Ticket wurde erfolgreich erstellt: ${channel}` });} else {await interaction.editReply({ content: "Fehler beim Erstellen des Tickets." });}}}});client.on("messageCreate", async (msg) => {if (!msg.content.startsWith("!") || msg.author.bot) return;const args = msg.content.slice(1).split(/\s+/);const cmd = args.shift().toLowerCase();if (cmd === "ticket_panel" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {await sendTicketPanel(msg.channel);await msg.delete().catch(() => {});globalBotStats.commandsRunned += 1;}if (cmd === "close" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {await closeTicket(msg.channel, msg.author);globalBotStats.commandsRunned += 1;}if (cmd === "delete" && msg.member.roles.cache.has(ADMIN_ROLE_ID)) {await msg.reply("Kanal wird gelöscht...");setTimeout(() => msg.channel.delete().catch(() => {}), 3000);globalBotStats.commandsRunned += 1;}if (cmd === "block" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {const target = msg.mentions.users.first() || { id: args[0], username: "Unbekannt" };if (!target.id) return msg.reply("ID fehlt.");const days = parseInt(args[1]) || 7;await blockUser(target.id, target.username, days * 24 * 60 * 60 * 1000);msg.reply(`<@${target.id}> für ${days} Tage gesperrt.`);globalBotStats.commandsRunned += 1;}});};
+          return interaction.reply({ content: "Du bist gesperrt.", ephemeral: true });
+        }
+        if (category === "Economy") {
+          await interaction.deferReply({ ephemeral: true });
+          const channel = await createTicket(category, interaction.user, interaction.guild);
+          return interaction.editReply({ content: `Dein Economy-Ticket wurde erstellt: ${channel}` });
+        }
+        const hasAccount = await hasEconomyAccount(interaction.user.id);
+        const storedName = await getStoredIngameName(interaction.user.id);
+        const needsIngameName = !hasAccount || !storedName;const modal = buildModal(category, { needsIngameName });
+        if (modal) {
+          await interaction.showModal(modal);
+        } else {
+          return interaction.reply({ content: "Unbekannte Kategorie.", ephemeral: true });
+        }
+      }
+    }
+    if (interaction.isModalSubmit()) {
+      if (interaction.customId.startsWith("tm_")) {
+        await interaction.deferReply({ ephemeral: true });
+        const parts = interaction.customId.split("_");
+        const category = parts[1];
+        const extra = { anliegen: {} };
+        if (category === "Support") {
+          extra.anliegen["Kurzbeschreibung"] = interaction.fields.getTextInputValue("kurz");
+          extra.anliegen["Details"] = interaction.fields.getTextInputValue("lang");
+        } else if (category === "Abholung") {
+          if (parts[2] === "noacc") {
+            extra.ingame = interaction.fields.getTextInputValue("ingame");
+          }
+          extra.anliegen["Gewinn"] = interaction.fields.getTextInputValue("gewonnen");
+        } else if (category === "Bewerbung") {
+          extra.anliegen["Name"] = interaction.fields.getTextInputValue("name");
+          if (parts[2] === "noacc") {
+            extra.ingame = interaction.fields.getTextInputValue("ingame");
+          }
+          const vorlageInput = interaction.fields.getTextInputValue("vorlage");
+          extra.needsTemplate = parseYesNo(vorlageInput);
+        }
+        const channel = await createTicket(category, interaction.user, interaction.guild, extra);
+        if (channel) {
+          await interaction.editReply({ content: `Ein Ticket wurde erfolgreich erstellt: ${channel}` });
+        } else {
+          await interaction.editReply({ content: "Fehler beim Erstellen des Tickets." });
+        }
+      }
+    }
+  });
+  client.on("messageCreate", async (msg) => {
+    if (!msg.content.startsWith("!") || msg.author.bot) return;
+    const args = msg.content.slice(1).split(/\s+/);
+    const cmd = args.shift().toLowerCase();
+    if (cmd === "ticket_panel" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
+      await sendTicketPanel(msg.channel);
+      await msg.delete().catch(() => {});
+      globalBotStats.commandsRunned += 1;
+    }
+    if (cmd === "close" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
+      await closeTicket(msg.channel, msg.author);
+      globalBotStats.commandsRunned += 1;
+    }
+    if (cmd === "delete" && msg.member.roles.cache.has(ADMIN_ROLE_ID)) {
+      await msg.reply("Kanal wird gelöscht...");
+      setTimeout(() => msg.channel.delete().catch(() => {}), 3000);
+      globalBotStats.commandsRunned += 1;
+    }
+    if (cmd === "block" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
+      const target = msg.mentions.users.first() || { id: args[0], username: "Unbekannt" };
+      if (!target.id) return msg.reply("ID fehlt.");
+      const days = parseInt(args[1]) || 7;
+      await blockUser(target.id, target.username, days * 24 * 60 * 60 * 1000);
+      msg.reply(`<@${target.id}> für ${days} Tage gesperrt.`);
+      globalBotStats.commandsRunned += 1;
+    }
+  });
+};
 const CREATOR_CHANNEL_ID = "1423413348220796991";
 const CATEGORY_ID = "1423413348493430902";
 const TRIGGER_CHANNEL_ID = "1423438527319900180";
