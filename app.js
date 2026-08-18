@@ -5476,7 +5476,7 @@ const BEWERBUNG_VORLAGE_TEXT = `
 > **Voraussetzungen beachten:**\n
 > - Du hast noch nie gescammt\n
 > - Du bist aktiv auf dem Minecraft Server und diesem Discord-Server\n
-> `
+> `;
  
 export async function initTickets(client) {
   await loadTickets();
@@ -5627,36 +5627,39 @@ export async function initTickets(client) {
   }
   function buildTicketInfoEmbeds({ idString, category, user, created, hasAccount, ingameName, anliegen }) {
     const embeds = [];
-    embeds.push({
-        title: "Ticket-Informationen",
-        color: 0xffffff,
-        description: [
-            `> **ID:** \`${idString}\``,
-            `> **Discord-Username:** ${user.username}`,
-            `> **Kategorie:** ${category}`,
-            `> **Erstellt:** <t:${Math.floor(created / 1000)}:F>`
-        ].join("\n")
-    });
-    embeds.push({
-        title: "Nutzer-Informationen",
-        color: 0xffffff,
-        description: [
-            `> **Anzeigename:** **${user.displayName || user.username}**`,
-            `> **Username:** ${user.username}`,
-            `> **Account vorhanden:** ${hasAccount ? "Ja" : "Nein"}`,
-            `> **Minecraft Ingame Name:** ${ingameName || "–"}`
-        ].join("\n")
-    });
+    embeds.push(
+      new EmbedBuilder()
+        .setTitle("📋 Ticket-Informationen")
+        .setColor(0xffffff)
+        .setDescription([
+          `> **ID:** \`${idString}\``,
+          `> **Discord-Username:** ${user.username}`,
+          `> **Kategorie:** ${category}`,
+          `> **Erstellt:** <t:${Math.floor(created / 1000)}:F>`
+        ].join("\n"))
+    );
+    embeds.push(
+      new EmbedBuilder()
+        .setTitle("👤 Nutzer-Informationen")
+        .setColor(0xffffff)
+        .setDescription([
+          `> **Anzeigename:** **${user.displayName || user.username}**`,
+          `> **Username:** ${user.username}`,
+          `> **Account vorhanden:** ${hasAccount ? "✅ Ja" : "❌ Nein"}`,
+          `> **Minecraft Ingame Name:** ${ingameName || "–"}`
+        ].join("\n"))
+    );
     if (anliegen && Object.entries(anliegen).length > 0) {
-        const anliegenLines = Object.entries(anliegen).map(([label, value]) => `> **${label}:** ${value}`);
-        embeds.push({
-            title: "Anliegen",
-            color: 0xffffff,
-            description: anliegenLines.join("\n")
-        });
+      const anliegenLines = Object.entries(anliegen).map(([label, value]) => `> **${label}:** ${value}`);
+      embeds.push(
+        new EmbedBuilder()
+          .setTitle("📝 Anliegen")
+          .setColor(0xffffff)
+          .setDescription(anliegenLines.join("\n"))
+      );
     }
     return embeds;
-}
+  }
   async function createTicket(category, user, guild, extra = {}) {
     if (await isBlocked(user.id)) return;
     const stored = (await getTickData("tickets")) || { tickets: { lastId: 0 } };
@@ -5668,103 +5671,92 @@ export async function initTickets(client) {
     const parentId = CATEGORY_CHANNELS[category];
     try {
       const channel = await guild.channels.create({
-        name: `${CATEGORY_EMOJI[category]}-${category}-${idString}`,
+        name: `${CATEGORY_EMOJI[category] || "🎫"}-${category}-${idString}`,
         type: ChannelType.GuildText,
         parent: parentId,
         permissionOverwrites: [
           { id: guild.roles.everyone, deny: [PermissionFlagsBits.ViewChannel] },
-          {
-            id: TEAM_ROLE_ID,
-            allow: [
-              PermissionFlagsBits.ViewChannel,
-              PermissionFlagsBits.SendMessages,
-            ],
-          },
-          {
-            id: user.id,
-            allow: [
-              PermissionFlagsBits.ViewChannel,
-              PermissionFlagsBits.SendMessages,
-              PermissionFlagsBits.AttachFiles,
-            ],
-          },
+          { id: TEAM_ROLE_ID, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] },
+          { id: user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }
         ],
       });
-      stored.tickets[idString] = {
-        idString,
-        category,
-        username: user.username,
-        userId: user.id,
-        channelId: channel.id,
-        created: Date.now(),
-        formData: extra.formData || null,
-      };
-      await setTickData("tickets", stored);
-      const created = Date.now();
-      const hasAccount = extra.hasAccount ?? (await hasEconomyAccount(user.id));
-      const ingameName =
-        extra.formData?.ingame ||
-        (await getStoredIngameName(user.id)) ||
-        null;
-      let anliegen = null;
-      let vorlageNeeded = false;
- 
-      if (category === "Support") {
-        anliegen = {
-          "Kurzbeschreibung": extra.formData?.kurz || "–",
-          "Beschreibung": extra.formData?.lang || "–",
-        };
-      } else if (category === "Abholung") {
-        anliegen = {
-          "Gewonnen": extra.formData?.gewonnen || "–",
-        };
-      } else if (category === "Bewerbung") {
-        vorlageNeeded = parseYesNo(extra.formData?.vorlage);
-        anliegen = {
-          "Name": extra.formData?.name || "–",
-          "Vorlage benötigt": vorlageNeeded ? "Ja" : "Nein",
-        };
-      }
-      const infoText = buildTicketInfoText({
+      const hasAccount = await hasEconomyAccount(user.id);
+      const ingameName = extra.ingame || (await getStoredIngameName(user.id));
+      const embeds = buildTicketInfoEmbeds({
         idString,
         category,
         user,
-        created,
+        created: Date.now(),
         hasAccount,
         ingameName,
-        anliegen,
+        anliegen: extra.anliegen || {}
       });
       const closeRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-          .setCustomId("t_close")
+          .setCustomId(`ticket_close_${idString}`)
           .setLabel("Ticket schließen")
           .setEmoji("🔒")
-          .setStyle(ButtonStyle.Danger),
+          .setStyle(ButtonStyle.Danger)
       );
-      await channel.send({
-        content: `<@&${TEAM_ROLE_ID}> <@${user.id}>\n\n${infoText}`,
-        components: [closeRow],
-        flags: MessageFlags.SuppressNotifications,
-      });
-      if (category === "Economy") {
-        await channel.send({
-          content: `Hey <@${user.id}>, dieses Ticket gilt dem Umtausch von Keksen (Währung) zu Minevale Coins. Um dem Team Arbeit zu ersparen geschieht dieser Ablauf automatisch. Bei Missverständnissen oder Problemen bitte <@&1457906448234319922> pingen.`,
-        });
-        await initEconomyTransferSystem(guild.client, channel);
-      }
-      if (category === "Bewerbung" && vorlageNeeded) {
+      await channel.send({ content: `${user} Willkommen in deinem Ticket!`, embeds, components: [closeRow] });
+      if (extra.needsTemplate) {
         await channel.send({ content: BEWERBUNG_VORLAGE_TEXT });
       }
-      await sendKekseLog(
-        "Ticket Erstellt",
-        user,
-        `**Kategorie:** ${category}\n**Kanal:** ${channel}\n**ID:** \`${idString}\``,
-      );
-      globalBotStats.ticketsCreated += 1;
-    } catch (err) {
-      console.error("[TICKET] Fehler:", err);
+      await saveTickData("tickets", stored);
+      await sendKekseLog("Ticket Erstellt", user, `Kategorie: \`${category}\`\nKanal: ${channel}`);
+      return channel;
+    } catch (error) {
+      console.error("Fehler beim Erstellen des Tickets:", error);
     }
   }
+  client.on("interactionCreate", async (interaction) => {
+    if (interaction.isButton()) {
+      if (interaction.customId.startsWith("t_")) {
+        const category = interaction.customId.split("_")[1];
+        if (category === "Economy") {
+          await interaction.deferReply({ ephemeral: true });
+          const channel = await createTicket(category, interaction.user, interaction.guild);
+          return interaction.editReply({ content: `Dein Economy-Ticket wurde erstellt: ${channel}` });
+        }
+        const hasAccount = await hasEconomyAccount(interaction.user.id);
+        const storedName = await getStoredIngameName(interaction.user.id);
+        const needsIngameName = !hasAccount || !storedName;
+        const modal = buildModal(category, { needsIngameName });
+        if (modal) {
+          await interaction.showModal(modal);
+        }
+      }
+    }
+    if (interaction.isModalSubmit()) {
+      if (interaction.customId.startsWith("tm_")) {
+        await interaction.deferReply({ ephemeral: true });
+        const parts = interaction.customId.split("_");
+        const category = parts[1];
+        const extra = { anliegen: {} };
+        if (category === "Support") {
+          extra.anliegen["Kurzbeschreibung"] = interaction.fields.getTextInputValue("kurz");
+          extra.anliegen["Details"] = interaction.fields.getTextInputValue("lang");
+        } else if (category === "Abholung") {
+          if (parts[2] === "noacc") {
+            extra.ingame = interaction.fields.getTextInputValue("ingame");
+          }
+          extra.anliegen["Gewinn"] = interaction.fields.getTextInputValue("gewonnen");
+        } else if (category === "Bewerbung") {
+          extra.anliegen["Name"] = interaction.fields.getTextInputValue("name");
+          if (parts[2] === "noacc") {
+            extra.ingame = interaction.fields.getTextInputValue("ingame");
+          }
+          const vorlageInput = interaction.fields.getTextInputValue("vorlage");
+          extra.needsTemplate = parseYesNo(vorlageInput);
+        }
+        const channel = await createTicket(category, interaction.user, interaction.guild, extra);
+        await interaction.editReply({ 
+          content: `ein Ticket wurde erfolgreich erstellt: ${channel}`
+        });
+      }
+    }
+  });
+}
   async function closeTicket(channel, moderator) {
     try {
       const stored = (await getTickData("tickets")) || { tickets: {} };
