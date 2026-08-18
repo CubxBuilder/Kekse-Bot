@@ -5710,7 +5710,7 @@ export async function initTickets(client) {
           .setStyle(ButtonStyle.Danger)
       );
 
-      await channel.send({ content: `${user} Willkommen in deinem Ticket!`, embeds, components: [closeRow] });
+      await channel.send({ content: `${user} ||<@&1457906448234319922>||`, embeds, components: [closeRow] });
 
       if (extra.needsTemplate) {
         await channel.send({ content: BEWERBUNG_VORLAGE_TEXT });
