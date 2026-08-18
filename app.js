@@ -5477,9 +5477,9 @@ const BEWERBUNG_VORLAGE_TEXT = `
 > - Du hast noch nie gescammt\n
 > - Du bist aktiv auf dem Minecraft Server und diesem Discord-Server\n
 > `;
- 
 export async function initTickets(client) {
   await loadTickets();
+
   const sendKekseLog = async (action, user, details) => {
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
     if (!logChannel) return;
@@ -5494,14 +5494,17 @@ export async function initTickets(client) {
       .setTimestamp();
     await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
   };
-    async function hasEconomyAccount(userId) {
+
+  async function hasEconomyAccount(userId) {
     const ecoData = await getEcoData(userId);
     return Boolean(ecoData);
   }
+
   async function getStoredIngameName(userId) {
     const ecoData = await getEcoData(userId);
     return ecoData?.mcUsername || null;
   }
+
   function parseYesNo(input) {
     if (!input) return false;
     const normalized = input.trim().toLowerCase();
@@ -5511,167 +5514,58 @@ export async function initTickets(client) {
     if (no.includes(normalized)) return false;
     return /^(ja|yes|y|j)\b/.test(normalized);
   }
-  async function sendTicketPanel(channel) {
-    const embed = new EmbedBuilder()
-      .setTitle("Wähle den passenden Button für dein Anliegen.")
-      .setDescription(
-        "Ein Mitglied der Administration wird sich so schnell wie möglich um dich kümmern.\n\n" +
-          "**⚙️ Support:** Allgemeine Anliegen\n" +
-          "**🎉 Abholung:** Gewinn-Abholung\n" +
-          "**✉️ Bewerbung:** Clan-Bewerbungen\n" +
-          "**🏦 Economy:** Umtausch von Keksen zu Minevale Coins",
-      )
-      .setColor(0xffffff);
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("t_Support")
-        .setLabel("Support")
-        .setEmoji("⚙️")
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId("t_Abholung")
-        .setLabel("Abholung")
-        .setEmoji("🎉")
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId("t_Bewerbung")
-        .setLabel("Bewerbung")
-        .setEmoji("✉️")
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId("t_Economy")
-        .setLabel("Economy")
-        .setEmoji("🏦")
-        .setStyle(ButtonStyle.Secondary),
-    );
-    await channel.send({ embeds: [embed], components: [row] });
-  }
-  function buildModal(category, { needsIngameName }) {
-    if (category === "Support") {
-      const modal = new ModalBuilder()
-        .setCustomId("tm_Support")
-        .setTitle("Support-Ticket");
-      const kurz = new TextInputBuilder()
-        .setCustomId("kurz")
-        .setLabel("Beschreibe dein Anliegen in paar Worten. (2-4 Worte)")
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true)
-        .setMaxLength(100);
-      const lang = new TextInputBuilder()
-        .setCustomId("lang")
-        .setLabel("Beschreibe dein Anliegen ausführlich. (1-3 Sätze)")
-        .setStyle(TextInputStyle.Paragraph)
-        .setRequired(true)
-        .setMaxLength(1000);
-      modal.addComponents(
-        new ActionRowBuilder().addComponents(kurz),
-        new ActionRowBuilder().addComponents(lang),
+
+  async function closeTicket(channel, moderator) {
+    try {
+      const stored = (await getTickData("tickets")) || { tickets: {} };
+      const allEntries = stored.tickets || {};
+      
+      const ticket = Object.values(allEntries).find(
+        (t) => typeof t === "object" && t.channelId === channel.id
       );
-      return modal;
-    }
-    if (category === "Abholung") {
-      const modal = new ModalBuilder()
-        .setCustomId(`tm_Abholung_${needsIngameName ? "noacc" : "hasacc"}`)
-        .setTitle("Abholung-Ticket");
-      const rows = [];
-      if (needsIngameName) {
-        const ign = new TextInputBuilder()
-          .setCustomId("ingame")
-          .setLabel("Minecraft Ingame Name")
-          .setStyle(TextInputStyle.Short)
-          .setRequired(true)
-          .setMaxLength(32);
-        rows.push(new ActionRowBuilder().addComponents(ign));
+
+      if (!ticket) {
+        console.log("Gesuchte Channel-ID:", channel.id);
+        return channel.send(" Kein aktives Ticket in der Datenbank gefunden.");
       }
-      const gewonnen = new TextInputBuilder()
-        .setCustomId("gewonnen")
-        .setLabel("Was hast du gewonnen?")
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true)
-        .setMaxLength(200);
-      rows.push(new ActionRowBuilder().addComponents(gewonnen));
-      modal.addComponents(...rows);
-      return modal;
-    }
-    if (category === "Bewerbung") {
-      const modal = new ModalBuilder()
-        .setCustomId(`tm_Bewerbung_${needsIngameName ? "noacc" : "hasacc"}`)
-        .setTitle("Bewerbung-Ticket");
-      const name = new TextInputBuilder()
-        .setCustomId("name")
-        .setLabel("Dein Name")
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true)
-        .setMaxLength(64);
-      const rows = [new ActionRowBuilder().addComponents(name)];
-      if (needsIngameName) {
-        const ign = new TextInputBuilder()
-          .setCustomId("ingame")
-          .setLabel("Minecraft Ingame Name")
-          .setStyle(TextInputStyle.Short)
-          .setRequired(true)
-          .setMaxLength(32);
-        rows.push(new ActionRowBuilder().addComponents(ign));
-      }
-      const vorlage = new TextInputBuilder()
-        .setCustomId("vorlage")
-        .setLabel("Benötigst du eine Vorlage? (ja/nein)")
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true)
-        .setMaxLength(10);
-      rows.push(new ActionRowBuilder().addComponents(vorlage));
-      modal.addComponents(...rows);
-      return modal;
-    }
-    return null;
-  }
-  function buildTicketInfoEmbeds({ idString, category, user, created, hasAccount, ingameName, anliegen }) {
-    const embeds = [];
-    embeds.push(
-      new EmbedBuilder()
-        .setTitle("📋 Ticket-Informationen")
-        .setColor(0xffffff)
-        .setDescription([
-          `> **ID:** \`${idString}\``,
-          `> **Discord-Username:** ${user.username}`,
-          `> **Kategorie:** ${category}`,
-          `> **Erstellt:** <t:${Math.floor(created / 1000)}:F>`
-        ].join("\n"))
-    );
-    embeds.push(
-      new EmbedBuilder()
-        .setTitle("👤 Nutzer-Informationen")
-        .setColor(0xffffff)
-        .setDescription([
-          `> **Anzeigename:** **${user.displayName || user.username}**`,
-          `> **Username:** ${user.username}`,
-          `> **Account vorhanden:** ${hasAccount ? "✅ Ja" : "❌ Nein"}`,
-          `> **Minecraft Ingame Name:** ${ingameName || "–"}`
-        ].join("\n"))
-    );
-    if (anliegen && Object.entries(anliegen).length > 0) {
-      const anliegenLines = Object.entries(anliegen).map(([label, value]) => `> **${label}:** ${value}`);
-      embeds.push(
-        new EmbedBuilder()
-          .setTitle("📝 Anliegen")
-          .setColor(0xffffff)
-          .setDescription(anliegenLines.join("\n"))
+
+      await channel.permissionOverwrites.delete(ticket.userId).catch(() => {});
+      await channel.send({
+        content: ` **Ticket wird archiviert...**\nErstellt von: ${ticket.username}\nID: ${ticket.idString}`,
+      });
+
+      delete stored.tickets[ticket.idString];
+      await setTickData("tickets", stored);
+      
+      await archiveTicket(
+        {
+          name: channel.name,
+          closedBy: moderator,
+          channel: channel,
+        },
+        setTickData
       );
+    } catch (err) {
+      console.error("[TICKET] Fehler:", err);
     }
-    return embeds;
   }
+
   async function createTicket(category, user, guild, extra = {}) {
-    if (await isBlocked(user.id)) return;
+    if (await isBlocked(user.id)) return null;
+    
     const stored = (await getTickData("tickets")) || { tickets: { lastId: 0 } };
     if (!stored.tickets) stored.tickets = { lastId: 0 };
+    
     const currentLastId = parseInt(stored.tickets.lastId) || 0;
     const id = currentLastId + 1;
     const idString = id.toString().padStart(4, "0");
     stored.tickets.lastId = id;
+    
     const parentId = CATEGORY_CHANNELS[category];
+    
     try {
       const channel = await guild.channels.create({
-        name: `${CATEGORY_EMOJI[category] || "🎫"}-${category}-${idString}`,
+        name: `${CATEGORY_EMOJI[category] || " "}-${category}-${idString}`,
         type: ChannelType.GuildText,
         parent: parentId,
         permissionOverwrites: [
@@ -5680,8 +5574,10 @@ export async function initTickets(client) {
           { id: user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }
         ],
       });
+
       const hasAccount = await hasEconomyAccount(user.id);
       const ingameName = extra.ingame || (await getStoredIngameName(user.id));
+      
       const embeds = buildTicketInfoEmbeds({
         idString,
         category,
@@ -5691,48 +5587,93 @@ export async function initTickets(client) {
         ingameName,
         anliegen: extra.anliegen || {}
       });
+
       const closeRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId(`ticket_close_${idString}`)
           .setLabel("Ticket schließen")
-          .setEmoji("🔒")
+          .setEmoji("🗑️")
           .setStyle(ButtonStyle.Danger)
       );
+
       await channel.send({ content: `${user} Willkommen in deinem Ticket!`, embeds, components: [closeRow] });
+
       if (extra.needsTemplate) {
         await channel.send({ content: BEWERBUNG_VORLAGE_TEXT });
       }
+
+      // FEHLERBEHEBUNG: Ticket-Daten für closeTicket in der DB abspeichern!
+      stored.tickets[idString] = {
+        idString,
+        channelId: channel.id,
+        userId: user.id,
+        username: user.username,
+        category: category
+      };
+
       await saveTickData("tickets", stored);
       await sendKekseLog("Ticket Erstellt", user, `Kategorie: \`${category}\`\nKanal: ${channel}`);
+      
       return channel;
     } catch (error) {
       console.error("Fehler beim Erstellen des Tickets:", error);
     }
   }
+
+  // EINZIGER, ZUSAMMENGEFÜHRTER INTERACTION-LISTENER
   client.on("interactionCreate", async (interaction) => {
     if (interaction.isButton()) {
+      // 1. Ticket schließen Button abfangen
+      if (interaction.customId.startsWith("ticket_close_")) {
+        if (!interaction.member.roles.cache.has(TEAM_ROLE_ID)) {
+          return interaction.reply({
+            content: "Nur Teammitglieder können Tickets schließen.",
+            ephemeral: true,
+          });
+        }
+        await interaction.deferUpdate();
+        return closeTicket(interaction.channel, interaction.user);
+      }
+
+      // 2. Ticket Erstellung (Klick auf Panel-Buttons)
       if (interaction.customId.startsWith("t_")) {
         const category = interaction.customId.split("_")[1];
+
+        // Blockierte Nutzer abweisen
+        if (await isBlocked(interaction.user.id) && !interaction.member.roles.cache.has(TEAM_ROLE_ID)) {
+          return interaction.reply({ content: "Du bist gesperrt.", ephemeral: true });
+        }
+
+        // Economy benötigt kein Modal
         if (category === "Economy") {
           await interaction.deferReply({ ephemeral: true });
           const channel = await createTicket(category, interaction.user, interaction.guild);
           return interaction.editReply({ content: `Dein Economy-Ticket wurde erstellt: ${channel}` });
         }
+
+        // Prüfen, ob Ingame-Name abgefragt werden muss
         const hasAccount = await hasEconomyAccount(interaction.user.id);
         const storedName = await getStoredIngameName(interaction.user.id);
         const needsIngameName = !hasAccount || !storedName;
+
         const modal = buildModal(category, { needsIngameName });
         if (modal) {
           await interaction.showModal(modal);
+        } else {
+          return interaction.reply({ content: "Unbekannte Kategorie.", ephemeral: true });
         }
       }
     }
+
     if (interaction.isModalSubmit()) {
       if (interaction.customId.startsWith("tm_")) {
         await interaction.deferReply({ ephemeral: true });
+        
         const parts = interaction.customId.split("_");
         const category = parts[1];
         const extra = { anliegen: {} };
+
+        // Formulardaten sauber auslesen und zuweisen
         if (category === "Support") {
           extra.anliegen["Kurzbeschreibung"] = interaction.fields.getTextInputValue("kurz");
           extra.anliegen["Details"] = interaction.fields.getTextInputValue("lang");
@@ -5749,14 +5690,16 @@ export async function initTickets(client) {
           const vorlageInput = interaction.fields.getTextInputValue("vorlage");
           extra.needsTemplate = parseYesNo(vorlageInput);
         }
+
         const channel = await createTicket(category, interaction.user, interaction.guild, extra);
-        await interaction.editReply({ 
-          content: `ein Ticket wurde erfolgreich erstellt: ${channel}`
-        });
+        if (channel) {
+          await interaction.editReply({ content: `Ein Ticket wurde erfolgreich erstellt: ${channel}` });
+        } else {
+          await interaction.editReply({ content: "Fehler beim Erstellen des Tickets (Eventuell bist du blockiert)." });
+        }
       }
     }
   });
-}
   async function closeTicket(channel, moderator) {
     try {
       const stored = (await getTickData("tickets")) || { tickets: {} };
@@ -5858,37 +5801,38 @@ export async function initTickets(client) {
       return;
     }
   });
- 
   client.on("messageCreate", async (msg) => {
     if (!msg.content.startsWith("!") || msg.author.bot) return;
     const args = msg.content.slice(1).split(/\s+/);
     const cmd = args.shift().toLowerCase();
+
     if (cmd === "ticket_panel" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
       await sendTicketPanel(msg.channel);
       await msg.delete().catch(() => {});
       globalBotStats.commandsRunned += 1;
     }
+
     if (cmd === "close" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
       await closeTicket(msg.channel, msg.author);
       globalBotStats.commandsRunned += 1;
     }
+
     if (cmd === "delete" && msg.member.roles.cache.has(ADMIN_ROLE_ID)) {
-      await msg.reply("🗑️ Kanal wird gelöscht...");
+      await msg.reply("Kanal wird gelöscht...");
       setTimeout(() => msg.channel.delete().catch(() => {}), 3000);
       globalBotStats.commandsRunned += 1;
     }
+
     if (cmd === "block" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
-      const target = msg.mentions.users.first() || {
-        id: args[0],
-        username: "Unbekannt",
-      };
-      if (!target.id) return msg.reply("❌ ID fehlt.");
+      const target = msg.mentions.users.first() || { id: args[0], username: "Unbekannt" };
+      if (!target.id) return msg.reply("ID fehlt.");
       const days = parseInt(args[1]) || 7;
       await blockUser(target.id, target.username, days * 24 * 60 * 60 * 1000);
-      msg.reply(`✅ <@${target.id}> für ${days} Tage gesperrt.`);
+      msg.reply(`<@${target.id}> für ${days} Tage gesperrt.`);
       globalBotStats.commandsRunned += 1;
     }
-});
+  });
+}
 const CREATOR_CHANNEL_ID = "1423413348220796991";
 const CATEGORY_ID = "1423413348493430902";
 const TRIGGER_CHANNEL_ID = "1423438527319900180";
