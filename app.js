@@ -5456,14 +5456,27 @@ async function blockUser(
   };
   await setTickData("blocked_users", blocked);
 }
-const BEWERBUNG_VORLAGE_TEXT =
-  "**📋 Bewerbungsvorlage**\n\n" +
-  "**Name:**\n" +
-  "**Alter:**\n" +
-  "**Ingame Name:**\n" +
-  "**Warum möchtest du dem Team beitreten?**\n" +
-  "**Erfahrungen:**\n" +
-  "**Erreichbarkeit (Stunden/Woche):**";
+const BEWERBUNG_VORLAGE_TEXT = `
+> ### Meine Bewerbung:\n
+> \n
+> - Name & Ingame-Name\n
+> - Alter\n
+> - Auf welchem Minecraft Server bist du aktiv? Zur Auswahl stehen derzeit: `Minevale.de` `CraftValley.de`\n
+> - Weshalb du in den Clan willst\n
+> - In welchen Clans warst du bereits\n
+> - Warum du in unseren Clan aufgenommen werden solltest\n
+> - Deine Stärken\n
+> - Spielzeit: Minecraft & Minecraft Server\n
+> \n
+> **Weitere Informationen:**\n
+> - Schreibe in ganzen Sätzen\n
+> - Keine KI verwenden\n
+> - Achte auf eine säuberliche, äußere Form deiner Bewerbung\n
+> \n
+> **Voraussetzungen beachten:**\n
+> - Du hast noch nie gescammt\n
+> - Du bist aktiv auf dem Minecraft Server und diesem Discord-Server\n
+> `
  
 export async function initTickets(client) {
   await loadTickets();
@@ -5540,13 +5553,13 @@ export async function initTickets(client) {
         .setTitle("Support-Ticket");
       const kurz = new TextInputBuilder()
         .setCustomId("kurz")
-        .setLabel("Beschreibung in wenigen Worten")
+        .setLabel("Beschreibe dein Anliegen in paar Worten. (2-4 Worte)")
         .setStyle(TextInputStyle.Short)
         .setRequired(true)
         .setMaxLength(100);
       const lang = new TextInputBuilder()
         .setCustomId("lang")
-        .setLabel("Beschreibung in ganzen Sätzen")
+        .setLabel("Beschreibe dein Anliegen ausführlich. (1-3 Sätze)")
         .setStyle(TextInputStyle.Paragraph)
         .setRequired(true)
         .setMaxLength(1000);
@@ -5572,7 +5585,7 @@ export async function initTickets(client) {
       }
       const gewonnen = new TextInputBuilder()
         .setCustomId("gewonnen")
-        .setLabel("Was wurde gewonnen?")
+        .setLabel("Was hast du gewonnen?")
         .setStyle(TextInputStyle.Short)
         .setRequired(true)
         .setMaxLength(200);
@@ -5602,7 +5615,7 @@ export async function initTickets(client) {
       }
       const vorlage = new TextInputBuilder()
         .setCustomId("vorlage")
-        .setLabel("Wird eine Vorlage benötigt? (ja/nein)")
+        .setLabel("Benötigst du eine Vorlage? (ja/nein)")
         .setStyle(TextInputStyle.Short)
         .setRequired(true)
         .setMaxLength(10);
@@ -5610,39 +5623,40 @@ export async function initTickets(client) {
       modal.addComponents(...rows);
       return modal;
     }
- 
     return null;
   }
-  function buildTicketInfoText({
-    idString,
-    category,
-    user,
-    created,
-    hasAccount,
-    ingameName,
-    anliegen,
-  }) {
-    const lines = [];
-    lines.push("📋 **Ticket-Informationen**");
-    lines.push(`> **ID:** \`${idString}\``);
-    lines.push(`> **Discord-Username:** ${user.username}`);
-    lines.push(`> **Kategorie:** ${category}`);
-    lines.push(`> **Erstellt:** <t:${Math.floor(created / 1000)}:F>`);
-    lines.push("");
-    lines.push("👤 **Nutzer-Informationen**");
-    lines.push(`> **Anzeigename:** **${user.displayName || user.username}**`);
-    lines.push(`> **Username:** ${user.username}`);
-    lines.push(`> **Account vorhanden:** ${hasAccount ? "✅ Ja" : "❌ Nein"}`);
-    lines.push(`> **Minecraft Ingame Name:** ${ingameName || "–"}`);
-    lines.push("");
-    if (anliegen && Object.keys(anliegen).length > 0) {
-      lines.push("📝 **Anliegen**");
-      for (const [label, value] of Object.entries(anliegen)) {
-        lines.push(`> **${label}:** ${value}`);
-      }
+  function buildTicketInfoEmbeds({ idString, category, user, created, hasAccount, ingameName, anliegen }) {
+    const embeds = [];
+    embeds.push({
+        title: "Ticket-Informationen",
+        color: 0xffffff,
+        description: [
+            `> **ID:** \`${idString}\``,
+            `> **Discord-Username:** ${user.username}`,
+            `> **Kategorie:** ${category}`,
+            `> **Erstellt:** <t:${Math.floor(created / 1000)}:F>`
+        ].join("\n")
+    });
+    embeds.push({
+        title: "Nutzer-Informationen",
+        color: 0xffffff,
+        description: [
+            `> **Anzeigename:** **${user.displayName || user.username}**`,
+            `> **Username:** ${user.username}`,
+            `> **Account vorhanden:** ${hasAccount ? "Ja" : "Nein"}`,
+            `> **Minecraft Ingame Name:** ${ingameName || "–"}`
+        ].join("\n")
+    });
+    if (anliegen && Object.entries(anliegen).length > 0) {
+        const anliegenLines = Object.entries(anliegen).map(([label, value]) => `> **${label}:** ${value}`);
+        embeds.push({
+            title: "Anliegen",
+            color: 0xffffff,
+            description: anliegenLines.join("\n")
+        });
     }
-    return lines.join("\n");
-  }
+    return embeds;
+}
   async function createTicket(category, user, guild, extra = {}) {
     if (await isBlocked(user.id)) return;
     const stored = (await getTickData("tickets")) || { tickets: { lastId: 0 } };
