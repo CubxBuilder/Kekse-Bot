@@ -3831,7 +3831,8 @@ export function initVerification(client) {
 
         await channel.send({
           content:
-            "**Willkommen!** Klicke auf den Button, um die Verifizierung abzuschließen.",
+            `**Herzlich willkommen!** Klicke auf den Button unten, um Zugriff auf die Channels des Servers zu erhalten.\n\n` +
+            `-# Um Bot-Accounts von diesem Server fernzuhalten, wurde dieser Zwischenschritt implementiert. Beim Klicken wird eine Rolle entfernt, die das Einsehen der Channels blockiert.`,
           files: [imageUrl],
           components: [row],
         });
@@ -3846,6 +3847,115 @@ export function initVerification(client) {
         await msg.delete().catch(() => {});
       }
     }
+  });
+}
+export function initRules(client) {
+  client.on("messageCreate", async (msg) {
+    if (!msg.member.roles.cache.has("1454169207838216253")) {
+      msg.reply(`Du hast keine Berechtigung diese Funktion zu nutzen.`);
+      return;
+    }
+    const defaultRule = new EmbedBuilder()
+      .setColor("#ffffff")
+      .setAuthor("Regelwerk")
+      .setDescription(
+        `
+        # Allgemeine Regeln
+        ## Respekt und Freundlichkeit
+        - Sei respektvoll gegenüber anderen. Beleidigungen, Mobbing oder Drohungen werden nicht toleriert.
+        - Diskutiere sachlich und vermeide provokative Streitigkeiten.
+
+        ## Keine unangemessene Inhalte
+        - Sende keine anstößigen, pornografischen, rassistischen oder gewalttätigen Inhalte.
+        - Verbreite keine illegale Inhalte oder diskutiere über illegale Aktivitäten.
+
+        ## Spam, Werbung und Links
+        - Unterlasse Spam jeglicher Art.
+        - Werbung darf nur mit Zustimmung der Moderation und in den dafür vorgesehenen Channels gesendet werden.
+
+        ## Serverlücken
+        - Die Ausnutzung von Serverlücken ist strengstens untersagt
+        - Gefundene Lücken müssen per Ticket an die Moderation gemeldet werden.
+
+        ## Regelverstöße
+        - Regelverstöße müssen an das Server-Team gemeldet werden.
+        `
+      )
+    const privacyRule = new EmbedBuilder()
+      .setColor("#ffffff")
+      .setDescription(
+        `
+        # Privatsphäre und Sicherheit
+        ## Datenschutz
+        - Teile nicht deine persönlichen Daten oder die anderer.
+        - Respektiere die Privatsphäre anderer Mitglieder.
+
+        ## Keine unerwünschte Kontaktaufnahme
+        - Sende nicht unaufgefordert Freundschaftsanfragen oder Direktnachrichten an andere.
+        - Wünsche nach Ruhe sind zu respektieren.
+        `
+      )
+    const useRule = new EmbedBuilder()
+      .setColor("#ffffff")
+      .setDescription(
+        `
+        # Server Nutzung und Kommunikation
+        ## Richtige Kanäle
+        - Poste wenn möglich in die dafür vorgesehenen Channels.
+        - Bots dürfen nur in den dafür vorgesehenen Channels genutzt werden.
+
+        ## Sprache und Ausdruck
+        - Kommuniziere freundlich, konstruktiv und versuche das Fluchen in Maßen zu halten.
+        - Deutsch und Englisch sind die eizig erlaubten Sprachen auf diesem Server.
+
+        ## Verhalten in Voice Channels
+        - Vermeide störgeräusche.
+        - Das machen von Audio- und Videoaufnahmen von Voice-Chats ist nur mit der ausdrücklichen Erlaubnis aller Beteiligten erlaubt.
+        `
+      )
+    const channelRule = new EmbedBuilder()
+      .setColor("#ffffff")
+      .setDescription(
+        `
+        # Channelspezifische Regeln
+        ## Tickets
+        - Der Missbrauch von Tickets, wie beispielsweise durch das öffnen ohne Grund ist nicht erlaubt.
+        - Bot-Fehler sind per Ticket zu melden und nicht in öffentlichen Channels zu diskutieren.
+
+        ## Counting
+        - Absichtliches Falschzählen (um andere zu provozieren) ist verboten.
+
+        ## Giveaways
+        - Tickets für Giveaways müssen innerhalb von 2 Tagen nach Ende geöffnet werden.
+        - Im Fall, dass der Nutzer auf einem Server gebannt ist, für den das Giveaway ist, darf am Giveaway nicht teilgenommen werden.
+        - Mitglieder mit einer Konto-Sperre dürfen nicht an Giveaways teilnehmen, die ein aktives Konto voraussetzen.
+
+        ## Vorschläge
+        - Verbesserungsvorschläge für Bot und Server sind im Vorschläge-Forum einzureichen.
+        `
+      )
+    const modRule = new EmbedBuilder()
+      .setColor("#ffffff")
+      .setDescription(
+        `
+        # Moderation und Konsequenzen
+        ## Verhalten gegenüber Moderatoren
+        - Entscheidungen der Moderation sind zu respektieren. Bei Problemen mit Entscheidungen ist ein Ticket zu erstellen.
+        - Den Anweisungen der Moderation ist Folge zu leisten.
+
+        ## Discord Nutzerbedingungen
+        - Die offiziellen Discord Richtlinien und Nutzerbedingungen müssen zu jeder Zeit eingehalten werden.
+        - https://discord.com/terms
+
+        ## Konsequenzen bei Verstößen
+        - Bei Verstößen können Verwarnungen, temporäre oder permanente Sperren verhangen werden.
+        - Moderatoren dürfen jederzeit Inhalte entfernen, die gegen Regeln verstoßen.
+        - Administratoren ist jederzeit das Recht vorbehalten, Nutzer auch ohne Angabe eines Grundes zu verwarnen, zu sperren oder anderweitig zu bestrafen.
+        `
+      )
+    msg.channel.send({
+      embeds: [defaultRule, privacyRule, useRule, channelRule, modRule]
+    }).catch(() => {});
   });
 }
 const PING_ID = "1151971830983311441";
@@ -5736,7 +5846,7 @@ export async function initTickets(client) {
   client.on("interactionCreate", async (interaction) => {
     if (interaction.isButton()) {
       if (interaction.customId.startsWith("ticket_close_")) {
-        if (!member.roles.cache.has(TEAM_ROLE)) {
+        if (!interaction.member.roles.cache.has(TEAM_ROLE)) {
         return interaction.reply({
           content: "❌ Keine Berechtigung.",
           flags: [MessageFlags.Ephemeral],
@@ -5813,7 +5923,7 @@ export async function initTickets(client) {
       globalBotStats.commandsRunned += 1;
     }
     if (cmd === "close") {
-      if (!member.roles.cache.has(TEAM_ROLE)) {
+      if (!msg.member.roles.cache.has(TEAM_ROLE)) {
         return msg.reply({
           content: "❌ Keine Berechtigung.",
           flags: [MessageFlags.Ephemeral],
@@ -9393,6 +9503,7 @@ client.once("clientReady", async () => {
     initReminder(client);
     initModeration(client);
     initVerification(client);
+    initRules(client);
     initAuditLogs(client);
     clear(client);
     warning(client);
