@@ -741,7 +741,7 @@ export async function initEconomySystem(client) {
             inline: false,
           },
           {
-            name: "💎 VIP Rolle (7d) - `100.000 Kekse`",
+            name: "💎 VIP Rolle (7d) - `500.000 Kekse`",
             value: "Du wirst bei der Teilnahme an Events bevorzugt.",
             inline: false,
           },
@@ -2273,7 +2273,7 @@ export async function initEconomySystem(client) {
             roleId: "1434555291252297728",
             name: "💎 VIP-Rolle (7d)",
             duration: 7 * 24 * 60 * 60 * 1000,
-            price: 100000,
+            price: 500000,
           }
         };
 
