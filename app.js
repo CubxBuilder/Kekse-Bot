@@ -5736,14 +5736,19 @@ export async function initTickets(client) {
   client.on("interactionCreate", async (interaction) => {
     if (interaction.isButton()) {
       if (interaction.customId.startsWith("ticket_close_")) {
-        if (!interaction.member.roles.cache.has(TEAM_ROLE_ID)) {
-          return interaction.reply({
-            content: "Nur Teammitglieder können Tickets schließen.",
-            ephemeral: true,
-          });
-        }
-        await interaction.deferUpdate();
-        return await closeTicket(interaction.channel, interaction.user);
+        if (!member.roles.cache.has(TEAM_ROLE)) {
+        return interaction.reply({
+          content: "❌ Keine Berechtigung.",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+      await interaction.reply({
+        content: "⏳ Ticket-Schließung initiiert...",
+        flags: [MessageFlags.Ephemeral],
+      });
+      await closeTicket(currentChannel, user);
+      console.log(`${user.username} hat ${currentChannel} geschlossen`)
+      globalBotStats.commandsRunned += 1;
       }
 
       if (interaction.customId.startsWith("t_")) {
@@ -5809,12 +5814,12 @@ export async function initTickets(client) {
     }
     if (cmd === "close") {
       if (!member.roles.cache.has(TEAM_ROLE)) {
-        return interaction.reply({
+        return msg.reply({
           content: "❌ Keine Berechtigung.",
           flags: [MessageFlags.Ephemeral],
         });
       }
-      await interaction.reply({
+      await msg.reply({
         content: "⏳ Ticket-Schließung initiiert...",
         flags: [MessageFlags.Ephemeral],
       });
