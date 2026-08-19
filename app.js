@@ -5807,8 +5807,19 @@ export async function initTickets(client) {
       await msg.delete().catch(() => {});
       globalBotStats.commandsRunned += 1;
     }
-    if (cmd === "close" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
-      await closeTicket(msg.channel, msg.author);
+    if (cmd === "close") {
+      if (!member.roles.cache.has(TEAM_ROLE)) {
+        return interaction.reply({
+          content: "❌ Keine Berechtigung.",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+      await interaction.reply({
+        content: "⏳ Ticket-Schließung initiiert...",
+        flags: [MessageFlags.Ephemeral],
+      });
+      await closeTicket(currentChannel, user);
+      console.log(`${user.username} hat ${currentChannel} geschlossen`)
       globalBotStats.commandsRunned += 1;
     }
     if (cmd === "delete" && msg.member.roles.cache.has(ADMIN_ROLE_ID)) {
