@@ -5584,17 +5584,13 @@ function buildModal(category, { needsIngameName }) {
         .setMaxLength(32);
       rows.push(new ActionRowBuilder().addComponents(ign));
     }
-    const vorlage = new StringSelectMenuBuilder()
-      .setCustomId("vorlage")
-      .setPlaceholder("Benötigst du eine Vorlage?")
-      .setMinValues(1)
-      .setMaxValues(1)
-      .addOptions(
-        new StringSelectMenuOptionBuilder().setLabel("Ja").setValue("ja"),
-        new StringSelectMenuOptionBuilder().setLabel("Nein").setValue("nein")
-      );
+    const vorlage = new TextInputBuilder() 
+      .setCustomId("vorlage") 
+      .setLabel("Benötigst du eine Vorlage? (ja/nein)") 
+      .setStyle(TextInputStyle.Short) 
+      .setRequired(true) 
+      .setMaxLength(10); 
     rows.push(new ActionRowBuilder().addComponents(vorlage));
-    modal.addComponents(...rows);
     return modal;
   }
   return null;
@@ -5808,8 +5804,8 @@ export async function initTickets(client) {
         }
       }
     }
-    if (interaction.isModalSubmit()) {
-      if (interaction.customId.startsWith("tm_")) {
+    if (interaction.isModalSubmit()) { 
+      if (interaction.customId.startsWith("tm_")) { 
         await interaction.deferReply({ ephemeral: true });
         const parts = interaction.customId.split("_");
         const category = parts[1];
@@ -5827,8 +5823,8 @@ export async function initTickets(client) {
           if (parts[2] === "noacc") {
             extra.ingame = interaction.fields.getTextInputValue("ingame");
           }
-          const vorlageInput = interaction.fields.getSelectMenuValues("vorlage")[0];
-          extra.needsTemplate = vorlageInput === "ja";
+          const vorlageInput = interaction.fields.getTextInputValue("vorlage");
+          extra.needsTemplate = parseYesNo(vorlageInput);
         }
         const channel = await createTicket(category, interaction.user, interaction.guild, extra);
         if (channel) {
