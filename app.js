@@ -3858,7 +3858,7 @@ export function initRules(client) {
     }
     const defaultRule = new EmbedBuilder()
       .setColor("#ffffff")
-      .setAuthor("Regelwerk")
+      .setAuthor({ name: "Regelwerk" })
       .setDescription(
         `
         # Allgemeine Regeln
