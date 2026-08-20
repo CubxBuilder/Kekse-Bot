@@ -3850,7 +3850,7 @@ export function initVerification(client) {
   });
 }
 export function initRules(client) {
-  client.on("messageCreate", async (msg) {
+  client.on("messageCreate", async (msg) => {
     if (!msg.member.roles.cache.has("1454169207838216253")) {
       msg.reply(`Du hast keine Berechtigung diese Funktion zu nutzen.`);
       return;
