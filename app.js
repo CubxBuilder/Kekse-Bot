@@ -5591,6 +5591,7 @@ function buildModal(category, { needsIngameName }) {
       .setRequired(true) 
       .setMaxLength(10); 
     rows.push(new ActionRowBuilder().addComponents(vorlage));
+    modal.addComponents(...rows);
     return modal;
   }
   return null;
@@ -5805,35 +5806,35 @@ export async function initTickets(client) {
       }
     }
     if (interaction.isModalSubmit()) { 
-      if (interaction.customId.startsWith("tm_")) { 
-        await interaction.deferReply({ ephemeral: true });
-        const parts = interaction.customId.split("_");
-        const category = parts[1];
-        const extra = { anliegen: {} };
-        if (category === "Support") {
-          extra.anliegen["Kurzbeschreibung"] = interaction.fields.getTextInputValue("kurz");
-          extra.anliegen["Details"] = interaction.fields.getTextInputValue("lang");
-        } else if (category === "Abholung") {
-          if (parts[2] === "noacc") {
-            extra.ingame = interaction.fields.getTextInputValue("ingame");
-          }
-          extra.anliegen["Gewinn"] = interaction.fields.getTextInputValue("gewonnen");
-        } else if (category === "Bewerbung") {
-          extra.anliegen["Name"] = interaction.fields.getTextInputValue("name");
-          if (parts[2] === "noacc") {
-            extra.ingame = interaction.fields.getTextInputValue("ingame");
-          }
-          const vorlageInput = interaction.fields.getTextInputValue("vorlage");
-          extra.needsTemplate = parseYesNo(vorlageInput);
-        }
-        const channel = await createTicket(category, interaction.user, interaction.guild, extra);
-        if (channel) {
-          await interaction.editReply({ content: `Ein Ticket wurde erfolgreich erstellt: ${channel}` });
-        } else {
-          await interaction.editReply({ content: "Fehler beim Erstellen des Tickets." });
-        }
+  if (interaction.customId.startsWith("tm_")) { 
+    await interaction.deferReply({ ephemeral: true });
+    const parts = interaction.customId.split("_");
+    const category = parts[1];
+    const extra = { anliegen: {} };
+    if (category === "Support") {
+      extra.anliegen["Kurzbeschreibung"] = interaction.fields.getTextInputValue("kurz");
+      extra.anliegen["Details"] = interaction.fields.getTextInputValue("lang");
+    } else if (category === "Abholung") {
+      if (parts[2] === "noacc") {
+        extra.ingame = interaction.fields.getTextInputValue("ingame");
       }
+      extra.anliegen["Gewinn"] = interaction.fields.getTextInputValue("gewonnen");
+    } else if (category === "Bewerbung") {
+      extra.anliegen["Name"] = interaction.fields.getTextInputValue("name");
+      if (parts[2] === "noacc") {
+        extra.ingame = interaction.fields.getTextInputValue("ingame");
+      }
+      const vorlageInput = interaction.fields.getTextInputValue("vorlage");
+      extra.needsTemplate = parseYesNo(vorlageInput);
     }
+    const channel = await createTicket(category, interaction.user, interaction.guild, extra);
+    if (channel) {
+      await interaction.editReply({ content: `Ein Ticket wurde erfolgreich erstellt: ${channel}` });
+    } else {
+      await interaction.editReply({ content: "Fehler beim Erstellen des Tickets." });
+    }
+  }
+}
   });
   client.on("messageCreate", async (msg) => {
     if (!msg.content.startsWith("!") || msg.author.bot) return;
