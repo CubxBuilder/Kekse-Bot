@@ -5689,7 +5689,7 @@ export async function initTickets(client) {
       });
 
       delete stored.tickets[ticket.idString];
-      await saveTickData("tickets", stored);
+      await setTickData("tickets", stored);
       
       await archiveTicket(
         {
