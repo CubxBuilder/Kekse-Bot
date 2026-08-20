@@ -5776,6 +5776,8 @@ export async function initTickets(client) {
   client.on("interactionCreate", async (interaction) => {
     if (interaction.isButton()) {
       if (interaction.customId.startsWith("ticket_close_")) {
+        const currentChannel = interaction.channel;
+        const user = interaction.user;
         if (!interaction.member.roles.cache.has(TEAM_ROLE)) {
         return interaction.reply({
           content: "❌ Keine Berechtigung.",
@@ -5853,6 +5855,8 @@ export async function initTickets(client) {
       globalBotStats.commandsRunned += 1;
     }
     if (cmd === "close") {
+      const currentChannel = msg.channel;
+      const user = msg.author;
       if (!msg.member.roles.cache.has(TEAM_ROLE)) {
         return msg.reply({
           content: "❌ Keine Berechtigung.",
