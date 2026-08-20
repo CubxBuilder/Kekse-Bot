@@ -21,6 +21,8 @@ import {
   TextInputBuilder,
   TextInputStyle,
   ComponentType,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder
 } from "discord.js";
 import { handleMemberUpdate, syncAllMembers } from "./mcRoleSync.js";
 import https from "https";
@@ -5582,12 +5584,15 @@ function buildModal(category, { needsIngameName }) {
         .setMaxLength(32);
       rows.push(new ActionRowBuilder().addComponents(ign));
     }
-    const vorlage = new TextInputBuilder()
+    const vorlage = new StringSelectMenuBuilder()
       .setCustomId("vorlage")
-      .setLabel("Benötigst du eine Vorlage? (ja/nein)")
-      .setStyle(TextInputStyle.Short)
-      .setRequired(true)
-      .setMaxLength(10);
+      .setPlaceholder("Benötigst du eine Vorlage?")
+      .setMinValues(1)
+      .setMaxValues(1)
+      .addOptions(
+        new StringSelectMenuOptionBuilder().setLabel("Ja").setValue("ja"),
+        new StringSelectMenuOptionBuilder().setLabel("Nein").setValue("nein")
+      );
     rows.push(new ActionRowBuilder().addComponents(vorlage));
     modal.addComponents(...rows);
     return modal;
@@ -5658,17 +5663,6 @@ export async function initTickets(client) {
     const ecoData = await getEcoData(userId);
     return ecoData?.mcUsername || null;
   }
-
-  function parseYesNo(input) {
-    if (!input) return false;
-    const normalized = input.trim().toLowerCase();
-    const yes = ["ja", "j", "yes", "y", "jo", "jup", "jep"];
-    const no = ["nein", "n", "no", "nope", "ne", "nö"];
-    if (yes.includes(normalized)) return true;
-    if (no.includes(normalized)) return false;
-    return /^(ja|yes|y|j)\b/.test(normalized);
-  }
-
   async function closeTicket(channel, moderator) {
     try {
       const stored = (await getTickData("tickets")) || { tickets: {} };
@@ -5833,8 +5827,8 @@ export async function initTickets(client) {
           if (parts[2] === "noacc") {
             extra.ingame = interaction.fields.getTextInputValue("ingame");
           }
-          const vorlageInput = interaction.fields.getTextInputValue("vorlage");
-          extra.needsTemplate = parseYesNo(vorlageInput);
+          const vorlageInput = interaction.fields.getSelectMenuValues("vorlage")[0];
+          extra.needsTemplate = vorlageInput === "ja";
         }
         const channel = await createTicket(category, interaction.user, interaction.guild, extra);
         if (channel) {
