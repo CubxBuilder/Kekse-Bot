@@ -3851,6 +3851,7 @@ export function initVerification(client) {
 }
 export function initRules(client) {
   client.on("messageCreate", async (msg) => {
+    if (msg.content === "!setup_rules") {
     if (!msg.member.roles.cache.has("1454169207838216253")) {
       msg.reply(`Du hast keine Berechtigung diese Funktion zu nutzen.`);
       return;
@@ -3956,6 +3957,7 @@ export function initRules(client) {
     msg.channel.send({
       embeds: [defaultRule, privacyRule, useRule, channelRule, modRule]
     }).catch(() => {});
+    }
   });
 }
 const PING_ID = "1151971830983311441";
