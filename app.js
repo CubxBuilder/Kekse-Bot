@@ -3860,99 +3860,27 @@ export function initRules(client) {
       .setColor("#ffffff")
       .setAuthor({ name: "Regelwerk" })
       .setDescription(
-        `
-        # Allgemeine Regeln
-        ## Respekt und Freundlichkeit
-        - Sei respektvoll gegenüber anderen. Beleidigungen, Mobbing oder Drohungen werden nicht toleriert.
-        - Diskutiere sachlich und vermeide provokative Streitigkeiten.
-
-        ## Keine unangemessene Inhalte
-        - Sende keine anstößigen, pornografischen, rassistischen oder gewalttätigen Inhalte.
-        - Verbreite keine illegale Inhalte oder diskutiere über illegale Aktivitäten.
-
-        ## Spam, Werbung und Links
-        - Unterlasse Spam jeglicher Art.
-        - Werbung darf nur mit Zustimmung der Moderation und in den dafür vorgesehenen Channels gesendet werden.
-
-        ## Serverlücken
-        - Die Ausnutzung von Serverlücken ist strengstens untersagt
-        - Gefundene Lücken müssen per Ticket an die Moderation gemeldet werden.
-
-        ## Regelverstöße
-        - Regelverstöße müssen an das Server-Team gemeldet werden.
-        `
+        `# Allgemeine Regeln\n## Respekt und Freundlichkeit\n\n- Sei respektvoll gegenüber anderen. Beleidigungen, Mobbing oder Drohungen werden nicht toleriert.\n\n- Diskutiere sachlich und vermeide provokative Streitigkeiten.\n\n## Keine unangemessene Inhalte\n\n- Sende keine anstößigen, pornografischen, rassistischen oder gewalttätigen Inhalte.\n\n- Verbreite keine illegale Inhalte oder diskutiere über illegale Aktivitäten.\n\n## Spam, Werbung und Links\n\n- Unterlasse Spam jeglicher Art.\n\n- Werbung darf nur mit Zustimmung der Moderation und in den dafür vorgesehenen Channels gesendet werden.\n\n## Serverlücken\n\n- Die Ausnutzung von Serverlücken ist strengstens untersagt\n\n- Gefundene Lücken müssen per Ticket an die Moderation gemeldet werden.\n\n## Regelverstöße\n\n- Regelverstöße müssen an das Server-Team gemeldet werden.`
       )
     const privacyRule = new EmbedBuilder()
       .setColor("#ffffff")
       .setDescription(
-        `
-        # Privatsphäre und Sicherheit
-        ## Datenschutz
-        - Teile nicht deine persönlichen Daten oder die anderer.
-        - Respektiere die Privatsphäre anderer Mitglieder.
-
-        ## Keine unerwünschte Kontaktaufnahme
-        - Sende nicht unaufgefordert Freundschaftsanfragen oder Direktnachrichten an andere.
-        - Wünsche nach Ruhe sind zu respektieren.
-        `
+        `# Privatsphäre und Sicherheit\n## Datenschutz\n\n- Teile nicht deine persönlichen Daten oder die anderer.\n\n- Respektiere die Privatsphäre anderer Mitglieder.\n\n## Keine unerwünschte Kontaktaufnahme\n\n- Sende nicht unaufgefordert Freundschaftsanfragen oder Direktnachrichten an andere.\n\n- Wünsche nach Ruhe sind zu respektieren.`
       )
     const useRule = new EmbedBuilder()
       .setColor("#ffffff")
       .setDescription(
-        `
-        # Server Nutzung und Kommunikation
-        ## Richtige Kanäle
-        - Poste wenn möglich in die dafür vorgesehenen Channels.
-        - Bots dürfen nur in den dafür vorgesehenen Channels genutzt werden.
-
-        ## Sprache und Ausdruck
-        - Kommuniziere freundlich, konstruktiv und versuche das Fluchen in Maßen zu halten.
-        - Deutsch und Englisch sind die eizig erlaubten Sprachen auf diesem Server.
-
-        ## Verhalten in Voice Channels
-        - Vermeide störgeräusche.
-        - Das machen von Audio- und Videoaufnahmen von Voice-Chats ist nur mit der ausdrücklichen Erlaubnis aller Beteiligten erlaubt.
-        `
+        `# Server Nutzung und Kommunikation\n## Richtige Kanäle\n\n- Poste wenn möglich in die dafür vorgesehenen Channels.\n\n- Bots dürfen nur in den dafür vorgesehenen Channels genutzt werden.\n\n## Sprache und Ausdruck\n\n- Kommuniziere freundlich, konstruktiv und versuche das Fluchen in Maßen zu halten.\n\n- Deutsch und Englisch sind die eizig erlaubten Sprachen auf diesem Server.\n\n## Verhalten in Voice Channels\n\n- Vermeide störgeräusche.\n\n- Das machen von Audio- und Videoaufnahmen von Voice-Chats ist nur mit der ausdrücklichen Erlaubnis aller Beteiligten erlaubt.`
       )
     const channelRule = new EmbedBuilder()
       .setColor("#ffffff")
       .setDescription(
-        `
-        # Channelspezifische Regeln
-        ## Tickets
-        - Der Missbrauch von Tickets, wie beispielsweise durch das öffnen ohne Grund ist nicht erlaubt.
-        - Bot-Fehler sind per Ticket zu melden und nicht in öffentlichen Channels zu diskutieren.
-
-        ## Counting
-        - Absichtliches Falschzählen (um andere zu provozieren) ist verboten.
-
-        ## Giveaways
-        - Tickets für Giveaways müssen innerhalb von 2 Tagen nach Ende geöffnet werden.
-        - Im Fall, dass der Nutzer auf einem Server gebannt ist, für den das Giveaway ist, darf am Giveaway nicht teilgenommen werden.
-        - Mitglieder mit einer Konto-Sperre dürfen nicht an Giveaways teilnehmen, die ein aktives Konto voraussetzen.
-
-        ## Vorschläge
-        - Verbesserungsvorschläge für Bot und Server sind im Vorschläge-Forum einzureichen.
-        `
+        `# Channelspezifische Regeln\n## Tickets\n\n- Der Missbrauch von Tickets, wie beispielsweise durch das öffnen ohne Grund ist nicht erlaubt.\n\n- Bot-Fehler sind per Ticket zu melden und nicht in öffentlichen Channels zu diskutieren.\n\n## Counting\n\n- Absichtliches Falschzählen (um andere zu provozieren) ist verboten.\n\n## Giveaways\n\n- Tickets für Giveaways müssen innerhalb von 2 Tagen nach Ende geöffnet werden.\n\n- Im Fall, dass der Nutzer auf einem Server gebannt ist, für den das Giveaway ist, darf am Giveaway nicht teilgenommen werden.\n\n- Mitglieder mit einer Konto-Sperre dürfen nicht an Giveaways teilnehmen, die ein aktives Konto voraussetzen.\n\n## Vorschläge\n\n- Verbesserungsvorschläge für Bot und Server sind im Vorschläge-Forum einzureichen.`
       )
     const modRule = new EmbedBuilder()
       .setColor("#ffffff")
       .setDescription(
-        `
-        # Moderation und Konsequenzen
-        ## Verhalten gegenüber Moderatoren
-        - Entscheidungen der Moderation sind zu respektieren. Bei Problemen mit Entscheidungen ist ein Ticket zu erstellen.
-        - Den Anweisungen der Moderation ist Folge zu leisten.
-
-        ## Discord Nutzerbedingungen
-        - Die offiziellen Discord Richtlinien und Nutzerbedingungen müssen zu jeder Zeit eingehalten werden.
-        - https://discord.com/terms
-
-        ## Konsequenzen bei Verstößen
-        - Bei Verstößen können Verwarnungen, temporäre oder permanente Sperren verhangen werden.
-        - Moderatoren dürfen jederzeit Inhalte entfernen, die gegen Regeln verstoßen.
-        - Administratoren ist jederzeit das Recht vorbehalten, Nutzer auch ohne Angabe eines Grundes zu verwarnen, zu sperren oder anderweitig zu bestrafen.
-        `
+        `# Moderation und Konsequenzen\n## Verhalten gegenüber Moderatoren\n\n- Entscheidungen der Moderation sind zu respektieren. Bei Problemen mit Entscheidungen ist ein Ticket zu erstellen.\n\n- Den Anweisungen der Moderation ist Folge zu leisten.\n\n## Discord Nutzerbedingungen\n\n- Die offiziellen Discord Richtlinien und Nutzerbedingungen müssen zu jeder Zeit eingehalten werden.\n\n- https://discord.com/terms\n\n## Konsequenzen bei Verstößen\n\n- Bei Verstößen können Verwarnungen, temporäre oder permanente Sperren verhangen werden.\n\n- Moderatoren dürfen jederzeit Inhalte entfernen, die gegen Regeln verstoßen.\n\n- Administratoren ist jederzeit das Recht vorbehalten, Nutzer auch ohne Angabe eines Grundes zu verwarnen, zu sperren oder anderweitig zu bestrafen.`
       )
     msg.channel.send({
       embeds: [defaultRule, privacyRule, useRule, channelRule, modRule]
