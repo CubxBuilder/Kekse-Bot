@@ -5842,10 +5842,22 @@ export async function initTickets(client) {
     const args = msg.content.slice(1).split(/\s+/);
     const cmd = args.shift().toLowerCase();
     if (cmd === "ticket_panel" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
-      await sendTicketPanel(msg.channel);
-      await msg.delete().catch(() => {});
-      globalBotStats.commandsRunned += 1;
+       const embed = new EmbedBuilder()
+       .setTitle("Willkommen im Support")
+       .setDescription(`Wähle eines der Themen unten um ein Ticket zu erstellen.\n⚙️ Support - Allgemeine Support-Anliegen\n🎉 Abholung - Abholung von Giveaways und Events\n✉️ Bewerbung - Clan-Bewerbungen`)
+       .setColor("#ffffff");
+
+       const row = new ActionRowBuilder().addComponents(
+       new ButtonBuilder().setCustomId("t_Support").setLabel("Support").setStyle(ButtonStyle.Secondary),
+       new ButtonBuilder().setCustomId("t_Abholung").setLabel("Abholung").setStyle(ButtonStyle.Secondary),
+       new ButtonBuilder().setCustomId("t_Bewerbung").setLabel("Bewerbung").setStyle(ButtonStyle.Secondary)
+       );
+
+       await msg.channel.send({ embeds: [embed], components: [row] });
+       await msg.delete().catch(() => {});
+       globalBotStats.commandsRunned += 1;
     }
+
     if (cmd === "close") {
       const currentChannel = msg.channel;
       const user = msg.author;
