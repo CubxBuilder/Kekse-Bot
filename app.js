@@ -5628,7 +5628,7 @@ function buildTicketInfoEmbeds({ idString, category, user, created, hasAccount, 
     const anliegenLines = Object.entries(anliegen).map(([label, value]) => `> **${label}:** ${value}`);
     embeds.push(
       new EmbedBuilder()
-        .setTitle(" Anliegen")
+        .setTitle(" Weiteres")
         .setColor(0xffffff)
         .setDescription(anliegenLines.join("\n"))
     );
@@ -5813,8 +5813,8 @@ export async function initTickets(client) {
     const category = parts[1];
     const extra = { anliegen: {} };
     if (category === "Support") {
-      extra.anliegen["Kurzbeschreibung"] = interaction.fields.getTextInputValue("kurz");
-      extra.anliegen["Details"] = interaction.fields.getTextInputValue("lang");
+      extra.anliegen["Kurze Beschreibung"] = interaction.fields.getTextInputValue("kurz");
+      extra.anliegen["Ausführliche Beschreibung"] = interaction.fields.getTextInputValue("lang");
     } else if (category === "Abholung") {
       if (parts[2] === "noacc") {
         extra.ingame = interaction.fields.getTextInputValue("ingame");
@@ -5844,13 +5844,13 @@ export async function initTickets(client) {
     if (cmd === "ticket_panel" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
        const embed = new EmbedBuilder()
        .setTitle("Willkommen im Support")
-       .setDescription(`Wähle eines der Themen unten um ein Ticket zu erstellen.\n⚙️ Support - Allgemeine Support-Anliegen\n🎉 Abholung - Abholung von Giveaways und Events\n✉️ Bewerbung - Clan-Bewerbungen`)
+       .setDescription(`Wähle eins der Themen um ein Ticket zu erstellen. Ein Team-Mitglied wird sich schnellstmöglich um dein Anliegen kümmern.\n\n⚙️ **Support** - Allgemeine Support-Anliegen\n🎉 **Abholung** - Abholung von Giveaways und Events\n✉️ **Bewerbung** - Clan-Bewerbungen`)
        .setColor("#ffffff");
 
        const row = new ActionRowBuilder().addComponents(
-       new ButtonBuilder().setCustomId("t_Support").setLabel("Support").setStyle(ButtonStyle.Secondary),
-       new ButtonBuilder().setCustomId("t_Abholung").setLabel("Abholung").setStyle(ButtonStyle.Secondary),
-       new ButtonBuilder().setCustomId("t_Bewerbung").setLabel("Bewerbung").setStyle(ButtonStyle.Secondary)
+       new ButtonBuilder().setCustomId("t_Support").setLabel("⚙️ Support").setStyle(ButtonStyle.Secondary),
+       new ButtonBuilder().setCustomId("t_Abholung").setLabel("🎉 Abholung").setStyle(ButtonStyle.Secondary),
+       new ButtonBuilder().setCustomId("t_Bewerbung").setLabel("✉️ Bewerbung").setStyle(ButtonStyle.Secondary)
        );
 
        await msg.channel.send({ embeds: [embed], components: [row] });
