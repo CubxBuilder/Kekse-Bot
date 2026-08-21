@@ -5516,7 +5516,12 @@ const BEWERBUNG_VORLAGE_TEXT = `
 > - Du hast noch nie gescammt
 > - Du bist aktiv auf dem Minecraft Server und diesem Discord-Server
 `;
-
+function parseYesNo(input) {
+  if (!input) return false;
+  const cleanInput = input.trim().toLowerCase();
+  const positiveAnswers = ["ja", "j", "yes", "y", "jep", "jup", "jo", "ya"];
+  return positiveAnswers.includes(cleanInput);
+}
 function buildModal(category, { needsIngameName }) {
   if (category === "Support") {
     const modal = new ModalBuilder()
@@ -5651,10 +5656,11 @@ export async function initTickets(client) {
     await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
   };
 
-  async function hasEconomyAccount(userId) {
-    const ecoData = await getEcoData(userId);
-    return Boolean(ecoData);
+  function hasEconomyAccount(member) {
+    if (!member) return false;
+    return member.roles.cache.has("1506732560837771284");
   }
+
 
   async function getStoredIngameName(userId) {
     const ecoData = await getEcoData(userId);
@@ -5721,7 +5727,8 @@ export async function initTickets(client) {
       });
 
       const hasAccount = await hasEconomyAccount(user.id);
-      const ingameName = extra.ingame || (await getStoredIngameName(user.id));
+      const ingameName = hasAccount ? await getStoredIngameName(user.id) : extra.ingame;
+    };
       
       const embeds = buildTicketInfoEmbeds({
         idString,
