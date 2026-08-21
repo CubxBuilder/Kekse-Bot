@@ -5728,7 +5728,6 @@ export async function initTickets(client) {
 
       const hasAccount = await hasEconomyAccount(user.id);
       const ingameName = hasAccount ? await getStoredIngameName(user.id) : extra.ingame;
-    };
       
       const embeds = buildTicketInfoEmbeds({
         idString,
