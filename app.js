@@ -5458,13 +5458,11 @@ const CATEGORY_EMOJI = {
   Support: "⚙️",
   Abholung: "🎉",
   Bewerbung: "✉️",
-  Economy: "🏦",
 };
 const CATEGORY_CHANNELS = {
   Support: "1423413348065611953",
   Abholung: "1423413348065611953",
   Bewerbung: "1434277752982474945",
-  Economy: "1423413348065611953",
   Admin: "1426271033047912582"
 };
 let ticketData = { lastId: 0, tickets: {} };
@@ -5640,7 +5638,6 @@ function buildTicketInfoEmbeds({ idString, category, user, created, hasAccount, 
 
 export async function initTickets(client) {
   await loadTickets();
-
   const sendKekseLog = async (action, user, details) => {
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
     if (!logChannel) return;
@@ -5726,7 +5723,9 @@ export async function initTickets(client) {
         ],
       });
 
-      const hasAccount = await hasEconomyAccount(user.id);
+      const member = guild.members.cache.get(user.id);
+      const hasAccount = hasEconomyAccount(member);
+
       const ingameName = hasAccount ? await getStoredIngameName(user.id) : extra.ingame;
       
       const embeds = buildTicketInfoEmbeds({
@@ -5775,7 +5774,7 @@ export async function initTickets(client) {
       if (interaction.customId.startsWith("ticket_close_")) {
         const currentChannel = interaction.channel;
         const user = interaction.user;
-        if (!interaction.member.roles.cache.has(TEAM_ROLE)) {
+        if (!interaction.member.roles.cache.has(TEAM_ROLE_ID)) {
         return interaction.reply({
           content: "❌ Keine Berechtigung.",
           flags: [MessageFlags.Ephemeral],
@@ -5796,14 +5795,10 @@ export async function initTickets(client) {
         if (await isBlocked(interaction.user.id) && !interaction.member.roles.cache.has(TEAM_ROLE_ID)) {
           return interaction.reply({ content: "Du bist gesperrt.", ephemeral: true });
         }
-        if (category === "Economy") {
-          await interaction.deferReply({ ephemeral: true });
-          const channel = await createTicket(category, interaction.user, interaction.guild);
-          return interaction.editReply({ content: `Dein Economy-Ticket wurde erstellt: ${channel}` });
-        }
-        const hasAccount = await hasEconomyAccount(interaction.user.id);
+        const hasAccount = hasEconomyAccount(interaction);
         const storedName = await getStoredIngameName(interaction.user.id);
-        const needsIngameName = !hasAccount || !storedName;const modal = buildModal(category, { needsIngameName });
+        const needsIngameName = !hasAccount || !storedName;
+        const modal = buildModal(category, { needsIngameName });
         if (modal) {
           await interaction.showModal(modal);
         } else {
@@ -5854,7 +5849,7 @@ export async function initTickets(client) {
     if (cmd === "close") {
       const currentChannel = msg.channel;
       const user = msg.author;
-      if (!msg.member.roles.cache.has(TEAM_ROLE)) {
+      if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) {
         return msg.reply({
           content: "❌ Keine Berechtigung.",
           flags: [MessageFlags.Ephemeral],
@@ -5875,8 +5870,8 @@ export async function initTickets(client) {
     }
     if (cmd === "block" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
       const target = msg.mentions.users.first() || { id: args[0], username: "Unbekannt" };
-      if (!target.id) return msg.reply("ID fehlt.");
       const days = parseInt(args[1]) || 7;
+      if (!target.id) return msg.reply("ID fehlt.");
       await blockUser(target.id, target.username, days * 24 * 60 * 60 * 1000);
       msg.reply(`<@${target.id}> für ${days} Tage gesperrt.`);
       globalBotStats.commandsRunned += 1;
