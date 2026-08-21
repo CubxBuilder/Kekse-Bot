@@ -5655,12 +5655,12 @@ export async function initTickets(client) {
       .setTimestamp();
     await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
   };
-
-  function hasEconomyAccount(member) {
-    if (!member) return false;
+  function hasEconomyAccount(target) {
+    if (!target) return false;
+    const member = target.member || target;
+    if (!member || !member.roles || !member.roles.cache) return false;
     return member.roles.cache.has("1506732560837771284");
   }
-
 
   async function getStoredIngameName(userId) {
     const ecoData = await getEcoData(userId);
