@@ -5863,8 +5863,6 @@ app.get("/api/stats", async (req, res) => {
         ? guild.members.cache.filter((m) => m.user.bot).size
         : 0;
     }
-
-    const ecoStats = await getEconomyStats(client);
     const StorageModel = mongoose.model("BotStorage");
     const allEcoDocuments = await StorageModel.find({
       namespace: "economy",
@@ -5918,13 +5916,6 @@ app.get("/api/stats", async (req, res) => {
         avg: globalBotStats.pingAverage || client.ws.ping || 0,
         max: globalBotStats.pingMaximum || client.ws.ping || 0,
         history: dbPingHistory,
-      },
-      economy: {
-        existingKekse: ecoStats.existingKekse,
-        botBalance: ecoStats.botBalance,
-        kurs: ecoStats.kurs,
-        kekseProCoin: ecoStats.kekseProCoin,
-        prozent: ecoStats.prozent,
       },
       accounts: accounts,
       transactionLogs: transactionLogs,
