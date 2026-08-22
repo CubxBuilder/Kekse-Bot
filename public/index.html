@@ -562,22 +562,6 @@
       <div class="no-tickets">Warte auf Tickets...</div>
     </div>
   </article>
-
-  <article id="economy-overview">
-    <h3>Wirtschafts Statistiken</h3>
-    <div class="stats-grid">
-      <ol>
-        <li>Kekse im Umlauf <p id="eco-total">—</p></li>
-        <li>Bot Balance <p id="eco-bot">—</p></li>
-        <li>Wert pro Keks <p id="eco-value">—</p></li>
-      </ol>
-      <ol>
-        <li>Kurs (Kekse = 1 Coin) <p id="eco-rate">—</p></li>
-        <li>Verhältnis zur Basis <p id="eco-percent">—</p></li>
-      </ol>
-    </div>
-  </article>
-
   <article id="accounts-database" style="grid-column: 1 / -1; flex-direction: column;">
     <h3>Konten Datenbank & Logsystem</h3>
     <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
@@ -662,13 +646,6 @@ set("messages-deleted", d.stats?.deleted);
 set("Version", d.version);
 set("uptime-foot", fmtUptime(d.uptime));
 set("ping-foot", fmtPing(d.ping?.now));
-if (d.economy) {
- set("eco-total", d.economy.existingKekse + " Kekse");
- set("eco-bot", d.economy.botBalance + " Coins");
- set("eco-value", d.economy.kurs + " Coins");
- set("eco-rate", d.economy.kekseProCoin + " Kekse");
- set("eco-percent", d.economy.prozent + "%");
-}
 if (d.accounts) {
  rawAccountsCache = d.accounts;
  rawTxLogsCache = d.transactionLogs || {};
