@@ -7788,100 +7788,74 @@ export async function deploySlashCommands() {
         return interaction.reply({ embeds: [cfEmbed] });
       }
       if (commandName === "jackpot") {
-        if (jackpotState.entries.find((e) => e.userId === user.id)) {
-          return interaction.reply({
-            content: "Du bist bereits im Jackpot! Warte auf die Ziehung.",
-            flags: [MessageFlags.Ephemeral],
-          });
-        }
+  if (jackpotState.entries.find((e) => e.userId === user.id)) {
+    return interaction.reply({
+      content: "Du bist bereits im Jackpot! Warte auf die Ziehung.",
+      flags: [MessageFlags.Ephemeral],
+    });
+  }
 
-        userData.balance -= betAmount;
-        await logTransaction(user.id, betAmount, "minus", "Casino Jackpot");
-        await setEcoData(user.id, userData);
+  userData.balance -= betAmount;
+  await logTransaction(user.id, betAmount, "minus", "Casino Jackpot");
+  await setEcoData(user.id, userData);
 
-        jackpotState.entries.push({
-          userId: user.id,
-          username: user.username,
-          betAmount,
-        });
-        jackpotState.totalPool += betAmount;
+  jackpotState.entries.push({
+    userId: user.id,
+    username: user.username,
+    betAmount,
+  });
+  jackpotState.totalPool += betAmount;
 
-        const buildJackpotEmbed = (extra = "") => {
-          const list = jackpotState.entries
-            .map((e) => {
-              const pct = (
-                (e.betAmount / jackpotState.totalPool) *
-                100
-              ).toFixed(1);
-              return `<@${e.userId}> — **${e.betAmount} Kekse** (${pct}%)`;
-            })
-            .join("\n");
-          return new EmbedBuilder()
-            .setTitle("Jackpot")
-            .setDescription(
-              `**Pool: ${jackpotState.totalPool} Kekse**\n\n${extra}`,
-            )
-            .addFields({
-              name: `Teilnehmer (${jackpotState.entries.length})`,
-              value: list || "Keine",
-            })
-            .setColor(0xffffff)
-            .setFooter({
-              text: "Je mehr du einsetzt, desto höher deine Gewinnchance!",
-            });
-        };
+  const buildJackpotEmbed = (extra = "") => {
+    const list = jackpotState.entries
+      .map((e) => {
+        const pct = ((e.betAmount / jackpotState.totalPool) * 100).toFixed(1);
+        return `<@${e.userId}> — **${e.betAmount} Kekse** (${pct}%)`;
+      })
+      .join("\n");
 
-        const userChance = ((betAmount / jackpotState.totalPool) * 100).toFixed(
-          1,
-        );
+    return new EmbedBuilder()
+      .setTitle("Jackpot")
+      .setDescription(`**Pool: ${jackpotState.totalPool} Kekse**\n\n${extra}`)
+      .addFields({
+        name: `Teilnehmer (${jackpotState.entries.length})`,
+        value: list || "Keine",
+      })
+      .setColor(0xffffff)
+      .setFooter({ text: "Je mehr du einsetzt, desto höher deine Gewinnchance!" });
+  };
 
-        if (jackpotState.entries.length === 1) {
-          const jMsg = await guild.channels.cache
-            .get(CASINO_CHANNEL_ID)
-            .send({
-              embeds: [buildJackpotEmbed("Warte auf weitere Teilnehmer…")],
-            });
-          jackpotState.announceMessage = jMsg;
-          return interaction.reply({
-            content: `Du bist dem Jackpot beigetreten! Einsatz: **${betAmount} Kekse** (${userChance}% Chance)`,
-            flags: [MessageFlags.Ephemeral],
-          });
-        }
+  const casinoChannel = guild.channels.cache.get(CASINO_CHANNEL_ID);
 
-        if (jackpotState.announceMessage) {
-          const extra = jackpotState.countdownEndTime
-            ? `Ziehung <t:${Math.floor(jackpotState.countdownEndTime / 1000)}:R>`
-            : "";
-          await jackpotState.announceMessage
-            .edit({ embeds: [buildJackpotEmbed(extra)] })
-            .catch(() => {});
-        }
+  if (!jackpotState.countdownTimer) {
+    const drawTime = Date.now() + 5 * 60 * 1000;
+    jackpotState.countdownEndTime = drawTime;
+    jackpotState.countdownTimer = setTimeout(
+      () => runJackpotDraw(casinoChannel),
+      5 * 60 * 1000
+    );
+  }
 
-        if (!jackpotState.countdownTimer) {
-          const drawTime = Date.now() + 5 * 60 * 1000;
-          jackpotState.countdownEndTime = drawTime;
-          if (jackpotState.announceMessage) {
-            await jackpotState.announceMessage
-              .edit({
-                embeds: [
-                  buildJackpotEmbed(
-                    `Ziehung <t:${Math.floor(drawTime / 1000)}:R>`,
-                  ),
-                ],
-              })
-              .catch(() => {});
-          }
-          jackpotState.countdownTimer = setTimeout(
-            () => runJackpotDraw(guild.channels.cache.get(CASINO_CHANNEL_ID)),
-            5 * 60 * 1000,
-          );
-        }
+  const timestamp = `<t:${Math.floor(jackpotState.countdownEndTime / 1000)}:R>`;
+  const extraText = `Ziehung ${timestamp}`;
 
-        return interaction.reply({
-          content: `Du bist dem Jackpot beigetreten! Einsatz: **${betAmount} Kekse** (${userChance}% Chance)\nPool: **${jackpotState.totalPool} Kekse**`,
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
+  if (jackpotState.entries.length === 1) {
+    const jMsg = await casinoChannel.send({
+      embeds: [buildJackpotEmbed(extraText)],
+    });
+    jackpotState.announceMessage = jMsg;
+  } else if (jackpotState.announceMessage) {
+    await jackpotState.announceMessage
+      .edit({ embeds: [buildJackpotEmbed(extraText)] })
+      .catch(() => {});
+  }
+
+  const userChance = ((betAmount / jackpotState.totalPool) * 100).toFixed(1);
+  return interaction.reply({
+    content: `Du bist dem Jackpot beigetreten! Einsatz: **${betAmount} Kekse** (${userChance}% Chance)\nPool: **${jackpotState.totalPool} Kekse**\nZiehung findet ${timestamp} statt.`,
+    flags: [MessageFlags.Ephemeral],
+  });
+}
 if (commandName === "crash") {
   if (crashGames.has(user.id)) {
     return interaction.reply({
@@ -8909,7 +8883,6 @@ client.once("clientReady", async () => {
     await initEconomySystem(client);
     initAdminFun(client);
     initCommandList(client);
-    await initBotBalance(client);
     handleEconomyInteractions(client);
     client.user.setPresence({
       activities: [{ name: "!help", type: 0 }],
