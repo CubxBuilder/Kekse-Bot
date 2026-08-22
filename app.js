@@ -430,6 +430,13 @@ export async function getSaData(key) {
   const data = await dbGet("sa", key);
   return data || {};
 }
+export async function setXpData(key, value) {
+  await dbSet("xp", key, value);
+}
+export async function getXpData(key) {
+  const data = await dbGet("xp", key);
+  return data || {};
+}
 export async function setEcoData(key, value) {
   await dbSet("economy", key, value);
 }
@@ -5833,6 +5840,162 @@ export async function initScammProtection(client) {
     }
   });
 }
+const ROLES_TIERS = [
+  { id: "1540827201111597117", needed: 50, name: "Neuankömmling" },
+  { id: "1540827423141138594", needed: 100, name: "Bronze" },
+  { id: "1540827754440958035", needed: 250, name: "Silber" },
+  { id: "1540827883323527339", needed: 500, name: "Gold" },
+  { id: "1540828086893936761", needed: 750, name: "Platin" },
+  { id: "1540828402968301679", needed: 1000, name: "Diamant" },
+  { id: "1540828544463011850", needed: 2500, name: "Smaragd" },
+  { id: "1540828698310213683", needed: 5000, name: "Obsidian" }
+];
+
+const GUILD_ID = "1423413347168157718";
+const invitesTracker = new Map();
+
+export async function addXP(userId, xpAmount, client) {
+  if (xpAmount <= 0) return;
+
+  const userData = await getXpData(userId);
+  
+  let currentTier = userData.rang !== undefined ? userData.rang : 0;
+  let currentXp = userData.xp !== undefined ? userData.xp : 0;
+
+  if (currentTier >= ROLES_TIERS.length - 1) {
+    currentXp += xpAmount;
+    await setXpData(userId, { rang: currentTier, xp: currentXp });
+    return;
+  }
+
+  currentXp += xpAmount;
+  let leveledUp = false;
+
+  while (currentTier < ROLES_TIERS.length - 1 && currentXp >= ROLES_TIERS[currentTier].needed) {
+    currentXp -= ROLES_TIERS[currentTier].needed;
+    currentTier++;
+    leveledUp = true;
+  }
+
+  await setXpData(userId, { rang: currentTier, xp: currentXp });
+
+  if (leveledUp && client) {
+    try {
+      const guild = await client.guilds.fetch(GUILD_ID);
+      const member = await guild.members.fetch(userId).catch(() => null);
+      
+      if (member) {
+        const rolesToRemove = ROLES_TIERS.map(tier => tier.id);
+        await member.roles.remove(rolesToRemove);
+        await member.roles.add(ROLES_TIERS[currentTier].id);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+}
+
+export function handleMessageXP(message) {
+  if (message.author.bot || !message.guild || message.guild.id !== GUILD_ID) return;
+  addXP(message.author.id, 1, message.client);
+}
+
+export function startVoiceXpTracker(client) {
+  setInterval(async () => {
+    try {
+      const guild = await client.guilds.fetch(GUILD_ID);
+      guild.voiceStates.cache.forEach(async (voiceState) => {
+        if (
+          voiceState.channelId && 
+          !voiceState.member.user.bot && 
+          !voiceState.deaf && 
+          !voiceState.mute &&
+          voiceState.channel.members.filter(m => !m.user.bot).size > 1
+        ) {
+          await addXP(voiceState.id, 2, client);
+        }
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  }, 60000);
+}
+
+export async function initInviteTracker(client) {
+  try {
+    const guild = await client.guilds.fetch(GUILD_ID);
+    const guildInvites = await guild.invites.fetch().catch(() => new Map());
+    invitesTracker.set(guild.id, new Map(guildInvites.map(invite => [invite.code, invite.uses])));
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+export async function handleGuildMemberAdd(member) {
+  if (member.guild.id !== GUILD_ID || member.user.bot) return;
+
+  const existingData = await getXpData(member.id);
+  if (!existingData || existingData.rang === undefined) {
+    await setXpData(member.id, { rang: 0, xp: 0 });
+  }
+  
+  await member.roles.add(ROLES_TIERS[0].id).catch(console.error);
+
+  try {
+    const newInvites = await member.guild.invites.fetch();
+    const oldInvites = invitesTracker.get(member.guild.id);
+    const inviteUsed = newInvites.find(i => oldInvites && i.uses > (oldInvites.get(i.code) || 0));
+    
+    if (inviteUsed && inviteUsed.inviter) {
+      await addXP(inviteUsed.inviter.id, 50, member.client);
+    }
+    
+    invitesTracker.set(member.guild.id, new Map(newInvites.map(invite => [invite.code, invite.uses])));
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+export function handleInviteCreate(invite) {
+  if (invite.guild.id !== GUILD_ID) return;
+  const currentInvites = invitesTracker.get(invite.guild.id) || new Map();
+  currentInvites.set(invite.code, invite.uses);
+  invitesTracker.set(invite.guild.id, currentInvites);
+}
+
+export async function syncExistingUsers(client) {
+  try {
+    const guild = await client.guilds.fetch(GUILD_ID);
+    const members = await guild.members.fetch();
+    
+    for (const [memberId, member] of members) {
+      if (member.user.bot) continue;
+      
+      const existingData = await getXpData(memberId);
+      if (!existingData || existingData.rang === undefined) {
+        await setXpData(memberId, { rang: 0, xp: 0 });
+        
+        const hasTierRole = member.roles.cache.some(role => ROLES_TIERS.map(t => t.id).includes(role.id));
+        if (!hasTierRole) {
+          await member.roles.add(ROLES_TIERS[0].id).catch(console.error);
+        }
+      }
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
+client.on("messageCreate", async (message) => {
+  handleMessageXP(message);
+});
+
+client.on("guildMemberAdd", async (member) => {
+  await handleGuildMemberAdd(member);
+});
+
+client.on("inviteCreate", async (invite) => {
+  handleInviteCreate(invite);
+});
 export async function initDashboard(app, client, globalBotStats) {
   const logs = [];
   const _log = console.log.bind(console);
@@ -8874,6 +9037,9 @@ client.once("clientReady", async () => {
     await initEconomySystem(client);
     initAdminFun(client);
     initCommandList(client);
+    await syncExistingUsers(client);
+    await initInviteTracker(client);
+    startVoiceXpTracker(client);
     client.user.setPresence({
       activities: [{ name: "!help", type: 0 }],
       status: "online",
