@@ -8883,7 +8883,6 @@ client.once("clientReady", async () => {
     await initEconomySystem(client);
     initAdminFun(client);
     initCommandList(client);
-    handleEconomyInteractions(client);
     client.user.setPresence({
       activities: [{ name: "!help", type: 0 }],
       status: "online",
