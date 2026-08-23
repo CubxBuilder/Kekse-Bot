@@ -2203,6 +2203,7 @@ export async function initEconomySystem(client) {
             content: `🛒 Kauf erfolgreich: Du hast **${item.name}** erhalten!`,
             flags: MessageFlags.Ephemeral,
           });
+          addXP(interaction.user.id, 100, client);
 
           const invoiceEmbed = {
             color: 0xffffff,
@@ -4239,6 +4240,7 @@ export async function initGiveaway(client) {
       .setDescription(`${data.messageText}\n\nEndet am: <t:${Math.floor(data.endTime / 1000)}:R> (<t:${Math.floor(data.endTime / 1000)}:f>)\nTeilnehmer: **${data.participants.length}**\nGewinner: **${data.winnerCount}**`);
     await interaction.update({ embeds: [updatedEmbed] }).catch(() => {});
     let replyText = " Du hast das Giveaway erfolgreich betreten!";
+    addXP(interaction.user.id, 10, client);
     if (totalTickets === 2) {
       replyText += " (Inklusive **doppelter Chance** durch deine Rolle!)";
     } else if (totalTickets === 4) {
