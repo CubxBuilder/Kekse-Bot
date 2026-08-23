@@ -578,6 +578,8 @@
           <tr style="border-bottom: 1px solid var(--border); color: var(--text-secondary);">
             <th style="padding: 8px;">Discord Nutzer</th>
             <th style="padding: 8px;">Minecraft Name</th>
+            <th style="padding: 8px;">Rang</th>
+            <th style="padding: 8px;">XP</th>
             <th style="padding: 8px;">Kontostand</th>
             <th style="padding: 8px;">Status</th>
             <th style="padding: 8px;">Konto-Logs</th>
@@ -686,6 +688,16 @@ if (d.logs && d.logs.length) {
 }
 } catch(e) { console.error(e); }
 }
+      const ROLES_TIERS = [
+  { id: "1540827201111597117", needed: 50, name: "Neuankömmling" },
+  { id: "1540827423141138594", needed: 100, name: "Bronze" },
+  { id: "1540827754440958035", needed: 250, name: "Silber" },
+  { id: "1540827883323527339", needed: 500, name: "Gold" },
+  { id: "1540828086893936761", needed: 750, name: "Platin" },
+  { id: "1540828402968301679", needed: 1000, name: "Diamant" },
+  { id: "1540828544463011850", needed: 2500, name: "Smaragd" },
+  { id: "1540828698310213683", needed: 5000, name: "Obsidian" }
+];
 function processAndRenderAccounts() {
  let filtered = [...rawAccountsCache];
  const query = $("acc-search").value.toLowerCase();
@@ -696,14 +708,20 @@ function processAndRenderAccounts() {
  if (sortBy === "balance-desc") filtered.sort((a,b) => b.balance - a.balance);
  if (sortBy === "balance-asc") filtered.sort((a,b) => a.balance - b.balance);
  if (sortBy === "name") filtered.sort((a,b) => a.username.localeCompare(b.username));
+ if (sortBy === "xp-desc") filtered.sort((a,b) => b.rang - a.rang || b.xp - a.xp);
  const tbody = $("accounts-list");
  if (!filtered.length) {
- tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:15px; color:var(--text-muted);">Keine Konten gefunden</td></tr>`;
+ tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:15px; color:var(--text-muted);">Keine Konten gefunden</td></tr>`;
  return;
  }
-      tbody.innerHTML = filtered.map(a => {
+        tbody.innerHTML = filtered.map(a => {
     const userLogs = rawTxLogsCache[a.userId] || [];
     const isOpen = openedLogUsers.has(a.userId);
+    const currentTier = ROLES_TIERS[a.rang];
+    const rangName = currentTier ? currentTier.name : "Kein Rang";
+    const xpNeeded = currentTier ? currentTier.needed : 0;
+    const xpDisplay = xpNeeded > 0 ? `${a.xp}/${xpNeeded}` : `${a.xp}`;
+
     const logHtml = userLogs.length ? userLogs.map(l => {
       const color = l.type === "plus" ? "#4ade80" : l.type === "minus" ? "#f87171" : "#888888";
       const prefix = l.type === "plus" ? "+" : l.type === "minus" ? "-" : "";
@@ -713,9 +731,12 @@ function processAndRenderAccounts() {
         <span style="color:var(--text-muted); float:right; margin-left:10px;">${new Date(l.timestamp).toLocaleTimeString("de-DE")}</span>
       </div>`;
     }).join("") : `<div style="color:var(--text-muted); font-size:0.75rem;">Keine Transaktionen</div>`;
+
     return `<tr>
       <td style="padding:8px;"><strong>${escapeHTML(a.username)}</strong><br><span style="font-size:0.7rem; color:var(--text-muted);">${a.userId}</span></td>
       <td style="padding:8px;">${escapeHTML(a.mcUsername)}</td>
+      <td style="padding:8px; font-size:0.85rem;">${escapeHTML(rangName)}</td>
+      <td style="padding:8px; font-size:0.85rem;">${xpDisplay}</td>
       <td style="padding:8px; color:#4ade80; font-weight:bold;">${a.balance} Kekse</td>
       <td style="padding:8px;">${a.blocked ? '<span style="color:#f87171;">Blocked</span>' : '<span style="color:#4ade80;">Active</span>'}</td>
       <td style="padding:8px;">
