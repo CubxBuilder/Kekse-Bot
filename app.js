@@ -1180,10 +1180,6 @@ export async function initEconomySystem(client) {
             5 * 60 * 1000,
           );
         }
-        return msg.reply({
-          content: `Du bist dem Jackpot beigetreten! Einsatz: **${betAmount} Kekse** (${userChance}% Chance)\nPool: **${jackpotState.totalPool} Kekse**`,
-          flags: [MessageFlags.Ephemeral],
-        });
       }
       if (subCommand === "crash") {
   const betAmount = parseInt(args[2]);
