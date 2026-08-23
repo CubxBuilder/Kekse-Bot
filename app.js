@@ -5990,7 +5990,7 @@ const getHelpData = {
       .setColor("#ffffff");
   },
 
-  getProfileEmbed: async (userId, userUsername) => {
+  getProfileEmbed: async (userId, userUsername, userAvatarURL) => {
     const ecoData = await getEcoData(userId) || {};
     const xpData = await getXpData(userId) || {};
     const countData = await getCouData("counting") || {};
@@ -5998,7 +5998,7 @@ const getHelpData = {
     const username = ecoData.username || userUsername;
     const mcUsername = ecoData.mcUsername || "Nicht verknüpft";
     const balance = (ecoData.balance || 0).toLocaleString("de-DE");
-    const isBlocked = ecoData.blocked ? "Ja (Gesperrt)" : "Nein";
+    const isBlocked = ecoData.blocked ? "Gesperrt" : "Aktiv";
 
     const currentPoints = xpData.xp || 0;
     let currentTierName = "Kein Rang";
@@ -6023,15 +6023,16 @@ const getHelpData = {
 
     return new EmbedBuilder()
       .setTitle(`Profil von ${username}`)
+      .setThumbnail(userAvatarURL)
       .setColor("#ffffff")
       .addFields(
-        { name: "Discord-Name", value: username, inline: true },
+        { name: "Discord-Username", value: username, inline: true },
         { name: "Minecraft-Name", value: mcUsername, inline: true },
         { name: "Konto-Status", value: isBlocked, inline: true },
-        { name: "Kekse-Kontostand", value: `${balance} Kekse`, inline: true },
+        { name: "Kontostand", value: `${balance} Kekse`, inline: true },
         { name: "Rang", value: currentTierName, inline: true },
-        { name: "Punkte", value: `${currentPoints}/${nextTierPoints}`, inline: true },
-        { name: "Richtig gezählt", value: `${countedRight} Zahlen`, inline: true }
+        { name: "XP", value: `${currentPoints}/${nextTierPoints}`, inline: true },
+        { name: "Counting", value: `${countedRight} Zahlen`, inline: true }
       );
   },
 
@@ -6040,24 +6041,24 @@ const getHelpData = {
       .setTitle("Befehlsübersicht")
       .setColor("#ffffff")
       .setDescription(
-        "`!bank` (`/bank status`) - Zeigt deinen aktuellen Kontostand an\n" +
-        "`!bank create` (`/bank create`) - Eröffnet ein neues Bankkonto\n" +
-        "`!bank help` (`/bank help`) - Zeigt Hilfe zum Bank-System\n" +
-        "`!bank pay @User x` (`/bank pay`) - Überweist einem anderen Nutzer Kekse\n" +
-        "`!casino` (`/casino`) - Öffnet das Casino-Hauptmenü\n" +
-        "`!casino blackjack x` (`/blackjack`) - Startet ein Spiel Blackjack\n" +
-        "`!casino coinflip x` (`/coinflip`) - Spielt Coinflip gegen das Haus\n" +
-        "`!casino crash x` (`/crash`) - Startet ein Crash-Multiplikatorspiel\n" +
-        "`!casino highlow x` (`/highlow`) - Startet ein Highlow-Kartenspiel\n" +
-        "`!casino jackpot x` (`/jackpot`) - Kauft Tickets für den globalen Jackpot\n" +
-        "`!casino roulette x` (`/roulette`) - Setzet Kekse am Roulette-Tisch\n" +
+        "`!bank` (`/bank status`) - Zeige deinen aktuellen Kontostand an\n" +
+        "`!bank create` (`/bank create`) - Eröffne ein neues Bankkonto\n" +
+        "`!bank help` (`/bank help`) - Zeige Hilfe zum Bank-System\n" +
+        "`!bank pay @User x` (`/bank pay`) - Überweise einem anderen Nutzer Kekse\n" +
+        "`!casino` (`/casino`) - Zeige existierende Spiele im Casino\n" +
+        "`!casino blackjack x` (`/blackjack`) - Starte ein Spiel Blackjack\n" +
+        "`!casino coinflip x` (`/coinflip`) - Spiel Coinflip gegen das Haus\n" +
+        "`!casino crash x` (`/crash`) - Starte einen Crash\n" +
+        "`!casino highlow x` (`/highlow`) - Starte ein Highlow-Kartenspiel\n" +
+        "`!casino jackpot x` (`/jackpot`) - Kaufe Tickets für den Jackpot\n" +
+        "`!casino roulette x` (`/roulette`) - Setze Kekse am Roulette-Tisch\n" +
         "`!help` (`/help`) - Öffnet dieses Hilfemenü\n" +
         "`!leaderboard` (`/leaderboard`) - Zeigt die Top 5 der reichsten User\n" +
-        "`!listpolls` (`/listpolls`) - Listet alle aktiven Umfragen auf\n" +
-        "`!remind` (`/remind`) - Erstellt eine Erinnerung\n" +
-        "`!top` (`/top`) - Zeigt serverweite Bestenlisten\n" +
-        "`!coinflip @User x` - Fordert einen Spieler zu Coinflip heraus\n" +
-        "`!ssp @User x` - Fordert einen Spieler zu Schere-Stein-Papier heraus"
+        "`!listpolls` (`/listpolls`) - Liste alle aktiven Umfragen auf\n" +
+        "`!remind` (`/remind`) - Erstelle eine Erinnerung für dich\n" +
+        "`!top` (`/top`) - Zeige serverweite Bestenliste im Counting\n" +
+        "`!coinflip @User x` - Fordere einen Spieler zu Coinflip heraus\n" +
+        "`!ssp @User x` - Fordere einen Spieler zu Schere-Stein-Papier heraus"
       );
   },
 
@@ -6069,13 +6070,13 @@ const getHelpData = {
         "<#1423413348065611949> Hier findest du das offizielle Regelwerk des Servers.\n" +
         "<#1423637547363467346> Wichtige Neuigkeiten und Ankündigungen werden hier geteilt.\n" +
         "<#1464993818968588379> Technische Änderungen und Bot-Updates werden hier aufgelistet.\n" +
-        "<#1423637646634123294> Hier finden regelmäßige Verlosungen statt.\n" +
-        "<#1472658090812899358> Ankündigungen und Infos zu anstehenden Community-Events.\n" +
+        "<#1423637646634123294> Hier finden regelmäßige Giveaways statt.\n" +
+        "<#1472658090812899358> Hier werden Events angekündigt\n" +
         "<#1540111606917107772> In diesem Kanal darfst du deine eigenen Projekte bewerben.\n" +
-        "<#1423434079390535730> Der Kanal für das Zahlen-Zählspiel.\n" +
+        "<#1423434079390535730> Der Kanal für das Counting Spiel\n" +
         "<#1506746618601541774> Hier kannst du dir alle 24 Stunden 10 kostenlose Kekse abholen.\n" +
         "<#1507385550825459812> Der Bereich für alle Casino-Spiele und Wetten.\n" +
-        "<#1508053328662364302> Tausche deine Kekse gegen Booster oder die VIP-Rolle ein.\n" +
+        "<#1508053328662364302> Tausche deine Kekse gegen Booster, doppelte Giveaway Chance oder die VIP-Rolle ein.\n" +
         "<#1423413348493430905> Hier kannst du Tickets für Support, Gewinne oder Bewerbungen erstellen."
       );
   }
@@ -6118,7 +6119,7 @@ function createHelpCollector(messageTarget, userId, userUsername) {
 
     let newEmbed;
     if (interaction.customId === "help_profile") {
-      newEmbed = await getHelpData.getProfileEmbed(userId, userUsername);
+      newEmbed = await getHelpData.getProfileEmbed(userId, userUsername, interaction.user.displayAvatarURL({ size: 512 }));
     } else if (interaction.customId === "help_commands") {
       newEmbed = getHelpData.getCommandsEmbed();
     } else if (interaction.customId === "help_channels") {
