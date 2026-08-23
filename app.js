@@ -5358,6 +5358,13 @@ export async function initTickets(client) {
         if (await isBlocked(interaction.user.id) && !interaction.member.roles.cache.has(TEAM_ROLE_ID)) {
           return interaction.reply({ content: "Du bist gesperrt.", ephemeral: true });
         }
+        const verifiedOnlyIds = ["t_Bewerbung", "t_Abholung"];
+        if (verifiedOnlyIds.includes(interaction.customId) && interaction.member.roles.cache.has("1439337577508245837")) {
+          return interaction.reply({
+            content: "Du musst dich verifizieren bevor du etwas abholen oder dich bewerben kannst: <#1439337595090898955>",
+            flags: [MessageFlags.Ephemeral],
+          });
+        }
         const hasAccount = hasEconomyAccount(interaction);
         const storedName = await getStoredIngameName(interaction.user.id);
         const needsIngameName = !hasAccount || !storedName;
