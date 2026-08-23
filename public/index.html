@@ -570,6 +570,7 @@
         <option value="balance-desc">Höchster Kontostand</option>
         <option value="balance-asc">Niedrigster Kontostand</option>
         <option value="name">Name A-Z</option>
+        <option value="rang">Rang</option>
       </select>
     </div>
     <div style="overflow-x: auto; width: 100%;">
@@ -708,7 +709,7 @@ function processAndRenderAccounts() {
  if (sortBy === "balance-desc") filtered.sort((a,b) => b.balance - a.balance);
  if (sortBy === "balance-asc") filtered.sort((a,b) => a.balance - b.balance);
  if (sortBy === "name") filtered.sort((a,b) => a.username.localeCompare(b.username));
- if (sortBy === "xp-desc") filtered.sort((a,b) => b.rang - a.rang || b.xp - a.xp);
+ if (sortBy === "rang") filtered.sort((a,b) => b.rang - a.rang || b.xp - a.xp);
  const tbody = $("accounts-list");
  if (!filtered.length) {
  tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:15px; color:var(--text-muted);">Keine Konten gefunden</td></tr>`;
