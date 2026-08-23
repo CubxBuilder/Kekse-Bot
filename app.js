@@ -3394,8 +3394,8 @@ export function initVerification(client) {
 
         await channel.send({
           content:
-            `**Herzlich willkommen!** Klicke auf den Button unten, um Zugriff auf die Channels des Servers zu erhalten.\n\n` +
-            `-# Um Bot-Accounts von diesem Server fernzuhalten, wurde dieser Zwischenschritt implementiert. Beim Klicken wird eine Rolle entfernt, die das Einsehen der Channels blockiert.`,
+            `**Herzlich willkommen!** Klicke auf den Button unten, um Zugriff auf die Channels des Servers zu erhalten.\n` +
+            `-# Um Bot-Accounts von diesem Server fernzuhalten, wurde dieser Zwischenschritt implementiert. Beim Klicken wird eine Rolle entfernt, die das Einsehen der Channels blockiert. Mit der Verifikation bestätigst du zeitgleich, dass du dich an das geltenden Regeln hältst. Die Regeln können jederzeit im <#1423413348065611949> eingesehen werden. Beachte, dass diese jederzeit geändert werden können. Dies wird im Normalfall im <#1464993818968588379> angekündigt.`,
           files: [imageUrl],
           components: [row],
         });
