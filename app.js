@@ -1894,11 +1894,6 @@ export async function initEconomySystem(client) {
               name: "`!bank`",
               value: "Zeigt dir deinen aktuellen Kontostand (Privat für dich).",
             },
-            {
-              name: "⚠️ Wichtiger Hinweis",
-              value:
-                "Für Änderungen am Konto oder Auszahlungen eröffne bitte ein Ticket in <#1423413348493430905>.",
-            },
           );
 
         return msg.reply({ embeds: [helpEmbed], flags: [MessageFlags.Ephemeral] });
@@ -4322,23 +4317,6 @@ function parseDuration(input) {
   if (unit.startsWith("d") || unit.startsWith("t")) return value * 86400000;
   return 0;
 }
-export function initHelp(client) {
-  client.on("messageCreate", async (msg) => {
-    if (msg.author.bot) return;
-    if (!msg.content.startsWith("!")) return;
-
-    const args = msg.content.slice(1).trim().split(" ");
-    const cmd = args.shift().toLowerCase();
-
-    if (cmd !== "help") return;
-
-    console.log(`[HELP] Von ${msg.author.username}`);
-    await msg.channel.send(
-      "Erstelle ein <#1423413348493430905>. Ein Moderator wird sich so schnell wie möglich um dein Anliegen kümmern.",
-    );
-    globalBotStats.commandsRunned += 1;
-  });
-}
 export function registerMessageCommands(client) {
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot || !msg.content.startsWith("!")) return;
@@ -5999,6 +5977,175 @@ client.on("guildMemberAdd", async (member) => {
 client.on("inviteCreate", async (invite) => {
   handleInviteCreate(invite);
 });
+const TICKET_CHANNEL_ID = "1423413348493430905";
+
+const getHelpData = {
+  getMainEmbed: () => {
+    return new EmbedBuilder()
+      .setTitle("Hilfemenü")
+      .setDescription(
+        "Willkommen im Hilfemenü! Klicke auf die Buttons unten, um zwischen den Kategorien zu wechseln.\n\n" +
+        `Falls du ein Supportanliegen hast, einen Gewinn abholen möchtest (Giveaway oder Event) oder dich für den Clan bewerben willst, erstelle bitte ein Ticket in <#${TICKET_CHANNEL_ID}>.`
+      )
+      .setColor("#ffffff");
+  },
+
+  getProfileEmbed: async (userId, userUsername) => {
+    const ecoData = await getEcoData(userId) || {};
+    const xpData = await getXpData(userId) || {};
+    const countData = await getCouData("counting") || {};
+
+    const username = ecoData.username || userUsername;
+    const mcUsername = ecoData.mcUsername || "Nicht verknüpft";
+    const balance = (ecoData.balance || 0).toLocaleString("de-DE");
+    const isBlocked = ecoData.blocked ? "Ja (Gesperrt)" : "Nein";
+
+    const currentPoints = xpData.xp || 0;
+    let currentTierName = "Kein Rang";
+    let nextTierPoints = "Max";
+
+    for (let i = ROLES_TIERS.length - 1; i >= 0; i--) {
+      if (currentPoints >= ROLES_TIERS[i].needed) {
+        currentTierName = ROLES_TIERS[i].name;
+        break;
+      }
+    }
+    
+    const nextTier = ROLES_TIERS.find(t => currentPoints < t.needed);
+    if (nextTier) {
+      nextTierPoints = nextTier.needed;
+    }
+
+    let countedRight = 0;
+    if (countData.scoreboard && typeof countData.scoreboard === "object") {
+      countedRight = countData.scoreboard[userId] || 0;
+    }
+
+    return new EmbedBuilder()
+      .setTitle(`Profil von ${username}`)
+      .setColor("#ffffff")
+      .addFields(
+        { name: "Discord-Name", value: username, inline: true },
+        { name: "Minecraft-Name", value: mcUsername, inline: true },
+        { name: "Konto-Status", value: isBlocked, inline: true },
+        { name: "Kekse-Kontostand", value: `${balance} Kekse`, inline: true },
+        { name: "Rang", value: currentTierName, inline: true },
+        { name: "Punkte", value: `${currentPoints}/${nextTierPoints}`, inline: true },
+        { name: "Richtig gezählt", value: `${countedRight} Zahlen`, inline: true }
+      );
+  },
+
+  getCommandsEmbed: () => {
+    return new EmbedBuilder()
+      .setTitle("Befehlsübersicht")
+      .setColor("#ffffff")
+      .setDescription(
+        "`!bank` (`/bank status`) - Zeigt deinen aktuellen Kontostand an\n" +
+        "`!bank create` (`/bank create`) - Eröffnet ein neues Bankkonto\n" +
+        "`!bank help` (`/bank help`) - Zeigt Hilfe zum Bank-System\n" +
+        "`!bank pay @User x` (`/bank pay`) - Überweist einem anderen Nutzer Kekse\n" +
+        "`!casino` (`/casino`) - Öffnet das Casino-Hauptmenü\n" +
+        "`!casino blackjack x` (`/blackjack`) - Startet ein Spiel Blackjack\n" +
+        "`!casino coinflip x` (`/coinflip`) - Spielt Coinflip gegen das Haus\n" +
+        "`!casino crash x` (`/crash`) - Startet ein Crash-Multiplikatorspiel\n" +
+        "`!casino highlow x` (`/highlow`) - Startet ein Highlow-Kartenspiel\n" +
+        "`!casino jackpot x` (`/jackpot`) - Kauft Tickets für den globalen Jackpot\n" +
+        "`!casino roulette x` (`/roulette`) - Setzet Kekse am Roulette-Tisch\n" +
+        "`!help` (`/help`) - Öffnet dieses Hilfemenü\n" +
+        "`!leaderboard` (`/leaderboard`) - Zeigt die Top 5 der reichsten User\n" +
+        "`!listpolls` (`/listpolls`) - Listet alle aktiven Umfragen auf\n" +
+        "`!remind` (`/remind`) - Erstellt eine Erinnerung\n" +
+        "`!top` (`/top`) - Zeigt serverweite Bestenlisten\n" +
+        "`!coinflip @User x` - Fordert einen Spieler zu Coinflip heraus\n" +
+        "`!ssp @User x` - Fordert einen Spieler zu Schere-Stein-Papier heraus"
+      );
+  },
+
+  getChannelsEmbed: () => {
+    return new EmbedBuilder()
+      .setTitle("Kanalübersicht")
+      .setColor("#ffffff")
+      .setDescription(
+        "<#1423413348065611949> Hier findest du das offizielle Regelwerk des Servers.\n" +
+        "<#1423637547363467346> Wichtige Neuigkeiten und Ankündigungen werden hier geteilt.\n" +
+        "<#1464993818968588379> Technische Änderungen und Bot-Updates werden hier aufgelistet.\n" +
+        "<#1423637646634123294> Hier finden regelmäßige Verlosungen statt.\n" +
+        "<#1472658090812899358> Ankündigungen und Infos zu anstehenden Community-Events.\n" +
+        "<#1540111606917107772> In diesem Kanal darfst du deine eigenen Projekte bewerben.\n" +
+        "<#1423434079390535730> Der Kanal für das Zahlen-Zählspiel.\n" +
+        "<#1506746618601541774> Hier kannst du dir alle 24 Stunden 10 kostenlose Kekse abholen.\n" +
+        "<#1507385550825459812> Der Bereich für alle Casino-Spiele und Wetten.\n" +
+        "<#1508053328662364302> Tausche deine Kekse gegen Booster oder die VIP-Rolle ein.\n" +
+        "<#1423413348493430905> Hier kannst du Tickets für Support, Gewinne oder Bewerbungen erstellen."
+      );
+  }
+};
+
+const helpRow = new ActionRowBuilder().addComponents(
+  new ButtonBuilder().setCustomId("help_profile").setLabel("Profil").setStyle(ButtonStyle.Secondary),
+  new ButtonBuilder().setCustomId("help_commands").setLabel("Befehle").setStyle(ButtonStyle.Secondary),
+  new ButtonBuilder().setCustomId("help_channels").setLabel("Channels").setStyle(ButtonStyle.Secondary)
+);
+
+export async function handleTextHelpCommand(msg) {
+  const mainEmbed = getHelpData.getMainEmbed();
+  const responseMessage = await msg.reply({ embeds: [mainEmbed], components: [helpRow] });
+  createHelpCollector(responseMessage, msg.author.id, msg.author.username);
+}
+
+export async function handleSlashHelpCommand(interaction) {
+  const mainEmbed = getHelpData.getMainEmbed();
+  const responseMessage = await interaction.reply({ embeds: [mainEmbed], components: [helpRow], fetchReply: true });
+  createHelpCollector(responseMessage, interaction.user.id, interaction.user.username);
+}
+
+function createHelpCollector(messageTarget, userId, userUsername) {
+  const collector = messageTarget.createMessageComponentCollector({
+    componentType: ComponentType.Button,
+    time: 120000
+  });
+
+  collector.on("collect", async (interaction) => {
+    if (interaction.user.id !== userId) {
+      return interaction.reply({
+        content: "Du hast diesen Befehl nicht gerufen! Benutze selbst `!help` oder `/help`.",
+        flags: [MessageFlags.Ephemeral]
+      });
+    }
+
+    await interaction.deferUpdate();
+
+    let newEmbed;
+    if (interaction.customId === "help_profile") {
+      newEmbed = await getHelpData.getProfileEmbed(userId, userUsername);
+    } else if (interaction.customId === "help_commands") {
+      newEmbed = getHelpData.getCommandsEmbed();
+    } else if (interaction.customId === "help_channels") {
+      newEmbed = getHelpData.getChannelsEmbed();
+    }
+
+    await interaction.editReply({ embeds: [newEmbed], components: [helpRow] }).catch(() => {});
+  });
+
+  collector.on("end", async () => {
+    await messageTarget.delete().catch(() => {});
+  });
+}
+export function initHelp(client) {
+  client.on("messageCreate", async (msg) => {
+    if (msg.author.bot) return;
+    if (!msg.content.startsWith("!")) return;
+
+    const args = msg.content.slice(1).trim().split(" ");
+    const cmd = args.shift().toLowerCase();
+
+    if (cmd !== "help") return;
+
+    console.log(`[HELP] Von ${msg.author.username}`);
+    await handleSlashHelpCommand(interaction);
+    globalBotStats.commandsRunned += 1;
+  });
+}
 export async function initDashboard(app, client, globalBotStats) {
   const logs = [];
   const _log = console.log.bind(console);
@@ -6975,12 +7122,7 @@ export async function deploySlashCommands() {
     }
     if (commandName === "help") {
       console.log(`[HELP] Von ${user.username}`);
-
-      await interaction.reply({
-        content:
-          "Erstelle ein <#1423413348493430905>. Ein Moderator wird sich so schnell wie möglich um dein Anliegen kümmern.",
-        ephemeral: false,
-      });
+      await handleSlashHelpCommand(interaction);
       console.log(`${user.username} hat die "help"-Funktion genutzt`)
       globalBotStats.commandsRunned += 1;
     }
