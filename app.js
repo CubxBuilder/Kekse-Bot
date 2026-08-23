@@ -1150,10 +1150,6 @@ export async function initEconomySystem(client) {
             embeds: [buildJackpotEmbed("Warte auf weitere Teilnehmer…")],
           });
           jackpotState.announceMessage = jMsg;
-          return msg.reply({
-            content: `Du bist dem Jackpot beigetreten! Einsatz: **${betAmount} Kekse** (${userChance}% Chance)`,
-            flags: [MessageFlags.Ephemeral],
-          });
         }
 
         if (jackpotState.announceMessage) {
