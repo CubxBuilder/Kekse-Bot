@@ -6049,25 +6049,31 @@ app.get("/api/stats", async (req, res) => {
       pingDoc && pingDoc.value && Array.isArray(pingDoc.value.history)
         ? pingDoc.value.history
         : [];
-
+    const allXpDocuments = await StorageModel.find({
+      namespace: "xp",
+    }).lean();
+      const xpMap = new Map(
+      allXpDocuments.map(doc => [doc.key, doc.value])
+    );
     let accounts = [];
     let transactionLogs = {};
-
     for (const doc of allEcoDocuments) {
       if (/^\d+$/.test(doc.key) && doc.value) {
+        const xpData = xpMap.get(doc.key) || {};
         accounts.push({
           userId: doc.key,
           username: doc.value.username || "Unbekannt",
           mcUsername: doc.value.mcUsername || "Nicht registriert",
           balance: doc.value.balance || 0,
           blocked: doc.value.blocked || false,
+          rang: xpData.rang || 0,
+          xp: xpData.xp || 0
         });
       } else if (doc.key.startsWith("tx_") && doc.value && doc.value.history) {
         const uId = doc.key.replace("tx_", "");
         transactionLogs[uId] = doc.value.history;
       }
     }
-
     const mappedLogs = logs.map((l) => ({
       t: l.timestamp,
       m: `[${l.type.toUpperCase()}] ${l.message}`,
