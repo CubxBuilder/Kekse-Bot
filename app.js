@@ -4006,6 +4006,7 @@ export async function initCounting(client) {
     await saveCounting();
     const userData = (await getEcoData(msg.author.id)) || {};
     userData.balance = (userData.balance || 0) + 1;
+    handleMessageXP(msg);
     await logTransaction(msg.author.id, 1, "plus", "Counting");
     await setEcoData(msg.author.id, userData);
     if (!syncMode) await msg.react("✅").catch(() => {});
@@ -5910,6 +5911,7 @@ export function startVoiceXpTracker(client) {
           !voiceState.member.user.bot && 
           !voiceState.deaf && 
           !voiceState.mute &&
+          voiceState.channelId !== "1423413348493430901" &&
           voiceState.channel.members.filter(m => !m.user.bot).size > 1
         ) {
           await addXP(voiceState.id, 2, client);
@@ -5986,7 +5988,8 @@ export async function syncExistingUsers(client) {
   }
 }
 client.on("messageCreate", async (message) => {
-  handleMessageXP(message);
+  if (message.channelId === "1423434079390535730") return;
+  handleMessageXP(message)
 });
 
 client.on("guildMemberAdd", async (member) => {
