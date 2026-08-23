@@ -3083,7 +3083,7 @@ function hasPerm(member) {
 export function initModeration(client) {
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot || !msg.content.startsWith("!")) return;
-    if (!msg.member.roles.cache.has(TEAM_ROLE_ID) || !hasPerm(msg.member))
+    if (!msg.member.roles.cache.has("1457906448234319922") || !hasPerm(msg.member))
       return;
 
     const args = msg.content.slice(1).split(/\s+/);
@@ -4352,7 +4352,7 @@ export function registerMessageCommands(client) {
     if (msg.author.bot || !msg.content.startsWith("!")) return;
     const logChannelId = "1423413348220796991";
     if (
-      !msg.member.roles.cache.has(TEAM_ROLE) &&
+      !msg.member.roles.cache.has(TEAM_ROLE_ID) &&
       !msg.member.permissions.has(PermissionsBitField.Flags.ManageMessages)
     )
       return;
