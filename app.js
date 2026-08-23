@@ -6144,7 +6144,7 @@ export function initHelp(client) {
     if (cmd !== "help") return;
 
     console.log(`[HELP] Von ${msg.author.username}`);
-    await handleSlashHelpCommand(msg);
+    await handleTextHelpCommand(msg)
     globalBotStats.commandsRunned += 1;
   });
 }
