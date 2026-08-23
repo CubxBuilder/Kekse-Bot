@@ -6094,6 +6094,7 @@ export async function handleTextHelpCommand(msg) {
 }
 
 export async function handleSlashHelpCommand(interaction) {
+  if (!interaction || !interaction.user) return;
   const mainEmbed = getHelpData.getMainEmbed();
   const responseMessage = await interaction.reply({ embeds: [mainEmbed], components: [helpRow], fetchReply: true });
   createHelpCollector(responseMessage, interaction.user.id, interaction.user.username);
