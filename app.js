@@ -5853,7 +5853,7 @@ const getHelpData = {
     let currentTierName = "Kein Rang";
     let nextTierPoints = "Max";
 
-    for (let i = ROLES_TIERS.length - 1; i >= 0; i--) {
+    for (let i = ROLES_TIERS.length; i >= 0; i--) {
       if (currentPoints >= ROLES_TIERS[i].needed) {
         currentTierName = ROLES_TIERS[i].name;
         break;
