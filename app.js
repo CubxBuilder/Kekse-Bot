@@ -5906,8 +5906,8 @@ const getHelpData = {
         "`!listpolls` (`/listpolls`) - Liste alle aktiven Umfragen auf\n" +
         "`!remind` (`/remind`) - Erstelle eine Erinnerung für dich\n" +
         "`!top` (`/top`) - Zeige serverweite Bestenliste im Counting\n" +
-        "`!coinflip @User x` - Fordere einen Spieler zu Coinflip heraus\n" +
-        "`!ssp @User x` - Fordere einen Spieler zu Schere-Stein-Papier heraus"
+        "`!coinflip @User x` - Fordert einen Spieler zu Coinflip heraus\n" +
+        "`!ssp @User x` - Fordert einen Spieler zu Schere-Stein-Papier heraus"
       );
   },
 
