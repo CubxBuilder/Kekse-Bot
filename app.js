@@ -226,7 +226,7 @@ export async function archiveTicket({ name, closedBy, channel }, setTickData) {
     if (archives.length > 100) archives.pop();
     await setTickData("archive_list", { archive: archives });
     console.log(
-      `[TicketArchive] ✅ "${name}" archiviert — ${messages.length} Nachrichten.`,
+      `[TicketArchive] "${name}" archiviert: ${messages.length} Nachrichten.`,
     );
     const sendKekseLog = async (ticketName, ticketMessages) => {
       const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
@@ -241,7 +241,7 @@ export async function archiveTicket({ name, closedBy, channel }, setTickData) {
             client.user.displayAvatarURL(),
         })
         .setDescription(
-          `**Kanal:** \`${ticketName}\` wurde erfolgreich archiviert.\n**Nachrichten:** ${ticketMessages.length}\n\n**Transcript:** [**${ticketName}**](${ticketUrl})`,
+          `**Kanal:** \`${ticketName}\` erfolgreich archiviert.\n**Nachrichten:** ${ticketMessages.length}\n\n**Transcript:** [**${ticketName}**](${ticketUrl})`,
         )
         .setFooter({ text: "Kekse Clan | Ticket-Archive" })
         .setTimestamp();
@@ -252,7 +252,7 @@ export async function archiveTicket({ name, closedBy, channel }, setTickData) {
       await channel.delete().catch(() => {});
     }, 2000);
   } catch (e) {
-    console.log(`[TicketArchive] ❌ Fehler bei "${name}": ${e.message}`);
+    console.log(`[TicketArchive] Fehler bei "${name}": ${e.message}`);
   }
 }
 export let globalBotStats = {
@@ -281,7 +281,7 @@ async function startStorages() {
     if (stats) {
       globalBotStats = { ...globalBotStats, ...stats };
     }
-    console.log("[Storage] Globale Statistiken erfolgreich geladen.");
+    console.log("[Storage] Globale Statistiken geladen.");
   } catch (error) {
     console.log(
       `[Storage] Fehler beim Laden der Statistiken: ${error.message}`,
@@ -459,7 +459,7 @@ export async function initEconomyGetKekse(client) {
     }, 0);
     return existingKekse;
   } catch (err) {
-    console.error("❌ Fehler beim Berechnen der existingKekse:", err);
+    console.error("Fehler beim Berechnen der exestierenden Kekse:", err);
     return 0;
   }
 }
@@ -503,14 +503,14 @@ export async function initEconomySystem(client) {
     const winEmbed = new EmbedBuilder()
       .setTitle("Jackpot — Gewinner!")
       .setDescription(
-        `<@${winner.userId}> hat den Jackpot gewonnen!\n\n**Gewinn: ${totalPool} Kekse** 🍪\nGewinnchance war: **${((winner.betAmount / totalPool) * 100).toFixed(1)}%**`,
+        `<@${winner.userId}> hat den Jackpot gewonnen!\n\n**Gewinn: ${totalPool} Kekse**\nGewinnchance: **${((winner.betAmount / totalPool) * 100).toFixed(1)}%**`,
       )
       .addFields({
         name: "Teilnehmer",
         value: entries
           .map(
             (e) =>
-              `<@${e.userId}> — ${e.betAmount} Kekse (${((e.betAmount / totalPool) * 100).toFixed(1)}%)`,
+              `<@${e.userId}>: ${e.betAmount} Kekse (${((e.betAmount / totalPool) * 100).toFixed(1)}%)`,
           )
           .join("\n"),
       })
@@ -560,7 +560,7 @@ export async function initEconomySystem(client) {
       if (!setupId) {
         return msg.reply({
           content:
-            "Bitte gib eine eindeutige Setup-ID an! Beispiel: `!daily_setup event1 Das ist ein Event`",
+            "setup_id is missing",
         });
       }
       const description =
@@ -597,7 +597,7 @@ export async function initEconomySystem(client) {
       if (!setupId) {
         return msg.reply({
           content:
-            "Bitte gib eine eindeutige Setup-ID an! Beispiel: `!shop_setup event1 Das ist ein Event`",
+            "setup_id is missing",
         });
       }
       const description =
@@ -616,13 +616,13 @@ export async function initEconomySystem(client) {
         .addFields(
           {
             name: "🎉 Double Chance Giveaway - `100.000 Kekse`",
-            value: "Erhöht deine Gewinnchance bei Giveaways.",
+            value: "Erhöht die Gewinnchance bei Giveaways.",
             inline: false,
           },
           {
             name: "🛡️ Counting Puffer - `25.000 Kekse`",
             value:
-              "Erlaubt dir einen Fehler beim Zählen, ohne die Zahl zurückzusetzen.",
+              "Erlaubt dir einen Fehler beim Zählen, ohne dass die Zahl zurückgesetzt wird.",
             inline: false,
           },
           {
@@ -637,7 +637,7 @@ export async function initEconomySystem(client) {
           },
           {
             name: "💎 VIP Rolle (7d) - `500.000 Kekse`",
-            value: "Du wirst bei der Teilnahme an Events bevorzugt.",
+            value: "Erhöhte Position in der Server-Liste und teilnahme an spezifischen Events.",
             inline: false,
           },
         );
@@ -655,23 +655,23 @@ export async function initEconomySystem(client) {
         new ButtonBuilder()
           .setCustomId("shop_xp30")
           .setLabel("XP Booster 30m")
-          .setStyle(ButtonStyle.Success)
+          .setStyle(ButtonStyle.Primary)
           .setEmoji("⚡"),
         new ButtonBuilder()
           .setCustomId("shop_xp60")
           .setLabel("XP Booster 60m")
-          .setStyle(ButtonStyle.Success)
+          .setStyle(ButtonStyle.Primary)
           .setEmoji("🔥"),
         new ButtonBuilder()
           .setCustomId("shop_vip")
           .setLabel("VIP-Rolle")
-          .setStyle(ButtonStyle.Success)
+          .setStyle(ButtonStyle.Primary)
           .setEmoji("💎"),
       );
 
       await shopChannel.send({ embeds: [shopEmbed], components: [row] });
       return msg.reply(
-        `Shop erfolgreich im Kanal <#${SHOP_CHANNEL_ID}> eingerichtet!`,
+        `Shop erfolgreich im Kanal <#${SHOP_CHANNEL_ID}> erstellt`,
       );
     }
     if (command === "!coinflip") {
@@ -710,7 +710,7 @@ export async function initEconomySystem(client) {
   );
 
   const challengeMsg = await msg.channel.send({
-    content: `<@${targetUser.id}>, du wurdest von <@${msg.author.id}> zu einem Coinflip um **${betAmount} Kekse** herausgefordert!`,
+    content: `<@${targetUser.id}>, du wurdest von <@${msg.author.id}> zu einem Coinflip um **${betAmount} Kekse** herausgefordert.`,
     components: [row],
   });
 
@@ -729,7 +729,7 @@ export async function initEconomySystem(client) {
     const freshChallenged = await getEcoData(targetUser.id);
 
     if ((freshChallenger.balance || 0) < betAmount || (freshChallenged.balance || 0) < betAmount) {
-      await interaction.update({ content: "❌ Jemand hat nicht mehr genug Kekse.", components: [] });
+      await interaction.update({ content: "Jemand hat nicht mehr genug Kekse.", components: [] });
       return collector.stop();
     }
 
@@ -762,7 +762,7 @@ export async function initEconomySystem(client) {
 
   collector.on("end", (_, reason) => {
     if (reason === "time") {
-      challengeMsg.edit({ content: "⏰ Die Herausforderung ist abgelaufen.", components: [] }).catch(() => {});
+      challengeMsg.edit({ content: "Die Anfrage ist abgelaufen.", components: [] }).catch(() => {});
     }
   });
 }
@@ -794,9 +794,9 @@ export async function initEconomySystem(client) {
   const beats = { schere: "papier", stein: "schere", papier: "stein" };
   const makeChoiceRow = (userId) =>
     new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(`ssp_${userId}_schere`).setLabel("✂️ Schere").setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId(`ssp_${userId}_stein`).setLabel("🪨 Stein").setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId(`ssp_${userId}_papier`).setLabel("📄 Papier").setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(`ssp_${userId}_schere`).setLabel("✂️ Schere").setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId(`ssp_${userId}_stein`).setLabel("🪨 Stein").setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId(`ssp_${userId}_papier`).setLabel("📄 Papier").setStyle(ButtonStyle.Primary),
     );
   const inviteRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
@@ -826,14 +826,14 @@ export async function initEconomySystem(client) {
       return inviteInt.update({ content: `<@${targetUser.id}> hat abgelehnt.`, components: [] });
     }
 
-    await inviteInt.update({ content: `✅ Herausforderung angenommen! Beide Spieler wählen jetzt ihre Geste per DM.`, components: [] });
+    await inviteInt.update({ content: `Herausforderung angenommen! Beide Spieler wählen jetzt per DM.`, components: [] });
 
     const choices = {};
 
     const askChoice = async (playerUser) => {
       try {
         const dm = await playerUser.send({
-          content: `Wähle deine Geste für das Spiel gegen <@${playerUser.id === msg.author.id ? targetUser.id : msg.author.id}> (Einsatz: **${betAmount} Kekse**):`,
+          content: `Wähle für das Spiel gegen <@${playerUser.id === msg.author.id ? targetUser.id : msg.author.id}> (Einsatz: **${betAmount} Kekse**):`,
           components: [makeChoiceRow(playerUser.id)],
         });
         return new Promise((resolve) => {
@@ -869,7 +869,7 @@ export async function initEconomySystem(client) {
     const c2 = choices[targetUser.id];
     if (!c1 || !c2) {
       const whoTimeout = !c1 ? msg.author : targetUser;
-      return inviteMsg.channel.send(`⏰ <@${whoTimeout.id}> hat nicht rechtzeitig gewählt. Das Spiel wurde abgebrochen.`);
+      return inviteMsg.channel.send(`<@${whoTimeout.id}> hat nicht rechtzeitig gewählt. Das Spiel wurde abgebrochen.`);
     }
 
     const freshChallenger = await getEcoData(msg.author.id);
@@ -880,7 +880,7 @@ export async function initEconomySystem(client) {
     let loser = null;
 
     if (c1 === c2) {
-      resultText = `**Unentschieden!** Beide haben ${c1} gewählt. Kein Keksverlust.`;
+      resultText = `**Unentschieden!** Beide haben ${c1} gewählt.`;
     } else if (beats[c1] === c2) {
       winner = msg.author; loser = targetUser;
       freshChallenger.balance = (freshChallenger.balance || 0) + betAmount;
@@ -912,7 +912,7 @@ export async function initEconomySystem(client) {
 
   inviteCollector.on("end", (collected, reason) => {
     if (reason === "time") {
-      inviteMsg.edit({ content: "⏰ Die Herausforderung ist abgelaufen.", components: [] }).catch(() => {});
+      inviteMsg.edit({ content: "Die Anfrage ist abgelaufen.", components: [] }).catch(() => {});
     }
   });
 }
@@ -921,7 +921,7 @@ export async function initEconomySystem(client) {
       if (!hasEcoRole) {
         return msg.reply({
           content:
-            "Du benötigst ein Bankkonto, um am Casino teilzunehmen. Nutze `!bank create`.",
+            "Du benötigst ein Account um im Casino zu spielen. Nutze `!bank create`.",
           flags: [MessageFlags.Ephemeral],
         });
       }
@@ -934,7 +934,7 @@ export async function initEconomySystem(client) {
       const userData = await getEcoData(msg.author.id);
       if (userData.blocked) {
         return msg.reply({
-          content: "Dein Konto ist gesperrt. Bitte wende dich an den Support.",
+          content: "Dein Konto ist gesperrt. Wenn es sich um ein Missverständnis handelt wende dich an den Support → <#1423413348493430905>",
           flags: [MessageFlags.Ephemeral],
         });
       }
@@ -944,14 +944,14 @@ export async function initEconomySystem(client) {
         if (isNaN(betAmount) || betAmount <= 0) {
           return msg.reply({
             content:
-              "Nutzung: `!casino roulette <Einsatz> <red|black|even|odd|0-36|1-18|19-36>`",
+              "Nutzung: `!casino roulette <Einsatz> <red|black|even|odd|0-36>`",
             flags: [MessageFlags.Ephemeral],
           });
         }
         if (!betType) {
           return msg.reply({
             content:
-              "Bitte gib eine Wettart an: `red`, `black`, `even`, `odd`, eine Zahl `0`-`36`, `1-18` oder `19-36`.",
+              "Bitte gib eine Wettart an: `red`, `black`, `even`, `odd`, eine Zahl `0`-`36`.",
             flags: [MessageFlags.Ephemeral],
           });
         }
@@ -1006,7 +1006,7 @@ export async function initEconomySystem(client) {
         } else {
           return msg.reply({
             content:
-              "Ungültige Wettart. Nutze: `red`, `black`, `even`, `odd`, eine Zahl (0–36), `1-18` oder `19-36`.",
+              "Ungültige Angabe. Nutze: `red`, `black`, `even`, `odd`, eine Zahl (0–36).",
             flags: [MessageFlags.Ephemeral],
           });
         }
@@ -1169,7 +1169,7 @@ export async function initEconomySystem(client) {
               .edit({
                 embeds: [
                   buildJackpotEmbed(
-                    `⏳ Ziehung <t:${Math.floor(drawTime / 1000)}:R>`,
+                    `Ziehung <t:${Math.floor(drawTime / 1000)}:R>`,
                   ),
                 ],
               })
@@ -1225,7 +1225,7 @@ export async function initEconomySystem(client) {
       return new EmbedBuilder()
         .setTitle("💥 CRASH!")
         .setDescription(
-          `Gecrasht bei **${crashPoint.toFixed(2)}x**!\n\nEinsatz: **${betAmount} Kekse** — **Verloren!**\nNeuer Kontostand: **${userData.balance} Kekse**`,
+          `Gecrasht bei **${crashPoint.toFixed(2)}x**!\n\nEinsatz: **${betAmount} Kekse** - **Verloren!**\nNeuer Kontostand: **${userData.balance} Kekse**`,
         )
         .setColor(0x333333);
     if (cashedAt !== null) {
@@ -1240,7 +1240,7 @@ export async function initEconomySystem(client) {
     return new EmbedBuilder()
       .setTitle("Crash")
       .setDescription(
-        `**${multiplier.toFixed(2)}x** — Steigt noch…\n\nEinsatz: **${betAmount} Kekse**\nMöglicher Gewinn: **${Math.floor(betAmount * multiplier)} Kekse**\n\nDrücke **Cash Out** bevor die Rakete crasht!`,
+        `**${multiplier.toFixed(2)}x** - Steigt noch…\n\nEinsatz: **${betAmount} Kekse**\nMöglicher Gewinn: **${Math.floor(betAmount * multiplier)} Kekse**\n\nDrücke **Cash Out** vor dem Crash!`,
       )
       .setColor(0xffffff);
   };
@@ -1358,7 +1358,7 @@ export async function initEconomySystem(client) {
   }
   if ((userData.hl_today_count || 0) >= 5) {
     return msg.reply({
-      content: "🛑 Du hast dein Limit von **5 Higher/Lower-Spielen** für heute bereits erreicht! Versuche es morgen wieder.",
+      content: "Du hast dein Limit von **5 Higher/Lower-Spielen** für heute bereits erreicht! Komm morgen wieder.",
       flags: [MessageFlags.Ephemeral],
     });
   }
@@ -1395,11 +1395,11 @@ export async function initEconomySystem(client) {
       new ButtonBuilder()
         .setCustomId(`hl_lower_${msg.author.id}`)
         .setLabel("⬇️ Lower")
-        .setStyle(ButtonStyle.Danger)
+        .setStyle(ButtonStyle.Primary)
         .setDisabled(disabled),
       new ButtonBuilder()
         .setCustomId(`hl_cashout_${msg.author.id}`)
-        .setLabel(`Cash Out (${Math.floor(betAmount * multiplier)} Kekse)`)
+        .setLabel(`Auszahlen (${Math.floor(betAmount * multiplier)} Kekse)`)
         .setStyle(ButtonStyle.Success)
         .setDisabled(disabled || streak === 0),
     );
@@ -1470,7 +1470,7 @@ export async function initEconomySystem(client) {
             embeds: [
               hlEmbed(
                 `✅ Richtig! Nächste Karte war **${nextCard.display}**\n\nAktuelle Karte: **${currentCard.display}**\nStreak: **${streak}** | Multiplikator: **${multiplier.toFixed(2)}x**\nMöglicher Gewinn: **${Math.floor(betAmount * multiplier)} Kekse**\n\nWeiterhöhen oder auszahlen?`,
-                0x57f287,
+                0xffffff,
               ),
             ],
             components: [hlRow()],
@@ -1497,8 +1497,8 @@ export async function initEconomySystem(client) {
         .edit({
           embeds: [
             hlEmbed(
-              `💰 **Cash Out!**\n\nMultiplikator: **${multiplier.toFixed(2)}x**\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${fresh.balance} Kekse**`,
-              0x57f287,
+              `💰 **Ausgezahlt!**\n\nMultiplikator: **${multiplier.toFixed(2)}x**\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${fresh.balance} Kekse**`,
+              0x333333,
             ),
           ],
           components: [],
@@ -1509,8 +1509,8 @@ export async function initEconomySystem(client) {
         .edit({
           embeds: [
             hlEmbed(
-              `❌ **Falsch gegambelt!**\n\nDie Karte war **${lastDrawnCard ? lastDrawnCard.display : "Unbekannt"}**.\nDu hast **${betAmount} Kekse** verloren.\nNeuer Kontostand: **${fresh.balance} Kekse**`,
-              0xed4245,
+              `❌ **Falsch geraten!**\n\nDie Karte war **${lastDrawnCard ? lastDrawnCard.display : "Unbekannt"}**.\nDu hast **${betAmount} Kekse** verloren.\nNeuer Kontostand: **${fresh.balance} Kekse**`,
+              0x333333,
             ),
           ],
           components: [],
@@ -1526,8 +1526,8 @@ export async function initEconomySystem(client) {
           .edit({
             embeds: [
               hlEmbed(
-                `⏰ **Zeit abgelaufen!**\n\nAutomatischer Cash-Out bei **${multiplier.toFixed(2)}x**\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${fresh.balance} Kekse**`,
-                0xe67e22,
+                `⏰ **Zeit abgelaufen!**\n\nAutomatisch ausgezahlt bei **${multiplier.toFixed(2)}x**\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${fresh.balance} Kekse**`,
+                0x333333,
               ),
             ],
             components: [],
@@ -1539,7 +1539,7 @@ export async function initEconomySystem(client) {
             embeds: [
               hlEmbed(
                 `⏰ **Zeit abgelaufen!**\n\nDu hast zu lange gebraucht und **${betAmount} Kekse** verloren.\nNeuer Kontostand: **${fresh.balance} Kekse**`,
-                0xed4245,
+                0x333333,
               ),
             ],
             components: [],
@@ -1608,12 +1608,12 @@ export async function initEconomySystem(client) {
         const row = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
             .setCustomId("bj_hit")
-            .setLabel("Karte ziehen (Hit)")
+            .setLabel("Hit")
             .setStyle(ButtonStyle.Primary),
           new ButtonBuilder()
             .setCustomId("bj_stand")
-            .setLabel("Halten (Stand)")
-            .setStyle(ButtonStyle.Secondary),
+            .setLabel("Stand")
+            .setStyle(ButtonStyle.Primary),
         );
 
         const createEmbed = (title, color, showAllDealer = false) => {
@@ -1768,7 +1768,7 @@ export async function initEconomySystem(client) {
       }
       return msg.reply({
         content:
-          "Unbekanntes Casino-Spiel. Verfügbar: `roulette`, `coinflip`, `jackpot`, `crash`, `highlow`, `blackjack`\nBeispiel: `!casino coinflip 10 heads`",
+          "Unbekanntes Spiel. Verfügbare Spiele: `roulette`, `coinflip`, `jackpot`, `crash`, `highlow`, `blackjack`",
       });
     }
     if (command === "!bank") {
@@ -1787,7 +1787,7 @@ export async function initEconomySystem(client) {
         if (subCommand === "see") {
           if (!targetUser)
             return msg.reply({
-              content: "Bitte erwähne einen Nutzer.",
+              content: "user is missing",
               flags: [MessageFlags.Ephemeral],
             });
           const data = await getEcoData(targetUser.id);
@@ -1817,7 +1817,7 @@ export async function initEconomySystem(client) {
 
         if (isNaN(amount) || amount <= 0) {
           return msg.reply({
-            content: "Bitte gib eine gültige Anzahl an Keksen an.",
+            content: "incorrect amount",
             flags: [MessageFlags.Ephemeral],
           });
         }
@@ -1862,7 +1862,7 @@ export async function initEconomySystem(client) {
         const row = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
             .setCustomId(`open_bank_modal_${msg.author.id}`)
-            .setLabel("Registrierungsformular öffnen")
+            .setLabel("Konto erstellen")
             .setStyle(ButtonStyle.Primary),
         );
 
@@ -1888,11 +1888,11 @@ export async function initEconomySystem(client) {
             {
               name: "`!bank create`",
               value:
-                "Erstellt dein persönliches Bankkonto (Erfordert Minecraft-Namen).",
+                "Erstellt ein Bankkonto (Erfordert Minecraft-Namen).",
             },
             {
               name: "`!bank`",
-              value: "Zeigt dir deinen aktuellen Kontostand (Privat für dich).",
+              value: "Zeigt dir deinen aktuellen Kontostand (per dm).",
             },
           );
 
@@ -2014,7 +2014,7 @@ export async function initEconomySystem(client) {
         if (userData.blocked) {
           return msg.reply({
             content:
-              "Dein Konto ist aktuell gesperrt. Bitte wende dich an den Support.",
+              "Dein Konto ist gesperrt. Wenn es sich um ein Missverständnis handelt wende dich an den Support → <#1423413348493430905>",
             flags: [MessageFlags.Ephemeral],
           });
         }
@@ -2022,7 +2022,7 @@ export async function initEconomySystem(client) {
         if (msg.content.startsWith("!bank")) {
           await msg.delete().catch(() => {});
           return userName.send({
-            content: `Dein aktueller Kontostand beträgt: **${userData.balance || 0} Kekse** 🍪`,
+            content: `Dein aktueller Kontostand beträgt: **${userData.balance || 0} Kekse**`,
           });
         }
       }
@@ -2083,7 +2083,7 @@ export async function initEconomySystem(client) {
         }
 
         const setupId = interaction.customId.replace("daily_claim_", "");
-        const localizedDateStr = new Date().toLocaleDateString("sv-SE", {
+        const localizedDateStr = new Date().toLocaleDateString("de-DE", {
           timeZone: "Europe/Berlin",
         });
         const userData = (await getEcoData(interaction.user.id)) || {};
@@ -2093,7 +2093,7 @@ export async function initEconomySystem(client) {
         }
         if (userData.claimedDailies[setupId] === localizedDateStr) {
           return interaction.reply({
-            content: `Du hast deine Kekse für **dieses spezifische Event** heute bereits abgeholt! Versuche es nach 00:00 Uhr erneut.`,
+            content: `Du hast deine Kekse für **dieses spezifische Event** heute bereits abgeholt! Versuche es nach 00:00 Uhr (de-DE) erneut.`,
             flags: [MessageFlags.Ephemeral],
           });
         }
@@ -2170,7 +2170,7 @@ export async function initEconomySystem(client) {
 
         if (currentCookies < item.price) {
           return interaction.reply({
-            content: `❌ Du hast nicht genug Kekse für diesen Kauf! Ein(e) **${item.name}** kostet **${item.price.toLocaleString("de-DE")} Kekse** (Du hast: ${currentCookies.toLocaleString("de-DE")}).`,
+            content: `Du hast nicht genug Kekse für diesen Kauf! Ein(e) **${item.name}** kostet **${item.price.toLocaleString("de-DE")} Kekse** (Du hast: ${currentCookies.toLocaleString("de-DE")}).`,
             flags: MessageFlags.Ephemeral,
           });
         }
@@ -2187,7 +2187,7 @@ export async function initEconomySystem(client) {
           await member.roles.add(item.roleId);
 
           await interaction.reply({
-            content: `🛒 Kauf erfolgreich: Du hast **${item.name}** erhalten!`,
+            content: `Kauf erfolgreich: Du hast **${item.name}** erhalten!`,
             flags: MessageFlags.Ephemeral,
           });
           addXP(interaction.user.id, 100, client);
@@ -2200,12 +2200,12 @@ export async function initEconomySystem(client) {
               { name: "Gekauftes Item", value: item.name, inline: true },
               {
                 name: "Abgezogene Kekse",
-                value: `-${item.price.toLocaleString("de-DE")} 🍪`,
+                value: `-${item.price.toLocaleString("de-DE")}`,
                 inline: true,
               },
               {
                 name: "Neuer Kontostand",
-                value: `${finalData.balance.toLocaleString("de-DE")} 🍪`,
+                value: `${finalData.balance.toLocaleString("de-DE")}`,
                 inline: false,
               },
             ],
@@ -2229,6 +2229,7 @@ export async function initEconomySystem(client) {
                   currentMember.roles.cache.has(item.roleId)
                 ) {
                   await currentMember.roles.remove(item.roleId);
+                  console.log(`[Shop] Rolle wurde von ${currentMember} entfernt`)
                   await currentMember
                     .send(
                       `Dein **${item.name}** ist abgelaufen und wurde entfernt!`,
@@ -2369,7 +2370,7 @@ export function initAuditLogs(client) {
     if (msg.partial || msg.author?.bot || msg.channel.id === LOG_CHANNEL_ID)
       return;
     const ghostPing =
-      msg.mentions.users.size > 0 ? "⚠️ **GHOST PING ERKANNT**\n" : "";
+      msg.mentions.users.size > 0 ? "**GHOST PING ERKANNT**\n" : "";
     await sendLog(
       "Nachricht gelöscht",
       msg.author,
@@ -2669,7 +2670,7 @@ export async function clear(client) {
 
       if (messagesToDelete.length === 0) {
         return statusMsg
-          .edit(" Keine Nachrichten gefunden, die den Kriterien entsprechen.")
+          .edit("Keine Nachrichten gefunden, die den Kriterien entsprechen.")
           .then((m) => setTimeout(() => m.delete().catch(() => {}), 5000));
       }
 
@@ -2710,7 +2711,7 @@ export async function clear(client) {
       );
       if (statusMsg)
         await statusMsg
-          .edit("❌ Ein interner Fehler ist beim Löschen aufgetreten.")
+          .edit("an error occurred while deleting messages")
           .catch(() => {});
       return;
     }
@@ -2719,7 +2720,7 @@ export async function clear(client) {
     await statusMsg.delete().catch(() => {});
 
     const finishMsg = await message.channel.send(
-      `✅ **Abschlussbericht:**\n- Gelöscht: **${deletedCount}**\n- Dauer: **${duration}s**\n- Kanal: <#${targetChannel.id}>`,
+      `**Abschlussbericht:**\n- Gelöscht: **${deletedCount}**\n- Dauer: **${duration}s**\n- Kanal: <#${targetChannel.id}>`,
     );
 
     const userList =
@@ -2946,7 +2947,7 @@ export function initModeration(client) {
           name: msg.author.username,
           iconURL: msg.author.displayAvatarURL({ size: 512 }),
         })
-        .setTitle(`🛠️ Mod-Aktion: ${action}`)
+        .setTitle(`Mod-Aktion: ${action}`)
         .setDescription(
           `**Target:** ${target.tag || target.id} (\`${target.id}\`)\n**Grund:** ${reason}${extra ? `\n**Info:** ${extra}` : ""}`,
         )
@@ -2997,7 +2998,7 @@ export function initModeration(client) {
       const reason = args.slice(1).join(" ") || "Kein Grund";
       if (!user)
         return msg.reply({
-          content: "❌ User nicht gefunden.",
+          content: "User nicht gefunden.",
           flags: [MessageFlags.Ephemeral],
         });
 
@@ -3006,12 +3007,12 @@ export function initModeration(client) {
         await member.timeout(null, reason);
         await sendModLog("Untimeout", user, reason);
         await msg.reply({
-          content: `✅ **Untimeout**: <@${user.id}>`,
+          content: `**Untimeout**: <@${user.id}>`,
           flags: [MessageFlags.Ephemeral],
         });
       } catch (err) {
         await msg.reply({
-          content: "❌ Fehler beim Untimeout.",
+          content: "Fehler beim Untimeout.",
           flags: [MessageFlags.Ephemeral],
         });
       }
@@ -3023,7 +3024,7 @@ export function initModeration(client) {
       const reason = args.slice(1).join(" ") || "Kein Grund";
       if (!user)
         return msg.reply({
-          content: "❌ User nicht gefunden.",
+          content: "User nicht gefunden.",
           flags: [MessageFlags.Ephemeral],
         });
 
@@ -3031,11 +3032,11 @@ export function initModeration(client) {
         await msg.guild.members.kick(user.id, reason);
         await sendModLog("Kick", user, reason);
         await msg.reply({
-          content: `✅ **Kick**: <@${user.id}>`,
+          content: `**Kick**: <@${user.id}>`,
           flags: [MessageFlags.Ephemeral],
         });
       } catch (err) {
-        await msg.reply({ content: "❌ Fehler beim Kick.", flags: [MessageFlags.Ephemeral] });
+        await msg.reply({ content: "Fehler beim Kick.", flags: [MessageFlags.Ephemeral] });
       }
       globalBotStats.commandsRunned += 1;
     }
@@ -3045,7 +3046,7 @@ export function initModeration(client) {
       const reason = args.slice(1).join(" ") || "Kein Grund";
       if (!idInput || !/^\d{17,20}$/.test(idInput))
         return msg.reply({
-          content: "❌ Gültige ID/Erwähnung angeben.",
+          content: "enter valid user_id",
           flags: [MessageFlags.Ephemeral],
         });
 
@@ -3056,12 +3057,12 @@ export function initModeration(client) {
         await msg.guild.members.ban(idInput, { reason });
         await sendModLog("Ban", user, reason);
         await msg.reply({
-          content: `✅ **Ban**: ${user.tag || idInput} wurde gebannt.`,
+          content: `**Ban**: ${user.tag || idInput} wurde gebannt.`,
           flags: [MessageFlags.Ephemeral],
         });
       } catch (err) {
         await msg.reply({
-          content: "❌ Fehler beim Ban (Rechte?).",
+          content: "Fehler beim Ban.",
           flags: [MessageFlags.Ephemeral],
         });
       }
@@ -3072,7 +3073,7 @@ export function initModeration(client) {
       const idInput = args[0]?.replace(/[<@!>]/g, "");
       const reason = args.slice(1).join(" ") || "Kein Grund";
       if (!idInput)
-        return msg.reply({ content: "❌ ID angeben.", flags: [MessageFlags.Ephemeral] });
+        return msg.reply({ content: "user_id is missing", flags: [MessageFlags.Ephemeral] });
 
       try {
         const user = await client.users
@@ -3081,12 +3082,12 @@ export function initModeration(client) {
         await msg.guild.members.unban(idInput, reason);
         await sendModLog("Unban", user, reason);
         await msg.reply({
-          content: `✅ **Unban**: ${user.tag || idInput}`,
+          content: `**Unban**: ${user.tag || idInput}`,
           flags: [MessageFlags.Ephemeral],
         });
       } catch (err) {
         await msg.reply({
-          content: "❌ User nicht gebannt oder ID falsch.",
+          content: "enter valid user_id",
           flags: [MessageFlags.Ephemeral],
         });
       }
@@ -3098,7 +3099,7 @@ export function initModeration(client) {
       const reason = args.slice(1).join(" ") || "Kein Grund";
       if (!user)
         return msg.reply({
-          content: "❌ User nicht gefunden.",
+          content: "user not found",
           flags: [MessageFlags.Ephemeral],
         });
 
@@ -3113,7 +3114,7 @@ export function initModeration(client) {
         `Warn-Stand: ${data.warns[user.id].length}`,
       );
       await msg.reply({
-        content: `⚠️ **Warn**: <@${user.id}> (Gesamt: ${data.warns[user.id].length})`,
+        content: `**Warn**: <@${user.id}> (Gesamt: ${data.warns[user.id].length})`,
         flags: [MessageFlags.Ephemeral],
       });
       globalBotStats.commandsRunned += 1;
@@ -3122,12 +3123,12 @@ export function initModeration(client) {
       const user = await getUser(args[0]);
       if (!user)
         return msg.reply({
-          content: "❌ User nicht gefunden.",
+          content: "user not found",
           flags: [MessageFlags.Ephemeral],
         });
       const userWarns = data.warns[user.id] || [];
       if (userWarns.length === 0)
-        return msg.reply({ content: "✅ Keine Warnungen.", flags: [MessageFlags.Ephemeral] });
+        return msg.reply({ content: "Keine Warnungen.", flags: [MessageFlags.Ephemeral] });
       const embed = new EmbedBuilder()
         .setTitle(`Warnungen: ${user.username}`)
         .setColor("#ffffff")
@@ -3144,7 +3145,7 @@ export function initModeration(client) {
       const user = await getUser(args[0]);
       const index = parseInt(args[1]) - 1;
       if (!user || isNaN(index) || !data.warns[user.id]?.[index])
-        return msg.reply({ content: "❌ Ungültiger Index.", flags: [MessageFlags.Ephemeral] });
+        return msg.reply({ content: "not a valid index", flags: [MessageFlags.Ephemeral] });
       const removed = data.warns[user.id].splice(index, 1);
       await setMData("moderation", data);
       await sendModLog(
@@ -3152,7 +3153,7 @@ export function initModeration(client) {
         user,
         `Grund war: ${removed[0].reason}`,
       );
-      await msg.reply({ content: "✅ Warnung entfernt.", flags: [MessageFlags.Ephemeral] });
+      await msg.reply({ content: "Warnung entfernt.", flags: [MessageFlags.Ephemeral] });
       globalBotStats.commandsRunned += 1;
     }
   });
@@ -3294,193 +3295,6 @@ const LEVELS = [
   { count: 25, duration: 7 * 86400000, label: "7 Tage" },
   { count: 50, duration: 31 * 86400000, label: "31 Tage" },
 ];
-export async function violations(client) {
-  const sendKekseLog = async (action, user, details, color = "#ffffff") => {
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
-    if (!logChannel) return;
-    const logEmbed = new EmbedBuilder()
-      .setColor(color)
-      .setAuthor({
-        name: user.username,
-        iconURL: user.displayAvatarURL({ size: 512 }),
-      })
-      .setDescription(`**Aktion:** \`${action}\`\n${details}`)
-      .setFooter({ text: "Kekse Clan | Automated Security" })
-      .setTimestamp();
-    await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
-  };
-  client.on("messageCreate", async (message) => {
-    if (message.author.bot || !message.guild) return;
-    const data = await getVData("violations");
-    if (!data) return;
-    const entry = data[message.author.id];
-    if (!entry) return;
-    if (!entry.appliedLevel) entry.appliedLevel = 0;
-    const level = LEVELS.find(
-      (l) => entry.count >= l.count && entry.appliedLevel < l.count,
-    );
-    if (!level) return;
-    const member = await message.guild.members
-      .fetch(message.author.id)
-      .catch(() => null);
-    if (!member) return;
-    try {
-      await member.timeout(
-        level.duration,
-        "Automatisches System: Verstoß-Schwelle erreicht (§2a1n1)",
-      );
-      entry.appliedLevel = level.count;
-      await setVData("violations", data);
-      await sendKekseLog(
-        "Automatischer Timeout",
-        message.author,
-        `**Grund:** Verstoß-Schwelle erreicht (${level.count} Verstöße)\n` +
-          `**Dauer:** ${level.label}\n` +
-          `**Status:** System-Sanktion ausgeführt.`,
-      );
-    } catch (err) {
-      if (entry.adminNotified) return;
-
-      const logChannel = await client.channels
-        .fetch(LOG_CHANNEL_ID)
-        .catch(() => null);
-      if (logChannel) {
-        const alertEmbed = new EmbedBuilder()
-          .setColor("#ff0000")
-          .setTitle("⚠️ Sanktion Fehlgeschlagen")
-          .setDescription(
-            `<@${PING_ID}>, die automatische Sanktion für <@${member.id}> (${member.user.tag}) schlug fehl.\n\n` +
-              `**Grund:** Wahrscheinlich Administrator-Rechte oder Rollen-Hierarchie.\n` +
-              `**Erreichte Schwelle:** ${level.count} Verstöße.`,
-          )
-          .setTimestamp();
-        await logChannel.send({
-          content: `<@${PING_ID}>`,
-          embeds: [alertEmbed],
-        });
-      }
-      entry.adminNotified = true;
-      await setVData("violations", data);
-    }
-  });
-}
-const CONFIG = {
-  ignoredCategories: [
-    "1423413348065611953",
-    "1434277752982474945",
-    "1426271033047912582",
-  ],
-  suspiciousKeywords: [
-    "steam",
-    "discord",
-    "labymod",
-    "epic",
-    "gift",
-    "redeem",
-    "nitro",
-    "key",
-  ],
-  cooldown: 5000,
-  warnDeleteAfter: 10000,
-  ticketChannel: "1423413348493430905",
-};
-export async function warning(client) {
-  const sendKekseLog = async (action, user, details) => {
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
-    if (!logChannel) return;
-    const logEmbed = new EmbedBuilder()
-      .setColor("#ffffff")
-      .setAuthor({
-        name: user.username,
-        iconURL: user.displayAvatarURL({ size: 512 }),
-      })
-      .setDescription(`**Aktion:** \`${action}\`\n${details}`)
-      .setFooter({ text: "Kekse Clan | Security System" })
-      .setTimestamp();
-    await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
-  };
-
-  client.on("messageCreate", async (message) => {
-    if (!isProcessable(message) || isIgnoredCategory(message)) return;
-    const result = detectViolation(message.content);
-    if (!result) return;
-    const userId = message.author.id;
-    const now = Date.now();
-    const violations = (await getVData("violations")) || {};
-    if (!violations[userId]) {
-      violations[userId] = { name: message.author.username, count: 0, last: 0 };
-    }
-    if (now - violations[userId].last < CONFIG.cooldown) return;
-    violations[userId].count += 1;
-    violations[userId].name = message.author.username;
-    violations[userId].last = now;
-    await setVData("violations", violations);
-    if (message.deletable) {
-      const originalContent = message.content;
-      await message.delete().catch(() => {});
-      await sendKekseLog(
-        "Sicherheits-Verstoß",
-        message.author,
-        `**Erkannt:** ${result}\n` +
-          `**Kanal:** ${message.channel}\n` +
-          `**Verstöße gesamt:** ${violations[userId].count}\n` +
-          `**Inhalt (zensiert):** \`\`\`${originalContent.substring(0, 15)}...\`\`\``,
-      );
-    }
-    const warnMsg = await message.channel
-      .send({
-        content: ` <@${userId}>, unser System hat einen **${result}** erkannt. Bitte poste keine sensiblen Daten öffentlich. Bei Missverständnissen erstelle ein Ticket in <#${CONFIG.ticketChannel}>`,
-      })
-      .catch(() => {});
-    if (warnMsg) {
-      setTimeout(
-        () => warnMsg.delete().catch(() => {}),
-        CONFIG.warnDeleteAfter,
-      );
-    }
-  });
-}
-function isProcessable(message) {
-  return !message.author.bot && message.guild && message.content;
-}
-function isIgnoredCategory(message) {
-  const channel = message.channel;
-  const parentId = channel.parentId || channel.parent?.parentId;
-  return parentId && CONFIG.ignoredCategories.includes(parentId);
-}
-function detectViolation(msg) {
-  const lower = msg.toLowerCase();
-  const emailPattern = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
-  if (emailPattern.test(msg)) return "E-Mail Adresse";
-  const cleanMsg = msg
-    .replace(/<a?:[a-zA-Z0-9_]+:\d{17,20}>/g, "")
-    .replace(/<[#@&]!?\d{17,20}>/g, "");
-  const words = cleanMsg.split(/\s+/);
-  for (const word of words) {
-    if (word.startsWith("http") || (word.startsWith(":") && word.endsWith(":")))
-      continue;
-    const clean = word.replace(/[^a-z0-9-]/gi, "");
-    if (clean.length < 8) continue;
-    if (/^\d+$/.test(clean)) continue;
-    const whitelist = ["windows", "download", "installer", "x86_64", "64-bit"];
-    if (whitelist.includes(clean.toLowerCase())) continue;
-    const isGiftCardFormat = /^([A-Z0-9]{4,6}-){2,}[A-Z0-9]{4,6}$/i.test(clean);
-    if (isGiftCardFormat) return "Gutschein Code";
-    const hasNumbers = /\d/.test(clean);
-    const hasLetters = /[a-z]/i.test(clean);
-    if (hasNumbers && hasLetters) {
-      const hasKeyword =
-        CONFIG.suspiciousKeywords.some((k) => lower.includes(k)) ||
-        /\b(code|key|free|gratis|geschenk|redeem|nitro)\b/.test(lower);
-      if (clean.length >= 10 && hasKeyword) return "Gutschein Code";
-      const numberCount = (clean.match(/\d/g) || []).length;
-      if (clean.length >= 18 && numberCount >= 4) {
-        return "sensiblen Key / Token";
-      }
-    }
-  }
-  return null;
-}
 function initReminder(client) {
   const sendKekseLog = async (action, user, details) => {
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
@@ -3525,13 +3339,13 @@ function initReminder(client) {
           .fetch(r.channelId)
           .catch(() => null);
         if (channel && channel.isTextBased()) {
-          await channel.send(`⏰ <@${r.userId}>, Erinnerung: ${r.reason}`);
+          await channel.send(`<@${r.userId}>, Erinnerung: ${r.reason}`);
           continue;
         }
         const user = await client.users.fetch(r.userId).catch(() => null);
         if (user) {
           await user
-            .send(`⏰ Erinnerung aus einem gelöschten Kanal: ${r.reason}`)
+            .send(`Erinnerung aus einem gelöschten Kanal: ${r.reason}`)
             .catch(() => {});
         }
       } catch (err) {
@@ -3550,7 +3364,7 @@ function initReminder(client) {
     if (!timeStr || !reason) {
       return message
         .reply(
-          "❌ Nutzung: `!remind <Zeit(m/h/d)> <Grund>` (z.B. `!remind 10m Keks essen`)",
+          "Nutzung: `!remind <Zeit(m/h/d)> <Grund>` (z.B. `!remind 10m Keks essen`)",
         )
         .catch(() => {});
     }
@@ -3558,7 +3372,7 @@ function initReminder(client) {
     if (!ms || ms < 10000) {
       return message
         .reply(
-          "❌ Ungültige Zeitangabe. Mindestens 10 Sekunden (z.B. 10s, 5m, 1h, 2d).",
+          "Ungültige Zeitangabe. Mindestens 10 Sekunden (z.B. 10s, 5m, 1h, 2d).",
         )
         .catch(() => {});
     }
@@ -3573,7 +3387,7 @@ function initReminder(client) {
     await setRData("reminders", reminderData);
     message
       .reply(
-        `✅ Ich werde dich in **${timeStr}** an folgendes erinnern: ${reason}`,
+        `Ich werde dich in **${timeStr}** erinnern.`,
       )
       .catch(() => {});
   });
@@ -3979,7 +3793,7 @@ export async function initGiveaway(client) {
   client.on("messageCreate", async (msg) => {
     if (!msg.content.startsWith("!giveaway") || msg.author.bot) return;
     if (!msg.member.roles.cache.has(TEAM_ROLE_ID))
-      return msg.reply("❌ Keine Rechte.");
+      return msg.reply("Du hast keine Berechtigung diesen Befehl zu nutzen.");
     const args =
       msg.content
         .slice(1)
@@ -3995,7 +3809,7 @@ export async function initGiveaway(client) {
     if (!channel) return msg.reply("❌ Kanal nicht gefunden.");
     const durationMs = parseDuration(args[1]);
     if (durationMs <= 0)
-      return msg.reply("❌ Zeitformat ungültig (z.B. 1h, 30m, 1d).");
+      return msg.reply("Zeitformat ungültig (z.B. 1h, 30m, 1d).");
     const price = args[2];
     const messageText = args[3] || "Viel Glück 🍀";
     let winnerCount = 1;
@@ -4061,7 +3875,7 @@ export async function initGiveaway(client) {
     if (linkedAccounts.length > 0) {
       const hasAltInGiveaway = linkedAccounts.some(altId => data.participants.includes(altId));
       if (hasAltInGiveaway) {
-        return interaction.reply({ content: "❌ Du kannst nicht teilnehmen, da bereits ein registrierter Zweitaccount von dir im Giveaway ist!", flags: [MessageFlags.Ephemeral] });
+        return interaction.reply({ content: "Du kannst nicht teilnehmen, da bereits ein registrierter Zweitaccount von dir im Giveaway ist!", flags: [MessageFlags.Ephemeral] });
       }
     }
 
@@ -4149,7 +3963,7 @@ for (const userId of uniqueParticipants) {
       name: `report_${msg.id}.json`,
     });
     await reportChannel.send({
-      content: `📊 **Giveaway Report**\n**Preis:** ${data.price}\n**ID:** ${msg.id}`,
+      content: `**Giveaway Report**\n**Preis:** ${data.price}\n**ID:** ${msg.id}`,
       files: [attachment],
     });
   }
@@ -4349,7 +4163,7 @@ export function registerMessageCommands(client) {
         await sendKekseLog("reply", `Nachricht ID ${msgId}`, text);
       } catch (err) {
         await msg.channel
-          .send("❌ Nachricht nicht gefunden.")
+          .send("Nachricht nicht gefunden.")
           .then((m) => setTimeout(() => m.delete(), 3000));
       }
     }
@@ -4495,13 +4309,13 @@ export async function initPoll(client) {
     const cmd = args.shift()?.toLowerCase();
     if (cmd === "poll") {
       if (!msg.member.roles.cache.has(TEAM_ROLE_ID))
-        return msg.channel.send("❌ Du hast keine Berechtigung.");
+        return msg.channel.send("Du hast keine Berechtigung diesen Befehl zu nutzen.");
       if (args.length < 4)
-        return msg.reply('❌ Nutzung: `!poll "Frage" "Minuten" ...`.');
+        return msg.reply('Nutzung: `!poll "Frage" "Minuten" ...`.');
       const [question, timeStr, description, ...options] = args;
       const time = parseInt(timeStr);
       if (isNaN(time) || options.length < 2 || options.length > 10)
-        return msg.reply("❌ Fehlerhafte Parameter.");
+        return msg.reply("invalid parameters");
       const pollId = msg.id;
       const emojis = [
         "1️⃣",
@@ -4594,13 +4408,13 @@ export async function initPoll(client) {
     if (!poll) {
       return interaction.reply({
         content:
-          "❌ Diese Umfrage existiert nicht mehr oder ist bereits beendet.",
+          "Diese Umfrage existiert nicht mehr oder ist bereits beendet.",
         flags: [MessageFlags.Ephemeral],
       });
     }
     if (poll.voters.includes(interaction.user.id)) {
       return interaction.reply({
-        content: "❌ Du hast bereits für diese Umfrage abgestimmt!",
+        content: "Du hast bereits für diese Umfrage abgestimmt!",
         flags: [MessageFlags.Ephemeral],
       });
     }
@@ -4624,7 +4438,7 @@ export async function initPoll(client) {
       })
       .catch(() => {});
     await interaction.reply({
-      content: "✅ Deine Stimme wurde gezählt!",
+      content: "Deine Stimme wurde gezählt!",
       flags: [MessageFlags.Ephemeral],
     });
   });
@@ -4715,8 +4529,6 @@ const TRIGGERS = [
   "emoji geht",
   "button funzt",
   "reaction auf panel",
-  "ticket schließen",
-  "ticket löschen",
   "archiv wird erstellt",
   "rollen werden erkannt",
   "channel verschieben",
@@ -4725,7 +4537,6 @@ const TRIGGERS = [
   "bot kann nachricht pinnen",
   "permission",
   "bot",
-  "discord",
   "role",
   "rolle",
 ];
@@ -4772,7 +4583,7 @@ export function initTicketCategory(client) {
     );
 
     const questionText = isGerman
-      ? `⚠️ <@${msg.author.id}>, Schlüsselwort "**${foundTrigger}**" erkannt. Benötigt dieses Ticket einen **Admin**?`
+      ? `⚠️ <@${msg.author.id}>, Keyword "**${foundTrigger}**" erkannt. Benötigt dieses Ticket einen **Admin**?`
       : `⚠️ <@${msg.author.id}>, keyword "**${foundTrigger}**" detected. Does this ticket require an **Admin**?`;
 
     const questionMsg = await channel.send({
@@ -4797,7 +4608,7 @@ export function initTicketCategory(client) {
 
       if (i.customId === "move_yes") {
         await i.update({
-          content: isGerman ? "⏳ Verschiebe..." : "⏳ Moving...",
+          content: isGerman ? "Verschiebe..." : "Moving...",
           components: [],
         });
         await moveChannelToAdmin(channel, isGerman);
@@ -4805,8 +4616,8 @@ export function initTicketCategory(client) {
       } else {
         await i.update({
           content: isGerman
-            ? "👍 Support wird sich weiterhin darum kümmern"
-            : "👍 Support will handle it.",
+            ? "Der Support wird sich weiterhin darum kümmern"
+            : "Support will handle it.",
           components: [],
         });
         setTimeout(() => questionMsg.delete().catch(() => {}), 5000);
@@ -4826,12 +4637,12 @@ async function moveChannelToAdmin(channel, isGerman) {
     await channel.setParent(ADMIN_CATEGORY);
     await channel.send(
       isGerman
-        ? `✅ Dieses Ticket wurde zu den **Admins** verschoben.\n<@&${ADMIN_ROLE}>`
-        : `✅ This ticket has been moved to the **Admins**.\n<@&${ADMIN_ROLE}>`,
+        ? `Dieses Ticket wurde zu den **Admins** verschoben.\n<@&${ADMIN_ROLE}>`
+        : `This ticket has been moved to the **Admins**.\n<@&${ADMIN_ROLE}>`,
     );
   } catch (err) {
     console.error("Fehler beim Verschieben:", err);
-    await channel.send("❌ Fehler beim Verschieben des Channels.");
+    await channel.send("Fehler beim Verschieben des Channels.");
   }
 }
 const ARCHIVE_CATEGORY_ID = "1465452886657077593";
@@ -5158,12 +4969,12 @@ export async function initTickets(client) {
         const user = interaction.user;
         if (!interaction.member.roles.cache.has(TEAM_ROLE_ID)) {
         return interaction.reply({
-          content: "❌ Keine Berechtigung.",
+          content: "Du hast keine Berechtigung diese Funktion zu nutzen.",
           flags: [MessageFlags.Ephemeral],
         });
       }
       await interaction.reply({
-        content: "⏳ Ticket-Schließung initiiert...",
+        content: "Ticket-Schließung initiiert...",
         flags: [MessageFlags.Ephemeral],
       });
       await closeTicket(currentChannel, user);
@@ -5252,12 +5063,12 @@ export async function initTickets(client) {
       const user = msg.author;
       if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) {
         return msg.reply({
-          content: "❌ Keine Berechtigung.",
+          content: "Du hast keine Berechtigung diesen Befehl zu nutzen.",
           flags: [MessageFlags.Ephemeral],
         });
       }
       await msg.reply({
-        content: "⏳ Ticket-Schließung initiiert...",
+        content: "Ticket-Schließung initiiert...",
         flags: [MessageFlags.Ephemeral],
       });
       await closeTicket(currentChannel, user);
