@@ -641,7 +641,7 @@ export async function initEconomySystem(client) {
             inline: false,
           },
         )
-        .setFooter("Für den Einkauf im Shop benötigst du ein regestriertes Konto. Wenn du noch keins besitzt, erstelle eins mit `!bank create`");
+        .setFooter({ text: "Für den Einkauf im Shop benötigst du ein regestriertes Konto. Wenn du noch keins besitzt, erstelle eins mit `!bank create`"});
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId("shop_giveaway")
