@@ -601,7 +601,7 @@ export async function initEconomySystem(client) {
         });
       }
       const description =
-        args.slice(1).join(" ") || "Hole dir hier deine Items ab!";
+        args.slice(1).join(" ") || "Kaufe dir hier von deinen Keksen Booster, Rollen und Puffer\n";
       await setEcoData(`setup_${setupId}`, {
         description: description,
         exists: true,
@@ -640,7 +640,8 @@ export async function initEconomySystem(client) {
             value: "Erhöhte Position in der Server-Liste und teilnahme an spezifischen Events.",
             inline: false,
           },
-        );
+        )
+        .setFooter("Für den Einkauf im Shop benötigst du ein regestriertes Konto. Wenn du noch keins besitzt, erstelle eins mit `!bank create`");
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId("shop_giveaway")
