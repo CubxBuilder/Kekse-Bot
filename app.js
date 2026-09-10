@@ -8841,9 +8841,7 @@ client.once("clientReady", async () => {
     initRules(client);
     initAuditLogs(client);
     clear(client);
-    warning(client);
     initModSend(client);
-    await violations(client);
     await initDashboard(app, client, globalBotStats);
     await initScammProtection(client);
     await initTicketArchive(app, getTickData, setTickData);
