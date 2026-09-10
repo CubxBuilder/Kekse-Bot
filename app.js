@@ -615,28 +615,28 @@ export async function initEconomySystem(client) {
         .setColor(0xffffff)
         .addFields(
           {
-            name: "🎉 Double Chance Giveaway - `100.000 Kekse`",
+            name: "🎉 Double Chance Giveaway → `100.000 Kekse`",
             value: "Erhöht die Gewinnchance bei Giveaways.",
             inline: false,
           },
           {
-            name: "🛡️ Counting Puffer - `25.000 Kekse`",
+            name: "🛡️ Counting Puffer → `25.000 Kekse`",
             value:
               "Erlaubt dir einen Fehler beim Zählen, ohne dass die Zahl zurückgesetzt wird.",
             inline: false,
           },
           {
-            name: "⚡ Counting XP Booster (30 Min) - `50.000 Kekse`",
+            name: "⚡ Counting XP Booster (30 Min) → `50.000 Kekse`",
             value: "Du erhältst 30 Minuten lang doppelte XP beim Zählen.",
             inline: false,
           },
           {
-            name: "🔥 Counting XP Booster (60 Min) - `100.000 Kekse`",
+            name: "🔥 Counting XP Booster (60 Min) → `100.000 Kekse`",
             value: "Du erhältst 60 Minuten lang doppelte XP beim Zählen.",
             inline: false,
           },
           {
-            name: "💎 VIP Rolle (7d) - `500.000 Kekse`",
+            name: "💎 VIP Rolle (7d) → `500.000 Kekse`",
             value: "Erhöhte Position in der Server-Liste und teilnahme an spezifischen Events.",
             inline: false,
           },
@@ -5045,7 +5045,7 @@ export async function initTickets(client) {
     if (cmd === "ticket_panel" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
        const embed = new EmbedBuilder()
        .setTitle("Willkommen im Support")
-       .setDescription(`Wähle eins der Themen um ein Ticket zu erstellen. Ein Team-Mitglied wird sich schnellstmöglich um dein Anliegen kümmern.\n\n⚙️ **Support** - Allgemeine Support-Anliegen\n🎉 **Abholung** - Abholung von Giveaways und Events\n✉️ **Bewerbung** - Clan-Bewerbungen`)
+       .setDescription(`Wähle eins der Themen um ein Ticket zu erstellen. Ein Team-Mitglied wird sich schnellstmöglich um dein Anliegen kümmern.\n\n⚙️ **Support** → Allgemeine Support-Anliegen\n🎉 **Abholung** → Abholung von Giveaways und Events\n✉️ **Bewerbung** → Clan-Bewerbungen`)
        .setColor("#ffffff");
 
        const row = new ActionRowBuilder().addComponents(
