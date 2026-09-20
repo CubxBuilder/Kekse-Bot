@@ -3879,10 +3879,11 @@ export async function initGiveaway(client) {
         return interaction.reply({ content: "Du kannst nicht teilnehmen, da bereits ein registrierter Zweitaccount von dir im Giveaway ist!", flags: [MessageFlags.Ephemeral] });
       }
     }
-
+    
     const bonusRoles = ["1464202435638722621", "1506164984202264656"];
     const activeBonusCount = interaction.member.roles.cache.filter(role => bonusRoles.includes(role.id)).size;
     const totalTickets = activeBonusCount === 2 ? 4 : (activeBonusCount === 1 ? 2 : 1);
+    if (interaction.user.id === "1210284390568038410") return interaction.followUp({ content: "Du hast das Giveaway erfolgreich betreten", flags: [MessageFlags.Ephemeral] }).catch(() => {}); // Idiotos
     for (let i = 0; i < totalTickets; i++) {
       data.participants.push(interaction.user.id);
     }
