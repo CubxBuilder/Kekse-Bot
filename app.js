@@ -116,6 +116,48 @@ setInterval(async () => {
     }
   }
 }, 30000);
+function setBotPresence() {
+  if (!client.isReady()) return;
+  try {
+    client.user.setPresence({
+      activities: [{ name: "!help", type: 0 }],
+      status: "online",
+    });
+  } catch (err) {
+    console.error("[Presence] Fehler beim Setzen:", err);
+  }
+}
+
+let presenceTimer = null;
+
+function schedulePresenceRefresh(delay = 10000) {
+  clearTimeout(presenceTimer);
+  presenceTimer = setTimeout(setBotPresence, delay);
+}
+
+mongoose.connection.on("error", function (err) {
+  console.error("[MongoDB] Fehler:", err.message);
+  schedulePresenceRefresh(10000);
+});
+
+mongoose.connection.on("disconnected", function () {
+  schedulePresenceRefresh(10000);
+});
+
+mongoose.connection.on("reconnected", function () {
+  schedulePresenceRefresh(10000);
+});
+
+client.on("shardReady", function () {
+  schedulePresenceRefresh(2000);
+});
+
+client.on("shardResume", function () {
+  schedulePresenceRefresh(2000);
+});
+
+setInterval(setBotPresence, 10 * 60 * 1000);
+
 const hlGames = new Map();
 const crashGames = new Map();
 const jackpotState = {
@@ -125,6 +167,7 @@ const jackpotState = {
   countdownEndTime: null,
   announceMessage: null
 };
+
 let archives = [];
 let logs = [];
 let backendPingHistory = [];
@@ -8826,6 +8869,7 @@ if (commandName === "crash") {
     }
   });
 client.once("clientReady", async () => {
+  setBotPresence();
   try {
     await initCounting(client);
     registerMessageCommands(client);
@@ -8852,10 +8896,6 @@ client.once("clientReady", async () => {
     await syncExistingUsers(client);
     await initInviteTracker(client);
     startVoiceXpTracker(client);
-    client.user.setPresence({
-      activities: [{ name: "!help", type: 0 }],
-      status: "online",
-    });
     const guild = client.guilds.cache.get("1423413347168157718");
     console.log(`Server-Sync gestartet...`)
     console.log(`Bot online: ${client.user.tag}`);
