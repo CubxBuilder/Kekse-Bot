@@ -4754,6 +4754,7 @@ const BEWERBUNG_VORLAGE_TEXT = `
 > - Schreibe in ganzen Sätzen
 > - Keine KI verwenden
 > - Achte auf eine säuberliche, äußere Form deiner Bewerbung
+> - Bei stark nachlässiger Ausführung der obigen Punkte kann und wird die Bewerbung abgelehnt werden
 > **Voraussetzungen beachten:**
 > - Du hast noch nie gescammt
 > - Du bist aktiv auf dem Minecraft Server und diesem Discord-Server
