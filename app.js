@@ -3929,6 +3929,12 @@ export async function initGiveaway(client) {
     if (interaction.user.id === "1210284390568038410") return interaction.followUp({ content: "Du hast das Giveaway erfolgreich betreten", flags: [MessageFlags.Ephemeral] }).catch(() => {}); // Idiotos
     for (let i = 0; i < totalTickets; i++) {
       data.participants.push(interaction.user.id);
+      await sendKekseLog(
+        "Giveaway Teilnahme",
+        interaction.user,
+        `**Preis:** ${data.price}\n**Teilnehmer-nummer:** ${data.participants.length}`
+      );
+      console.log(`${interaction.user} hat am Giveaway für "${data.price}" teilgenommen. Teilnehmer-nummer ${data.participants.length}`);
     }
     await setGivData("activeGiveaways", giveaways);
     const updatedEmbed = EmbedBuilder.from(interaction.message.embeds)
