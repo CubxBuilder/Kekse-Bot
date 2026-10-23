@@ -3932,9 +3932,9 @@ export async function initGiveaway(client) {
       await sendKekseLog(
         "Giveaway Teilnahme",
         interaction.user,
-        `**Preis:** ${data.price}\n**Teilnehmer-nummer:** ${data.participants.length}`
+        `**Preis:** ${data.price}\n**Teilnehmer:** ${data.participants.length}`
       );
-      console.log(`${interaction.user} hat am Giveaway für "${data.price}" teilgenommen. Teilnehmer-nummer ${data.participants.length}`);
+      console.log(`${interaction.user} hat am Giveaway für "${data.price}" teilgenommen. Teilnehmer ${data.participants.length}`);
     }
     await setGivData("activeGiveaways", giveaways);
     const updatedEmbed = EmbedBuilder.from(interaction.message.embeds)
