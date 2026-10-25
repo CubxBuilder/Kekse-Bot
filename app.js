@@ -4509,35 +4509,30 @@ export async function initPoll(client) {
 export function initMembers(client) {
   const MEMBER_CHANNEL = "1436074576076472411";
   const MEMBER_ROLE = "1423428139790499983";
-
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot) return;
-    if (msg.channel.id !== MEMBER_CHANNEL) return;
     if (!msg.member.roles.cache.has(TEAM_ROLE)) return;
-
     const mentionOrId = msg.content.match(/\d+/)?.[0];
     if (!mentionOrId) return;
-
     try {
       const targetMember = await msg.guild.members.fetch(mentionOrId).catch(() => null);
       if (!targetMember) return;
-
+      const targetChannel = await client.channels.fetch(MEMBER_CHANNEL).catch(() => null);
+      if (!targetChannel) return;
       if (msg.content.startsWith("!member add")) {
         if (targetMember.roles.cache.has(MEMBER_ROLE)) return;
         await targetMember.roles.add(MEMBER_ROLE);
-        return msg.channel.send(`${targetMember.user.tag} hat den Clan betreten. Herzlich Willkommen `);
+        return targetChannel.send(`${targetMember.user.tag} hat den Clan betreten. Herzlich Willkommen 🍪`);
       } 
-      
-      else if (msg.content.startsWith("!member remove") || msg.content.startsWith("!member kick")) {
+      else if (msg.content.startsWith("!member remove")) {
         if (!targetMember.roles.cache.has(MEMBER_ROLE)) return;
         await targetMember.roles.remove(MEMBER_ROLE);
-        return msg.channel.send(`${targetMember.user.tag} hat den Clan Verlassen. :wave:`);
+        return targetChannel.send(`${targetMember.user.tag} hat den Clan Verlassen. 👋`);
       }
-
-      else if (msg.content.startsWith("!member kick") || msg.content.startsWith("!member kick")) {
+      else if (msg.content.startsWith("!member kick")) {
         if (!targetMember.roles.cache.has(MEMBER_ROLE)) return;
         await targetMember.roles.remove(MEMBER_ROLE);
-        return msg.channel.send(`${targetMember.user.tag} wurde aus dem Clan verwiesen.`);
+        return targetChannel.send(`⛔ ${targetMember.user.tag} wurde aus dem Clan verwiesen.`);
       }
     } catch (error) {
       console.error(error);
