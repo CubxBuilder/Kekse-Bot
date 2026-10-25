@@ -4522,17 +4522,17 @@ export function initMembers(client) {
       if (msg.content.startsWith("!member add")) {
         if (targetMember.roles.cache.has(MEMBER_ROLE)) return;
         await targetMember.roles.add(MEMBER_ROLE);
-        return targetChannel.send(`${targetMember.user.tag} hat den Clan betreten. Herzlich Willkommen 🍪`);
+        return targetChannel.send(`<@${targetMember.id}> hat den Clan betreten. Herzlich Willkommen 🍪`);
       } 
       else if (msg.content.startsWith("!member remove")) {
         if (!targetMember.roles.cache.has(MEMBER_ROLE)) return;
         await targetMember.roles.remove(MEMBER_ROLE);
-        return targetChannel.send(`${targetMember.user.tag} hat den Clan Verlassen. 👋`);
+        return targetChannel.send(`<@${targetMember.id}> hat den Clan Verlassen. 👋`);
       }
       else if (msg.content.startsWith("!member kick")) {
         if (!targetMember.roles.cache.has(MEMBER_ROLE)) return;
         await targetMember.roles.remove(MEMBER_ROLE);
-        return targetChannel.send(`⛔ ${targetMember.user.tag} wurde aus dem Clan verwiesen.`);
+        return targetChannel.send(`⛔ <@${targetMember.id}> wurde aus dem Clan verwiesen.`);
       }
     } catch (error) {
       console.error(error);
