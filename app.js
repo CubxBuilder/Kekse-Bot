@@ -8933,6 +8933,7 @@ client.once("clientReady", async () => {
     initAuditLogs(client);
     clear(client);
     initModSend(client);
+    initMembers(client);
     await initDashboard(app, client, globalBotStats);
     await initScammProtection(client);
     await initTicketArchive(app, getTickData, setTickData);
