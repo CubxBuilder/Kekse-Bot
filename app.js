@@ -4508,10 +4508,11 @@ export async function initPoll(client) {
 }
 export function initMembers(client) {
   const MEMBER_CHANNEL = "1436074576076472411";
+  const TEST_MEMBER_ROLE = "1436073052638285959";
   const MEMBER_ROLE = "1423428139790499983";
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot) return;
-    if (!msg.member.roles.cache.has(TEAM_ROLE)) return;
+    if (!msg.member.roles.cache.has(TEAM_ROLE)) return msg.reply("Du bist nicht berechtigt diesen Befehl zu nutzen!");
     const mentionOrId = msg.content.match(/\d+/)?.[0];
     if (!mentionOrId) return;
     try {
@@ -4520,18 +4521,26 @@ export function initMembers(client) {
       const targetChannel = await client.channels.fetch(MEMBER_CHANNEL).catch(() => null);
       if (!targetChannel) return;
       if (msg.content.startsWith("!member add")) {
-        if (targetMember.roles.cache.has(MEMBER_ROLE)) return;
-        await targetMember.roles.add(MEMBER_ROLE);
+        if (targetMember.roles.cache.has(MEMBER_ROLE) || targetMember.roles.cache.has(TEST_MEMBER_ROLE)) return;
+        await targetMember.roles.add(TEST_MEMBER_ROLE);
         return targetChannel.send(`<@${targetMember.id}> hat den Clan betreten. Herzlich Willkommen 🍪`);
       } 
       else if (msg.content.startsWith("!member remove")) {
-        if (!targetMember.roles.cache.has(MEMBER_ROLE)) return;
-        await targetMember.roles.remove(MEMBER_ROLE);
+        if (!targetMember.roles.cache.has(MEMBER_ROLE) && !targetMember.roles.cache.has(TEST_MEMBER_ROLE)) return;
+        if (targetMember.roles.cache.has(MEMBER_ROLE)) {
+          await targetMember.roles.remove(MEMBER_ROLE);
+        } else if (targetMember.roles.cache.has(TEST_MEMBER_ROLE)) {
+          await targetMember.roles.remove(TEST_MEMBER_ROLE);
+        }
         return targetChannel.send(`<@${targetMember.id}> hat den Clan Verlassen. 👋`);
       }
       else if (msg.content.startsWith("!member kick")) {
-        if (!targetMember.roles.cache.has(MEMBER_ROLE)) return;
-        await targetMember.roles.remove(MEMBER_ROLE);
+        if (!targetMember.roles.cache.has(MEMBER_ROLE) && !targetMember.roles.cache.has(TEST_MEMBER_ROLE)) return;
+        if (targetMember.roles.cache.has(MEMBER_ROLE)) {
+          await targetMember.roles.remove(MEMBER_ROLE);
+        } else if (targetMember.roles.cache.has(TEST_MEMBER_ROLE)) {
+          await targetMember.roles.remove(TEST_MEMBER_ROLE);
+        }
         return targetChannel.send(`⛔ <@${targetMember.id}> wurde aus dem Clan verwiesen.`);
       }
     } catch (error) {
