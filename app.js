@@ -4512,7 +4512,7 @@ export function initMembers(client) {
   const MEMBER_ROLE = "1423428139790499983";
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot) return;
-    if (!msg.member.roles.cache.has(TEAM_ROLE)) return msg.reply("Du bist nicht berechtigt diesen Befehl zu nutzen!");
+    if (!msg.member.roles.cache.has(TEAM_ROLE)) return;
     const mentionOrId = msg.content.match(/\d+/)?.[0];
     if (!mentionOrId) return;
     try {
