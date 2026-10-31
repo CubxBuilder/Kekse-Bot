@@ -3782,8 +3782,63 @@ const GIVEAWAY_EMOJI = "🎉";
 const BOOSTER_ROLE_ID = "1464202435638722621";
 const REPORT_CHANNEL_ID = LOG_CHANNEL_ID;
 const EMBED_COLOR = 0xffffff;
+
+function formatRoles(roleIds) {
+  const parts = [];
+  for (const id of roleIds) parts.push(`<@&${id}>`);
+  return parts.join(", ");
+}
+
+function countUnique(participants) {
+  return new Set(participants || []).size;
+}
+
+function buildDescription(data, participantCount) {
+  const endUnix = Math.floor(data.endTime / 1000);
+  let text = `${data.messageText}\n\nEndet am: <t:${endUnix}:R> (<t:${endUnix}:f>)\nTeilnehmer: **${participantCount}**\nGewinner: **${data.winnerCount}**`;
+  if (data.requiredRoles && data.requiredRoles.length > 0) {
+    text += `\nBenötigte Rolle(n): ${formatRoles(data.requiredRoles)}`;
+  }
+  return text;
+}
+
+function shuffle(list) {
+  const result = list.slice();
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const temp = result[i];
+    result[i] = result[j];
+    result[j] = temp;
+  }
+  return result;
+}
+
+async function buildPool(guild, participants) {
+  const pool = [];
+  for (const userId of new Set(participants || [])) {
+    const member = await guild.members.fetch(userId).catch(function () {
+      return null;
+    });
+    if (!member) continue;
+    pool.push(userId);
+    if (member.roles.cache.has(BOOSTER_ROLE_ID)) pool.push(userId);
+  }
+  return pool;
+}
+
+function pickWinners(pool, count, excluded) {
+  const winners = [];
+  const shuffled = shuffle(pool);
+  for (const id of shuffled) {
+    if (winners.length >= count) break;
+    if (excluded.includes(id)) continue;
+    if (!winners.includes(id)) winners.push(id);
+  }
+  return winners;
+}
+
 export async function initGiveaway(client) {
-  const sendKekseLog = async (action, user, details) => {
+  async function sendKekseLog(action, user, details) {
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
     if (!logChannel) return;
     const logEmbed = new EmbedBuilder()
@@ -3795,18 +3850,23 @@ export async function initGiveaway(client) {
       .setDescription(`**Aktion:** \`${action}\`\n${details}`)
       .setFooter({ text: "Kekse Clan | Giveaway System" })
       .setTimestamp();
-    await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
-  };
-  const checkGiveaways = async () => {
+    await logChannel.send({ embeds: [logEmbed] }).catch(function () {});
+  }
+
+  async function checkGiveaways() {
     const giveaways = (await getGivData("activeGiveaways")) || {};
     const now = Date.now();
     let changed = false;
     for (const [msgId, data] of Object.entries(giveaways)) {
       const channel = await client.channels
         .fetch(data.channelId)
-        .catch(() => null);
+        .catch(function () {
+          return null;
+        });
       if (!channel) continue;
-      const msg = await channel.messages.fetch(msgId).catch(() => null);
+      const msg = await channel.messages.fetch(msgId).catch(function () {
+        return null;
+      });
       if (!msg) {
         delete giveaways[msgId];
         changed = true;
@@ -3820,21 +3880,19 @@ export async function initGiveaway(client) {
         changed = false;
         await endGiveaway(client, msg, giveawayData, sendKekseLog);
       } else {
-        const uniqueParticipants = [...new Set(data.participants || [])].length;
         const embed = new EmbedBuilder()
           .setTitle(`🎁 Giveaway: ${data.price}`)
-          .setDescription(
-            `${data.messageText}\n\nEndet am: <t:${Math.floor(data.endTime / 1000)}:R> (<t:${Math.floor(data.endTime / 1000)}:f>)\nTeilnehmer: **${uniqueParticipants}**\nGewinner: **${data.winnerCount}**`,
-          )
+          .setDescription(buildDescription(data, countUnique(data.participants)))
           .setColor(EMBED_COLOR);
-
-        await msg.edit({ embeds: [embed] }).catch(() => {});
+        await msg.edit({ embeds: [embed] }).catch(function () {});
       }
     }
     if (changed) await setGivData("activeGiveaways", giveaways);
-  };
+  }
+
   setInterval(checkGiveaways, 10000);
-  client.on("messageCreate", async (msg) => {
+
+  client.on("messageCreate", async function (msg) {
     if (!msg.content.startsWith("!giveaway") || msg.author.bot) return;
     if (!msg.member.roles.cache.has(TEAM_ROLE_ID))
       return msg.reply("Du hast keine Berechtigung diesen Befehl zu nutzen.");
@@ -3842,32 +3900,73 @@ export async function initGiveaway(client) {
       msg.content
         .slice(1)
         .match(/(?:[^\s"]+|"[^"]*")+/g)
-        ?.map((a) => a.replace(/"/g, "")) || [];
+        ?.map(function (a) {
+          return a.replace(/"/g, "");
+        }) || [];
     args.shift();
-    if (args.length < 3)
+
+    if (args[0] && args[0].toLowerCase() === "reroll") {
+      const giveawayId = args[1];
+      const count = parseInt(args[2]) || 1;
+      if (!giveawayId || count < 1)
+        return msg.reply("Syntax: `!giveaway reroll <giveawayid> <anzahl>`");
+      return rerollGiveaway(client, msg, giveawayId, count, sendKekseLog);
+    }
+
+    let winnerCount = 1;
+    let requiredRoles = [];
+    let rolesGiven = false;
+    const positional = [];
+    for (const arg of args) {
+      if (arg.startsWith("winners=")) {
+        winnerCount = parseInt(arg.split("=")[1]) || 1;
+      } else if (arg.startsWith("roles=")) {
+        rolesGiven = true;
+        requiredRoles = arg.slice(6).match(/\d{17,20}/g) || [];
+      } else {
+        positional.push(arg);
+      }
+    }
+
+    if (positional.length < 3)
       return msg.reply(
-        'Syntax: `!giveaway #channel 1h "Preis" "Text" winners=2`',
+        'Syntax: `!giveaway #channel 1h "Preis" "Text" winners=2 roles=@Rolle1,@Rolle2`',
       );
     const channel =
-      msg.mentions.channels.first() || msg.guild.channels.cache.get(args[0]);
+      msg.mentions.channels.first() || msg.guild.channels.cache.get(positional[0]);
     if (!channel) return msg.reply("❌ Kanal nicht gefunden.");
-    const durationMs = parseDuration(args[1]);
+    const durationMs = parseDuration(positional[1]);
     if (durationMs <= 0)
       return msg.reply("Zeitformat ungültig (z.B. 1h, 30m, 1d).");
-    const price = args[2];
-    const messageText = args[3] || "Viel Glück 🍀";
-    let winnerCount = 1;
-    args.forEach((arg) => {
-      if (arg.startsWith("winners="))
-        winnerCount = parseInt(arg.split("=")[1]) || 1;
-    });
+
+    if (rolesGiven && requiredRoles.length === 0)
+      return msg.reply("❌ Keine gültige Rolle bei `roles=` gefunden.");
+    requiredRoles = [...new Set(requiredRoles)];
+    for (const roleId of requiredRoles) {
+      if (!msg.guild.roles.cache.has(roleId))
+        return msg.reply(`❌ Rolle \`${roleId}\` existiert nicht auf diesem Server.`);
+    }
+
+    const price = positional[2];
+    const messageText = positional[3] || "Viel Glück 🍀";
     const startTime = Date.now();
     const endTime = startTime + durationMs;
+
+    const giveawayData = {
+      channelId: channel.id,
+      startTime,
+      endTime,
+      price,
+      messageText,
+      winnerCount,
+      requiredRoles,
+      hostId: msg.author.id,
+      participants: [],
+    };
+
     const embed = new EmbedBuilder()
       .setTitle(`🎁 Giveaway: ${price}`)
-      .setDescription(
-        `${messageText}\n\nEndet am: <t:${Math.floor(endTime / 1000)}:R> (<t:${Math.floor(endTime / 1000)}:f>)\nTeilnehmer: **0**\nGewinner: **${winnerCount}**`,
-      )
+      .setDescription(buildDescription(giveawayData, 0))
       .setColor(EMBED_COLOR);
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -3882,124 +3981,192 @@ export async function initGiveaway(client) {
       components: [row],
     });
     const giveaways = (await getGivData("activeGiveaways")) || {};
-    giveaways[giveawayMsg.id] = {
-      channelId: channel.id,
-      startTime,
-      endTime,
-      price,
-      messageText,
-      winnerCount,
-      hostId: msg.author.id,
-      participants: [],
-    };
+    giveaways[giveawayMsg.id] = giveawayData;
     await setGivData("activeGiveaways", giveaways);
-    await sendKekseLog(
-      "Giveaway gestartet",
-      msg.author,
-      `**Preis:** ${price}\n**Kanal:** ${channel}\n**Dauer:** ${args[1]}\n**Gewinner:** ${winnerCount}`,
-    );
+
+    let logDetails = `**Preis:** ${price}\n**Kanal:** ${channel}\n**Dauer:** ${positional[1]}\n**Gewinner:** ${winnerCount}`;
+    if (requiredRoles.length > 0)
+      logDetails += `\n**Benötigte Rolle(n):** ${formatRoles(requiredRoles)}`;
+    await sendKekseLog("Giveaway gestartet", msg.author, logDetails);
     globalBotStats.commandsRunned += 1;
     globalBotStats.giveawaysCreated += 1;
-    await msg.delete().catch(() => {});
+    await msg.delete().catch(function () {});
   });
-  client.on("interactionCreate", async (interaction) => {
-       if (interaction.isButton() && interaction.customId === "join_giveaway") {
-    const giveaways = await getGivData("activeGiveaways") || {};
+
+  client.on("interactionCreate", async function (interaction) {
+    if (!interaction.isButton() || interaction.customId !== "join_giveaway") return;
+    const giveaways = (await getGivData("activeGiveaways")) || {};
     const data = giveaways[interaction.message.id];
     if (!data) {
-      return interaction.reply({ content: " Dieses Giveaway ist nicht mehr aktiv.", flags: [MessageFlags.Ephemeral] });
-    }
-    if (data.participants.includes(interaction.user.id)) {
-      return interaction.reply({ content: " Du nimmst bereits an diesem Giveaway teil!", flags: [MessageFlags.Ephemeral] });
+      return interaction.reply({
+        content: "Dieses Giveaway ist nicht mehr aktiv.",
+        flags: [MessageFlags.Ephemeral],
+      });
     }
 
-    const networks = await getSaData("alt_networks") || {};
-    const linkedAccounts = networks[interaction.user.id] || [];
-    
-    if (linkedAccounts.length > 0) {
-      const hasAltInGiveaway = linkedAccounts.some(altId => data.participants.includes(altId));
-      if (hasAltInGiveaway) {
-        return interaction.reply({ content: "Du kannst nicht teilnehmen, da bereits ein registrierter Zweitaccount von dir im Giveaway ist!", flags: [MessageFlags.Ephemeral] });
+    const requiredRoles = data.requiredRoles || [];
+    if (requiredRoles.length > 0) {
+      let hasRequiredRole = false;
+      for (const roleId of requiredRoles) {
+        if (interaction.member.roles.cache.has(roleId)) {
+          hasRequiredRole = true;
+          break;
+        }
+      }
+      if (!hasRequiredRole) {
+        return interaction.reply({
+          content: `Du kannst nicht teilnehmen. Dafür brauchst du eine der folgenden Rollen: ${formatRoles(requiredRoles)}`,
+          flags: [MessageFlags.Ephemeral],
+        });
       }
     }
-    
+
+    if (data.participants.includes(interaction.user.id)) {
+      return interaction.reply({
+        content: "Du nimmst bereits an diesem Giveaway teil!",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+
+    const networks = (await getSaData("alt_networks")) || {};
+    const linkedAccounts = networks[interaction.user.id] || [];
+    if (linkedAccounts.length > 0) {
+      let hasAltInGiveaway = false;
+      for (const altId of linkedAccounts) {
+        if (data.participants.includes(altId)) {
+          hasAltInGiveaway = true;
+          break;
+        }
+      }
+      if (hasAltInGiveaway) {
+        return interaction.reply({
+          content:
+            "Du kannst nicht teilnehmen, da bereits ein registrierter Zweitaccount von dir im Giveaway ist!",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+    }
+
     const bonusRoles = ["1464202435638722621", "1506164984202264656"];
-    const activeBonusCount = interaction.member.roles.cache.filter(role => bonusRoles.includes(role.id)).size;
-    const totalTickets = activeBonusCount === 2 ? 4 : (activeBonusCount === 1 ? 2 : 1);
-    if (interaction.user.id === "1210284390568038410") return interaction.followUp({ content: "Du hast das Giveaway erfolgreich betreten", flags: [MessageFlags.Ephemeral] }).catch(() => {}); // Idiotos
+    const activeBonusCount = interaction.member.roles.cache.filter(function (role) {
+      return bonusRoles.includes(role.id);
+    }).size;
+    const totalTickets =
+      activeBonusCount === 2 ? 4 : activeBonusCount === 1 ? 2 : 1;
+
+    if (interaction.user.id === "1210284390568038410")
+      return interaction
+        .followUp({
+          content: "Du hast das Giveaway erfolgreich betreten",
+          flags: [MessageFlags.Ephemeral],
+        })
+        .catch(function () {});
+
     for (let i = 0; i < totalTickets; i++) {
       data.participants.push(interaction.user.id);
-      await sendKekseLog(
-        "Giveaway Teilnahme",
-        interaction.user,
-        `**Preis:** ${data.price}\n**Teilnehmer:** ${data.participants.length}`
-      );
-      console.log(`${interaction.user} hat am Giveaway für "${data.price}" teilgenommen. Teilnehmer ${data.participants.length}`);
     }
     await setGivData("activeGiveaways", giveaways);
-    const updatedEmbed = EmbedBuilder.from(interaction.message.embeds)
-      .setDescription(`${data.messageText}\n\nEndet am: <t:${Math.floor(data.endTime / 1000)}:R> (<t:${Math.floor(data.endTime / 1000)}:f>)\nTeilnehmer: **${data.participants.length}**\nGewinner: **${data.winnerCount}**`);
-    await interaction.update({ embeds: [updatedEmbed] }).catch(() => {});
-    let replyText = " Du hast das Giveaway erfolgreich betreten!";
+
+    await sendKekseLog(
+      "Giveaway Teilnahme",
+      interaction.user,
+      `**Preis:** ${data.price}\n**Teilnehmer:** ${countUnique(data.participants)}\n**Tickets:** ${totalTickets}`,
+    );
+    console.log(
+      `${interaction.user.tag} hat am Giveaway für "${data.price}" teilgenommen. Teilnehmer ${countUnique(data.participants)}`,
+    );
+
+    const updatedEmbed = EmbedBuilder.from(interaction.message.embeds[0]).setDescription(
+      buildDescription(data, countUnique(data.participants)),
+    );
+    await interaction.update({ embeds: [updatedEmbed] }).catch(function () {});
+
+    let replyText = "Du hast das Giveaway erfolgreich betreten!";
     addXP(interaction.user.id, 10, client);
     if (totalTickets === 2) {
       replyText += " (Inklusive **doppelter Chance** durch deine Rolle!)";
     } else if (totalTickets === 4) {
       replyText += " (Inklusive **4-facher Chance**, da du beide Rollen besitzt!)";
     }
-    return interaction.followUp({ content: replyText, flags: [MessageFlags.Ephemeral] }).catch(() => {});
-  }
+    return interaction
+      .followUp({ content: replyText, flags: [MessageFlags.Ephemeral] })
+      .catch(function () {});
   });
 }
+    if (args[0] && args[0].toLowerCase() === "reroll") {
+      const giveawayId = args[1];
+      const count = parseInt(args[2]) || 1;
+      if (!giveawayId || count < 1)
+        return msg.reply("Syntax: `!giveaway reroll <giveawayid> <anzahl>`");
+      const error = await rerollGiveaway(client, msg.guild, giveawayId, count, msg.author, sendKekseLog);
+      if (error) return msg.reply(error);
+      return msg.delete().catch(function () {});
+    }
+
 async function endGiveaway(client, msg, data, logFunc) {
   const guild = msg.guild;
   const participants = data.participants || [];
-  let rafflePool = [];
-  for (const userId of participants) {
-    rafflePool.push(userId);
-    const member = await guild.members.fetch(userId).catch(() => null);
-    if (member && member.roles.cache.has(BOOSTER_ROLE_ID)) {
-      rafflePool.push(userId);
-    }
-  }
-  const winners = [];
-  const shuffledPool = rafflePool.sort(() => Math.random() - 0.5);
-  for (const id of shuffledPool) {
-    if (winners.length >= data.winnerCount) break;
-    if (!winners.includes(id)) winners.push(id);
-  }
+  const rafflePool = await buildPool(guild, participants);
+  const winners = pickWinners(rafflePool, data.winnerCount, []);
   const winnerMentions = winners.length
-    ? winners.map((id) => `<@${id}>`).join(", ")
+    ? winners
+        .map(function (id) {
+          return `<@${id}>`;
+        })
+        .join(", ")
     : "Niemand";
+
   const endEmbed = EmbedBuilder.from(msg.embeds[0])
     .setTitle(`🎊 Giveaway beendet: ${data.price}`)
     .setDescription(
-      `${data.messageText}\n\nBeendet am: <t:${Math.floor(data.endTime / 1000)}:f>\nTeilnehmer: **${participants.length}**\nGewinner: ${winnerMentions}`,
+      `${data.messageText}\n\nBeendet am: <t:${Math.floor(data.endTime / 1000)}:f>\nTeilnehmer: **${countUnique(participants)}**\nGewinner: ${winnerMentions}`,
     )
     .setColor(0x2f3136);
-  await msg.edit({ embeds: [endEmbed], components: [] }).catch(() => {});
+  await msg.edit({ embeds: [endEmbed], components: [] }).catch(function () {});
+
   if (winners.length > 0) {
     await msg.channel.send(
       `🎉 Glückwunsch ${winnerMentions}! Du hast **${data.price}** gewonnen!\nMelde dich bitte zeitnah im Support.`,
     );
   }
+
+  const ended = (await getGivData("endedGiveaways")) || {};
+  ended[msg.id] = {
+    channelId: data.channelId,
+    price: data.price,
+    hostId: data.hostId,
+    endTime: data.endTime,
+    winnerCount: data.winnerCount,
+    participants: participants,
+    winners: winners,
+  };
+  await setGivData("endedGiveaways", ended);
+
   const BONUS_ROLE_REMOVE = "1506164984202264656";
-const uniqueParticipants = [...new Set(participants)];
-for (const userId of uniqueParticipants) {
-  const member = await guild.members.fetch(userId).catch(() => null);
-  if (member && member.roles.cache.has(BONUS_ROLE_REMOVE)) {
-    await member.roles.remove(BONUS_ROLE_REMOVE).catch(() => {});
+  const uniqueParticipants = [...new Set(participants)];
+  for (const userId of uniqueParticipants) {
+    const member = await guild.members.fetch(userId).catch(function () {
+      return null;
+    });
+    if (member && member.roles.cache.has(BONUS_ROLE_REMOVE)) {
+      await member.roles.remove(BONUS_ROLE_REMOVE).catch(function () {});
+    }
   }
-}
-  const host = await client.users.fetch(data.hostId).catch(() => client.user);
+
+  const host = await client.users.fetch(data.hostId).catch(function () {
+    return client.user;
+  });
   await logFunc(
     "Giveaway beendet",
     host,
-    `**Preis:** ${data.price}\n**Teilnehmer:** ${participants.length}\n**Gewinner:** ${winnerMentions}`,
+    `**Preis:** ${data.price}\n**Teilnehmer:** ${countUnique(participants)}\n**Gewinner:** ${winnerMentions}`,
   );
+
   const reportChannel = await client.channels
     .fetch(REPORT_CHANNEL_ID)
-    .catch(() => null);
+    .catch(function () {
+      return null;
+    });
   if (reportChannel) {
     const report = {
       giveaway_id: msg.id,
@@ -4019,6 +4186,7 @@ for (const userId of uniqueParticipants) {
     });
   }
 }
+
 function parseDuration(input) {
   if (!input) return 0;
   const match = input.match(/^(\d+)(s|sec|m|min|h|std|d|tag|tage)$/i);
@@ -4030,6 +4198,63 @@ function parseDuration(input) {
   if (unit.startsWith("h") || unit === "std") return value * 3600000;
   if (unit.startsWith("d") || unit.startsWith("t")) return value * 86400000;
   return 0;
+}
+export function buildDescription(data, participantCount) {
+  const endUnix = Math.floor(data.endTime / 1000);
+  let text = `${data.messageText}\n\nEndet am: <t:${endUnix}:R> (<t:${endUnix}:f>)\nTeilnehmer: **${participantCount}**\nGewinner: **${data.winnerCount}**`;
+  if (data.requiredRoles && data.requiredRoles.length > 0) {
+    text += `\nBenötigte Rolle(n): ${formatRoles(data.requiredRoles)}`;
+  }
+  return text;
+}
+
+export function formatRoles(roleIds) {
+  const parts = [];
+  for (const id of roleIds) parts.push(`<@&${id}>`);
+  return parts.join(", ");
+}
+
+export async function rerollGiveaway(client, guild, giveawayId, count, actor, logFunc) {
+  const ended = (await getGivData("endedGiveaways")) || {};
+  const data = ended[giveawayId];
+
+  if (!data) {
+    const active = (await getGivData("activeGiveaways")) || {};
+    if (active[giveawayId])
+      return "❌ Dieses Giveaway läuft noch und kann nicht gerollt werden.";
+    return "❌ Kein beendetes Giveaway mit dieser ID gefunden.";
+  }
+
+  const channel = await client.channels.fetch(data.channelId).catch(function () {
+    return null;
+  });
+  if (!channel) return "❌ Der Kanal des Giveaways existiert nicht mehr.";
+
+  const pool = await buildPool(guild, data.participants);
+  const previousWinners = data.winners || [];
+  const winners = pickWinners(pool, count, previousWinners);
+
+  if (winners.length === 0)
+    return "❌ Es gibt keine weiteren Teilnehmer für einen Reroll.";
+
+  const mentions = [];
+  for (const id of winners) mentions.push(`<@${id}>`);
+  const winnerMentions = mentions.join(", ");
+
+  await channel.send(
+    `**Reroll _(${count})_:**:tada: Glückwunsch ${winnerMentions}! Du hast ${data.price} gewonnen.\nMelde dich im Support.`,
+  );
+
+  data.winners = previousWinners.concat(winners);
+  ended[giveawayId] = data;
+  await setGivData("endedGiveaways", ended);
+
+  await logFunc(
+    "Giveaway Reroll",
+    actor,
+    `**Preis:** ${data.price}\n**ID:** ${giveawayId}\n**Anzahl:** ${count}\n**Neue Gewinner:** ${winnerMentions}`,
+  );
+  return null;
 }
 export function registerMessageCommands(client) {
   client.on("messageCreate", async (msg) => {
@@ -6110,14 +6335,48 @@ const commands = [
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('giveaway')
-    .setDescription('Startet ein neues Giveaway im ausgewählten Kanal')
-    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Kanal, in dem das Giveaway stattfinden soll').setRequired(true))
-    .addStringOption(opt => opt.setName('dauer').setDescription('Dauer des Giveaways (z.B. 1h, 30m, 1d)').setRequired(true))
-    .addStringOption(opt => opt.setName('preis').setDescription('Der Gewinn / Preis des Giveaways').setRequired(true))
-    .addStringOption(opt => opt.setName('text').setDescription('Beschreibungstext für das Giveaway').setRequired(false))
-    .addIntegerOption(opt => opt.setName('gewinner').setDescription('Anzahl der Gewinner (Standard: 1)').setRequired(false))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+  .setName("giveaway")
+  .setDescription("Giveaway-Verwaltung")
+  .addSubcommand(function (sub) {
+    return sub
+      .setName("start")
+      .setDescription("Startet ein Giveaway")
+      .addChannelOption(function (o) {
+        return o.setName("kanal").setDescription("Kanal").setRequired(true);
+      })
+      .addStringOption(function (o) {
+        return o.setName("dauer").setDescription("z.B. 1h, 30m, 1d").setRequired(true);
+      })
+      .addStringOption(function (o) {
+        return o.setName("preis").setDescription("Preis").setRequired(true);
+      })
+      .addStringOption(function (o) {
+        return o.setName("text").setDescription("Beschreibung");
+      })
+      .addIntegerOption(function (o) {
+        return o.setName("gewinner").setDescription("Anzahl Gewinner").setMinValue(1);
+      })
+      .addRoleOption(function (o) {
+        return o.setName("rolle1").setDescription("Benötigte Rolle");
+      })
+      .addRoleOption(function (o) {
+        return o.setName("rolle2").setDescription("Alternative Rolle");
+      })
+      .addRoleOption(function (o) {
+        return o.setName("rolle3").setDescription("Alternative Rolle");
+      });
+  })
+  .addSubcommand(function (sub) {
+    return sub
+      .setName("reroll")
+      .setDescription("Zieht neue Gewinner für ein beendetes Giveaway")
+      .addStringOption(function (o) {
+        return o.setName("id").setDescription("Nachrichten-ID des Giveaways").setRequired(true);
+      })
+      .addIntegerOption(function (o) {
+        return o.setName("anzahl").setDescription("Anzahl neuer Gewinner").setRequired(true).setMinValue(1);
+      });
+  })
 
   new SlashCommandBuilder()
     .setName('help')
@@ -6795,12 +7054,31 @@ export async function deploySlashCommands() {
       }
       globalBotStats.commandsRunned += 1;
     }
-    if (commandName === "giveaway") {
+        if (commandName === "giveaway") {
       if (!member.roles.cache.has(TEAM_ROLE)) {
         return interaction.reply({
           content: " Keine Rechte.",
           flags: [MessageFlags.Ephemeral],
         });
+      }
+
+      const subcommand = options.getSubcommand();
+
+      if (subcommand === "reroll") {
+        const giveawayId = options.getString("id");
+        const count = options.getInteger("anzahl");
+
+        await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
+        const error = await rerollGiveaway(
+          interaction.client,
+          interaction.guild,
+          giveawayId,
+          count,
+          user,
+          sendKekseLog,
+        );
+        if (error) return interaction.editReply({ content: error });
+        return interaction.editReply({ content: "✅ Reroll durchgeführt." });
       }
 
       const channel = options.getChannel("kanal");
@@ -6824,14 +7102,30 @@ export async function deploySlashCommands() {
         });
       }
 
+      const requiredRoles = [];
+      for (const optionName of ["rolle1", "rolle2", "rolle3"]) {
+        const role = options.getRole(optionName);
+        if (role && !requiredRoles.includes(role.id)) requiredRoles.push(role.id);
+      }
+
       const startTime = Date.now();
       const endTime = startTime + durationMs;
 
+      const giveawayData = {
+        channelId: channel.id,
+        startTime,
+        endTime,
+        price,
+        messageText,
+        winnerCount,
+        requiredRoles,
+        hostId: user.id,
+        participants: [],
+      };
+
       const embed = new EmbedBuilder()
         .setTitle(`🎁 Giveaway: ${price}`)
-        .setDescription(
-          `${messageText}\n\nEndet am: <t:${Math.floor(endTime / 1000)}:R> (<t:${Math.floor(endTime / 1000)}:f>)\nTeilnehmer: **0**\nGewinner: **${winnerCount}**`,
-        )
+        .setDescription(buildDescription(giveawayData, 0))
         .setColor(EMBED_COLOR);
 
       const row = new ActionRowBuilder().addComponents(
@@ -6849,29 +7143,19 @@ export async function deploySlashCommands() {
       });
 
       const giveaways = (await getGivData("activeGiveaways")) || {};
-      giveaways[giveawayMsg.id] = {
-        channelId: channel.id,
-        startTime,
-        endTime,
-        price,
-        messageText,
-        winnerCount,
-        hostId: user.id,
-        participants: [],
-      };
+      giveaways[giveawayMsg.id] = giveawayData;
       await setGivData("activeGiveaways", giveaways);
 
       await interaction.reply({
-        content: `✅ Giveaway erfolgreich in ${channel} gestartet!`,
+        content: `✅ Giveaway erfolgreich in ${channel} gestartet!\n**ID:** \`${giveawayMsg.id}\``,
         flags: [MessageFlags.Ephemeral],
       });
 
-      await sendKekseLog(
-        "Giveaway gestartet",
-        user,
-        `**Preis:** ${price}\n**Kanal:** ${channel}\n**Dauer:** ${durationStr}\n**Gewinner:** ${winnerCount}`,
-      );
-      console.log(`${user.username} hat ein Giveaway für ${price} in ${channel} erstellt.`)
+      let logDetails = `**Preis:** ${price}\n**Kanal:** ${channel}\n**Dauer:** ${durationStr}\n**Gewinner:** ${winnerCount}`;
+      if (requiredRoles.length > 0)
+        logDetails += `\n**Benötigte Rolle(n):** ${formatRoles(requiredRoles)}`;
+      await sendKekseLog("Giveaway gestartet", user, logDetails);
+      console.log(`${user.username} hat ein Giveaway für ${price} in ${channel} erstellt.`);
 
       globalBotStats.commandsRunned += 1;
       globalBotStats.giveawaysCreated += 1;
