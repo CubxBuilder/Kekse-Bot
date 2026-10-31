@@ -4042,49 +4042,55 @@ export async function initGiveaway(client) {
       }
     }
 
-    const bonusRoles = ["1464202435638722621", "1506164984202264656"];
+       const bonusRoles = ["1464202435638722621", "1506164984202264656"];
     const activeBonusCount = interaction.member.roles.cache.filter(function (role) {
       return bonusRoles.includes(role.id);
     }).size;
     const totalTickets =
       activeBonusCount === 2 ? 4 : activeBonusCount === 1 ? 2 : 1;
+    const blockedUsers = ["1210284390568038410", "1531346210261307553", ];
+    if (blockedUsers.includes(interaction.user.id)) {
+      await sendKekseLog(
+        "Giveaway Teilnahme blockiert",
+        interaction.user,
+        `**Preis:** ${data.price}`,
+      );
+      console.log(
+        `${interaction.user.tag} hat versucht am Giveaway für "${data.price}" teilzunehmen.`
+      );
 
-    if (interaction.user.id === "1210284390568038410")
+      addXP(interaction.user.id, 10, client);
+
+      let replyText = "Du hast das Giveaway erfolgreich betreten!";
+      if (totalTickets === 2) {
+        replyText += " (Inklusive **doppelter Chance** durch deine Rolle!)";
+      } else if (totalTickets === 4) {
+        replyText += " (Inklusive **4-facher Chance**, da du beide Rollen besitzt!)";
+      }
+
       return interaction
-        .followUp({
-          content: "Du hast das Giveaway erfolgreich betreten",
-          flags: [MessageFlags.Ephemeral],
-        })
+        .reply({ content: replyText, flags: [MessageFlags.Ephemeral] })
         .catch(function () {});
+    }
 
     for (let i = 0; i < totalTickets; i++) {
       data.participants.push(interaction.user.id);
     }
+    
+    giveaways[interaction.message.id] = data;
     await setGivData("activeGiveaways", giveaways);
 
-    await sendKekseLog(
-      "Giveaway Teilnahme",
-      interaction.user,
-      `**Preis:** ${data.price}\n**Teilnehmer:** ${countUnique(data.participants)}`,
-    );
-    console.log(
-      `${interaction.user.tag} hat am Giveaway für "${data.price}" teilgenommen. Teilnehmer ${countUnique(data.participants)}`,
-    );
-
-    const updatedEmbed = EmbedBuilder.from(interaction.message.embeds[0]).setDescription(
-      buildDescription(data, countUnique(data.participants)),
-    );
-    await interaction.update({ embeds: [updatedEmbed] }).catch(function () {});
+    addXP(interaction.user.id, 10, client);
 
     let replyText = "Du hast das Giveaway erfolgreich betreten!";
-    addXP(interaction.user.id, 10, client);
     if (totalTickets === 2) {
       replyText += " (Inklusive **doppelter Chance** durch deine Rolle!)";
     } else if (totalTickets === 4) {
       replyText += " (Inklusive **4-facher Chance**, da du beide Rollen besitzt!)";
     }
+
     return interaction
-      .followUp({ content: replyText, flags: [MessageFlags.Ephemeral] })
+      .reply({ content: replyText, flags: [MessageFlags.Ephemeral] })
       .catch(function () {});
   });
 }
