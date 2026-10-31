@@ -4096,8 +4096,9 @@ export async function initGiveaway(client) {
     if (args[0] && args[0].toLowerCase() === "reroll") {
       const giveawayId = args[1];
       const count = parseInt(args[2]) || 1;
-      if (!giveawayId || count < 1)
+      if (!giveawayId || count < 1) {
         return msg.reply("Syntax: `!giveaway reroll <giveawayid> <anzahl>`");
+      }
       const error = await rerollGiveaway(client, msg.guild, giveawayId, count, msg.author, sendKekseLog);
       if (error) return msg.reply(error);
       return msg.delete().catch(function () {});
