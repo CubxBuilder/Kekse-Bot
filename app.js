@@ -3991,6 +3991,16 @@ export async function initGiveaway(client) {
     globalBotStats.commandsRunned += 1;
     globalBotStats.giveawaysCreated += 1;
     await msg.delete().catch(function () {});
+    if (args[0] && args[0].toLowerCase() === "reroll") {
+      const giveawayId = args[1];
+      const count = parseInt(args[2]) || 1;
+      if (!giveawayId || count < 1) {
+        return msg.reply("Syntax: `!giveaway reroll <giveawayid> <anzahl>`");
+      }
+      const error = await rerollGiveaway(client, msg.guild, giveawayId, count, msg.author, sendKekseLog);
+      if (error) return msg.reply(error);
+      return msg.delete().catch(function () {});
+    }
   });
 
   client.on("interactionCreate", async function (interaction) {
@@ -4093,16 +4103,6 @@ export async function initGiveaway(client) {
       .catch(function () {});
   });
 }
-    if (args[0] && args[0].toLowerCase() === "reroll") {
-      const giveawayId = args[1];
-      const count = parseInt(args[2]) || 1;
-      if (!giveawayId || count < 1) {
-        return msg.reply("Syntax: `!giveaway reroll <giveawayid> <anzahl>`");
-      }
-      const error = await rerollGiveaway(client, msg.guild, giveawayId, count, msg.author, sendKekseLog);
-      if (error) return msg.reply(error);
-      return msg.delete().catch(function () {});
-    }
 
 async function endGiveaway(client, msg, data, logFunc) {
   const guild = msg.guild;
