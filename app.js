@@ -3971,7 +3971,7 @@ export async function initGiveaway(client) {
 
     let logDetails = `**Preis:** ${price}\n**Kanal:** ${channel}\n**Dauer:** ${positional[1]}\n**Gewinner:** ${winnerCount}`;
     if (requiredRoles.length > 0)
-      logDetails += `\n**Benötigte Rolle(n):** ${formatRoles(requiredRoles)}`;
+      logDetails += `\n**Benötigte Rolle:** ${formatRoles(requiredRoles)}`;
     await sendKekseLog("Giveaway gestartet", msg.author, logDetails);
     globalBotStats.commandsRunned += 1;
     globalBotStats.giveawaysCreated += 1;
@@ -4189,7 +4189,7 @@ export function buildDescription(data, participantCount) {
   const endUnix = Math.floor(data.endTime / 1000);
   let text = `${data.messageText}\n\nEndet am: <t:${endUnix}:R> (<t:${endUnix}:f>)\nTeilnehmer: **${participantCount}**\nGewinner: **${data.winnerCount}**`;
   if (data.requiredRoles && data.requiredRoles.length > 0) {
-    text += `\nBenötigte Rolle(n): ${formatRoles(data.requiredRoles)}`;
+    text += `\nBenötigte Rolle: ${formatRoles(data.requiredRoles)}`;
   }
   return text;
 }
@@ -7139,7 +7139,7 @@ export async function deploySlashCommands() {
 
       let logDetails = `**Preis:** ${price}\n**Kanal:** ${channel}\n**Dauer:** ${durationStr}\n**Gewinner:** ${winnerCount}`;
       if (requiredRoles.length > 0)
-        logDetails += `\n**Benötigte Rolle(n):** ${formatRoles(requiredRoles)}`;
+        logDetails += `\n**Benötigte Rolle:** ${formatRoles(requiredRoles)}`;
       await sendKekseLog("Giveaway gestartet", user, logDetails);
       console.log(`${user.username} hat ein Giveaway für ${price} in ${channel} erstellt.`);
 
