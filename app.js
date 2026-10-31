@@ -6321,48 +6321,48 @@ const commands = [
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-  .setName("giveaway")
-  .setDescription("Giveaway-Verwaltung")
-  .addSubcommand(function (sub) {
-    return sub
-      .setName("start")
-      .setDescription("Startet ein Giveaway")
-      .addChannelOption(function (o) {
-        return o.setName("kanal").setDescription("Kanal").setRequired(true);
-      })
-      .addStringOption(function (o) {
-        return o.setName("dauer").setDescription("z.B. 1h, 30m, 1d").setRequired(true);
-      })
-      .addStringOption(function (o) {
-        return o.setName("preis").setDescription("Preis").setRequired(true);
-      })
-      .addStringOption(function (o) {
-        return o.setName("text").setDescription("Beschreibung");
-      })
-      .addIntegerOption(function (o) {
-        return o.setName("gewinner").setDescription("Anzahl Gewinner").setMinValue(1);
-      })
-      .addRoleOption(function (o) {
-        return o.setName("rolle1").setDescription("Benötigte Rolle");
-      })
-      .addRoleOption(function (o) {
-        return o.setName("rolle2").setDescription("Alternative Rolle");
-      })
-      .addRoleOption(function (o) {
-        return o.setName("rolle3").setDescription("Alternative Rolle");
-      });
-  })
-  .addSubcommand(function (sub) {
-    return sub
-      .setName("reroll")
-      .setDescription("Zieht neue Gewinner für ein beendetes Giveaway")
-      .addStringOption(function (o) {
-        return o.setName("id").setDescription("Nachrichten-ID des Giveaways").setRequired(true);
-      })
-      .addIntegerOption(function (o) {
-        return o.setName("anzahl").setDescription("Anzahl neuer Gewinner").setRequired(true).setMinValue(1);
-      });
-  })
+    .setName("giveaway")
+    .setDescription("Giveaway-Verwaltung")
+    .addSubcommand(function (sub) {
+      return sub
+        .setName("start")
+        .setDescription("Startet ein Giveaway")
+        .addChannelOption(function (o) {
+          return o.setName("kanal").setDescription("Kanal").setRequired(true);
+        })
+        .addStringOption(function (o) {
+          return o.setName("dauer").setDescription("z.B. 1h, 30m, 1d").setRequired(true);
+        })
+        .addStringOption(function (o) {
+          return o.setName("preis").setDescription("Preis").setRequired(true);
+        })
+        .addStringOption(function (o) {
+          return o.setName("text").setDescription("Beschreibung");
+        })
+        .addIntegerOption(function (o) {
+          return o.setName("gewinner").setDescription("Anzahl Gewinner").setMinValue(1);
+        })
+        .addRoleOption(function (o) {
+          return o.setName("rolle1").setDescription("Benötigte Rolle");
+        })
+        .addRoleOption(function (o) {
+          return o.setName("rolle2").setDescription("Alternative Rolle");
+        })
+        .addRoleOption(function (o) {
+          return o.setName("rolle3").setDescription("Alternative Rolle");
+        });
+    })
+    .addSubcommand(function (sub) {
+      return sub
+        .setName("reroll")
+        .setDescription("Zieht neue Gewinner für ein beendetes Giveaway")
+        .addStringOption(function (o) {
+          return o.setName("id").setDescription("Nachrichten-ID des Giveaways").setRequired(true);
+        })
+        .addIntegerOption(function (o) {
+          return o.setName("anzahl").setDescription("Anzahl neuer Gewinner").setRequired(true).setMinValue(1);
+        });
+    }),
 
   new SlashCommandBuilder()
     .setName('help')
