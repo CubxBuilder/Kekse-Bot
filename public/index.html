@@ -14,19 +14,19 @@
     <meta name="apple-mobile-web-app-title" content="Kekse Bot">
     <style>
       :root {
-        --bg-base:        #0a0a0a;
-        --bg-surface:     #111111;
-        --bg-elevated:    #1a1a1a;
-        --bg-input:       #0d0d0d;
-        --border:         #2a2a2a;
-        --accent:         #ffffff;
-        --text-primary:   #ffffff;
+        --bg-base: #0a0a0a;
+        --bg-surface: #111111;
+        --bg-elevated: #1a1a1a;
+        --bg-input: #0d0d0d;
+        --border: #2a2a2a;
+        --accent: #ffffff;
+        --text-primary: #ffffff;
         --text-secondary: #888888;
-        --text-muted:     #444444;
-        --dot-online:     #4ade80;
-        --radius:         12px;
-        --radius-sm:      6px;
-        --gap:            16px;
+        --text-muted: #444444;
+        --dot-online: #4ade80;
+        --radius: 12px;
+        --radius-sm: 6px;
+        --gap: 16px;
       }
 
       * {
@@ -66,12 +66,9 @@
         font-weight: 400;
       }
 
-      header .dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: var(--dot-online);
-        box-shadow: 0 0 6px var(--dot-online);
+      header .icon {
+        width: 50px;
+        height: 50px;
       }
 
       main {
@@ -497,7 +494,7 @@
   </head>
   <body>
     <header>
-      <div class="dot"></div>
+      <img src="../icon.png" class="icon">
       <h1>Kekse Bot</h1>
       <h1>Dashboard</h1>
     </header>
