@@ -3783,12 +3783,6 @@ const BOOSTER_ROLE_ID = "1464202435638722621";
 const REPORT_CHANNEL_ID = LOG_CHANNEL_ID;
 const EMBED_COLOR = 0xffffff;
 
-function formatRoles(roleIds) {
-  const parts = [];
-  for (const id of roleIds) parts.push(`<@&${id}>`);
-  return parts.join(", ");
-}
-
 function countUnique(participants) {
   return new Set(participants || []).size;
 }
