@@ -4065,7 +4065,7 @@ export async function initGiveaway(client) {
     await sendKekseLog(
       "Giveaway Teilnahme",
       interaction.user,
-      `**Preis:** ${data.price}\n**Teilnehmer:** ${countUnique(data.participants)}\n**Tickets:** ${totalTickets}`,
+      `**Preis:** ${data.price}\n**Teilnehmer:** ${countUnique(data.participants)}`,
     );
     console.log(
       `${interaction.user.tag} hat am Giveaway für "${data.price}" teilgenommen. Teilnehmer ${countUnique(data.participants)}`,
