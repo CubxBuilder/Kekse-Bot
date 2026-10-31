@@ -3793,15 +3793,6 @@ function countUnique(participants) {
   return new Set(participants || []).size;
 }
 
-function buildDescription(data, participantCount) {
-  const endUnix = Math.floor(data.endTime / 1000);
-  let text = `${data.messageText}\n\nEndet am: <t:${endUnix}:R> (<t:${endUnix}:f>)\nTeilnehmer: **${participantCount}**\nGewinner: **${data.winnerCount}**`;
-  if (data.requiredRoles && data.requiredRoles.length > 0) {
-    text += `\nBenötigte Rolle(n): ${formatRoles(data.requiredRoles)}`;
-  }
-  return text;
-}
-
 function shuffle(list) {
   const result = list.slice();
   for (let i = result.length - 1; i > 0; i--) {
