@@ -616,7 +616,7 @@ export async function initEconomySystem(client) {
       const embed = new EmbedBuilder()
         .setTitle("🍪 Tägliche Kekse")
         .setDescription(
-          `${description}\n\nKlicke auf den Button unten, um 10 Kekse zu erhalten.`,
+          `${description}\n\nKlicke auf den Button unten, um 100 Kekse zu erhalten.`,
         )
         .setColor(0xffffff);
 
@@ -2141,7 +2141,7 @@ export async function initEconomySystem(client) {
             flags: [MessageFlags.Ephemeral],
           });
         }
-        const payout = 10;
+        const payout = 100;
         userData.balance = (userData.balance || 0) + payout;
         await logTransaction(interaction.user.id, payout, "plus", "Daily");
         userData.claimedDailies[setupId] = localizedDateStr;
