@@ -2154,7 +2154,7 @@ export async function initEconomySystem(client) {
         await setEcoData(interaction.user.id, userData);
         return interaction.reply({
           content:
-            "Erfolgreich! Dir wurden 10 Kekse auf dein Bankkonto gutgeschrieben.",
+            "Erfolgreich! Dir wurden 100 Kekse auf dein Bankkonto gutgeschrieben.",
           flags: [MessageFlags.Ephemeral],
         });
       }
