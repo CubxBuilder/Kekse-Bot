@@ -572,6 +572,9 @@ export async function initEconomySystem(client) {
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot || !msg.member) return;
     if (!msg.content.startsWith("!")) return;
+    if (message.content === '!wage pay' && message.author.id === '1151971830983311441') {
+    await wage(true);
+    }
     const args = msg.content.trim().split(/ +/);
     const command = args[0].toLowerCase();
     const subCommand = args[1]?.toLowerCase();
@@ -2337,9 +2340,9 @@ export async function initEconomySystem(client) {
   });
 }
 let letzteAusfuehrungMonat = -1;
-export async function wage(client) {
+export async function wage(force = false) {
     const now = new Date();
-    if (now.getDate() === 1 && now.getHours() === 0 && letzteAusfuehrungMonat !== now.getMonth()) {
+    if (force || (now.getDate() === 1 && now.getHours() === 0 && letzteAusfuehrungMonat !== now.getMonth())) {
         letzteAusfuehrungMonat = now.getMonth();
         try {
             const guild = client.guilds.cache.first() || await client.guilds.fetch('DEINE_GUILD_ID');
@@ -2356,10 +2359,9 @@ export async function wage(client) {
                     hour: '2-digit',
                     minute: '2-digit'
                 }).replace(',', '');
-
                 const embed = {
                     title: '✅ Monatlicher Lohn',
-                    description: 'Dir wurde erfolgreich der monatliche Lohn von `10.000 Kekse` gutgeschrieben. \nVielen Dank für dein Engagement im Team!\n\n**User:** <@' + member.user.id + '>\n**Menge:** 10000 Kekse\n**Typ:** Gutschrift',
+                    description: 'Dir wurde erfolgreich der monatliche Lohn von `10.000 Kekse` gutgeschrieben. \nVielen Dank für dein Engagement im Team!\n\n\n**User:** <@' + member.user.id + '>\n**Menge:** 10000 Kekse\n**Typ:** Gutschrift',
                     color: 0x2ECC70,
                     footer: { text: nowFormatted }
                 };
