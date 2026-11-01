@@ -2337,7 +2337,7 @@ export async function initEconomySystem(client) {
   });
 }
 let letzteAusfuehrungMonat = -1;
-export async function wage() {
+export async function wage(client) {
     const now = new Date();
     if (now.getDate() === 1 && now.getHours() === 0 && letzteAusfuehrungMonat !== now.getMonth()) {
         letzteAusfuehrungMonat = now.getMonth();
@@ -9253,6 +9253,7 @@ client.once("clientReady", async () => {
     await syncExistingUsers(client);
     await initInviteTracker(client);
     startVoiceXpTracker(client);
+    await wage(client);
     const guild = client.guilds.cache.get("1423413347168157718");
     console.log(`Server-Sync gestartet...`)
     console.log(`Bot online: ${client.user.tag}`);
