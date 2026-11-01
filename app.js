@@ -2447,7 +2447,7 @@ export function initAuditLogs(client) {
     await sendLog(
       "User Join",
       member.user,
-      `<@${member.id}> (${member.user.tag}) ist beigetreten.\nAccount erstellt: <t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`,
+      `<@${member.id}> (${member.user.tag}) hat den Server betreten.\nAccount erstellt: <t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`,
       "#ffffff",
       member.user.displayAvatarURL(),
     );
@@ -2457,7 +2457,7 @@ export function initAuditLogs(client) {
     await sendLog(
       "User Leave",
       member.user,
-      `<@${member.id}> (${member.user.tag}) ist gegangen oder wurde entfernt.`,
+      `<@${member.id}> (${member.user.tag}) hat den Server verlassen.`,
       "#f04747",
       member.user.displayAvatarURL(),
     );
@@ -3241,7 +3241,7 @@ export function initVerification(client) {
       await sendKekseLog(
         "User Verifiziert",
         interaction.user,
-        `Der User hat den Button genutzt und die Rolle <@&${UNVERIFIED_ROLE_ID}> wurde entfernt.`,
+        `<@${interaction.user.id} hat sich verifiziert.`,
       );
 
       await interaction.reply({
