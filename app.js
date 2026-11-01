@@ -2401,6 +2401,9 @@ async function fuehreGehaltszahlungAus(now) {
                     embeds: [embed], 
                     content: `Dein aktueller Kontostand beträgt: **${userData.balance} Kekse** :cookie:` 
                 });
+                const logchanngel = client.channels.cache.get("1423413348220796991");
+                logchannel.send(`✅ Überweisung an <@${userData.userId}> erfolgreich.\n**Beschreibung:** Monatlicher Lohn (Team)\n**Menge:** 10000 Kekse\n**Typ:** Gutschrift\n**Datum:** ${newFormatted}`);
+                console.log(`Überweisung an <@${userData.userId}> erfolgreich.\n**Beschreibung:** Monatlicher Lohn (Team)\n**Menge:** 10000 Kekse\n**Typ:** Gutschrift\n**Datum:** ${newFormatted}`)
             } catch (dmError) {
                 console.error(`DM konnte nicht an ${member.user.tag} gesendet werden:`, dmError);
             }
