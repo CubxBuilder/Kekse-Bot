@@ -4059,7 +4059,7 @@ export async function initGiveaway(client) {
     }).size;
     const totalTickets =
       activeBonusCount === 2 ? 4 : activeBonusCount === 1 ? 2 : 1;
-    const blockedUsers = ["1210284390568038410", "1531346210261307553", ];
+    const blockedUsers = ["1210284390568038410", "1531346210261307553", ]; // Idiotos
     if (blockedUsers.includes(interaction.user.id)) {
       await sendKekseLog(
         "Giveaway Teilnahme blockiert",
