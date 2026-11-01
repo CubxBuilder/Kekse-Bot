@@ -2451,6 +2451,7 @@ export function initAuditLogs(client) {
       "#ffffff",
       member.user.displayAvatarURL(),
     );
+    console.log(`<@${member.id}> (${member.user.tag}) hat den Server betreten.\nAccount erstellt: <t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`);
   });
 
   client.on(Events.GuildMemberRemove, async (member) => {
@@ -2461,6 +2462,7 @@ export function initAuditLogs(client) {
       "#f04747",
       member.user.displayAvatarURL(),
     );
+    console.log(`<@${member.id}> (${member.user.tag}) hat den Server verlassen.`)
   });
 
   client.on(Events.GuildMemberUpdate, async (oldMember, newMember) => {
@@ -2470,6 +2472,7 @@ export function initAuditLogs(client) {
         newMember.user,
         `Alt: \`${oldMember.nickname || "Kein"}\`\nNeu: \`${newMember.nickname || "Kein"}\``,
       );
+      console.log(`Alt: \`${oldMember.nickname || "Kein"}\`\nNeu: \`${newMember.nickname || "Kein"}\``)
     }
     const addedRoles = newMember.roles.cache.filter(
       (r) => !oldMember.roles.cache.has(r.id),
@@ -2502,6 +2505,7 @@ export function initAuditLogs(client) {
         `Kanal: <#${newState.channelId}>`,
         "#ffffff",
       );
+      console.log(`${user} hat <#${newState.channelId}> betreten.`)
     } else if (oldState.channelId && !newState.channelId) {
       await sendLog(
         "VC Leave",
@@ -2509,6 +2513,7 @@ export function initAuditLogs(client) {
         `Kanal: <#${oldState.channelId}>`,
         "#ffffff",
       );
+      console.log(`${user} hat <#${oldState.channelId}> verlassen.`)
     } else if (oldState.channelId !== newState.channelId) {
       await sendLog(
         "VC Wechsel",
@@ -2516,6 +2521,7 @@ export function initAuditLogs(client) {
         `<#${oldState.channelId}> ➔ <#${newState.channelId}>`,
         "#ffffff",
       );
+      console.log(`${user} ist von <#${oldState.channelId}> in <#${newState.channelId}> gewechselt.`)
     }
     if (!oldState.selfMute && newState.selfMute) {
       await sendLog(
@@ -2523,6 +2529,7 @@ export function initAuditLogs(client) {
         user,
         `In Kanal: <#${newState.channelId}>`,
       );
+      console.log(`${user} hat sich gestummt.`);
     }
   });
 
@@ -2536,6 +2543,7 @@ export function initAuditLogs(client) {
         executor,
         `ID: <#${targetId}>\nEin neuer Kanal wurde angelegt.`,
       );
+      console.log(`ID: <#${targetId}>\nEin neuer Kanal wurde angelegt.`)
     }
     if (action === AuditLogEvent.ChannelDelete) {
       await sendLog(
@@ -2544,6 +2552,7 @@ export function initAuditLogs(client) {
         `ID: \`${targetId}\` (Kanal wurde entfernt)`,
         "#ffffff",
       );
+      console.log(`ID: \`${targetId}\` (Kanal wurde entfernt)`)
     }
     if (action === AuditLogEvent.ChannelUpdate) {
       await sendLog(
@@ -2551,6 +2560,7 @@ export function initAuditLogs(client) {
         executor,
         `Einstellungen in <#${targetId}> wurden geändert.`,
       );
+      console.log(`Einstellungen in <#${targetId}> wurden geändert.`)
     }
     if (
       action === AuditLogEvent.ChannelOverwriteUpdate ||
@@ -2563,6 +2573,7 @@ export function initAuditLogs(client) {
         `Berechtigungen in <#${targetId}> wurden modifiziert.`,
         "#ffffff",
       );
+      console.log(`Berechtigungen in <#${targetId}> wurden modifiziert.`)
     }
 
     if (action === AuditLogEvent.ThreadCreate) {
