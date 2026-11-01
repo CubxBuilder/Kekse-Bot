@@ -579,8 +579,8 @@ export async function initEconomySystem(client) {
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot || !msg.member) return;
     if (!msg.content.startsWith("!")) return;
-    if (message.content === '!wage pay' && message.author.id === '1151971830983311441') {
-    await wage(true, message);
+    if (msg.content === '!wage pay' && msg.author.id === '1151971830983311441') {
+    await wage(true);
     }
     const args = msg.content.trim().split(/ +/);
     const command = args[0].toLowerCase();
