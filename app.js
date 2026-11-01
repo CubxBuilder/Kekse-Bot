@@ -2336,6 +2336,26 @@ export async function initEconomySystem(client) {
     }
   });
 }
+let letzteAusfuehrungMonat = -1;
+export async function wage() {
+    const now = new Date();
+    if (now.getDate() === 1 && now.getHours() === 0 && letzteAusfuehrungMonat !== now.getMonth()) {
+        letzteAusfuehrungMonat = now.getMonth();
+        try {
+            const role = guild.roles.cache.get('1457906448234319922') || await guild.roles.fetch('1457906448234319922');
+            const team = Array.from(role.members.values());
+            for (const member of team) {
+                const userData = await getEcoData(member.user.id);
+                userData.balance = (userData.balance || 0) + 10000;
+                await setEcoData(member.user.id, userData);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+
+    }
+}
+
 export function initAdminFun(client) {
   client.on("messageCreate", async (msg) => {
     if (!msg.content.startsWith("!")) return;
