@@ -2403,7 +2403,7 @@ export function initAuditLogs(client) {
         iconURL: user?.displayAvatarURL() || client.user.displayAvatarURL(),
       })
       .setDescription(`**Event:** \`${title}\`\n${text}`)
-      .setFooter({ text: "Kekse Clan Security | Master Log" })
+      .setFooter({ text: "Kekse Clan | Audit Log" })
       .setTimestamp();
 
     if (thumb) embed.setThumbnail(thumb);
