@@ -2346,14 +2346,14 @@ export async function initEconomySystem(client) {
     }
   });
 }
-export async function wage(force = false, context = null) {
+export async function wage(force = false) {
     const now = new Date();
     const aktuellerMonat = now.getMonth();
     
     const istErzwungen = force === true; 
     
     if (istErzwungen) {
-        await fuehreGehaltszahlungAus(now, context);
+        await fuehreGehaltszahlungAus(now);
         return;
     }
 
@@ -2366,16 +2366,13 @@ export async function wage(force = false, context = null) {
 
     if (istErsterDesMonats && istNullUhr && !bereitsDiesenMonatGezahlt) {
         await setWageData("status", { letzterMonat: aktuellerMonat });
-        await fuehreGehaltszahlungAus(now, context);
+        await fuehreGehaltszahlungAus(now);
     }
 }
 
-async function fuehreGehaltszahlungAus(now, context) {
+async function fuehreGehaltszahlungAus(now) {
     try {
-        const discordClient = context?.client || context;
-        if (!discordClient) return console.error("Kein gültiger Discord-Client gefunden.");
-
-        const guild = discordClient.guilds.cache.first() || await discordClient.guilds.fetch('DEINE_GUILD_ID');
+        const guild = client.guilds.cache.first() || await client.guilds.fetch('DEINE_GUILD_ID');
         const role = guild.roles.cache.get('1457906448234319922') || await guild.roles.fetch('1457906448234319922');
         const team = Array.from(role.members.values());
 
