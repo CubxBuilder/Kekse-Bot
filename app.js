@@ -2351,19 +2351,27 @@ export async function wage(force = false) {
     const aktuellerMonat = now.getMonth();
     const status = await getWageData("status");
     const gespeicherterMonat = status.letzterMonat !== undefined ? status.letzterMonat : -1;
+    
+    // Verhindert, dass Discord-Event-Objekte als "force = true" gewertet werden
+    const istErzwungen = force === true; 
+    
     const istErsterDesMonats = now.getDate() === 1;
     const istNullUhr = now.getHours() === 0;
     const bereitsDiesenMonatGezahlt = gespeicherterMonat === aktuellerMonat;
-    if (force || (istErsterDesMonats && istNullUhr && !bereitsDiesenMonatGezahlt)) {
+
+    if (istErzwungen || (istErsterDesMonats && istNullUhr && !bereitsDiesenMonatGezahlt)) {
         await setWageData("status", { letzterMonat: aktuellerMonat });
+        
         try {
-            const guild = client.guilds.cache.first() || await client.guilds.fetch('1423413347168157718');
+            const guild = client.guilds.cache.first() || await client.guilds.fetch('DEINE_GUILD_ID');
             const role = guild.roles.cache.get('1457906448234319922') || await guild.roles.fetch('1457906448234319922');
             const team = Array.from(role.members.values());
+
             for (const member of team) {
                 const userData = await getEcoData(member.user.id);
                 userData.balance = (userData.balance || 0) + 10000;
                 await setEcoData(member.user.id, userData);
+
                 const nowFormatted = new Date().toLocaleString('de-DE', {
                     day: '2-digit',
                     month: '2-digit',
@@ -2371,12 +2379,14 @@ export async function wage(force = false) {
                     hour: '2-digit',
                     minute: '2-digit'
                 }).replace(',', '');
+
                 const embed = {
                     title: '✅ Monatlicher Lohn',
                     description: 'Dir wurde erfolgreich der monatliche Lohn von `10.000 Kekse` gutgeschrieben. \nVielen Dank für dein Engagement im Team!\n\n\n**User:** <@' + member.user.id + '>\n**Menge:** 10000 Kekse\n**Typ:** Gutschrift',
                     color: 0x2ECC70,
                     footer: { text: nowFormatted }
                 };
+
                 try {
                     await member.send({ 
                         embeds: [embed], 
