@@ -486,6 +486,13 @@ export async function getEcoData(key) {
   const data = await dbGet("economy", key);
   return data || {};
 }
+export async function setWageData(key, value) {
+  await dbSet("wage", key, value);
+}
+export async function getWageData(key) {
+  const data = await dbGet("wage", key);
+  return data || {};
+}
 export async function initEconomyGetKekse(client) {
   try {
     const StorageModel = mongoose.model("BotStorage");
@@ -2339,13 +2346,18 @@ export async function initEconomySystem(client) {
     }
   });
 }
-let letzteAusfuehrungMonat = -1;
 export async function wage(force = false) {
     const now = new Date();
-    if (force || (now.getDate() === 1 && now.getHours() === 0 && letzteAusfuehrungMonat !== now.getMonth())) {
-        letzteAusfuehrungMonat = now.getMonth();
+    const aktuellerMonat = now.getMonth();
+    const status = await getWageData("status");
+    const gespeicherterMonat = status.letzterMonat !== undefined ? status.letzterMonat : -1;
+    const istErsterDesMonats = now.getDate() === 1;
+    const istNullUhr = now.getHours() === 0;
+    const bereitsDiesenMonatGezahlt = gespeicherterMonat === aktuellerMonat;
+    if (force || (istErsterDesMonats && istNullUhr && !bereitsDiesenMonatGezahlt)) {
+        await setWageData("status", { letzterMonat: aktuellerMonat });
         try {
-            const guild = client.guilds.cache.first() || await client.guilds.fetch('DEINE_GUILD_ID');
+            const guild = client.guilds.cache.first() || await client.guilds.fetch('1423413347168157718');
             const role = guild.roles.cache.get('1457906448234319922') || await guild.roles.fetch('1457906448234319922');
             const team = Array.from(role.members.values());
             for (const member of team) {
