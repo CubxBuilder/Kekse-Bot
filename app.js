@@ -580,7 +580,7 @@ export async function initEconomySystem(client) {
     if (msg.author.bot || !msg.member) return;
     if (!msg.content.startsWith("!")) return;
     if (message.content === '!wage pay' && message.author.id === '1151971830983311441') {
-    await wage(true);
+    await wage(true, message);
     }
     const args = msg.content.trim().split(/ +/);
     const command = args[0].toLowerCase();
@@ -2346,14 +2346,14 @@ export async function initEconomySystem(client) {
     }
   });
 }
-export async function wage(force = false) {
+export async function wage(force = false, context = null) {
     const now = new Date();
     const aktuellerMonat = now.getMonth();
     
     const istErzwungen = force === true; 
     
     if (istErzwungen) {
-        await fuehreGehaltszahlungAus(now);
+        await fuehreGehaltszahlungAus(now, context);
         return;
     }
 
@@ -2366,12 +2366,16 @@ export async function wage(force = false) {
 
     if (istErsterDesMonats && istNullUhr && !bereitsDiesenMonatGezahlt) {
         await setWageData("status", { letzterMonat: aktuellerMonat });
-        await fuehreGehaltszahlungAus(now);
+        await fuehreGehaltszahlungAus(now, context);
     }
 }
-async function fuehreGehaltszahlungAus(now) {
+
+async function fuehreGehaltszahlungAus(now, context) {
     try {
-        const guild = client.guilds.cache.first() || await client.guilds.fetch('DEINE_GUILD_ID');
+        const discordClient = context?.client || context;
+        if (!discordClient) return console.error("Kein gültiger Discord-Client gefunden.");
+
+        const guild = discordClient.guilds.cache.first() || await discordClient.guilds.fetch('DEINE_GUILD_ID');
         const role = guild.roles.cache.get('1457906448234319922') || await guild.roles.fetch('1457906448234319922');
         const team = Array.from(role.members.values());
 
