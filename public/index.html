@@ -718,10 +718,10 @@ if (d.logs && d.logs.length) {
 }
 } catch(e) { console.error(e); }
 }
-let authLevel = null; // "admin" | "mod" | null
+let authLevel = null;
 let openUserId = null;
 let modalSig = "";
-const ADMIN_UI = new Set(["promote-user","demote-user","clan-kick","promote-rang","demote-rang","add-xp","remove-xp","add-kekse","remove-kekse"]);
+const ADMIN_UI = new Set(["promote-user","demote-user","promote-rang","demote-rang","add-xp","remove-xp","add-kekse","remove-kekse"]);
 const rowCache = new Map();
 
 const getToken = () => localStorage.getItem("admin_token") || new URLSearchParams(location.search).get("t");
