@@ -4812,45 +4812,109 @@ export async function initPoll(client) {
     }
   }, 30000);
 }
+const CLAN = {
+  MEMBER_CHANNEL: "1436074576076472411",
+  TEAM_CHANNEL: "1423441064232222800",
+  TEST: "1436073052638285959",
+  MEMBER: "1423428139790499983",
+  TEAM: "1457906448234319922",
+  MOD: "1424020019070898186",
+  ADMIN: "1423427747103113307",
+};
+
+// 0 = User, 1 = Test Member, 2 = Member, 3 = Team, 4 = Admin (geschützt)
+function clanRankOf(member) {
+  const r = member.roles.cache;
+  if (r.has(CLAN.ADMIN)) return 4;
+  if (r.has(CLAN.TEAM)) return 3;
+  if (r.has(CLAN.MEMBER)) return 2;
+  if (r.has(CLAN.TEST)) return 1;
+  return 0;
+}
+
+export async function clanChange(client, member, action) {
+  const cur = clanRankOf(member);
+  const id = member.id;
+  const memberCh = await client.channels.fetch(CLAN.MEMBER_CHANNEL).catch(() => null);
+  const teamCh = await client.channels.fetch(CLAN.TEAM_CHANNEL).catch(() => null);
+  const say = (ch, text) => ch?.send(text).catch(() => {});
+
+  if (cur === 4) throw new Error("Admins können hier nicht verändert werden.");
+
+  if (action === "promote") {
+    if (cur === 0) {
+      await member.roles.add(CLAN.TEST);
+      await say(memberCh, `<@${id}> hat den Clan betreten. Herzlich Willkommen 🍪`);
+      return "Neuer Rang: Test Member";
+    }
+    if (cur === 1) {
+      await member.roles.remove(CLAN.TEST);
+      await member.roles.add(CLAN.MEMBER);
+      await say(memberCh, `<@${id}> ist nun ein vollwertiges Mitglied.`);
+      return "Neuer Rang: Member";
+    }
+    if (cur === 2) {
+      await member.roles.add([CLAN.TEAM, CLAN.MOD]);
+      await say(teamCh, `<@${id}> hat das Team betreten.`);
+      return "Neuer Rang: Team";
+    }
+    throw new Error("Höher als Team ist nicht möglich.");
+  }
+
+  if (action === "demote") {
+    if (cur === 0) throw new Error("User ist kein Clan-Mitglied.");
+    if (cur === 3) {
+      await member.roles.remove([CLAN.TEAM, CLAN.MOD]);
+      await member.roles.add(CLAN.MEMBER);
+      await say(teamCh, `<@${id}> hat das Team verlassen.`);
+      return "Neuer Rang: Member";
+    }
+    await member.roles.remove([CLAN.TEST, CLAN.MEMBER]);
+    await say(memberCh, `<@${id}> hat den Clan verlassen. 👋`);
+    return "Neuer Rang: User";
+  }
+
+  if (action === "kick") {
+    if (cur === 0) throw new Error("User ist kein Clan-Mitglied.");
+    const wasTeam = cur === 3;
+    await member.roles.remove([CLAN.TEAM, CLAN.MOD, CLAN.MEMBER, CLAN.TEST]);
+    if (wasTeam) await say(teamCh, `⛔ <@${id}> wurde aus dem Team geschmissen.`);
+    await say(memberCh, `⛔ <@${id}> wurde aus dem Clan geschmissen.`);
+    return wasTeam ? "Aus Team und Clan entfernt" : "Aus dem Clan entfernt";
+  }
+
+  throw new Error("Unbekannte Aktion.");
+}
 export function initMembers(client) {
-  const MEMBER_CHANNEL = "1436074576076472411";
-  const TEST_MEMBER_ROLE = "1436073052638285959";
-  const MEMBER_ROLE = "1423428139790499983";
   client.on("messageCreate", async (msg) => {
-    if (msg.author.bot) return;
+    if (msg.author.bot || !msg.member) return;
+    if (!msg.content.startsWith("!member")) return;
     if (!msg.member.roles.cache.has(TEAM_ROLE)) return;
-    const mentionOrId = msg.content.match(/\d+/)?.[0];
-    if (!mentionOrId) return;
+
+    const args = msg.content.trim().split(/\s+/);
+    const sub = args[1]?.toLowerCase();
+    const targetId = args[2]?.replace(/[<@!>]/g, "");
+    if (!["add", "promote", "remove", "demote", "kick"].includes(sub)) return;
+    if (!/^\d{17,20}$/.test(targetId || "")) {
+      return msg.reply("Nutzung: `!member <add|promote|demote|remove|kick> @User`").catch(() => {});
+    }
+
     try {
-      const targetMember = await msg.guild.members.fetch(mentionOrId).catch(() => null);
-      if (!targetMember) return;
-      const targetChannel = await client.channels.fetch(MEMBER_CHANNEL).catch(() => null);
-      if (!targetChannel) return;
-      if (msg.content.startsWith("!member add")) {
-        if (targetMember.roles.cache.has(MEMBER_ROLE) || targetMember.roles.cache.has(TEST_MEMBER_ROLE)) return;
-        await targetMember.roles.add(TEST_MEMBER_ROLE);
-        return targetChannel.send(`<@${targetMember.id}> hat den Clan betreten. Herzlich Willkommen 🍪`);
-      } 
-      else if (msg.content.startsWith("!member remove")) {
-        if (!targetMember.roles.cache.has(MEMBER_ROLE) && !targetMember.roles.cache.has(TEST_MEMBER_ROLE)) return;
-        if (targetMember.roles.cache.has(MEMBER_ROLE)) {
-          await targetMember.roles.remove(MEMBER_ROLE);
-        } else if (targetMember.roles.cache.has(TEST_MEMBER_ROLE)) {
-          await targetMember.roles.remove(TEST_MEMBER_ROLE);
-        }
-        return targetChannel.send(`<@${targetMember.id}> hat den Clan Verlassen. 👋`);
-      }
-      else if (msg.content.startsWith("!member kick")) {
-        if (!targetMember.roles.cache.has(MEMBER_ROLE) && !targetMember.roles.cache.has(TEST_MEMBER_ROLE)) return;
-        if (targetMember.roles.cache.has(MEMBER_ROLE)) {
-          await targetMember.roles.remove(MEMBER_ROLE);
-        } else if (targetMember.roles.cache.has(TEST_MEMBER_ROLE)) {
-          await targetMember.roles.remove(TEST_MEMBER_ROLE);
-        }
-        return targetChannel.send(`⛔ <@${targetMember.id}> wurde aus dem Clan verwiesen.`);
-      }
+      const target = await msg.guild.members.fetch(targetId).catch(() => null);
+      if (!target) return msg.reply("User nicht auf dem Server.").catch(() => {});
+
+      const action = sub === "add" || sub === "promote" ? "promote"
+                   : sub === "kick" ? "kick" : "demote";
+
+      if (sub === "add" && clanRankOf(target) !== 0)
+        return msg.reply("User ist bereits im Clan.").catch(() => {});
+
+      const result = await clanChange(client, target, action);
+      globalBotStats.commandsRunned += 1;
+      console.log(`${msg.author.username} hat "!member ${sub}" für ${target.user.username} genutzt (${result})`);
+      await msg.react("✅").catch(() => {});
     } catch (error) {
-      console.error(error);
+      await msg.reply(`❌ ${error.message}`).catch(() => {});
     }
   });
 }
@@ -6255,7 +6319,7 @@ const RANK_LADDER = [
 ];
 
 const ADMIN_ACTIONS = new Set([
-  "promote-user", "demote-user", "promote-rang", "demote-rang",
+  "promote-user", "demote-user", "clan-kick", "promote-rang", "demote-rang",
   "add-xp", "remove-xp", "add-kekse", "remove-kekse",
 ]);
 const MOD_ACTIONS = new Set([
@@ -6470,10 +6534,16 @@ app.post("/api/users/action", express.json(), async (req, res) => {
 
     switch (action) {
       case "promote-user":
-      case "demote-user":
-        info = await changeServerRank(guild, needMember(), action === "promote-user" ? 1 : -1);
+        info = await clanChange(client, needMember(), "promote");
         break;
 
+      case "demote-user":
+        info = await clanChange(client, needMember(), "demote");
+        break;
+
+      case "clan-kick":
+        info = await clanChange(client, needMember(), "kick");
+        break;
       case "promote-rang":
       case "demote-rang": {
         const d = await getXpData(userId);
