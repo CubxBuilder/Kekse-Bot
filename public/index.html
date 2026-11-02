@@ -733,6 +733,10 @@ async function loadAuthLevel(token) {
     const r = await fetch("/api/auth/level", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }) });
     authLevel = (await r.json()).level || null;
   } catch { authLevel = null; }
+  if (!token || !authLevel) {
+    window.location.href = "/605";
+    return;
+  }
   set("auth-level", authLevel === "admin" ? "Admin-Token" : authLevel === "mod" ? "Team-Token" : "Nur Ansicht");
   if (openUserId) { modalSig = ""; renderUserModal(); }
 }
@@ -771,8 +775,6 @@ function userRowHtml(u) {
   </td>
   <td data-label="Aktionen" style="padding:8px;"><button class="act-btn" onclick="openUserModal('${u.userId}')">Verwalten</button></td>`;
 }
-
-// Zeilen werden einzeln und nur bei Änderung aktualisiert. Scroll-Position der Logs bleibt erhalten.
 function syncRows(users) {
   const tbody = $("accounts-list");
   tbody.querySelectorAll(".empty-row").forEach(e => e.remove());
