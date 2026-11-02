@@ -9444,6 +9444,7 @@ if (commandName === "crash") {
         globalBotStats.commandsRunned += 1;
       }
     }
+  });
 client.once("clientReady", async () => {
   setBotPresence();
   try {
