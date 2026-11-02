@@ -837,7 +837,7 @@ function renderUserModal() {
   const btn = (a, label, cls = "") => `<button class="act-btn ${cls}" ${can(a) ? "" : "disabled"} onclick="userAction('${a}')">${label}</button>`;
   const info = [
     ["Discord ID", u.userId], ["Username", u.username], ["Anzeigename", u.displayName],
-    ["Hat Account", u.hasAccount ? "Ja" : "Nein"], ["Minecraft", u.mcUsername || "—"],
+    ["Account vorhanden", u.hasAccount ? "Ja" : "Nein"], ["Minecraft", u.mcUsername || "—"],
     ["Server-Rang", u.rank], ["Rang-System", u.tierName], ["XP", `${u.xp}/${u.xpNeeded}`],
     ["Kontostand", u.hasAccount ? u.balance + " Kekse" : "—"],
     ["Konto aktiv", u.hasAccount ? (u.accountActive ? "Ja" : "Nein (gesperrt)") : "—"],
