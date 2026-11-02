@@ -721,7 +721,7 @@ if (d.logs && d.logs.length) {
 let authLevel = null; // "admin" | "mod" | null
 let openUserId = null;
 let modalSig = "";
-const ADMIN_UI = new Set(["promote-user","demote-user","promote-rang","demote-rang","add-xp","remove-xp","add-kekse","remove-kekse"]);
+const ADMIN_UI = new Set(["promote-user","demote-user","clan-kick","promote-rang","demote-rang","add-xp","remove-xp","add-kekse","remove-kekse"]);
 const rowCache = new Map();
 
 const getToken = () => localStorage.getItem("admin_token") || new URLSearchParams(location.search).get("t");
@@ -853,7 +853,7 @@ function renderUserModal() {
     ${authLevel ? "" : `<div style="color:#fbbf24; font-size:.78rem;">Kein gültiger Token – nur Ansicht.</div>`}
     <div class="info-grid">${info}</div>
     <div class="act-group"><h4>Warnungen</h4>${warns}</div>
-    <div class="act-group"><h4>Server-Rang (Admin)</h4><div class="act-row">${btn("promote-user", "Promote User")}${btn("demote-user", "Demote User")}</div></div>
+    <div class="act-group"><h4>Server-Rang (Admin)</h4><div class="act-row">${btn("promote-user", "Promote User")}${btn("demote-user", "Demote User")}${btn("clan-kick", "Clan Kick", "danger")}</div></div>
     <div class="act-group"><h4>Rang-System &amp; XP (Admin)</h4><div class="act-row">${btn("promote-rang", "Promote Rang")}${btn("demote-rang", "Demote Rang")}${btn("add-xp", "+ XP")}${btn("remove-xp", "− XP")}</div></div>
     <div class="act-group"><h4>Konto</h4><div class="act-row">${btn("add-kekse", "+ Kekse")}${btn("remove-kekse", "− Kekse")}${btn("toggle-block", u.accountActive ? "Konto sperren" : "Konto entsperren")}</div></div>
     <div class="act-group"><h4>Moderation</h4><div class="act-row">${btn("warn", "Warn")}${btn("timeout", "Timeout")}${btn("untimeout", "Untimeout")}${btn("kick", "Kick", "danger")}${btn("ban", "Ban", "danger")}${btn("unban", "Unban")}</div></div>`;
@@ -881,7 +881,7 @@ async function userAction(action, extra = {}) {
     if (r === null) return;
     payload.reason = r;
   }
-  if (["kick", "ban"].includes(action) && !confirm(`${action.toUpperCase()} für ${u.username} wirklich ausführen?`)) return;
+  if (["kick", "ban", "clan-kick"].includes(action) && !confirm(`${action.toUpperCase()} für ${u.username} wirklich ausführen?`)) return;
 
   try {
     const res = await fetch("/api/users/action", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
