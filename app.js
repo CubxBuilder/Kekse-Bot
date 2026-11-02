@@ -6319,11 +6319,11 @@ const RANK_LADDER = [
 ];
 
 const ADMIN_ACTIONS = new Set([
-  "promote-user", "demote-user", "clan-kick", "promote-rang", "demote-rang",
+  "promote-rang", "demote-rang",
   "add-xp", "remove-xp", "add-kekse", "remove-kekse",
 ]);
 const MOD_ACTIONS = new Set([
-  "toggle-block", "timeout", "untimeout", "kick", "ban", "unban", "warn", "unwarn",
+  "promote-user", "demote-user", "clan-kick", "toggle-block", "timeout", "untimeout", "kick", "ban", "unban", "warn", "unwarn",
 ]);
 
 function getTokenLevel(token) {
