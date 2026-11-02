@@ -213,7 +213,7 @@ export async function initTicketArchive(app, getTickData, setTickData) {
     }
   });
 }
-export async function archiveTicket({ name, closedBy, channel }, setTickData) {
+export async function archiveTicket({ name, closedBy, creator, channel }, setTickData) {
   try {
     const messages = [];
     let lastId;
@@ -261,6 +261,8 @@ export async function archiveTicket({ name, closedBy, channel }, setTickData) {
       id: ticketIdNum,
       name,
       closedBy: closedBy?.username ?? "System",
+      createdBy: creator?.username ?? null,
+      createdById: creator?.id ?? null,
       closedAt: new Date().toISOString(),
       messageCount: messages.length,
       messages,
@@ -284,7 +286,7 @@ export async function archiveTicket({ name, closedBy, channel }, setTickData) {
             client.user.displayAvatarURL(),
         })
         .setDescription(
-          `**Kanal:** \`${ticketName}\` erfolgreich archiviert.\n**Nachrichten:** ${ticketMessages.length}\n\n**Transcript:** [**${ticketName}**](${ticketUrl})`,
+          `**Kanal:** \`${ticketName}\` erfolgreich archiviert.\n**Erstellt von:** ${creator?.username ?? "Unbekannt"}\n**Nachrichten:** ${ticketMessages.length}\n\n**Transcript:** [**${ticketName}**](${ticketUrl})`,
         )
         .setFooter({ text: "Kekse Clan | Ticket-Archive" })
         .setTimestamp();
@@ -5280,6 +5282,7 @@ export async function initTickets(client) {
         {
           name: channel.name,
           closedBy: moderator,
+          creator: { id: ticket.userId, username: ticket.username },
           channel: channel,
         },
         setTickData
@@ -5931,7 +5934,29 @@ export async function addXP(userId, xpAmount, client) {
     }
   }
 }
+async function applyTierRole(userId, tier, client) {
+  const guild = await client.guilds.fetch(GUILD_ID);
+  const member = await guild.members.fetch(userId).catch(() => null);
+  if (!member) return;
+  await member.roles.remove(ROLES_TIERS.map((t) => t.id)).catch(() => {});
+  await member.roles.add(ROLES_TIERS[tier].id).catch(() => {});
+}
 
+export async function removeXP(userId, amount, client) {
+  if (amount <= 0) return;
+  const d = await getXpData(userId);
+  let tier = d.rang !== undefined ? d.rang : 0;
+  let xp = (d.xp !== undefined ? d.xp : 0) - amount;
+  let changed = false;
+  while (xp < 0 && tier > 0) {
+    tier--;
+    xp += ROLES_TIERS[tier].needed;
+    changed = true;
+  }
+  if (xp < 0) xp = 0;
+  await setXpData(userId, { rang: tier, xp });
+  if (changed) await applyTierRole(userId, tier, client);
+}
 export function handleMessageXP(message) {
   if (message.author.bot || !message.guild || message.guild.id !== GUILD_ID) return;
   addXP(message.author.id, 1, message.client);
@@ -6215,64 +6240,164 @@ export async function initDashboard(app, client, globalBotStats) {
     logs.push({ t: Date.now(), m: message });
   };
 }
+// ===================== Dashboard: User-Datenbank =====================
+const DASH_ECO_ROLE = "1506732560837771284";
+const ADMIN_TOKEN_HASH =
+  "98b597cf0dab8d66c56c7368241dcb52db0c68eb6db44a6d762f7d45fb2db07c";
+
+const RANK_LADDER = [
+  { name: "User", roleId: null },
+  { name: "Test Member", roleId: "1436073052638285959" },
+  { name: "Member", roleId: "1423428139790499983" },
+  { name: "Moderator", roleId: "1457906448234319922" },
+  { name: "Admin", roleId: "1423427747103113307" },
+  { name: "Owner", roleId: null },
+];
+
+const ADMIN_ACTIONS = new Set([
+  "promote-user", "demote-user", "promote-rang", "demote-rang",
+  "add-xp", "remove-xp", "add-kekse", "remove-kekse",
+]);
+const MOD_ACTIONS = new Set([
+  "toggle-block", "timeout", "untimeout", "kick", "ban", "unban", "warn", "unwarn",
+]);
+
+function getTokenLevel(token) {
+  if (!token || typeof token !== "string") return null;
+  const hash = crypto.createHash("sha256").update(token).digest("hex");
+  if (hash === ADMIN_TOKEN_HASH) return "admin";
+  if (archives.some((a) => a.token === token)) return "mod";
+  return null;
+}
+
+function getRankIndex(guild, userId, member) {
+  if (guild.ownerId === userId) return 5;
+  if (!member) return 0;
+  for (let i = 4; i >= 1; i--) {
+    if (member.roles.cache.has(RANK_LADDER[i].roleId)) return i;
+  }
+  return 0;
+}
+
+async function changeServerRank(guild, member, dir) {
+  const cur = getRankIndex(guild, member.id, member);
+  if (cur === 5) throw new Error("Der Owner kann nicht verändert werden.");
+  const next = cur + dir;
+  if (next < 0) throw new Error("User hat bereits den niedrigsten Rang.");
+  if (next > 4) throw new Error("Höher als Admin ist nicht möglich.");
+  const target = RANK_LADDER[next];
+  if (dir > 0) {
+    await member.roles.add(target.roleId);
+    if (next === 2) await member.roles.remove(RANK_LADDER[1].roleId).catch(() => {});
+  } else {
+    await member.roles.remove(RANK_LADDER[cur].roleId);
+    if (target.roleId) await member.roles.add(target.roleId);
+  }
+  return `Neuer Rang: ${target.name}`;
+}
+
+let banCache = { time: 0, list: [] };
+async function getBans(guild) {
+  if (Date.now() - banCache.time < 60000) return banCache.list;
+  try {
+    const bans = await guild.bans.fetch();
+    banCache = { time: Date.now(), list: [...bans.values()] };
+  } catch {
+    banCache.time = Date.now();
+  }
+  return banCache.list;
+}
+
+async function dashLog(level, action, userId, details) {
+  console.log(`[Dashboard] (${level}) ${action} -> ${userId}${details ? " | " + details : ""}`);
+  const ch = client.channels.cache.get(LOG_CHANNEL_ID);
+  if (!ch) return;
+  const embed = new EmbedBuilder()
+    .setColor("#ffffff")
+    .setDescription(
+      `**Aktion:** \`Dashboard: ${action}\`\n**Ziel:** <@${userId}> (\`${userId}\`)\n**Token:** ${level === "admin" ? "Admin" : "Team"}${details ? `\n**Info:** ${details}` : ""}`,
+    )
+    .setFooter({ text: "Kekse Clan | Dashboard" })
+    .setTimestamp();
+  await ch.send({ embeds: [embed] }).catch(() => {});
+}
+
+async function buildUserDatabase(guild) {
+  const Storage = mongoose.model("BotStorage");
+  const [ecoDocs, xpDocs] = await Promise.all([
+    Storage.find({ namespace: "economy" }).lean(),
+    Storage.find({ namespace: "xp" }).lean(),
+  ]);
+  const ecoMap = new Map();
+  const txLogs = {};
+  for (const doc of ecoDocs) {
+    if (/^\d+$/.test(doc.key) && doc.value) ecoMap.set(doc.key, doc.value);
+    else if (doc.key.startsWith("tx_") && doc.value?.history)
+      txLogs[doc.key.replace("tx_", "")] = doc.value.history;
+  }
+  const xpMap = new Map(xpDocs.map((d) => [d.key, d.value || {}]));
+  const modData = await getMData("moderation");
+  const warnsMap = modData.warns || {};
+  const banMap = new Map((await getBans(guild)).map((b) => [b.user.id, b]));
+
+  const ids = new Set([
+    ...guild.members.cache.filter((m) => !m.user.bot).keys(),
+    ...ecoMap.keys(),
+    ...banMap.keys(),
+  ]);
+
+  const users = [];
+  for (const id of ids) {
+    const member = guild.members.cache.get(id);
+    const eco = ecoMap.get(id) || {};
+    const xp = xpMap.get(id) || {};
+    const ban = banMap.get(id);
+    const tierIdx = Math.min(xp.rang ?? 0, ROLES_TIERS.length - 1);
+    const rankIdx = getRankIndex(guild, id, member);
+    const hasAccount = member ? member.roles.cache.has(DASH_ECO_ROLE) : !!eco.username;
+    users.push({
+      userId: id,
+      username: member?.user.username || eco.username || ban?.user.username || "Unbekannt",
+      displayName: member?.displayName || eco.username || ban?.user.username || "Unbekannt",
+      inGuild: !!member,
+      banned: !!ban,
+      banReason: ban?.reason || null,
+      timeoutUntil: member?.communicationDisabledUntilTimestamp || null,
+      hasAccount,
+      mcUsername: eco.mcUsername || null,
+      rank: RANK_LADDER[rankIdx].name,
+      rankIndex: rankIdx,
+      tier: tierIdx,
+      tierName: ROLES_TIERS[tierIdx].name,
+      xp: xp.xp ?? 0,
+      xpNeeded: ROLES_TIERS[tierIdx].needed,
+      balance: eco.balance ?? 0,
+      accountActive: hasAccount && !eco.blocked,
+      warns: warnsMap[id] || [],
+    });
+  }
+  return { users, txLogs };
+}
+
 app.get("/api/stats", async (req, res) => {
   try {
-    const guild = client.guilds.cache.first() || {
-      name: "Kekse Server",
-      id: "—",
-      channels: { cache: { size: 0 } },
-    };
+    const guild = client.guilds.cache.get(GUILD_ID) || client.guilds.cache.first();
     let ownerName = "Unbekannt";
     let userCount = globalBotStats.membersJoined;
     let botCount = 0;
-
-    if (guild.fetchOwner) {
+    if (guild?.fetchOwner) {
       const owner = await guild.fetchOwner().catch(() => null);
       if (owner) ownerName = owner.user.username;
-      userCount = guild.members
-        ? guild.members.cache.filter((m) => !m.user.bot).size
-        : userCount;
-      botCount = guild.members
-        ? guild.members.cache.filter((m) => m.user.bot).size
-        : 0;
+      userCount = guild.members.cache.filter((m) => !m.user.bot).size;
+      botCount = guild.members.cache.filter((m) => m.user.bot).size;
     }
     const StorageModel = mongoose.model("BotStorage");
-    const allEcoDocuments = await StorageModel.find({
-      namespace: "economy",
-    }).lean();
-    const pingDoc = await StorageModel.findOne({
-      namespace: "system",
-      key: "ping_history",
-    }).lean();
-    let dbPingHistory =
-      pingDoc && pingDoc.value && Array.isArray(pingDoc.value.history)
-        ? pingDoc.value.history
-        : [];
-    const allXpDocuments = await StorageModel.find({
-      namespace: "xp",
-    }).lean();
-      const xpMap = new Map(
-      allXpDocuments.map(doc => [doc.key, doc.value])
-    );
-    let accounts = [];
-    let transactionLogs = {};
-    for (const doc of allEcoDocuments) {
-      if (/^\d+$/.test(doc.key) && doc.value) {
-        const xpData = xpMap.get(doc.key) || {};
-        accounts.push({
-          userId: doc.key,
-          username: doc.value.username || "Unbekannt",
-          mcUsername: doc.value.mcUsername || "Nicht registriert",
-          balance: doc.value.balance || 0,
-          blocked: doc.value.blocked || false,
-          rang: xpData.rang || 0,
-          xp: xpData.xp || 0
-        });
-      } else if (doc.key.startsWith("tx_") && doc.value && doc.value.history) {
-        const uId = doc.key.replace("tx_", "");
-        transactionLogs[uId] = doc.value.history;
-      }
-    }
+    const pingDoc = await StorageModel.findOne({ namespace: "system", key: "ping_history" }).lean();
+    const dbPingHistory =
+      pingDoc && pingDoc.value && Array.isArray(pingDoc.value.history) ? pingDoc.value.history : [];
+
+    const { users, txLogs } = guild ? await buildUserDatabase(guild) : { users: [], txLogs: {} };
+
     const mappedLogs = logs.map((l) => ({
       t: l.timestamp,
       m: `[${l.type.toUpperCase()}] ${l.message}`,
@@ -6280,10 +6405,10 @@ app.get("/api/stats", async (req, res) => {
 
     res.json({
       guild: {
-        name: guild.name,
-        id: guild.id,
+        name: guild?.name || "Kekse Server",
+        id: guild?.id || "—",
         owner: ownerName,
-        channels: guild.channels?.cache?.size || 0,
+        channels: guild?.channels?.cache?.size || 0,
       },
       users: userCount,
       bots: botCount,
@@ -6296,8 +6421,8 @@ app.get("/api/stats", async (req, res) => {
         max: globalBotStats.pingMaximum || client.ws.ping || 0,
         history: dbPingHistory,
       },
-      accounts: accounts,
-      transactionLogs: transactionLogs,
+      userDatabase: users,
+      transactionLogs: txLogs,
       logs: mappedLogs,
     });
   } catch (error) {
@@ -6305,47 +6430,157 @@ app.get("/api/stats", async (req, res) => {
   }
 });
 
-app.post("/api/accounts/action", express.json(), async (req, res) => {
+app.post("/api/auth/level", express.json(), (req, res) => {
+  res.json({ level: getTokenLevel(req.body?.token) });
+});
+
+app.post("/api/users/action", express.json(), async (req, res) => {
   try {
-    const { token, userId, action, amount } = req.body;
-    if (!token) return res.status(401).json({ error: "Kein Token angegeben" });
+    const { token, userId, action, amount, reason, duration, index } = req.body || {};
+    const level = getTokenLevel(token);
+    if (!level) return res.status(401).json({ error: "Ungültiger Token" });
 
-    const inputHash = crypto.createHash("sha256").update(token).digest("hex");
-    const ADMIN_TOKEN_HASH =
-      "98b597cf0dab8d66c56c7368241dcb52db0c68eb6db44a6d762f7d45fb2db07c";
-    if (inputHash !== ADMIN_TOKEN_HASH)
-      return res.status(403).json({ error: "Ungültiger Admin Token" });
+    const isAdminAction = ADMIN_ACTIONS.has(action);
+    if (!isAdminAction && !MOD_ACTIONS.has(action))
+      return res.status(400).json({ error: "Unbekannte Aktion" });
+    if (isAdminAction && level !== "admin")
+      return res.status(403).json({ error: "Diese Aktion erfordert einen Admin-Token" });
+    if (!/^\d{17,20}$/.test(String(userId)))
+      return res.status(400).json({ error: "Ungültige User-ID" });
 
-    const userData = await getEcoData(userId);
-    if (!userData || !userData.username)
-      return res.status(404).json({ error: "Konto nicht gefunden" });
+    const guild = client.guilds.cache.get(GUILD_ID);
+    if (!guild) return res.status(503).json({ error: "Server nicht verfügbar" });
 
-    if (action === "toggle-block") {
-      userData.blocked = !userData.blocked;
-      await logTransaction(
-        userId,
-        0,
-        "neutral",
-        `Konto durch Dashboard ${userData.blocked ? "gesperrt" : "entsperrt"}`,
-      );
-    } else if (action === "add-kekse") {
-      const val = parseInt(amount);
-      if (isNaN(val) || val <= 0)
-        return res.status(400).json({ error: "Ungültiger Betrag" });
-      userData.balance = (userData.balance || 0) + val;
-      await logTransaction(userId, val, "plus", "Dashboard Gutschrift");
-    } else if (action === "remove-kekse") {
-      const val = parseInt(amount);
-      if (isNaN(val) || val <= 0)
-        return res.status(400).json({ error: "Ungültiger Betrag" });
-      userData.balance = Math.max(0, (userData.balance || 0) - val);
-      await logTransaction(userId, val, "minus", "Dashboard Abzug");
+    const fail = (m) => { throw new Error(m); };
+    const member = await guild.members.fetch(userId).catch(() => null);
+    const needMember = () => member || fail("User ist nicht auf dem Server.");
+    const needAccount = async () => {
+      const d = await getEcoData(userId);
+      if (!d || !d.username) fail("Der User hat kein Bankkonto.");
+      return d;
+    };
+    const val = parseInt(amount);
+    const note = (reason && String(reason).trim().slice(0, 200)) || "Kein Grund";
+    let info = "";
+
+    if (level !== "admin" && ["timeout", "kick", "ban"].includes(action)) {
+      if (getRankIndex(guild, userId, member) >= 3)
+        fail("Team-Mitglieder können nur mit Admin-Token bestraft werden.");
     }
 
-    await setEcoData(userId, userData);
-    res.json({ success: true });
+    switch (action) {
+      case "promote-user":
+      case "demote-user":
+        info = await changeServerRank(guild, needMember(), action === "promote-user" ? 1 : -1);
+        break;
+
+      case "promote-rang":
+      case "demote-rang": {
+        const d = await getXpData(userId);
+        const cur = d.rang !== undefined ? d.rang : 0;
+        const next = cur + (action === "promote-rang" ? 1 : -1);
+        if (next < 0 || next >= ROLES_TIERS.length) fail("Kein weiterer Rang möglich.");
+        await setXpData(userId, { rang: next, xp: 0 });
+        await applyTierRole(userId, next, client);
+        info = `Rang: ${ROLES_TIERS[next].name} (XP auf 0 gesetzt)`;
+        break;
+      }
+
+      case "add-xp":
+        if (isNaN(val) || val <= 0) fail("Ungültige Menge");
+        await addXP(userId, val, client);
+        info = `+${val} XP`;
+        break;
+
+      case "remove-xp":
+        if (isNaN(val) || val <= 0) fail("Ungültige Menge");
+        await removeXP(userId, val, client);
+        info = `-${val} XP`;
+        break;
+
+      case "add-kekse":
+      case "remove-kekse": {
+        if (isNaN(val) || val <= 0) fail("Ungültige Menge");
+        const d = await needAccount();
+        if (action === "add-kekse") {
+          d.balance = (d.balance || 0) + val;
+          await logTransaction(userId, val, "plus", "Dashboard Gutschrift");
+        } else {
+          d.balance = Math.max(0, (d.balance || 0) - val);
+          await logTransaction(userId, val, "minus", "Dashboard Abzug");
+        }
+        await setEcoData(userId, d);
+        info = `${action === "add-kekse" ? "+" : "-"}${val} Kekse`;
+        break;
+      }
+
+      case "toggle-block": {
+        const d = await needAccount();
+        d.blocked = !d.blocked;
+        await logTransaction(userId, 0, "neutral", `Konto durch Dashboard ${d.blocked ? "gesperrt" : "entsperrt"}`);
+        await setEcoData(userId, d);
+        info = d.blocked ? "Konto gesperrt" : "Konto entsperrt";
+        break;
+      }
+
+      case "timeout": {
+        const ms = parseTimeframe(String(duration || ""));
+        if (!ms) fail("Ungültige Dauer (z.B. 10m, 2h, 1d)");
+        if (ms > 28 * 86400000) fail("Maximal 28 Tage möglich");
+        await needMember().timeout(ms, note);
+        info = `Timeout ${duration} | ${note}`;
+        break;
+      }
+
+      case "untimeout":
+        await needMember().timeout(null, note);
+        info = note;
+        break;
+
+      case "kick":
+        await needMember().kick(note);
+        info = note;
+        break;
+
+      case "ban":
+        await guild.members.ban(userId, { reason: note });
+        banCache.time = 0;
+        info = note;
+        break;
+
+      case "unban":
+        await guild.members.unban(userId, note);
+        banCache.time = 0;
+        info = note;
+        break;
+
+      case "warn": {
+        const md = await getMData("moderation");
+        md.warns ??= {};
+        (md.warns[userId] ??= []).push({ reason: note, by: client.user.id, date: Date.now(), via: "dashboard" });
+        await setMData("moderation", md);
+        info = `${note} (Gesamt: ${md.warns[userId].length})`;
+        break;
+      }
+
+      case "unwarn": {
+        const md = await getMData("moderation");
+        const list = md.warns?.[userId] || [];
+        if (!list.length) fail("Keine Warnungen vorhanden.");
+        const idx = index ? parseInt(index) - 1 : list.length - 1;
+        if (!list[idx]) fail("Ungültige Warn-Nummer.");
+        const removed = list.splice(idx, 1)[0];
+        await setMData("moderation", md);
+        info = `Entfernt: ${removed.reason}`;
+        break;
+      }
+    }
+
+    await dashLog(level, action, userId, info);
+    globalBotStats.commandsRunned += 1;
+    res.json({ success: true, message: info });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(400).json({ error: error.message });
   }
 });
 process.on("unhandledRejection", (reason, promise) => {
@@ -7493,13 +7728,14 @@ export async function deploySlashCommands() {
         delete stored.tickets[ticket.idString];
         await setTickData("tickets", stored);
         await archiveTicket(
-          {
-            name: channel.name,
-            closedBy: moderator,
-            channel: channel,
-          },
-          setTickData,
-        );
+        {
+          name: channel.name,
+          closedBy: moderator,
+          creator: { id: ticket.userId, username: ticket.username },
+          channel: channel,
+        },
+        setTickData
+      );
       } catch (err) {
         console.error("[TICKET] Fehler:", err);
       }
