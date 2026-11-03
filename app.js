@@ -9274,34 +9274,31 @@ client.once("clientReady", async () => {
     console.error("[Ready] Kritischer Fehler beim Initialisieren:", err);
   }
   try {
-            const voiceChannel = await client.channels.fetch(VOICE_CHANNEL_ID);
-            if (!voiceChannel || voiceChannel.type !== ChannelType.GuildVoice) return;
-
-            const messages = await voiceChannel.messages.fetch({ limit: 5 });
-            const existingBotMessage = messages.find(msg => 
-                msg.author.id === client.user.id && 
-                msg.components.some(row => row.components.some(comp => comp.customId === CUSTOM_BUTTON_ID))
-            );
-
-            if (!existingBotMessage) {
-                const currentOverwrites = voiceChannel.permissionOverwrites.cache.get(TARGET_ROLE_ID);
-                const isLocked = currentOverwrites && currentOverwrites.deny.has(PermissionFlagsBits.Connect);
-
-                const row = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(CUSTOM_BUTTON_ID)
-                        .setLabel(isLocked ? 'Talk: Geschlossen 🔒' : 'Talk: Offen 🔓')
-                        .setStyle(isLocked ? ButtonStyle.Danger : ButtonStyle.Success)
-                );
-
-                await voiceChannel.send({
-                    content: 'Status des Sprachkanals verwalten:',
-                    components: [row]
-                });
-            }
-        } catch (error) {
-            console.error(error);
-        }
+    const VOICE_CHANNEL_ID = '1567194137650925598';
+    const ALLOWED_USER_ID = '1423427747103113307';
+    const TARGET_ROLE_ID = '1457906448234319922';
+    const CUSTOM_BUTTON_ID = 'toggle_voice_lock';
+    const voiceChannel = await client.channels.fetch(VOICE_CHANNEL_ID);
+    if (!voiceChannel || voiceChannel.type !== ChannelType.GuildVoice) return;
+    const messages = await voiceChannel.messages.fetch({ limit: 5 });
+    const existingBotMessage = messages.find(msg => msg.author.id === client.user.id && msg.components.some(row => row.components.some(comp => comp.customId === CUSTOM_BUTTON_ID)));
+    if (!existingBotMessage) {
+        const currentOverwrites = voiceChannel.permissionOverwrites.cache.get(TARGET_ROLE_ID);
+        const isLocked = currentOverwrites && currentOverwrites.deny.has(PermissionFlagsBits.Connect);
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId(CUSTOM_BUTTON_ID)
+                .setLabel(isLocked ? 'Talk: Geschlossen 🔒' : 'Talk: Offen 🔓')
+                .setStyle(isLocked ? ButtonStyle.Danger : ButtonStyle.Success)
+        );
+        await voiceChannel.send({
+            content: 'Status des Sprachkanals verwalten:',
+            components: [row]
+        });
+     }
+} catch (error) {
+    console.error(error);
+}
 });
 app.get("/api/stats_internal", (req, res) => {
   const totalSeconds = client.uptime / 1000;
