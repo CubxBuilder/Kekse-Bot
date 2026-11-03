@@ -286,7 +286,7 @@ export async function archiveTicket({ name, closedBy, creator, channel }, setTic
             client.user.displayAvatarURL(),
         })
         .setDescription(
-          `**Kanal:** \`${ticketName}\` erfolgreich archiviert.\n**Erstellt von:** ${creator?.username ?? "Unbekannt"}\n**Nachrichten:** ${ticketMessages.length}\n\n**Transcript:** [**${ticketName}**](${ticketUrl})`,
+          `**Kanal:** \`${ticketName}\` archiviert\n**Erstellt von:** ${creator?.username ?? "Unbekannt"}\n**Nachrichten:** ${ticketMessages.length}\n\n**Transcript:** [**${ticketName}**](${ticketUrl})`,
         )
         .setFooter({ text: "Kekse Clan | Ticket-Archive" })
         .setTimestamp();
@@ -5665,7 +5665,7 @@ export function initVoiceChannels(client) {
           await sendKekseLog(
             "Voice Lounge entfernt",
             member.user,
-            `**Kanal:** \`${channelName}\` (automatisch gelöscht, da leer)`,
+            `**Kanal:** \`${channelName}\``,
           );
           globalBotStats.voiceChannelDeleted += 1;
         }
