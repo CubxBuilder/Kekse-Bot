@@ -553,7 +553,7 @@ export async function initEconomySystem(client) {
     );
     await setEcoData(winner.userId, winnerData);
     const winEmbed = new EmbedBuilder()
-      .setTitle("Jackpot — Gewinner!")
+      .setTitle("Jackpot - Gewinner!")
       .setDescription(
         `<@${winner.userId}> hat den Jackpot gewonnen!\n\n**Gewinn: ${totalPool} Kekse**\nGewinnchance: **${((winner.betAmount / totalPool) * 100).toFixed(1)}%**`,
       )
