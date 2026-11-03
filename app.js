@@ -6026,7 +6026,7 @@ export function initHelp(client) {
 }
 export async function setupVoiceModToggle(client) {
     const VOICE_CHANNEL_ID = '1567194137650925598';
-    const ALLOWED_USER_ID = '1423427747103113307';
+    const ALLOWED_USER_ID = '1151971830983311441';
     const TARGET_ROLE_ID = '1457906448234319922';
     const CUSTOM_BUTTON_ID = 'toggle_voice_lock';
     client.on('interactionCreate', async (interaction) => {
