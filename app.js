@@ -6054,7 +6054,7 @@ export async function setupVoiceModToggle(client) {
 
             if (isCurrentlyLocked) {
                 await voiceChannel.permissionOverwrites.edit(TARGET_ROLE_ID, {
-                    Connect: null
+                    Connect: true
                 });
             } else {
                 await voiceChannel.permissionOverwrites.edit(TARGET_ROLE_ID, {
