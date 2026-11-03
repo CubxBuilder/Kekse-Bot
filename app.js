@@ -6024,6 +6024,69 @@ export function initHelp(client) {
     globalBotStats.commandsRunned += 1;
   });
 }
+import { 
+    ChannelType, 
+    ActionRowBuilder, 
+    ButtonBuilder, 
+    ButtonStyle, 
+    PermissionFlagsBits 
+} from 'discord.js';
+
+export async function setupVoiceModToggle(client) {
+    const VOICE_CHANNEL_ID = '1567194137650925598';
+    const ALLOWED_USER_ID = '1423427747103113307';
+    const TARGET_ROLE_ID = '1457906448234319922';
+    const CUSTOM_BUTTON_ID = 'toggle_voice_lock';
+    client.on('interactionCreate', async (interaction) => {
+        if (!interaction.isButton() || interaction.customId !== CUSTOM_BUTTON_ID) return;
+
+        if (interaction.user.id !== ALLOWED_USER_ID) {
+            return interaction.reply({ 
+                content: 'Du bist nicht berechtigt, diesen Button zu nutzen.', 
+                ephemeral: true 
+            });
+        }
+
+        try {
+            await interaction.deferUpdate();
+
+            const voiceChannel = interaction.channel;
+            const currentOverwrites = voiceChannel.permissionOverwrites.cache.get(TARGET_ROLE_ID);
+            
+            let isCurrentlyLocked = false;
+            if (currentOverwrites && currentOverwrites.deny.has(PermissionFlagsBits.Connect)) {
+                isCurrentlyLocked = true;
+            }
+
+            let nextLockState = !isCurrentlyLocked;
+
+            if (isCurrentlyLocked) {
+                await voiceChannel.permissionOverwrites.edit(TARGET_ROLE_ID, {
+                    Connect: null
+                });
+            } else {
+                await voiceChannel.permissionOverwrites.edit(TARGET_ROLE_ID, {
+                    Connect: false
+                });
+            }
+
+            const updatedRow = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId(CUSTOM_BUTTON_ID)
+                    .setLabel(nextLockState ? 'Geschlossen' : 'Geöffnet')
+                    .setStyle(nextLockState ? ButtonStyle.Secondary : ButtonStyle.Secondary)
+            );
+
+            await interaction.editReply({
+                components: [updatedRow]
+            });
+
+        } catch (error) {
+            console.error(error);
+            await interaction.followUp({ content: 'Es gab einen Fehler beim Umschalten der Rechte.', ephemeral: true });
+        }
+    });
+}
 export async function initDashboard(app, client, globalBotStats) {
   const logs = [];
   const _log = console.log.bind(console);
@@ -6033,7 +6096,6 @@ export async function initDashboard(app, client, globalBotStats) {
     logs.push({ t: Date.now(), m: message });
   };
 }
-// ===================== Dashboard: User-Datenbank =====================
 const DASH_ECO_ROLE = "1506732560837771284";
 const ADMIN_TOKEN_HASH =
   "98b597cf0dab8d66c56c7368241dcb52db0c68eb6db44a6d762f7d45fb2db07c";
@@ -9201,6 +9263,7 @@ client.once("clientReady", async () => {
     initAdminFun(client);
     await syncExistingUsers(client);
     await initInviteTracker(client);
+    await setupVoiceModToggle(client);
     startVoiceXpTracker(client);
     await wage(client);
     const guild = client.guilds.cache.get("1423413347168157718");
@@ -9210,6 +9273,35 @@ client.once("clientReady", async () => {
   } catch (err) {
     console.error("[Ready] Kritischer Fehler beim Initialisieren:", err);
   }
+  try {
+            const voiceChannel = await client.channels.fetch(VOICE_CHANNEL_ID);
+            if (!voiceChannel || voiceChannel.type !== ChannelType.GuildVoice) return;
+
+            const messages = await voiceChannel.messages.fetch({ limit: 5 });
+            const existingBotMessage = messages.find(msg => 
+                msg.author.id === client.user.id && 
+                msg.components.some(row => row.components.some(comp => comp.customId === CUSTOM_BUTTON_ID))
+            );
+
+            if (!existingBotMessage) {
+                const currentOverwrites = voiceChannel.permissionOverwrites.cache.get(TARGET_ROLE_ID);
+                const isLocked = currentOverwrites && currentOverwrites.deny.has(PermissionFlagsBits.Connect);
+
+                const row = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(CUSTOM_BUTTON_ID)
+                        .setLabel(isLocked ? 'Talk: Geschlossen 🔒' : 'Talk: Offen 🔓')
+                        .setStyle(isLocked ? ButtonStyle.Danger : ButtonStyle.Success)
+                );
+
+                await voiceChannel.send({
+                    content: 'Status des Sprachkanals verwalten:',
+                    components: [row]
+                });
+            }
+        } catch (error) {
+            console.error(error);
+        }
 });
 app.get("/api/stats_internal", (req, res) => {
   const totalSeconds = client.uptime / 1000;
