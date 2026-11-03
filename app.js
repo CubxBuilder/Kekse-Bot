@@ -6024,14 +6024,6 @@ export function initHelp(client) {
     globalBotStats.commandsRunned += 1;
   });
 }
-import { 
-    ChannelType, 
-    ActionRowBuilder, 
-    ButtonBuilder, 
-    ButtonStyle, 
-    PermissionFlagsBits 
-} from 'discord.js';
-
 export async function setupVoiceModToggle(client) {
     const VOICE_CHANNEL_ID = '1567194137650925598';
     const ALLOWED_USER_ID = '1423427747103113307';
