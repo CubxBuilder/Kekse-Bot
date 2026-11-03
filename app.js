@@ -3330,7 +3330,7 @@ export function initVerification(client) {
       await sendKekseLog(
         "User Verifiziert",
         interaction.user,
-        `<@${interaction.user.id} hat sich verifiziert.`,
+        `<@${interaction.user.id}> hat sich verifiziert.`,
       );
 
       await interaction.reply({
