@@ -3642,7 +3642,6 @@ export async function initCounting(client) {
       if (countingChannel) {
         await countingChannel.send(`<@${topCounter}> ist der neue **King of Counting**!`);
       }
-      return;
     }
     const match = msg.content.trim().match(/^-?\d+/);
     if (!match && !syncMode && msg.content.startsWith("!set_number")) {
