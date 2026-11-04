@@ -402,6 +402,12 @@
 .badge { display:inline-block; padding:4px 6px; border-radius:4px; font-size:.68rem; border:1px solid currentColor; margin:2px 5px 2px 0; }
 .warn-item { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:4px 8px; background:var(--bg-input); border-radius:var(--radius-sm); font-size:.78rem; margin-top:4px; }
 @media (max-width:600px) { .info-grid { grid-template-columns:1fr; } }
+      .archive-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
       @media (max-width: 900px) {
         main {
           grid-template-columns: 1fr;
@@ -469,29 +475,120 @@
     grid-template-columns: 1fr;
     gap: 15px;
   }
-  .full-width {
-    grid-column: unset;
-  }
-  thead {
-    display: none;
-  }
-  tr {
-    display: block;
-    border-bottom: 2px solid var(--border);
-    padding: 10px 0;
-  }
-  td {
-    display: flex;
-    justify-content: space-between;
-    padding: 5px 0;
-    border: none;
-  }
-  td::before {
-    content: attr(data-label);
-    font-weight: bold;
-    color: var(--text-secondary);
-    margin-right: 15px;
-  }
+        #accounts-database input,
+        #accounts-database select,
+        #ticket-archive input,
+        #ticket-archive select {
+          flex: 1 1 100% !important;
+          width: 100%;
+          min-width: 0 !important;
+          font-size: 16px;
+        }
+
+        #accounts-database > div[style*="overflow-x"] {
+          overflow-x: visible !important;
+        }
+        table, tbody {
+          display: block;
+          width: 100%;
+        }
+        thead {
+          display: none;
+        }
+        tr {
+          display: block;
+          background: var(--bg-elevated);
+          border: 1px solid var(--border) !important;
+          border-radius: var(--radius-sm);
+          padding: 8px 12px;
+          margin-bottom: 10px;
+        }
+        td {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 4px 10px;
+          padding: 6px 0 !important;
+          border: none;
+          border-bottom: 1px solid #222;
+          font-size: 0.8rem;
+        }
+        td:last-child {
+          border-bottom: none;
+        }
+        td::before {
+          content: attr(data-label);
+          font-weight: 600;
+          font-size: 0.72rem;
+          color: var(--text-secondary);
+          margin-right: 10px;
+        }
+        td[data-label="Nutzer"] {
+          display: block;
+          padding-bottom: 8px !important;
+        }
+        td[data-label="Nutzer"]::before {
+          display: none;
+        }
+        td[data-label="Status"] {
+          justify-content: flex-end;
+        }
+        td[data-label="Status"]::before {
+          margin-right: auto;
+        }
+        .tx-container {
+          flex-basis: 100%;
+          width: 100%;
+          min-width: 0;
+          max-height: 160px;
+        }
+        .tx-container div {
+          white-space: normal !important;
+        }
+        td[data-label="Aktionen"] .act-btn {
+          width: 100%;
+          padding: 10px;
+        }
+        #ticket-archive h3 {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          cursor: pointer;
+          user-select: none;
+        }
+        #ticket-archive h3::after {
+          content: "▼";
+          font-size: 0.7rem;
+          transition: transform 0.2s;
+        }
+        #ticket-archive:not(.collapsed) h3::after {
+          transform: rotate(180deg);
+        }
+        #ticket-archive.collapsed h3 {
+          border-bottom: none;
+          padding-bottom: 0;
+        }
+        #ticket-archive.collapsed .archive-body {
+          display: none;
+        }
+        .ticket-btn {
+          flex-wrap: wrap;
+        }
+        .msg-attachments img {
+          max-width: 100%;
+        }
+        .modal {
+          padding: 8px;
+          align-items: flex-end;
+        }
+        .modal-box {
+          max-height: 92vh;
+          padding: 14px;
+        }
+        .act-btn {
+          padding: 8px 12px;
+        }
       }
       @media (min-width: 1400px) {
         main {
@@ -561,18 +658,15 @@
     </div>
   </article>
 
-  <article id="ticket-archive" style="grid-column: 1 / -1;">
-    <h3>Ticket Archiv</h3>
-    <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
-      <input type="text" id="ticket-search" placeholder="Nach Kanal oder User suchen..." style="flex: 1; padding: 6px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: white;">
-      <select id="ticket-sort" style="padding: 6px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); color: white;">
-        <option value="newest">Neueste zuerst</option>
-        <option value="oldest">Älteste zuerst</option>
-        <option value="messages">Meiste Nachrichten</option>
-      </select>
-    </div>
-    <div class="ticket-list" id="ticket-list">
-      <div class="no-tickets">Warte auf Tickets...</div>
+  <article id="ticket-archive" class="collapsed" style="grid-column: 1 / -1;">
+    <h3 id="ticket-toggle">Ticket Archiv</h3>
+    <div class="archive-body">
+      <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+        <input type="text" id="ticket-search" placeholder="Nach Kanal oder User suchen..." style="flex: 1; padding: 6px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: white;">
+      </div>
+      <div class="ticket-list" id="ticket-list">
+        <div class="no-tickets">Warte auf Tickets...</div>
+      </div>
     </div>
   </article>
   <article id="accounts-database" style="grid-column: 1 / -1; flex-direction: column;">
@@ -821,7 +915,7 @@ function processAndRenderAccounts() {
   if (sortBy === "rank") list.sort((a, b) => b.rankIndex - a.rankIndex);
   const total = list.length;
   list = list.slice(0, 100);
-  set("acc-limit-note", total > 100 ? `Zeige 100 von ${total} Usern – Suche oder Filter nutzen.` : "");
+  set("acc-limit-note", total > 100 ? `Zeige 100 von ${total} Usern - Suche oder Filter nutzen.` : "");
   syncRows(list);
 }
 $("acc-filter").addEventListener("change", processAndRenderAccounts);
@@ -898,17 +992,9 @@ $("acc-sort").addEventListener("change", processAndRenderAccounts);
 function processAndRenderTickets() {
  let filtered = [...rawTicketsCache];
  const query = $("ticket-search").value.toLowerCase();
- const sortBy = $("ticket-sort").value;
- if (query) {
- filtered = filtered.filter(t => t.name.toLowerCase().includes(query) || t.closedBy.toLowerCase().includes(query) || (t.createdBy || "").toLowerCase().includes(query));
- }
- if (sortBy === "newest") filtered.sort((a,b) => new Date(b.closedAt) - new Date(a.closedAt));
- if (sortBy === "oldest") filtered.sort((a,b) => new Date(a.closedAt) - new Date(b.closedAt));
- if (sortBy === "messages") filtered.sort((a,b) => b.messageCount - a.messageCount);
  renderTickets(filtered);
 }
 $("ticket-search").addEventListener("input", processAndRenderTickets);
-$("ticket-sort").addEventListener("change", processAndRenderTickets);
 const escapeHTML = str => str ? str.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : "";
 const isImg = url => /\.(png|jpe?g|gif|webp|svg)/i.test(url);
 const fmtTs = ms => new Date(ms).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
@@ -953,6 +1039,7 @@ if (entry) entry.classList.toggle("open");
 const hash = window.location.hash;
 if (!hash || !hash.startsWith("#ticket-")) return;
 const targetElement = document.querySelector(hash);
+$("ticket-archive").classList.remove("collapsed");
 if (targetElement) {
 if (!targetElement.classList.contains("open")) targetElement.classList.add("open");
 setTimeout(() => targetElement.scrollIntoView({ behavior: "smooth", block: "center" }), 300);
@@ -972,6 +1059,7 @@ processAndRenderTickets();
 checkUrlHash();
 } catch { window.location.href = "/err612"; }
 }
+$("ticket-toggle").addEventListener("click", () => $("ticket-archive").classList.toggle("collapsed"));
 fetchStats();
 fetchTickets();
 setInterval(fetchStats, 5000);
