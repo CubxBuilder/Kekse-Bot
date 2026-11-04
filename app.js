@@ -2379,7 +2379,7 @@ export async function wage(force = false) {
 
 async function fuehreGehaltszahlungAus(now) {
     try {
-        const guild = client.guilds.cache.first() || await client.guilds.fetch('DEINE_GUILD_ID');
+        const guild = client.guilds.cache.first() || await client.guilds.fetch('1423413347168157718');
         const role = guild.roles.cache.get('1457906448234319922') || await guild.roles.fetch('1457906448234319922');
         const team = Array.from(role.members.values());
 
@@ -5847,11 +5847,11 @@ export function handleInviteCreate(invite) {
   currentInvites.set(invite.code, invite.uses);
   invitesTracker.set(invite.guild.id, currentInvites);
 }
-const members = await guild.members.fetch();
+
 export async function syncExistingUsers(client) {
   try {
     const guild = await client.guilds.fetch(GUILD_ID);
-    
+    const members = await guild.members.fetch();
     for (const [memberId, member] of members) {
       if (member.user.bot) continue;
       
