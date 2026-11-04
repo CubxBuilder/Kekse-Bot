@@ -3623,28 +3623,6 @@ export async function initCounting(client) {
       await msg.reply({ embeds: [embed] }).catch(() => {});
       return;
     }
-    if (!syncMode) {
-      const sorted = Object.entries(countingData.scoreboard || {})
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10);
-      const roleId = "1511305653103104041";
-      const hasRole = members.filter(member => member.roles.cache.has(roleId));
-      const prevTopCounter = hasRole.first();
-      const topCounter = sorted[0][0]; 
-      if (topCounter === prevTopCounter?.id) {
-        
-      } else {
-        const newTopCounter = await msg.guild.members.fetch(topCounter);
-        if (prevTopCounter) {
-          await prevTopCounter.roles.remove(roleId);
-        }
-        await newTopCounter.roles.add(roleId);
-        const countingChannel = client.channels.cache.get(COUNTING_CHANNEL);
-        if (countingChannel) {
-          await countingChannel.send(`<@${topCounter}> ist der neue **King of Counting**!`);
-        }
-      }
-    }
     const match = msg.content.trim().match(/^-?\d+/);
     if (!match && !syncMode && msg.content.startsWith("!set_number")) {
       if (msg.author.id !== "1151971830983311441") return;
@@ -3819,6 +3797,25 @@ export async function initCounting(client) {
     await logTransaction(msg.author.id, 1, "plus", "Counting");
     await setEcoData(msg.author.id, userData);
     if (!syncMode) await msg.react("✅").catch(() => {});
+    const sorted = Object.entries(countingData.scoreboard || {})
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+    const roleId = "1511305653103104041";
+    const hasRole = members.filter(member => member.roles.cache.has(roleId));
+    const prevTopCounter = hasRole.first();
+    const topCounter = sorted[0][0]; 
+    if (topCounter === prevTopCounter?.id) {    
+    } else {
+      const newTopCounter = await msg.guild.members.fetch(topCounter);
+      if (prevTopCounter) {
+      await prevTopCounter.roles.remove(roleId);
+    }
+    await newTopCounter.roles.add(roleId);
+    const countingChannel = client.channels.cache.get(COUNTING_CHANNEL);
+    if (countingChannel) {
+        await countingChannel.send(`<@${topCounter}> ist der neue **King of Counting**!`);
+      }
+    }
   };
   const handleCounting = (msg, syncMode = false) =>
     withCountingLock(() => handleCountingInner(msg, syncMode));
