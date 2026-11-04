@@ -1705,7 +1705,7 @@ export async function initEconomySystem(client) {
             status = "Beide haben Blackjack! Unentschieden.";
             finalColor = 0x333333;
           } else {
-            status = "Echter Blackjack! Du gewinnst das 1.5-fache!";
+            status = "Blackjack! Du erhältst das 1.5-fache deines Einsatzes!";
             userData.balance += Math.floor(betAmount * 1.5);
             await logTransaction(
               msg.author.id,
@@ -1808,7 +1808,7 @@ export async function initEconomySystem(client) {
             );
             finalColor = 0x333333;
           } else {
-            status = "Unentschieden! Kekse zurück.";
+            status = "Unentschieden! Du erhältst deinen Einsatz zurück.";
             finalColor = 0x333333;
           }
           await setEcoData(msg.author.id, userData);
@@ -1925,7 +1925,7 @@ export async function initEconomySystem(client) {
 
         const reply = await msg.reply({
           content:
-            "Klicke auf den Button unten, um dein Konto zu erstellen. Dieser Button funktioniert nur für dich.",
+            "Klicke auf den Button unten, um dein Konto zu erstellen. Dieser Button ist nur von dir Nutzbar.",
           components: [row],
         });
         setTimeout(() => {
@@ -1945,12 +1945,16 @@ export async function initEconomySystem(client) {
             {
               name: "`!bank create`",
               value:
-                "Erstellt ein Bankkonto (Erfordert Minecraft-Namen).",
+                "Erstelle ein Bankkonto (Erfordert Minecraft-Namen).",
             },
             {
               name: "`!bank`",
-              value: "Zeigt dir deinen aktuellen Kontostand (per dm).",
+              value: "Zeigt dir deinen Kontostand.",
             },
+            {
+              name: "`!bank pay`",
+              value: "Überweise Kekse an eine andere Person."
+            }
           );
 
         return msg.reply({ embeds: [helpEmbed], flags: [MessageFlags.Ephemeral] });
@@ -2150,7 +2154,7 @@ export async function initEconomySystem(client) {
         }
         if (userData.claimedDailies[setupId] === localizedDateStr) {
           return interaction.reply({
-            content: `Du hast deine Kekse für **dieses spezifische Event** heute bereits abgeholt! Versuche es nach 00:00 Uhr (de-DE) erneut.`,
+            content: `Du hast deine Kekse für **dieses Event** heute bereits abgeholt! Versuche es nach 00:00 Uhr (de-DE) erneut.`,
             flags: [MessageFlags.Ephemeral],
           });
         }
@@ -2227,7 +2231,7 @@ export async function initEconomySystem(client) {
 
         if (currentCookies < item.price) {
           return interaction.reply({
-            content: `Du hast nicht genug Kekse für diesen Kauf! Ein(e) **${item.name}** kostet **${item.price.toLocaleString("de-DE")} Kekse** (Du hast: ${currentCookies.toLocaleString("de-DE")}).`,
+            content: `Du hast nicht genug Kekse für diesen Kauf! 1x **${item.name}** kostet **${item.price.toLocaleString("de-DE")} Kekse** (Du hast: ${currentCookies.toLocaleString("de-DE")}).`,
             flags: MessageFlags.Ephemeral,
           });
         }
@@ -2271,7 +2275,7 @@ export async function initEconomySystem(client) {
 
           await interaction.user.send({ embeds: [invoiceEmbed] }).catch(() => {
             console.log(
-              `Konnte keine DM an ${interaction.user.tag} senden (DMs geschlossen).`,
+              `Konnte keine DM an ${interaction.user.tag} senden.`,
             );
           });
 
@@ -3619,7 +3623,27 @@ export async function initCounting(client) {
       await msg.reply({ embeds: [embed] }).catch(() => {});
       return;
     }
-
+    if (!syncMode) {
+      const sorted = Object.entries(countingData.scoreboard || {})
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+      if (sorted.length === 0) return;
+      const roleId = "1511305653103104041";
+      const hasRole = members.filter(member => member.roles.cache.has(roleId));
+      const prevTopCounter = hasRole.first();
+      const topCounter = sorted[0][0]; 
+      if (topCounter === prevTopCounter?.id) return;
+      const newTopCounter = await msg.guild.members.fetch(topCounter);
+      if (prevTopCounter) {
+        await prevTopCounter.roles.remove(roleId);
+      }
+      await newTopCounter.roles.add(roleId);
+      const countingChannel = client.channels.cache.get(COUNTING_CHANNEL);
+      if (countingChannel) {
+        await countingChannel.send(`<@${topCounter}> ist der neue **King of Counting**!`);
+      }
+      return;
+    }
     const match = msg.content.trim().match(/^-?\d+/);
     if (!match && !syncMode && msg.content.startsWith("!set_number")) {
       if (msg.author.id !== "1151971830983311441") return;
@@ -5819,11 +5843,10 @@ export function handleInviteCreate(invite) {
   currentInvites.set(invite.code, invite.uses);
   invitesTracker.set(invite.guild.id, currentInvites);
 }
-
+const members = await guild.members.fetch();
 export async function syncExistingUsers(client) {
   try {
     const guild = await client.guilds.fetch(GUILD_ID);
-    const members = await guild.members.fetch();
     
     for (const [memberId, member] of members) {
       if (member.user.bot) continue;
