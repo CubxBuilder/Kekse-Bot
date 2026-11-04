@@ -8,7 +8,7 @@ if (!uri) {
 
 export const dbConnection = mongoose.connect(uri)
     .then(() => {
-        console.log('MongoDB-Verbindung (KekseStorage) erfolgreich hergestellt.');
+        console.log('MongoDB-Verbindung erfolgreich hergestellt.');
     })
     .catch(err => {
         console.error('MongoDB Verbindungsfehler:', err);
