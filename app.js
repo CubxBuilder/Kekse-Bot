@@ -6800,14 +6800,14 @@ export async function deploySlashCommands() {
   try {
     const base64Token = process.env.BOT_TOKEN.split('.')[0];
     const botId = Buffer.from(base64Token, 'base64').toString('utf-8');
-    console.log(`📡 Registriere Befehle DIREKT auf dem Server für Bot-ID: ${botId}...`);
+    console.log(`Registriere Befehle für Bot-ID: ${botId}...`);
     await rest.put(
       Routes.applicationGuildCommands(botId, "1423413347168157718"),
       { body: commands }
     );
-    console.log('✅ ALLE Befehle erfolgreich auf dem Server registriert! Sie sind JETZT sofort da.');
+    console.log('Befehle erfolgreich registriert.');
   } catch (error) {
-    console.error('❌ Fehler bei der Server-Registrierung:', error);
+    console.error('Fehler bei der Registrierung:', error);
   }
 }
   client.on("interactionCreate", async (interaction) => {
