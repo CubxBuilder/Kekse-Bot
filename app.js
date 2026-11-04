@@ -3822,8 +3822,6 @@ if (sorted.length > 0) {
         }
     }
 }
-
-    }
   };
   const handleCounting = (msg, syncMode = false) =>
     withCountingLock(() => handleCountingInner(msg, syncMode));
