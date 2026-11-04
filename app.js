@@ -3627,20 +3627,22 @@ export async function initCounting(client) {
       const sorted = Object.entries(countingData.scoreboard || {})
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10);
-      if (sorted.length === 0) return;
       const roleId = "1511305653103104041";
       const hasRole = members.filter(member => member.roles.cache.has(roleId));
       const prevTopCounter = hasRole.first();
       const topCounter = sorted[0][0]; 
-      if (topCounter === prevTopCounter?.id) return;
-      const newTopCounter = await msg.guild.members.fetch(topCounter);
-      if (prevTopCounter) {
-        await prevTopCounter.roles.remove(roleId);
-      }
-      await newTopCounter.roles.add(roleId);
-      const countingChannel = client.channels.cache.get(COUNTING_CHANNEL);
-      if (countingChannel) {
-        await countingChannel.send(`<@${topCounter}> ist der neue **King of Counting**!`);
+      if (topCounter === prevTopCounter?.id) {
+        
+      } else {
+        const newTopCounter = await msg.guild.members.fetch(topCounter);
+        if (prevTopCounter) {
+          await prevTopCounter.roles.remove(roleId);
+        }
+        await newTopCounter.roles.add(roleId);
+        const countingChannel = client.channels.cache.get(COUNTING_CHANNEL);
+        if (countingChannel) {
+          await countingChannel.send(`<@${topCounter}> ist der neue **King of Counting**!`);
+        }
       }
     }
     const match = msg.content.trim().match(/^-?\d+/);
