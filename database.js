@@ -3,15 +3,15 @@ import "dotenv/config";
 
 const uri = process.env.MONGODB_URI;
 if (!uri) {
-    console.error("❌ MONGODB_URI fehlt in der .env Datei!");
+    console.error("MONGODB_URI fehlt in der .env Datei!");
 }
 
 export const dbConnection = mongoose.connect(uri)
     .then(() => {
-        console.log('🍃 MongoDB-Verbindung (KekseStorage) erfolgreich hergestellt.');
+        console.log('MongoDB-Verbindung (KekseStorage) erfolgreich hergestellt.');
     })
     .catch(err => {
-        console.error('❌ MongoDB Verbindungsfehler:', err);
+        console.error('MongoDB Verbindungsfehler:', err);
         process.exit(1);
     });
 
@@ -32,7 +32,7 @@ export async function dbSet(namespace, key, value) {
             { upsert: true, new: true }
         );
     } catch (err) {
-        console.error(`❌ Fehler beim Speichern in MongoDB (${namespace}:${key}):`, err);
+        console.error(`Fehler beim Speichern in MongoDB (${namespace}:${key}):`, err);
     }
 }
 
@@ -41,7 +41,7 @@ export async function dbGet(namespace, key) {
         const entry = await StorageModel.findOne({ namespace, key });
         return entry ? entry.value : null;
     } catch (err) {
-        console.error(`❌ Fehler beim Abrufen aus MongoDB (${namespace}:${key}):`, err);
+        console.error(`Fehler beim Abrufen aus MongoDB (${namespace}:${key}):`, err);
         return null;
     }
 }
