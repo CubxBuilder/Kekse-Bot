@@ -1236,6 +1236,7 @@ export async function initEconomySystem(client) {
             5 * 60 * 1000,
           );
         }
+        return;
       }
       if (subCommand === "crash") {
   const betAmount = parseInt(args[2]);
