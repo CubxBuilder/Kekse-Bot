@@ -5185,20 +5185,19 @@ const BEWERBUNG_VORLAGE_TEXT = `
 > ### Bewerbungsvorlage:
 > - Name & Ingame-Name
 > - Alter
-> - Auf welchem Minecraft Server bist du aktiv? Zur Auswahl stehen derzeit: \`Minevale.de\` \`CraftValley.de\`
+> - Auf welchem Spiel / Auf welchem Server bist du aktiv? Zur Auswahl stehen derzeit: \`Minevale.de\` \`CraftValley.de\` \`BrawlStars\`
 > - Weshalb du in den Clan willst
 > - In welchen Clans warst du bereits
 > - Warum du in unseren Clan aufgenommen werden solltest
 > - Deine Stärken
-> - Spielzeit: Minecraft & Minecraft Server
+> - Spielzeit: (Minecraft & Minecraft Server) / BrawlStars
 > **Weitere Informationen:**
 > - Schreibe in ganzen Sätzen
 > - Keine KI verwenden
 > - Achte auf eine säuberliche, äußere Form deiner Bewerbung
 > - Bei stark nachlässiger Ausführung der obigen Punkte kann und wird die Bewerbung abgelehnt werden
 > **Voraussetzungen beachten:**
-> - Du hast noch nie gescammt
-> - Du bist aktiv auf dem Minecraft Server und diesem Discord-Server
+> - Du bist aktiv im angegebenen Spiel / auf dem angegebenen Server und diesem Discord-Server
 `;
 function parseYesNo(input) {
   if (!input) return false;
