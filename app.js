@@ -3798,23 +3798,31 @@ export async function initCounting(client) {
     await setEcoData(msg.author.id, userData);
     if (!syncMode) await msg.react("✅").catch(() => {});
     const sorted = Object.entries(countingData.scoreboard || {})
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10);
-    const roleId = "1511305653103104041";
-    const hasRole = members.filter(member => member.roles.cache.has(roleId));
-    const prevTopCounter = hasRole.first();
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+const roleId = "1511305653103104041";
+const prevTopCounter = msg.guild.members.cache.find(member => member.roles.cache.has(roleId));
+
+if (sorted.length > 0) {
     const topCounter = sorted[0][0]; 
-    if (topCounter === prevTopCounter?.id) {    
-    } else {
-      const newTopCounter = await msg.guild.members.fetch(topCounter);
-      if (prevTopCounter) {
-      await prevTopCounter.roles.remove(roleId);
+
+    if (topCounter !== prevTopCounter?.id) {    
+        const newTopCounter = await msg.guild.members.fetch(topCounter).catch(() => null);
+        
+        if (newTopCounter) {
+            if (prevTopCounter) {
+                await prevTopCounter.roles.remove(roleId).catch(console.error);
+            }
+            await newTopCounter.roles.add(roleId).catch(console.error);
+
+            const countingChannel = client.channels.cache.get(COUNTING_CHANNEL);
+            if (countingChannel) {
+                await countingChannel.send(`<@${topCounter}> ist der neue **King of Counting**!`);
+            }
+        }
     }
-    await newTopCounter.roles.add(roleId);
-    const countingChannel = client.channels.cache.get(COUNTING_CHANNEL);
-    if (countingChannel) {
-        await countingChannel.send(`<@${topCounter}> ist der neue **King of Counting**!`);
-      }
+}
+
     }
   };
   const handleCounting = (msg, syncMode = false) =>
