@@ -9280,7 +9280,7 @@ client.once("clientReady", async () => {
         const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
                 .setCustomId(CUSTOM_BUTTON_ID)
-                .setLabel(isLocked ? 'Talk: Geschlossen 🔒' : 'Talk: Offen 🔓')
+                .setLabel(isLocked ? 'Geschlossen' : 'Geöffnet')
                 .setStyle(isLocked ? ButtonStyle.Danger : ButtonStyle.Success)
         );
         await voiceChannel.send({
@@ -9310,9 +9310,9 @@ client.on("error", console.error);
 client.on("warn", console.warn);
 mongoose.connect(process.env.MONGODB_URI)
   .then(async () => {
-    console.log('🍃 MongoDB verbunden!');
+    console.log('MongoDB verbunden!');
     await startStorages();
     await deploySlashCommands();
     client.login(process.env.BOT_TOKEN);
   })
-  .catch(err => console.error('❌ MongoDB Fehler:', err));
+  .catch(err => console.error('MongoDB Fehler:', err));
