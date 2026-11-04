@@ -992,6 +992,7 @@ $("acc-sort").addEventListener("change", processAndRenderAccounts);
 function processAndRenderTickets() {
  let filtered = [...rawTicketsCache];
  const query = $("ticket-search").value.toLowerCase();
+ if (query) { filtered = filtered.filter(t => t.name.toLowerCase().includes(query) || t.closedBy.toLowerCase().includes(query) || (t.createdBy || "").toLowerCase().includes(query)); }
  renderTickets(filtered);
 }
 $("ticket-search").addEventListener("input", processAndRenderTickets);
