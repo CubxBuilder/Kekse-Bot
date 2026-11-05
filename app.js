@@ -374,41 +374,25 @@ console.error = function (...args) {
   captureLog("error", args);
 };
 function captureLog(type, args) {
-  const message = args
-    .map((arg) => {
-      if (arg instanceof Error) return arg.stack || arg.message;
-      if (typeof arg === "object" && arg !== null) {
-        try {
-          if (arg.embeds || arg.content) {
-            return `${arg.content || ""} ${arg.embeds ? JSON.stringify(arg.embeds) : ""}`;
-          }
-          return util.inspect(arg, { depth: 2, colors: false });
-        } catch (e) {
-          return "[Komplexes Objekt]";
-        }
-      }
-      return String(arg);
-    })
-    .join(" ");
-
-  const logEntry = {
-    timestamp: Date.now(),
-    type: "",
-    message: message,
-  };
-  logs.push(logEntry);
+  logs.push({ timestamp: Date.now(), type: type, message: formatArgs(args) });
+  if (logs.length > 500) logs.shift();
 }
 async function logTransaction(userId, amount, type, description) {
   try {
-    const key = `tx_${userId}`;
-    const data = (await dbGet("economy", key)) || { history: [] };
-    data.history.unshift({
-      timestamp: Date.now(),
-      amount: amount,
-      type: type,
-      description: description,
-    });
-    await dbSet("economy", key, data);
+    const StorageModel = mongoose.model("BotStorage");
+    await StorageModel.updateOne(
+      { namespace: "economy", key: `tx_${userId}` },
+      {
+        $push: {
+          "value.history": {
+            $each: [{ timestamp: Date.now(), amount, type, description }],
+            $position: 0,
+            $slice: 100,
+          },
+        },
+      },
+      { upsert: true },
+    );
   } catch (err) {
     console.error(err);
   }
@@ -3746,8 +3730,6 @@ export async function initCounting(client) {
   const handleCountingInner = async (msg, syncMode = false) => {
     if (!syncMode && msg.author.bot) return;
     if (msg.channel.id !== COUNTING_CHANNEL_ID) return;
-    await loadCounting();
-
     if (!syncMode && msg.content === "!top") {
       const sorted = Object.entries(countingData.scoreboard || {})
         .sort((a, b) => b[1] - a[1])
