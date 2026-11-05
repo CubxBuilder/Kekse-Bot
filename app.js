@@ -393,7 +393,7 @@ function captureLog(type, args) {
 
   const logEntry = {
     timestamp: Date.now(),
-    type: type,
+    type: "",
     message: message,
   };
   logs.push(logEntry);
