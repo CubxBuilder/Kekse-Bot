@@ -4058,7 +4058,7 @@ export async function initCounting(client) {
   }
   await loadCounting();
 }
-const GIVEAWAY_EMOJI = ":tada:";
+const GIVEAWAY_EMOJI = "🎉";
 const EMBED_COLOR = 0xffffff;
 
 function countUnique(participants) {
