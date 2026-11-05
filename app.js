@@ -4477,7 +4477,7 @@ async function endGiveaway(client, msg, data, logFunc) {
   );
 
   const reportChannel = await client.channels
-    .fetch(REPORT_CHANNEL_ID)
+    .fetch(LOG_CHANNEL_ID)
     .catch(function () {
       return null;
     });
