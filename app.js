@@ -118,7 +118,6 @@ setInterval(async () => {
           { value: { history: history } },
           { upsert: true },
         );
-        console.log(`Ping-History gestartet.`);
       } catch (err) {
         originalError.apply([console, err]);
       }
