@@ -1204,9 +1204,7 @@ export async function initEconomySystem(client) {
             flags: [MessageFlags.Ephemeral],
           });
         }
-
         userData.balance = (userData.balance || 0) + payout;
-        console.log(`${msg.author.username} hat im Roulette ${payout>0 ? payout : -payout} Kekse ${payout>0 ? `gewonnen` : `verloren`}.`);
         await logTransaction(
           msg.author.id,
           payout,
@@ -1226,6 +1224,7 @@ export async function initEconomySystem(client) {
           })
           .setColor(won ? 0x333333 : 0x333333);
         console.log(`Reply ${msg.author.username}: [roulette]`);
+        console.log(`${msg.author.username} hat im Roulette ${payout>0 ? payout : -payout} Kekse ${payout>0 ? `gewonnen` : `verloren`}.`);
         return msg.reply({ embeds: [roulEmbed] });
       }
       if (subCommand === "coinflip") {
