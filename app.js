@@ -8949,7 +8949,7 @@ client.on("interactionCreate", async (interaction) => {
       if (!jackpotState.countdownTimer) {
         const drawTime = Date.now() + 5 * 60 * 1000;
         jackpotState.countdownEndTime = drawTime;
-        jackpotState.countdownTimer = (
+        jackpotState.countdownTimer = setTimeout(
           () => runJackpotDraw(casinoChannel),
           5 * 60 * 1000,
         );
