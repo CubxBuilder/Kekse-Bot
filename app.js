@@ -131,9 +131,8 @@ function setBotPresence() {
       activities: [{ name: "!help", type: 0 }],
       status: "online",
     });
-    console.log(`BotPresence gesetzt. (Status: online, Activities: "!help")`);
   } catch (err) {
-    console.error("[Presence] Fehler beim Setzen:", err);
+    console.error("Fehler beim Setzen:", err);
   }
 }
 
