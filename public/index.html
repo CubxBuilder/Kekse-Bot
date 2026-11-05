@@ -1119,7 +1119,7 @@
 			$("ticket-toggle").addEventListener("click", () => $("ticket-archive").classList.toggle("collapsed"));
 			fetchStats();
 			fetchTickets();
-			setInterval(fetchStats, 5000);
+			setInterval(fetchStats, 1000);
 			if ('serviceWorker' in navigator) {
 				navigator.serviceWorker.register('sw.js');
 			}
