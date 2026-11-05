@@ -366,7 +366,7 @@ const originalLog = console.log;
 const originalError = console.error;
 console.log = function (...args) {
   originalLog.apply(console, args);
-  captureLog("info", args);
+  captureLog(args);
 };
 
 console.error = function (...args) {
