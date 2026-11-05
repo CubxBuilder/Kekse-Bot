@@ -2412,7 +2412,7 @@ export async function initEconomySystem(client) {
           userData.claimedDailies = { ...userData.claimedDailies };
         }
         await setEcoData(interaction.user.id, userData);
-        console.log(`Reply ${interaction.user.username}: Erfolgreich! Dir wurden 100 Kekse auf dein Bankkonto gutgeschrieben.`);
+        console.log(`Reply ${interaction.user.username}: Dir wurden 100 Kekse auf dein Bankkonto gutgeschrieben.`);
         return interaction.reply({
           content:
             "Erfolgreich! Dir wurden 100 Kekse auf dein Bankkonto gutgeschrieben.",
