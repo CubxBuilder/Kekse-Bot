@@ -2536,11 +2536,8 @@ export async function initEconomySystem(client) {
                   currentMember.roles.cache.has(item.roleId)
                 ) {
                   await currentMember.roles.remove(item.roleId);
-                  console.log(
-                    `[Shop] Rolle wurde von ${currentMember} entfernt`,
-                  );
+                  console.log(`Send ${interaction.user.username}: Dein ${item.name} ist abgelaufen und wurde entfernt.`);
                   await currentMember
-                    console.log(`Send ${interaction.user.username}: Dein ${item.name} ist abgelaufen und wurde entfernt.`);
                     .send(
                       `Dein **${item.name}** ist abgelaufen und wurde entfernt!`,
                     )
