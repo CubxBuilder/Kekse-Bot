@@ -4764,7 +4764,7 @@ export function initPing(client) {
   client.on("messageCreate", async (msg) => {
     if (!msg.content.startsWith("!ping") || msg.author.bot) return;
     if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) {
-      const warn = await msg.channel.send(":x: Keine Berechtigung.");
+      const warn = await msg.channel.send("Du hast keine Berechtigung diese Funktion zu nutzen.");
       return setTimeout(() => {
         warn.delete().catch(() => {});
         msg.delete().catch(() => {});
@@ -4799,7 +4799,7 @@ export function initPing(client) {
       await logChannel.send({ embeds: [kekseLog] });
       console.log(`${msg.author.username} hat die "ping"-Funktion genutzt`);
     }
-    setTimeout(() => {
+    (() => {
       sentMsg.delete().catch(() => {});
       msg.delete().catch(() => {});
     }, 10000);
@@ -5087,7 +5087,7 @@ export function initTicketCategory(client) {
             : "Support will handle it.",
           components: [],
         });
-        setTimeout(() => questionMsg.delete().catch(() => {}), 5000);
+        (() => questionMsg.delete().catch(() => {}), 5000);
       }
       collector.stop();
     });
@@ -5615,7 +5615,7 @@ export async function initTickets(client) {
     }
     if (cmd === "delete" && msg.member.roles.cache.has(ADMIN_ROLE_ID)) {
       await msg.reply("Kanal wird gelöscht...");
-      setTimeout(() => msg.channel.delete().catch(() => {}), 3000);
+      (() => msg.channel.delete().catch(() => {}), 3000);
       globalBotStats.commandsRunned += 1;
     }
     if (cmd === "block" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
@@ -5718,7 +5718,7 @@ export function initVoiceChannels(client) {
       } catch (err) {
         console.error("[VOICE] Fehler beim Erstellen:", err);
       } finally {
-        setTimeout(() => activeCreations.delete(member.id), 5000);
+        (() => activeCreations.delete(member.id), 5000);
       }
     }
 
@@ -6609,10 +6609,10 @@ app.post("/api/users/action", express.json(), async (req, res) => {
   }
 });
 process.on("unhandledRejection", (reason, promise) => {
-  console.error("[Process] Unhandled Rejection:", reason);
+  console.error("Unhandled Rejection:", reason);
 });
 process.on("uncaughtException", (err) => {
-  console.error("[Process] Uncaught Exception:", err);
+  console.error("Uncaught Exception:", err);
 });
 const commands = [
   new SlashCommandBuilder()
@@ -7765,7 +7765,7 @@ client.on("interactionCreate", async (interaction) => {
               })
               .catch(() => {});
           }
-          await new Promise((r) => setTimeout(r, 1200));
+          await new Promise((r) => (r, 1200));
         }
       }
     } catch (clearError) {
@@ -8949,7 +8949,7 @@ client.on("interactionCreate", async (interaction) => {
       if (!jackpotState.countdownTimer) {
         const drawTime = Date.now() + 5 * 60 * 1000;
         jackpotState.countdownEndTime = drawTime;
-        jackpotState.countdownTimer = setTimeout(
+        jackpotState.countdownTimer = (
           () => runJackpotDraw(casinoChannel),
           5 * 60 * 1000,
         );
