@@ -120,7 +120,7 @@ setInterval(async () => {
         );
         console.log(`Ping-History gestartet.`);
       } catch (err) {
-        originalError.apply(console, err]);
+        originalError.apply([console, err]);
       }
     }
   }
