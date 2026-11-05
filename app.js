@@ -1,29 +1,4 @@
-import {
-  Client,
-  ModalBuilder,
-  REST,
-  Routes,
-  SlashCommandBuilder,
-  GatewayIntentBits,
-  Partials,
-  ChannelType,
-  PermissionFlagsBits,
-  EmbedBuilder,
-  Events,
-  AuditLogEvent,
-  MessageFlags,
-  MessageType,
-  PermissionsBitField,
-  AttachmentBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  TextInputBuilder,
-  TextInputStyle,
-  ComponentType,
-  StringSelectMenuBuilder,
-  StringSelectMenuOptionBuilder
-} from "discord.js";
+import {Client, ModalBuilder, REST, Routes, SlashCommandBuilder, GatewayIntentBits, Partials, ChannelType, PermissionFlagsBits, EmbedBuilder, Events, AuditLogEvent, MessageFlags, MessageType, PermissionsBitField, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, TextInputBuilder, TextInputStyle, ComponentType, StringSelectMenuBuilder, StringSelectMenuOptionBuilder} from "discord.js";
 import https from "https";
 import "dotenv/config";
 import path from "path";
@@ -57,6 +32,39 @@ const port = 5000;
 https.createServer(options, app).listen(port, "0.0.0.0", () => {
   console.log(`Dashboard läuft sicher auf Port ${port} via HTTPS!`);
 });
+
+const GUILD_ID = "1423413347168157718";
+
+// Roles / Users
+const FABIAN_ID = "1151971830983311441";
+const TEAM_ROLE_ID = "1457906448234319922";
+const ECO_ROLE_ID = "1506732560837771284";
+const GIVEAWAY_DOUBLE_ROLE_ID = "1506164984202264656";
+const COUNTING_PUFFER_ROLE_ID = "1508050024355856494";
+const COUNTING_XP30_ROLE_ID = "1506164829029666827";
+const COUNTING_XP60_ROLE_ID = "1508054186930208768";
+const VIP_ROLE_ID = "1434555291252297728";
+const UNVERIFIED_ROLE_ID = "1439337577508245837";
+const COUNTING_KING_ROLE_ID = "1511305653103104041";
+const BOOSTER_ROLE_ID = "1464202435638722621";
+const GIVEAWAYS_ROLE_ID = "1424028650080178348";
+const CHANGELOG_ROLE_ID = "1464994942345547857";
+const ADMIN_ROLE_ID = "1423427747103113307";
+
+// Channels / Categorys
+const LOG_CHANNEL_ID = "1423413348220796991";
+const SHOP_CHANNEL_ID = "1508053328662364302";
+const CASINO_CHANNEL_ID = "1507385550825459812";
+const VERIFY_CHANNEL_ID = "1439337595090898955";
+const COUNTING_CHANNEL_ID = "1423434079390535730";
+const CHANGELOG_CHANNEL_ID = "1464993818968588379";
+const ADMIN_CATEGORY_ID = "1426271033047912582";
+const SUPPORT_CATEGORY_ID = "1423413348065611953";
+const VOICE_CATEGORY_ID = "1423413348493430902";
+const JTC_VOICE_CHANNEL_ID = "1423438527319900180";
+const AFK_VOICE_CHANNEL_ID = "1423413348493430901";
+const TICKET_CHANNEL_ID = "1423413348493430905";
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -165,7 +173,7 @@ const jackpotState = {
   totalPool: 0,
   countdownTimer: null,
   countdownEndTime: null,
-  announceMessage: null
+  announceMessage: null,
 };
 
 let archives = [];
@@ -213,7 +221,10 @@ export async function initTicketArchive(app, getTickData, setTickData) {
     }
   });
 }
-export async function archiveTicket({ name, closedBy, creator, channel }, setTickData) {
+export async function archiveTicket(
+  { name, closedBy, creator, channel },
+  setTickData,
+) {
   try {
     const messages = [];
     let lastId;
@@ -401,8 +412,6 @@ async function logTransaction(userId, amount, type, description) {
     console.error(err);
   }
 }
-const TEAM_ROLE = "1457906448234319922";
-const LOG_CHANNEL_ID = "1423413348220796991";
 import { dbGet, dbSet } from "./database.js";
 export async function getIData(key) {
   const data = await dbGet("invites", key);
@@ -581,41 +590,46 @@ export async function initEconomySystem(client) {
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot || !msg.member) return;
     if (!msg.content.startsWith("!")) return;
-    if (msg.content === '!wage pay' && msg.author.id === '1151971830983311441') {
-    await wage(true);
+    if (
+      msg.content === "!wage pay" &&
+      msg.author.id == FABIAN_ID
+    ) {
+      await wage(true);
     }
     const args = msg.content.trim().split(/ +/);
     const command = args[0].toLowerCase();
     const subCommand = args[1]?.toLowerCase();
     if (command === "!leaderboard") {
-  const StorageModel = mongoose.model("BotStorage");
-  const allDocs = await StorageModel.find({ namespace: "economy" }).lean();
-  
-  const sorted = allDocs
-    .filter(doc => /^\d+$/.test(doc.key) && doc.value?.balance > 0)
-    .sort((a, b) => b.value.balance - a.value.balance)
-    .slice(0, 5);
+      const StorageModel = mongoose.model("BotStorage");
+      const allDocs = await StorageModel.find({ namespace: "economy" }).lean();
 
-  const embed = new EmbedBuilder()
-    .setTitle("🏆 Top 5 Balance")
-    .setColor("#ffffff")
-    .setDescription(
-      sorted.map((doc, i) =>
-        `**${i + 1}.** <@${doc.key}> • ${doc.value.balance.toLocaleString("de-DE")} Kekse`
-      ).join("\n") || "Keine Daten"
-    )
-    .setFooter({ text: "Kekse Clan" })
-    .setTimestamp();
+      const sorted = allDocs
+        .filter((doc) => /^\d+$/.test(doc.key) && doc.value?.balance > 0)
+        .sort((a, b) => b.value.balance - a.value.balance)
+        .slice(0, 5);
 
-  return msg.reply({ embeds: [embed] });
-}
+      const embed = new EmbedBuilder()
+        .setTitle(":trophy: Top 5 Balance")
+        .setColor("#ffffff")
+        .setDescription(
+          sorted
+            .map(
+              (doc, i) =>
+                `**${i + 1}.** <@${doc.key}> • ${doc.value.balance.toLocaleString("de-DE")} Kekse`,
+            )
+            .join("\n") || "Keine Daten",
+        )
+        .setFooter({ text: "Kekse Clan" })
+        .setTimestamp();
+
+      return msg.reply({ embeds: [embed] });
+    }
     if (command === "!daily_setup") {
-      if (msg.author.id !== "1151971830983311441") return;
+      if (msg.author.id !== FABIAN_ID) return;
       const setupId = args[1];
       if (!setupId) {
         return msg.reply({
-          content:
-            "setup_id is missing",
+          content: "setup_id is missing",
         });
       }
       const description =
@@ -626,7 +640,7 @@ export async function initEconomySystem(client) {
       });
 
       const embed = new EmbedBuilder()
-        .setTitle("🍪 Tägliche Kekse")
+        .setTitle(":cookie: Tägliche Kekse")
         .setDescription(
           `${description}\n\nKlicke auf den Button unten, um 100 Kekse zu erhalten.`,
         )
@@ -647,21 +661,20 @@ export async function initEconomySystem(client) {
       return msg.delete().catch(() => {});
     }
     if (command === "!shop_setup") {
-      if (msg.author.id !== "1151971830983311441") return;
+      if (msg.author.id !== FABIAN_ID) return;
       const setupId = args[0];
       if (!setupId) {
         return msg.reply({
-          content:
-            "setup_id is missing",
+          content: "setup_id is missing",
         });
       }
       const description =
-        args.slice(1).join(" ") || "Kaufe dir hier von deinen Keksen Booster, Rollen und Puffer\n";
+        args.slice(1).join(" ") ||
+        "Kaufe dir hier von deinen Keksen Booster, Rollen und Puffer\n";
       await setEcoData(`setup_${setupId}`, {
         description: description,
         exists: true,
       });
-      const SHOP_CHANNEL_ID = "1508053328662364302";
       const shopChannel = msg.guild.channels.cache.get(SHOP_CHANNEL_ID);
       if (!shopChannel) return msg.reply("Shop-Kanal wurde nicht gefunden!");
       const shopEmbed = new EmbedBuilder()
@@ -692,11 +705,14 @@ export async function initEconomySystem(client) {
           },
           {
             name: "💎 VIP Rolle (7d) → `500.000 Kekse`",
-            value: "Erhöhte Position in der Server-Liste und teilnahme an spezifischen Events.",
+            value:
+              "Erhöhte Position in der Server-Liste und teilnahme an spezifischen Events.",
             inline: false,
           },
         )
-        .setFooter({ text: "Für den Einkauf im Shop benötigst du ein regestriertes Konto. Wenn du noch keins besitzt, erstelle eins mit `!bank create`"});
+        .setFooter({
+          text: "Für den Einkauf im Shop benötigst du ein regestriertes Konto. Wenn du noch keins besitzt, erstelle eins mit `!bank create`",
+        });
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId("shop_giveaway")
@@ -731,249 +747,333 @@ export async function initEconomySystem(client) {
       );
     }
     if (command === "!coinflip") {
-  const targetUser = msg.mentions.users.first();
-  const betAmount = parseInt(args[2]);
+      const targetUser = msg.mentions.users.first();
+      const betAmount = parseInt(args[2]);
 
-  if (!targetUser || isNaN(betAmount) || betAmount <= 0) {
-    return msg.reply({ content: "Nutzung: `!coinflip @User <Einsatz>`", flags: [MessageFlags.Ephemeral] });
-  }
-  if (targetUser.id === msg.author.id) {
-    return msg.reply({ content: "Du kannst nicht gegen dich selbst spielen.", flags: [MessageFlags.Ephemeral] });
-  }
-  if (msg.channelId !== "1507385550825459812") {
-    return msg.reply({ content: "Nur in <#1507385550825459812> nutzbar.", flags: [MessageFlags.Ephemeral] });
-  }
-
-  const challengerData = await getEcoData(msg.author.id);
-  const challengedData = await getEcoData(targetUser.id);
-
-  if ((challengerData.balance || 0) < betAmount) {
-    return msg.reply({ content: "Du hast nicht genug Kekse.", flags: [MessageFlags.Ephemeral] });
-  }
-  if ((challengedData.balance || 0) < betAmount) {
-    return msg.reply({ content: `<@${targetUser.id}> hat nicht genug Kekse.`, flags: [MessageFlags.Ephemeral] });
-  }
-
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`cf_accept_${msg.author.id}_${targetUser.id}_${betAmount}`)
-      .setLabel("Annehmen")
-      .setStyle(ButtonStyle.Success),
-    new ButtonBuilder()
-      .setCustomId(`cf_decline_${msg.author.id}_${targetUser.id}`)
-      .setLabel("Ablehnen")
-      .setStyle(ButtonStyle.Danger),
-  );
-
-  const challengeMsg = await msg.channel.send({
-    content: `<@${targetUser.id}>, du wurdest von <@${msg.author.id}> zu einem Coinflip um **${betAmount} Kekse** herausgefordert.`,
-    components: [row],
-  });
-
-  const collector = challengeMsg.createMessageComponentCollector({
-    filter: (i) => i.user.id === targetUser.id,
-    componentType: ComponentType.Button,
-    time: 30000,
-  });
-
-  collector.on("collect", async (interaction) => {
-    if (interaction.customId.startsWith("cf_decline_")) {
-      await interaction.update({ content: `<@${targetUser.id}> hat die Herausforderung abgelehnt.`, components: [] });
-      return collector.stop();
-    }
-    const freshChallenger = await getEcoData(msg.author.id);
-    const freshChallenged = await getEcoData(targetUser.id);
-
-    if ((freshChallenger.balance || 0) < betAmount || (freshChallenged.balance || 0) < betAmount) {
-      await interaction.update({ content: "Jemand hat nicht mehr genug Kekse.", components: [] });
-      return collector.stop();
-    }
-
-    const flip = Math.random() < 0.5;
-    const winner = flip ? msg.author : targetUser;
-    const loser = flip ? targetUser : msg.author;
-
-    const winnerData = flip ? freshChallenger : freshChallenged;
-    const loserData = flip ? freshChallenged : freshChallenger;
-
-    winnerData.balance = (winnerData.balance || 0) + betAmount;
-    loserData.balance = (loserData.balance || 0) - betAmount;
-
-    await logTransaction(winner.id, betAmount, "plus", "Multiplayer Coinflip");
-    await logTransaction(loser.id, betAmount, "minus", "Multiplayer Coinflip");
-    await setEcoData(winner.id, winnerData);
-    await setEcoData(loser.id, loserData);
-
-    const resultEmbed = new EmbedBuilder()
-      .setTitle("Coinflip Ergebnis")
-      .setDescription(
-        `**Gewinner:** <@${winner.id}> **+${betAmount} Kekse**\n**Verlierer:** <@${loser.id}> **-${betAmount} Kekse**`,
-      )
-      .setColor(0xffffff)
-      .setFooter({ text: "Kekse Clan Casino | Multiplayer Coinflip" });
-
-    await interaction.update({ content: "", embeds: [resultEmbed], components: [] });
-    collector.stop();
-  });
-
-  collector.on("end", (_, reason) => {
-    if (reason === "time") {
-      challengeMsg.edit({ content: "Die Anfrage ist abgelaufen.", components: [] }).catch(() => {});
-    }
-  });
-}
-    if (command === "!ssp") {
-  const targetUser = msg.mentions.users.first();
-  const betAmount = parseInt(args[2]);
-
-  if (!targetUser || isNaN(betAmount) || betAmount <= 0) {
-    return msg.reply({ content: "Nutzung: `!ssp @User <Einsatz>`", flags: [MessageFlags.Ephemeral] });
-  }
-  if (targetUser.id === msg.author.id) {
-    return msg.reply({ content: "Du kannst nicht gegen dich selbst spielen.", flags: [MessageFlags.Ephemeral] });
-  }
-  if (msg.channelId !== "1507385550825459812") {
-    return msg.reply({ content: "Nur in <#1507385550825459812> nutzbar.", flags: [MessageFlags.Ephemeral] });
-  }
-
-  const challengerData = await getEcoData(msg.author.id);
-  const challengedData = await getEcoData(targetUser.id);
-
-  if ((challengerData.balance || 0) < betAmount) {
-    return msg.reply({ content: "Du hast nicht genug Kekse.", flags: [MessageFlags.Ephemeral] });
-  }
-  if ((challengedData.balance || 0) < betAmount) {
-    return msg.reply({ content: `<@${targetUser.id}> hat nicht genug Kekse.`, flags: [MessageFlags.Ephemeral] });
-  }
-  const SSP_CHOICES = ["schere", "stein", "papier"];
-  const SSP_EMOJI = { schere: "✂️", stein: "🪨", papier: "📄" };
-  const beats = { schere: "papier", stein: "schere", papier: "stein" };
-  const makeChoiceRow = (userId) =>
-    new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(`ssp_${userId}_schere`).setLabel("✂️ Schere").setStyle(ButtonStyle.Primary),
-      new ButtonBuilder().setCustomId(`ssp_${userId}_stein`).setLabel("🪨 Stein").setStyle(ButtonStyle.Primary),
-      new ButtonBuilder().setCustomId(`ssp_${userId}_papier`).setLabel("📄 Papier").setStyle(ButtonStyle.Primary),
-    );
-  const inviteRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`ssp_invite_accept_${msg.author.id}_${targetUser.id}_${betAmount}`)
-      .setLabel("Annehmen")
-      .setStyle(ButtonStyle.Success),
-    new ButtonBuilder()
-      .setCustomId(`ssp_invite_decline_${msg.author.id}`)
-      .setLabel("Ablehnen")
-      .setStyle(ButtonStyle.Danger),
-  );
-
-  const inviteMsg = await msg.channel.send({
-    content: `<@${targetUser.id}>, du wurdest von <@${msg.author.id}> zu **Schere Stein Papier** um **${betAmount} Kekse** herausgefordert!`,
-    components: [inviteRow],
-  });
-
-  const inviteCollector = inviteMsg.createMessageComponentCollector({
-    filter: (i) => i.user.id === targetUser.id,
-    componentType: ComponentType.Button,
-    time: 30000,
-    max: 1,
-  });
-
-  inviteCollector.on("collect", async (inviteInt) => {
-    if (inviteInt.customId.startsWith("ssp_invite_decline_")) {
-      return inviteInt.update({ content: `<@${targetUser.id}> hat abgelehnt.`, components: [] });
-    }
-
-    await inviteInt.update({ content: `Herausforderung angenommen! Beide Spieler wählen jetzt per DM.`, components: [] });
-
-    const choices = {};
-
-    const askChoice = async (playerUser) => {
-      try {
-        const dm = await playerUser.send({
-          content: `Wähle für das Spiel gegen <@${playerUser.id === msg.author.id ? targetUser.id : msg.author.id}> (Einsatz: **${betAmount} Kekse**):`,
-          components: [makeChoiceRow(playerUser.id)],
+      if (!targetUser || isNaN(betAmount) || betAmount <= 0) {
+        return msg.reply({
+          content: "Nutzung: `!coinflip @User <Einsatz>`",
+          flags: [MessageFlags.Ephemeral],
         });
-        return new Promise((resolve) => {
-          const dmCollector = dm.createMessageComponentCollector({
-            filter: (i) => i.user.id === playerUser.id,
-            componentType: ComponentType.Button,
-            time: 60000,
-            max: 1,
-          });
-          dmCollector.on("collect", async (i) => {
-            const choice = i.customId.split("_")[2];
-            choices[playerUser.id] = choice;
-            await i.update({ content: `Du hast **${SSP_EMOJI[choice]} ${choice}** gewählt. Warte auf deinen Gegner...`, components: [] });
-            resolve(choice);
-          });
-
-          dmCollector.on("end", (_, reason) => {
-            if (reason === "time") {
-              choices[playerUser.id] = choices[playerUser.id] || null;
-              resolve(null);
-            }
-          });
-        });
-      } catch {
-        choices[playerUser.id] = null;
-        return null;
       }
-    };
+      if (targetUser.id === msg.author.id) {
+        return msg.reply({
+          content: "Du kannst nicht gegen dich selbst spielen.",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+      if (msg.channelId !== CASINO_CHANNEL_ID) {
+        return msg.reply({
+          content: `Nur in <#${CASINO_CHANNEL_ID}> nutzbar.`,
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
 
-    await Promise.all([askChoice(msg.author), askChoice(targetUser)]);
+      const challengerData = await getEcoData(msg.author.id);
+      const challengedData = await getEcoData(targetUser.id);
 
-    const c1 = choices[msg.author.id];
-    const c2 = choices[targetUser.id];
-    if (!c1 || !c2) {
-      const whoTimeout = !c1 ? msg.author : targetUser;
-      return inviteMsg.channel.send(`<@${whoTimeout.id}> hat nicht rechtzeitig gewählt. Das Spiel wurde abgebrochen.`);
+      if ((challengerData.balance || 0) < betAmount) {
+        return msg.reply({
+          content: "Du hast nicht genug Kekse.",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+      if ((challengedData.balance || 0) < betAmount) {
+        return msg.reply({
+          content: `<@${targetUser.id}> hat nicht genug Kekse.`,
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(
+            `cf_accept_${msg.author.id}_${targetUser.id}_${betAmount}`,
+          )
+          .setLabel("Annehmen")
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId(`cf_decline_${msg.author.id}_${targetUser.id}`)
+          .setLabel("Ablehnen")
+          .setStyle(ButtonStyle.Danger),
+      );
+
+      const challengeMsg = await msg.channel.send({
+        content: `<@${targetUser.id}>, du wurdest von <@${msg.author.id}> zu einem Coinflip um **${betAmount} Kekse** herausgefordert.`,
+        components: [row],
+      });
+
+      const collector = challengeMsg.createMessageComponentCollector({
+        filter: (i) => i.user.id === targetUser.id,
+        componentType: ComponentType.Button,
+        time: 30000,
+      });
+
+      collector.on("collect", async (interaction) => {
+        if (interaction.customId.startsWith("cf_decline_")) {
+          await interaction.update({
+            content: `<@${targetUser.id}> hat die Herausforderung abgelehnt.`,
+            components: [],
+          });
+          return collector.stop();
+        }
+        const freshChallenger = await getEcoData(msg.author.id);
+        const freshChallenged = await getEcoData(targetUser.id);
+
+        if (
+          (freshChallenger.balance || 0) < betAmount ||
+          (freshChallenged.balance || 0) < betAmount
+        ) {
+          await interaction.update({
+            content: "Jemand hat nicht mehr genug Kekse.",
+            components: [],
+          });
+          return collector.stop();
+        }
+
+        const flip = Math.random() < 0.5;
+        const winner = flip ? msg.author : targetUser;
+        const loser = flip ? targetUser : msg.author;
+
+        const winnerData = flip ? freshChallenger : freshChallenged;
+        const loserData = flip ? freshChallenged : freshChallenger;
+
+        winnerData.balance = (winnerData.balance || 0) + betAmount;
+        loserData.balance = (loserData.balance || 0) - betAmount;
+
+        await logTransaction(
+          winner.id,
+          betAmount,
+          "plus",
+          "Multiplayer Coinflip",
+        );
+        await logTransaction(
+          loser.id,
+          betAmount,
+          "minus",
+          "Multiplayer Coinflip",
+        );
+        await setEcoData(winner.id, winnerData);
+        await setEcoData(loser.id, loserData);
+
+        const resultEmbed = new EmbedBuilder()
+          .setTitle("Coinflip Ergebnis")
+          .setDescription(
+            `**Gewinner:** <@${winner.id}> **+${betAmount} Kekse**\n**Verlierer:** <@${loser.id}> **-${betAmount} Kekse**`,
+          )
+          .setColor(0xffffff)
+          .setFooter({ text: "Kekse Clan Casino | Multiplayer Coinflip" });
+
+        await interaction.update({
+          content: "",
+          embeds: [resultEmbed],
+          components: [],
+        });
+        collector.stop();
+      });
+
+      collector.on("end", (_, reason) => {
+        if (reason === "time") {
+          challengeMsg
+            .edit({ content: "Die Anfrage ist abgelaufen.", components: [] })
+            .catch(() => {});
+        }
+      });
     }
+    if (command === "!ssp") {
+      const targetUser = msg.mentions.users.first();
+      const betAmount = parseInt(args[2]);
 
-    const freshChallenger = await getEcoData(msg.author.id);
-    const freshChallenged = await getEcoData(targetUser.id);
+      if (!targetUser || isNaN(betAmount) || betAmount <= 0) {
+        return msg.reply({
+          content: "Nutzung: `!ssp @User <Einsatz>`",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+      if (targetUser.id === msg.author.id) {
+        return msg.reply({
+          content: "Du kannst nicht gegen dich selbst spielen.",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+      if (msg.channelId !== CASINO_CHANNEL_ID) {
+        return msg.reply({
+          content: `Nur in <#${CASINO_CHANNEL_ID}> nutzbar.`,
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
 
-    let resultText;
-    let winner = null;
-    let loser = null;
+      const challengerData = await getEcoData(msg.author.id);
+      const challengedData = await getEcoData(targetUser.id);
 
-    if (c1 === c2) {
-      resultText = `**Unentschieden!** Beide haben ${c1} gewählt.`;
-    } else if (beats[c1] === c2) {
-      winner = msg.author; loser = targetUser;
-      freshChallenger.balance = (freshChallenger.balance || 0) + betAmount;
-      freshChallenged.balance = (freshChallenged.balance || 0) - betAmount;
-      await logTransaction(winner.id, betAmount, "plus", "Multiplayer SSP");
-      await logTransaction(loser.id, betAmount, "minus", "Multiplayer SSP");
-      await setEcoData(winner.id, freshChallenger);
-      await setEcoData(loser.id, freshChallenged);
-      resultText = `**Gewinner:** <@${winner.id}> ${SSP_EMOJI[c1]} **+${betAmount} Kekse**\n**Verlierer:** <@${loser.id}> ${SSP_EMOJI[c2]} **-${betAmount} Kekse**`;
-    } else {
-      winner = targetUser; loser = msg.author;
-      freshChallenged.balance = (freshChallenged.balance || 0) + betAmount;
-      freshChallenger.balance = (freshChallenger.balance || 0) - betAmount;
-      await logTransaction(winner.id, betAmount, "plus", "Multiplayer SSP");
-      await logTransaction(loser.id, betAmount, "minus", "Multiplayer SSP");
-      await setEcoData(winner.id, freshChallenged);
-      await setEcoData(loser.id, freshChallenger);
-      resultText = `**Gewinner:** <@${winner.id}> ${SSP_EMOJI[c2]} **+${betAmount} Kekse**\n**Verlierer:** <@${loser.id}> ${SSP_EMOJI[c1]} **-${betAmount} Kekse**`;
+      if ((challengerData.balance || 0) < betAmount) {
+        return msg.reply({
+          content: "Du hast nicht genug Kekse.",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+      if ((challengedData.balance || 0) < betAmount) {
+        return msg.reply({
+          content: `<@${targetUser.id}> hat nicht genug Kekse.`,
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+      const SSP_EMOJI = { schere: ":scissors:", stein: ":rock:", papier: ":page_facing_up:" };
+      const beats = { schere: "papier", stein: "schere", papier: "stein" };
+      const makeChoiceRow = (userId) =>
+        new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`ssp_${userId}_schere`)
+            .setLabel("Schere")
+            .setStyle(ButtonStyle.Primary),
+          new ButtonBuilder()
+            .setCustomId(`ssp_${userId}_stein`)
+            .setLabel("Stein")
+            .setStyle(ButtonStyle.Primary),
+          new ButtonBuilder()
+            .setCustomId(`ssp_${userId}_papier`)
+            .setLabel("Papier")
+            .setStyle(ButtonStyle.Primary),
+        );
+      const inviteRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(
+            `ssp_invite_accept_${msg.author.id}_${targetUser.id}_${betAmount}`,
+          )
+          .setLabel("Annehmen")
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId(`ssp_invite_decline_${msg.author.id}`)
+          .setLabel("Ablehnen")
+          .setStyle(ButtonStyle.Danger),
+      );
+
+      const inviteMsg = await msg.channel.send({
+        content: `<@${targetUser.id}>, du wurdest von <@${msg.author.id}> zu **Schere Stein Papier** um **${betAmount} Kekse** herausgefordert!`,
+        components: [inviteRow],
+      });
+
+      const inviteCollector = inviteMsg.createMessageComponentCollector({
+        filter: (i) => i.user.id === targetUser.id,
+        componentType: ComponentType.Button,
+        time: 30000,
+        max: 1,
+      });
+
+      inviteCollector.on("collect", async (inviteInt) => {
+        if (inviteInt.customId.startsWith("ssp_invite_decline_")) {
+          return inviteInt.update({
+            content: `<@${targetUser.id}> hat abgelehnt.`,
+            components: [],
+          });
+        }
+
+        await inviteInt.update({
+          content: `Herausforderung angenommen! Beide Spieler wählen jetzt per DM.`,
+          components: [],
+        });
+
+        const choices = {};
+
+        const askChoice = async (playerUser) => {
+          try {
+            const dm = await playerUser.send({
+              content: `Wähle für das Spiel gegen <@${playerUser.id === msg.author.id ? targetUser.id : msg.author.id}> (Einsatz: **${betAmount} Kekse**):`,
+              components: [makeChoiceRow(playerUser.id)],
+            });
+            return new Promise((resolve) => {
+              const dmCollector = dm.createMessageComponentCollector({
+                filter: (i) => i.user.id === playerUser.id,
+                componentType: ComponentType.Button,
+                time: 60000,
+                max: 1,
+              });
+              dmCollector.on("collect", async (i) => {
+                const choice = i.customId.split("_")[2];
+                choices[playerUser.id] = choice;
+                await i.update({
+                  content: `Du hast **${SSP_EMOJI[choice]} ${choice}** gewählt. Warte auf deinen Gegner...`,
+                  components: [],
+                });
+                resolve(choice);
+              });
+
+              dmCollector.on("end", (_, reason) => {
+                if (reason === "time") {
+                  choices[playerUser.id] = choices[playerUser.id] || null;
+                  resolve(null);
+                }
+              });
+            });
+          } catch {
+            choices[playerUser.id] = null;
+            return null;
+          }
+        };
+
+        await Promise.all([askChoice(msg.author), askChoice(targetUser)]);
+
+        const c1 = choices[msg.author.id];
+        const c2 = choices[targetUser.id];
+        if (!c1 || !c2) {
+          const whoTimeout = !c1 ? msg.author : targetUser;
+          return inviteMsg.channel.send(
+            `<@${whoTimeout.id}> hat nicht rechtzeitig gewählt. Das Spiel wurde abgebrochen.`,
+          );
+        }
+
+        const freshChallenger = await getEcoData(msg.author.id);
+        const freshChallenged = await getEcoData(targetUser.id);
+
+        let resultText;
+        let winner = null;
+        let loser = null;
+
+        if (c1 === c2) {
+          resultText = `**Unentschieden!** Beide haben ${c1} gewählt.`;
+        } else if (beats[c1] === c2) {
+          winner = msg.author;
+          loser = targetUser;
+          freshChallenger.balance = (freshChallenger.balance || 0) + betAmount;
+          freshChallenged.balance = (freshChallenged.balance || 0) - betAmount;
+          await logTransaction(winner.id, betAmount, "plus", "Multiplayer SSP");
+          await logTransaction(loser.id, betAmount, "minus", "Multiplayer SSP");
+          await setEcoData(winner.id, freshChallenger);
+          await setEcoData(loser.id, freshChallenged);
+          resultText = `**Gewinner:** <@${winner.id}> ${SSP_EMOJI[c1]} **+${betAmount} Kekse**\n**Verlierer:** <@${loser.id}> ${SSP_EMOJI[c2]} **-${betAmount} Kekse**`;
+        } else {
+          winner = targetUser;
+          loser = msg.author;
+          freshChallenged.balance = (freshChallenged.balance || 0) + betAmount;
+          freshChallenger.balance = (freshChallenger.balance || 0) - betAmount;
+          await logTransaction(winner.id, betAmount, "plus", "Multiplayer SSP");
+          await logTransaction(loser.id, betAmount, "minus", "Multiplayer SSP");
+          await setEcoData(winner.id, freshChallenged);
+          await setEcoData(loser.id, freshChallenger);
+          resultText = `**Gewinner:** <@${winner.id}> ${SSP_EMOJI[c2]} **+${betAmount} Kekse**\n**Verlierer:** <@${loser.id}> ${SSP_EMOJI[c1]} **-${betAmount} Kekse**`;
+        }
+
+        const resultEmbed = new EmbedBuilder()
+          .setTitle("Schere-Stein-Papier Ergebnis")
+          .setDescription(
+            `<@${msg.author.id}> hat **${SSP_EMOJI[c1]} ${c1}** gewählt.\n<@${targetUser.id}> hat **${SSP_EMOJI[c2]} ${c2}** gewählt.\n\n${resultText}`,
+          )
+          .setColor(0xffffff)
+          .setFooter({ text: "Kekse Clan Casino | Multiplayer SSP" });
+
+        await inviteMsg.channel.send({ embeds: [resultEmbed] });
+      });
+
+      inviteCollector.on("end", (collected, reason) => {
+        if (reason === "time") {
+          inviteMsg
+            .edit({ content: "Die Anfrage ist abgelaufen.", components: [] })
+            .catch(() => {});
+        }
+      });
     }
-
-    const resultEmbed = new EmbedBuilder()
-      .setTitle("Schere-Stein-Papier Ergebnis")
-      .setDescription(`<@${msg.author.id}> hat **${SSP_EMOJI[c1]} ${c1}** gewählt.\n<@${targetUser.id}> hat **${SSP_EMOJI[c2]} ${c2}** gewählt.\n\n${resultText}`)
-      .setColor(0xffffff)
-      .setFooter({ text: "Kekse Clan Casino | Multiplayer SSP" });
-
-    await inviteMsg.channel.send({ embeds: [resultEmbed] });
-  });
-
-  inviteCollector.on("end", (collected, reason) => {
-    if (reason === "time") {
-      inviteMsg.edit({ content: "Die Anfrage ist abgelaufen.", components: [] }).catch(() => {});
-    }
-  });
-}
     if (command === "!casino") {
-      const hasEcoRole = msg.member.roles.cache.has("1506732560837771284");
+      const hasEcoRole = msg.member.roles.cache.has(ECO_ROLE_ID);
       if (!hasEcoRole) {
         return msg.reply({
           content:
@@ -981,16 +1081,17 @@ export async function initEconomySystem(client) {
           flags: [MessageFlags.Ephemeral],
         });
       }
-      if (msg.channelId !== "1507385550825459812") {
+      if (msg.channelId !== CASINO_CHANNEL_ID) {
         return msg.reply({
-          content: "Das Casino ist nur in <#1507385550825459812> nutzbar.",
+          content: `Das Casino ist nur in <#${CASINO_CHANNEL_ID}> nutzbar.`,
           flags: [MessageFlags.Ephemeral],
         });
       }
       const userData = await getEcoData(msg.author.id);
       if (userData.blocked) {
         return msg.reply({
-          content: "Dein Konto ist gesperrt. Wenn es sich um ein Missverständnis handelt wende dich an den Support → <#1423413348493430905>",
+          content:
+            "Dein Konto ist gesperrt. Wenn es sich um ein Missverständnis handelt wende dich an den Support → <#1423413348493430905>",
           flags: [MessageFlags.Ephemeral],
         });
       }
@@ -1024,7 +1125,7 @@ export async function initEconomySystem(client) {
         const spin = Math.floor(Math.random() * 37);
         const spinColor =
           spin === 0 ? "green" : redNumbers.has(spin) ? "red" : "black";
-        const spinEmoji = spin === 0 ? "🟢" : spinColor === "red" ? "🔴" : "⚫";
+        const spinEmoji = spin === 0 ? ":green_circle:" : spinColor === "red" ? ":red_circle:" : ":black_circle:";
 
         let won = false;
         let payout = 0;
@@ -1038,11 +1139,11 @@ export async function initEconomySystem(client) {
         } else if (betType === "red") {
           won = spinColor === "red";
           payout = won ? betAmount : -betAmount;
-          betDesc = "🔴 Rot";
+          betDesc = ":red_circle: Rot";
         } else if (betType === "black") {
           won = spinColor === "black";
           payout = won ? betAmount : -betAmount;
-          betDesc = "⚫ Schwarz";
+          betDesc = ":black_circle: Schwarz";
         } else if (betType === "even") {
           won = spin !== 0 && spin % 2 === 0;
           payout = won ? betAmount : -betAmount;
@@ -1054,15 +1155,15 @@ export async function initEconomySystem(client) {
         } else if (betType === "1-18") {
           won = spin >= 1 && spin <= 18;
           payout = won ? betAmount : -betAmount;
-          betDesc = "1–18";
+          betDesc = "1-18";
         } else if (betType === "19-36") {
           won = spin >= 19 && spin <= 36;
           payout = won ? betAmount : -betAmount;
-          betDesc = "19–36";
+          betDesc = "19-36";
         } else {
           return msg.reply({
             content:
-              "Ungültige Angabe. Nutze: `red`, `black`, `even`, `odd`, eine Zahl (0–36).",
+              "Ungültige Angabe. Nutze: `red`, `black`, `even`, `odd`, eine Zahl (0-36).",
             flags: [MessageFlags.Ephemeral],
           });
         }
@@ -1082,7 +1183,7 @@ export async function initEconomySystem(client) {
             `Die Kugel landet auf: **${spinEmoji} ${spin}**\n\nDeine Wette: **${betDesc}** | Einsatz: **${betAmount} Kekse**`,
           )
           .addFields({
-            name: won ? "✅ Gewonnen!" : "❌ Verloren!",
+            name: won ? ":white_check_mark: Gewonnen!" : ":x: Verloren!",
             value: `${payout >= 0 ? "+" : ""}${payout} Kekse\nNeuer Kontostand: **${userData.balance} Kekse**`,
           })
           .setColor(won ? 0x333333 : 0x333333);
@@ -1129,7 +1230,7 @@ export async function initEconomySystem(client) {
             `Die Münze zeigt: **${flip === "heads" ? "Kopf (Heads)" : "Zahl (Tails)"}**\n\nDu hast auf **${choice === "heads" ? "Kopf" : "Zahl"}** gesetzt.`,
           )
           .addFields({
-            name: won ? "✅ Gewonnen!" : "❌ Verloren!",
+            name: won ? ":white_check_mark: Gewonnen!" : ":x: Verloren!",
             value: `${won ? "+" : "-"}${betAmount} Kekse\nNeuer Kontostand: **${userData.balance} Kekse**`,
           })
           .setColor(won ? 0x333333 : 0x333333);
@@ -1239,375 +1340,427 @@ export async function initEconomySystem(client) {
         return;
       }
       if (subCommand === "crash") {
-  const betAmount = parseInt(args[2]);
-  if (isNaN(betAmount) || betAmount <= 0) {
-    return msg.reply({
-      content: "Nutzung: `!casino crash <Einsatz>`",
-      flags: [MessageFlags.Ephemeral],
-    });
-  }
-  if (betAmount > (userData.balance || 0)) {
-    return msg.reply({
-      content: "Du hast nicht genug Kekse für diesen Einsatz.",
-      flags: [MessageFlags.Ephemeral],
-    });
-  }
-  if (crashGames.has(msg.author.id)) {
-    return msg.reply({
-      content: "Du hast bereits ein aktives Crash-Spiel!",
-      flags: [MessageFlags.Ephemeral],
-    });
-  }
+        const betAmount = parseInt(args[2]);
+        if (isNaN(betAmount) || betAmount <= 0) {
+          return msg.reply({
+            content: "Nutzung: `!casino crash <Einsatz>`",
+            flags: [MessageFlags.Ephemeral],
+          });
+        }
+        if (betAmount > (userData.balance || 0)) {
+          return msg.reply({
+            content: "Du hast nicht genug Kekse für diesen Einsatz.",
+            flags: [MessageFlags.Ephemeral],
+          });
+        }
+        if (crashGames.has(msg.author.id)) {
+          return msg.reply({
+            content: "Du hast bereits ein aktives Crash-Spiel!",
+            flags: [MessageFlags.Ephemeral],
+          });
+        }
 
-  userData.balance -= betAmount;
-  await logTransaction(msg.author.id, betAmount, "minus", "Casino Crash");
-  await setEcoData(msg.author.id, userData);
+        userData.balance -= betAmount;
+        await logTransaction(msg.author.id, betAmount, "minus", "Casino Crash");
+        await setEcoData(msg.author.id, userData);
 
-  const crashPoint = parseFloat(
-    Math.max(1.01, 0.50 / (1 - Math.random())).toFixed(2),
-  );
-  let multiplier = 1.0;
-  let intervalHandle = null;
+        const crashPoint = parseFloat(
+          Math.max(1.01, 0.5 / (1 - Math.random())).toFixed(2),
+        );
+        let multiplier = 1.0;
+        let intervalHandle = null;
 
-  const cashoutRow = () =>
-    new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`crash_cashout_${msg.author.id}`)
-        .setLabel(`Cash Out (${Math.floor(betAmount * multiplier)} Kekse)`)
-        .setStyle(ButtonStyle.Success),
-    );
+        const cashoutRow = () =>
+          new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId(`crash_cashout_${msg.author.id}`)
+              .setLabel(
+                `Cash Out (${Math.floor(betAmount * multiplier)} Kekse)`,
+              )
+              .setStyle(ButtonStyle.Success),
+          );
 
-  const crashEmbed = (crashed = false, cashedAt = null) => {
-    if (crashed)
-      return new EmbedBuilder()
-        .setTitle("💥 CRASH!")
-        .setDescription(
-          `Gecrasht bei **${crashPoint.toFixed(2)}x**!\n\nEinsatz: **${betAmount} Kekse** - **Verloren!**\nNeuer Kontostand: **${userData.balance} Kekse**`,
-        )
-        .setColor(0x333333);
-    if (cashedAt !== null) {
-      const win = Math.floor(betAmount * cashedAt);
-      return new EmbedBuilder()
-        .setTitle("✅ Cash Out!")
-        .setDescription(
-          `Ausgecasht bei **${cashedAt.toFixed(2)}x**!\n\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${userData.balance + win} Kekse**`,
-        )
-        .setColor(0x333333);
-    }
-    return new EmbedBuilder()
-      .setTitle("Crash")
-      .setDescription(
-        `**${multiplier.toFixed(2)}x** - Steigt noch…\n\nEinsatz: **${betAmount} Kekse**\nMöglicher Gewinn: **${Math.floor(betAmount * multiplier)} Kekse**\n\nDrücke **Cash Out** vor dem Crash!`,
-      )
-      .setColor(0xffffff);
-  };
+        const crashEmbed = (crashed = false, cashedAt = null) => {
+          if (crashed)
+            return new EmbedBuilder()
+              .setTitle(":boom: CRASH!")
+              .setDescription(
+                `Gecrasht bei **${crashPoint.toFixed(2)}x**!\n\nEinsatz: **${betAmount} Kekse** - **Verloren!**\nNeuer Kontostand: **${userData.balance} Kekse**`,
+              )
+              .setColor(0x333333);
+          if (cashedAt !== null) {
+            const win = Math.floor(betAmount * cashedAt);
+            return new EmbedBuilder()
+              .setTitle(":white_check_mark: Cash Out!")
+              .setDescription(
+                `Ausgecasht bei **${cashedAt.toFixed(2)}x**!\n\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${userData.balance + win} Kekse**`,
+              )
+              .setColor(0x333333);
+          }
+          return new EmbedBuilder()
+            .setTitle("Crash")
+            .setDescription(
+              `**${multiplier.toFixed(2)}x** - Steigt noch…\n\nEinsatz: **${betAmount} Kekse**\nMöglicher Gewinn: **${Math.floor(betAmount * multiplier)} Kekse**\n\nDrücke **Cash Out** vor dem Crash!`,
+            )
+            .setColor(0xffffff);
+        };
 
-  const gameMsg = await msg.reply({
-    embeds: [crashEmbed()],
-    components: [cashoutRow()],
-  });
+        const gameMsg = await msg.reply({
+          embeds: [crashEmbed()],
+          components: [cashoutRow()],
+        });
 
-  crashGames.set(msg.author.id, {
-    betAmount,
-    crashPoint,
-    cashedOut: false,
-    cashedAtMultiplier: null,
-  });
+        crashGames.set(msg.author.id, {
+          betAmount,
+          crashPoint,
+          cashedOut: false,
+          cashedAtMultiplier: null,
+        });
 
-  const collector = gameMsg.createMessageComponentCollector({
-    filter: (i) =>
-      i.user.id === msg.author.id &&
-      i.customId === `crash_cashout_${msg.author.id}`,
-    componentType: ComponentType.Button,
-    time: 120000,
-  });
+        const collector = gameMsg.createMessageComponentCollector({
+          filter: (i) =>
+            i.user.id === msg.author.id &&
+            i.customId === `crash_cashout_${msg.author.id}`,
+          componentType: ComponentType.Button,
+          time: 120000,
+        });
 
-  collector.on("collect", async (interaction) => {
-    const game = crashGames.get(msg.author.id);
-    if (!game || game.cashedOut) {
-      await interaction.reply({
-        content: "Zu spät — das Spiel ist bereits beendet!",
-        flags: [MessageFlags.Ephemeral],
-      }).catch(() => {});
-      return;
-    }
+        collector.on("collect", async (interaction) => {
+          const game = crashGames.get(msg.author.id);
+          if (!game || game.cashedOut) {
+            await interaction
+              .reply({
+                content: "Zu spät — das Spiel ist bereits beendet!",
+                flags: [MessageFlags.Ephemeral],
+              })
+              .catch(() => {});
+            return;
+          }
 
-    game.cashedOut = true;
-    game.cashedAtMultiplier = multiplier;
-    if (intervalHandle) clearInterval(intervalHandle);
-    crashGames.delete(msg.author.id);
-    collector.stop("cashout");
+          game.cashedOut = true;
+          game.cashedAtMultiplier = multiplier;
+          if (intervalHandle) clearInterval(intervalHandle);
+          crashGames.delete(msg.author.id);
+          collector.stop("cashout");
 
-    const win = Math.floor(betAmount * game.cashedAtMultiplier);
-    userData.balance += win;
-    await logTransaction(msg.author.id, win, "plus", "Casino Crash");
-    await setEcoData(msg.author.id, userData);
+          const win = Math.floor(betAmount * game.cashedAtMultiplier);
+          userData.balance += win;
+          await logTransaction(msg.author.id, win, "plus", "Casino Crash");
+          await setEcoData(msg.author.id, userData);
 
-    await interaction.update({
-      embeds: [crashEmbed(false, game.cashedAtMultiplier)],
-      components: [],
-    }).catch(() => {});
-  });
+          await interaction
+            .update({
+              embeds: [crashEmbed(false, game.cashedAtMultiplier)],
+              components: [],
+            })
+            .catch(() => {});
+        });
 
-  intervalHandle = setInterval(async () => {
-    const game = crashGames.get(msg.author.id);
-    if (!game) {
-      clearInterval(intervalHandle);
-      return;
-    }
+        intervalHandle = setInterval(async () => {
+          const game = crashGames.get(msg.author.id);
+          if (!game) {
+            clearInterval(intervalHandle);
+            return;
+          }
 
-    multiplier = parseFloat((multiplier + 0.08).toFixed(2));
+          multiplier = parseFloat((multiplier + 0.08).toFixed(2));
 
-    if (multiplier >= game.crashPoint) {
-      clearInterval(intervalHandle);
-      crashGames.delete(msg.author.id);
-      collector.stop("crashed");
-      await gameMsg
-        .edit({ embeds: [crashEmbed(true)], components: [] })
-        .catch(() => {});
-      return;
-    }
+          if (multiplier >= game.crashPoint) {
+            clearInterval(intervalHandle);
+            crashGames.delete(msg.author.id);
+            collector.stop("crashed");
+            await gameMsg
+              .edit({ embeds: [crashEmbed(true)], components: [] })
+              .catch(() => {});
+            return;
+          }
 
-    await gameMsg
-      .edit({ embeds: [crashEmbed()], components: [cashoutRow()] })
-      .catch(() => {});
-  }, 600);
+          await gameMsg
+            .edit({ embeds: [crashEmbed()], components: [cashoutRow()] })
+            .catch(() => {});
+        }, 600);
 
-  collector.on("end", async (collected, reason) => {
-    if (reason === "time") {
-      clearInterval(intervalHandle);
-      const game = crashGames.get(msg.author.id);
-      if (game && !game.cashedOut) {
-        crashGames.delete(msg.author.id);
-        await gameMsg
-          .edit({ embeds: [crashEmbed(true)], components: [] })
-          .catch(() => {});
+        collector.on("end", async (collected, reason) => {
+          if (reason === "time") {
+            clearInterval(intervalHandle);
+            const game = crashGames.get(msg.author.id);
+            if (game && !game.cashedOut) {
+              crashGames.delete(msg.author.id);
+              await gameMsg
+                .edit({ embeds: [crashEmbed(true)], components: [] })
+                .catch(() => {});
+            }
+          }
+        });
+
+        return;
       }
-    }
-  });
-
-  return;
-}
       if (subCommand === "highlow" || subCommand === "hl") {
-  const betAmount = args.map(Number).find(n => !isNaN(n) && n > 0);
-  if (isNaN(betAmount) || betAmount <= 0) {
-    return msg.reply({
-      content: "Nutzung: `!casino highlow <Einsatz>`",
-      flags: [MessageFlags.Ephemeral],
-    });
-  }
-  if (betAmount > (userData.balance || 0)) {
-    return msg.reply({
-      content: "Du hast nicht genug Kekse für diesen Einsatz.",
-      flags: [MessageFlags.Ephemeral],
-    });
-  }
-  if (hlGames.has(msg.author.id)) {
-    return msg.reply({
-      content: "Du hast bereits ein aktives Higher/Lower-Spiel!",
-      flags: [MessageFlags.Ephemeral],
-    });
-  }
-  const todayStr = new Date().toISOString().split("T")[0];
-  if (userData.hl_cooldown_date !== todayStr) {
-    userData.hl_cooldown_date = todayStr;
-    userData.hl_today_count = 0;
-  }
-  if ((userData.hl_today_count || 0) >= 5) {
-    return msg.reply({
-      content: "Du hast dein Limit von **5 Higher/Lower-Spielen** für heute bereits erreicht! Komm morgen wieder.",
-      flags: [MessageFlags.Ephemeral],
-    });
-  }
-  userData.hl_today_count = (userData.hl_today_count || 0) + 1;
-  userData.balance -= betAmount;
+        const betAmount = args.map(Number).find((n) => !isNaN(n) && n > 0);
+        if (isNaN(betAmount) || betAmount <= 0) {
+          return msg.reply({
+            content: "Nutzung: `!casino highlow <Einsatz>`",
+            flags: [MessageFlags.Ephemeral],
+          });
+        }
+        if (betAmount > (userData.balance || 0)) {
+          return msg.reply({
+            content: "Du hast nicht genug Kekse für diesen Einsatz.",
+            flags: [MessageFlags.Ephemeral],
+          });
+        }
+        if (hlGames.has(msg.author.id)) {
+          return msg.reply({
+            content: "Du hast bereits ein aktives Higher/Lower-Spiel!",
+            flags: [MessageFlags.Ephemeral],
+          });
+        }
+        const todayStr = new Date().toISOString().split("T")[0];
+        if (userData.hl_cooldown_date !== todayStr) {
+          userData.hl_cooldown_date = todayStr;
+          userData.hl_today_count = 0;
+        }
+        if ((userData.hl_today_count || 0) >= 5) {
+          return msg.reply({
+            content:
+              "Du hast dein Limit von **5 Higher/Lower-Spielen** für heute bereits erreicht! Komm morgen wieder.",
+            flags: [MessageFlags.Ephemeral],
+          });
+        }
+        userData.hl_today_count = (userData.hl_today_count || 0) + 1;
+        userData.balance -= betAmount;
 
-  await logTransaction(msg.author.id, betAmount, "minus", "Casino Higher Lower");
-  await setEcoData(msg.author.id, userData);
-  hlGames.set(msg.author.id, true);
-  const cardNames = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
-  const cardVals = { 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10, J: 11, Q: 12, K: 13, A: 14 };
-  const suits = ["♠️", "♥️", "♦️", "♣️"];
-  
-  const getCard = () => {
-    const n = cardNames[Math.floor(Math.random() * cardNames.length)];
-    return {
-      display: `${n}${suits[Math.floor(Math.random() * 4)]}`,
-      value: cardVals[n],
-    };
-  };
+        await logTransaction(
+          msg.author.id,
+          betAmount,
+          "minus",
+          "Casino Higher Lower",
+        );
+        await setEcoData(msg.author.id, userData);
+        hlGames.set(msg.author.id, true);
+        const cardNames = [
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "J",
+          "Q",
+          "K",
+          "A",
+        ];
+        const cardVals = {
+          2: 2,
+          3: 3,
+          4: 4,
+          5: 5,
+          6: 6,
+          7: 7,
+          8: 8,
+          9: 9,
+          10: 10,
+          J: 11,
+          Q: 12,
+          K: 13,
+          A: 14,
+        };
+        const suits = [":spades:", ":hearts:", ":diamonds:", ":clubs:"];
 
-  let currentCard = getCard();
-  let lastDrawnCard = null;
-  let streak = 0;
-  let multiplier = 1.0;
+        const getCard = () => {
+          const n = cardNames[Math.floor(Math.random() * cardNames.length)];
+          return {
+            display: `${n}${suits[Math.floor(Math.random() * 4)]}`,
+            value: cardVals[n],
+          };
+        };
 
-  const hlRow = (disabled = false) =>
-    new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`hl_higher_${msg.author.id}`)
-        .setLabel("⬆️ Higher")
-        .setStyle(ButtonStyle.Primary)
-        .setDisabled(disabled),
-      new ButtonBuilder()
-        .setCustomId(`hl_lower_${msg.author.id}`)
-        .setLabel("⬇️ Lower")
-        .setStyle(ButtonStyle.Primary)
-        .setDisabled(disabled),
-      new ButtonBuilder()
-        .setCustomId(`hl_cashout_${msg.author.id}`)
-        .setLabel(`Auszahlen (${Math.floor(betAmount * multiplier)} Kekse)`)
-        .setStyle(ButtonStyle.Success)
-        .setDisabled(disabled || streak === 0),
-    );
+        let currentCard = getCard();
+        let lastDrawnCard = null;
+        let streak = 0;
+        let multiplier = 1.0;
 
-  const hlEmbed = (desc, color = 0xffffff) =>
-    new EmbedBuilder()
-      .setTitle("Higher or Lower")
-      .setDescription(desc)
-      .setColor(0xffffff);
+        const hlRow = (disabled = false) =>
+          new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId(`hl_higher_${msg.author.id}`)
+              .setLabel("Higher")
+              .setStyle(ButtonStyle.Primary)
+              .setDisabled(disabled),
+            new ButtonBuilder()
+              .setCustomId(`hl_lower_${msg.author.id}`)
+              .setLabel("Lower")
+              .setStyle(ButtonStyle.Primary)
+              .setDisabled(disabled),
+            new ButtonBuilder()
+              .setCustomId(`hl_cashout_${msg.author.id}`)
+              .setLabel(
+                `Auszahlen (${Math.floor(betAmount * multiplier)} Kekse)`,
+              )
+              .setStyle(ButtonStyle.Success)
+              .setDisabled(disabled || streak === 0),
+          );
 
-  const gameMsg = await msg.reply({
-    embeds: [
-      hlEmbed(
-        `Aktuelle Karte: **${currentCard.display}**\n\nStreak: **0** | Multiplikator: **1.00x**\nMöglicher Gewinn: **${betAmount} Kekse**\n\nIst die nächste Karte höher oder niedriger?\n*(Spiel **${userData.hl_today_count}/5** heute)*`,
-      ),
-    ],
-    components: [hlRow()],
-  });
+        const hlEmbed = (desc, color = 0xffffff) =>
+          new EmbedBuilder()
+            .setTitle("Higher or Lower")
+            .setDescription(desc)
+            .setColor(0xffffff);
 
-  const collector = gameMsg.createMessageComponentCollector({
-    filter: (i) => i.user.id === msg.author.id,
-    componentType: ComponentType.Button,
-    time: 90000,
-  });
-
-  collector.on("collect", async (interaction) => {
-    try {
-      await interaction.deferUpdate();
-      const id = interaction.customId;
-      
-      if (id === `hl_cashout_${msg.author.id}`) {
-        collector.stop("cashout");
-        return;
-      }
-      
-      await gameMsg.edit({ components: [hlRow(true)] }).catch(() => {});
-      
-      const nextCard = getCard();
-      lastDrawnCard = nextCard;
-      const choice = id.startsWith(`hl_higher`) ? "higher" : "lower";
-      const isTie = nextCard.value === currentCard.value;
-      const correct =
-        !isTie &&
-        ((choice === "higher" && nextCard.value > currentCard.value) ||
-          (choice === "lower" && nextCard.value < currentCard.value));
-
-      if (isTie) {
-        currentCard = nextCard;
-        await gameMsg
-          .edit({
-            embeds: [
-              hlEmbed(
-                `🟡 Unentschieden! Neue Karte: **${nextCard.display}**\nStreak: **${streak}** | Multiplikator: **${multiplier.toFixed(2)}x**\n\nIst die nächste Karte höher oder niedriger?`,
-              ),
-            ],
-            components: [hlRow(false)],
-          })
-          .catch(() => {});
-        return;
-      }
-
-      if (correct) {
-        streak++;
-        multiplier = parseFloat((multiplier + 0.5).toFixed(2));
-        currentCard = nextCard;
-        await gameMsg
-          .edit({
-            embeds: [
-              hlEmbed(
-                `✅ Richtig! Nächste Karte war **${nextCard.display}**\n\nAktuelle Karte: **${currentCard.display}**\nStreak: **${streak}** | Multiplikator: **${multiplier.toFixed(2)}x**\nMöglicher Gewinn: **${Math.floor(betAmount * multiplier)} Kekse**\n\nWeiterhöhen oder auszahlen?`,
-                0xffffff,
-              ),
-            ],
-            components: [hlRow()],
-          })
-          .catch(() => {});
-      } else {
-        collector.stop("wrong");
-      }
-    } catch (error) {
-      console.error("Fehler im HL-Collector abgefangen:", error);
-    }
-  });
-
-  collector.on("end", async (collected, reason) => {
-    hlGames.delete(msg.author.id);
-    const fresh = await getEcoData(msg.author.id);
-
-    if (reason === "cashout") {
-      const win = Math.floor(betAmount * multiplier);
-      fresh.balance = (fresh.balance || 0) + win;
-      await logTransaction(msg.author.id, win, "plus", "Casino Higher Lower");
-      await setEcoData(msg.author.id, fresh);
-      await gameMsg
-        .edit({
+        const gameMsg = await msg.reply({
           embeds: [
             hlEmbed(
-              `💰 **Ausgezahlt!**\n\nMultiplikator: **${multiplier.toFixed(2)}x**\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${fresh.balance} Kekse**`,
-              0x333333,
+              `Aktuelle Karte: **${currentCard.display}**\n\nStreak: **0** | Multiplikator: **1.00x**\nMöglicher Gewinn: **${betAmount} Kekse**\n\nIst die nächste Karte höher oder niedriger?\n*(Spiel **${userData.hl_today_count}/5** heute)*`,
             ),
           ],
-          components: [],
-        })
-        .catch(() => {});
-    } else if (reason === "wrong") {
-      await gameMsg
-        .edit({
-          embeds: [
-            hlEmbed(
-              `❌ **Falsch geraten!**\n\nDie Karte war **${lastDrawnCard ? lastDrawnCard.display : "Unbekannt"}**.\nDu hast **${betAmount} Kekse** verloren.\nNeuer Kontostand: **${fresh.balance} Kekse**`,
-              0x333333,
-            ),
-          ],
-          components: [],
-        })
-        .catch(() => {});
-    } else {
-      if (streak > 0) {
-        const win = Math.floor(betAmount * multiplier);
-        fresh.balance = (fresh.balance || 0) + win;
-        await logTransaction(msg.author.id, win, "plus", "Casino Higher Lower");
-        await setEcoData(msg.author.id, fresh);
-        await gameMsg
-          .edit({
-            embeds: [
-              hlEmbed(
-                `⏰ **Zeit abgelaufen!**\n\nAutomatisch ausgezahlt bei **${multiplier.toFixed(2)}x**\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${fresh.balance} Kekse**`,
-                0x333333,
-              ),
-            ],
-            components: [],
-          })
-          .catch(() => {});
-      } else {
-        await gameMsg
-          .edit({
-            embeds: [
-              hlEmbed(
-                `⏰ **Zeit abgelaufen!**\n\nDu hast zu lange gebraucht und **${betAmount} Kekse** verloren.\nNeuer Kontostand: **${fresh.balance} Kekse**`,
-                0x333333,
-              ),
-            ],
-            components: [],
-          })
-          .catch(() => {});
-      }
-    }
-  });
+          components: [hlRow()],
+        });
 
-  return;
-}
+        const collector = gameMsg.createMessageComponentCollector({
+          filter: (i) => i.user.id === msg.author.id,
+          componentType: ComponentType.Button,
+          time: 90000,
+        });
+
+        collector.on("collect", async (interaction) => {
+          try {
+            await interaction.deferUpdate();
+            const id = interaction.customId;
+
+            if (id === `hl_cashout_${msg.author.id}`) {
+              collector.stop("cashout");
+              return;
+            }
+
+            await gameMsg.edit({ components: [hlRow(true)] }).catch(() => {});
+
+            const nextCard = getCard();
+            lastDrawnCard = nextCard;
+            const choice = id.startsWith(`hl_higher`) ? "higher" : "lower";
+            const isTie = nextCard.value === currentCard.value;
+            const correct =
+              !isTie &&
+              ((choice === "higher" && nextCard.value > currentCard.value) ||
+                (choice === "lower" && nextCard.value < currentCard.value));
+
+            if (isTie) {
+              currentCard = nextCard;
+              await gameMsg
+                .edit({
+                  embeds: [
+                    hlEmbed(
+                      `:yellow_circle: Unentschieden! Neue Karte: **${nextCard.display}**\nStreak: **${streak}** | Multiplikator: **${multiplier.toFixed(2)}x**\n\nIst die nächste Karte höher oder niedriger?`,
+                    ),
+                  ],
+                  components: [hlRow(false)],
+                })
+                .catch(() => {});
+              return;
+            }
+
+            if (correct) {
+              streak++;
+              multiplier = parseFloat((multiplier + 0.5).toFixed(2));
+              currentCard = nextCard;
+              await gameMsg
+                .edit({
+                  embeds: [
+                    hlEmbed(
+                      `:white_check_mark: Richtig! Nächste Karte war **${nextCard.display}**\n\nAktuelle Karte: **${currentCard.display}**\nStreak: **${streak}** | Multiplikator: **${multiplier.toFixed(2)}x**\nMöglicher Gewinn: **${Math.floor(betAmount * multiplier)} Kekse**\n\nWeiterhöhen oder auszahlen?`,
+                      0xffffff,
+                    ),
+                  ],
+                  components: [hlRow()],
+                })
+                .catch(() => {});
+            } else {
+              collector.stop("wrong");
+            }
+          } catch (error) {
+            console.error("Fehler im HL-Collector abgefangen:", error);
+          }
+        });
+
+        collector.on("end", async (collected, reason) => {
+          hlGames.delete(msg.author.id);
+          const fresh = await getEcoData(msg.author.id);
+
+          if (reason === "cashout") {
+            const win = Math.floor(betAmount * multiplier);
+            fresh.balance = (fresh.balance || 0) + win;
+            await logTransaction(
+              msg.author.id,
+              win,
+              "plus",
+              "Casino Higher Lower",
+            );
+            await setEcoData(msg.author.id, fresh);
+            await gameMsg
+              .edit({
+                embeds: [
+                  hlEmbed(
+                    `:moneybag: **Ausgezahlt!**\n\nMultiplikator: **${multiplier.toFixed(2)}x**\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${fresh.balance} Kekse**`,
+                    0x333333,
+                  ),
+                ],
+                components: [],
+              })
+              .catch(() => {});
+          } else if (reason === "wrong") {
+            await gameMsg
+              .edit({
+                embeds: [
+                  hlEmbed(
+                    `:x: **Falsch geraten!**\n\nDie Karte war **${lastDrawnCard ? lastDrawnCard.display : "Unbekannt"}**.\nDu hast **${betAmount} Kekse** verloren.\nNeuer Kontostand: **${fresh.balance} Kekse**`,
+                    0x333333,
+                  ),
+                ],
+                components: [],
+              })
+              .catch(() => {});
+          } else {
+            if (streak > 0) {
+              const win = Math.floor(betAmount * multiplier);
+              fresh.balance = (fresh.balance || 0) + win;
+              await logTransaction(
+                msg.author.id,
+                win,
+                "plus",
+                "Casino Higher Lower",
+              );
+              await setEcoData(msg.author.id, fresh);
+              await gameMsg
+                .edit({
+                  embeds: [
+                    hlEmbed(
+                      `:alarm_clock: **Zeit abgelaufen!**\n\nAutomatisch ausgezahlt bei **${multiplier.toFixed(2)}x**\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${fresh.balance} Kekse**`,
+                      0x333333,
+                    ),
+                  ],
+                  components: [],
+                })
+                .catch(() => {});
+            } else {
+              await gameMsg
+                .edit({
+                  embeds: [
+                    hlEmbed(
+                      `:alarm_clock: **Zeit abgelaufen!**\n\nDu hast zu lange gebraucht und **${betAmount} Kekse** verloren.\nNeuer Kontostand: **${fresh.balance} Kekse**`,
+                      0x333333,
+                    ),
+                  ],
+                  components: [],
+                })
+                .catch(() => {});
+            }
+          }
+        });
+
+        return;
+      }
       if (subCommand === "blackjack") {
         const betAmount = parseInt(args[2]);
         if (isNaN(betAmount) || betAmount <= 0) {
@@ -1624,7 +1777,7 @@ export async function initEconomySystem(client) {
           });
         }
 
-        const suits = ["♠️", "♥️", "♦️", "♣️"];
+        const suits = [":spades:", ":hearts:", ":diamonds:", ":clubs:"];
         const values = [
           { n: "2", v: 2 },
           { n: "3", v: 3 },
@@ -1681,7 +1834,7 @@ export async function initEconomySystem(client) {
           const pCards = playerHand.map((c) => c.name).join(" ");
           const dCards = showAllDealer
             ? dealerHand.map((c) => c.name).join(" ")
-            : `${dealerHand[0].name} 🎴`;
+            : `${dealerHand[0].name} :flower_playing_cards:`;
 
           return new EmbedBuilder()
             .setTitle(title)
@@ -1829,8 +1982,8 @@ export async function initEconomySystem(client) {
       });
     }
     if (command === "!bank") {
-      const hasEcoRole = msg.member.roles.cache.has("1506732560837771284");
-      const isAdmin = msg.author.id === "1151971830983311441";
+      const hasEcoRole = msg.member.roles.cache.has(ECO_ROLE_ID);
+      const isAdmin = msg.author.id == FABIAN_ID;
       if (
         isAdmin &&
         (subCommand === "add" ||
@@ -1938,14 +2091,13 @@ export async function initEconomySystem(client) {
 
       if (subCommand === "help") {
         const helpEmbed = new EmbedBuilder()
-          .setTitle("🏦 Bank-System Hilfe")
+          .setTitle(":bank: Bank-System Hilfe")
           .setColor(0xffffff)
           .setDescription("Hier findest du alle verfügbaren Befehle:")
           .addFields(
             {
               name: "`!bank create`",
-              value:
-                "Erstelle ein Bankkonto (Erfordert Minecraft-Namen).",
+              value: "Erstelle ein Bankkonto (Erfordert Minecraft-Namen).",
             },
             {
               name: "`!bank`",
@@ -1953,11 +2105,14 @@ export async function initEconomySystem(client) {
             },
             {
               name: "`!bank pay`",
-              value: "Überweise Kekse an eine andere Person."
-            }
+              value: "Überweise Kekse an eine andere Person.",
+            },
           );
 
-        return msg.reply({ embeds: [helpEmbed], flags: [MessageFlags.Ephemeral] });
+        return msg.reply({
+          embeds: [helpEmbed],
+          flags: [MessageFlags.Ephemeral],
+        });
       }
       if (subCommand === "pay") {
         let targetArg = args[2];
@@ -2039,7 +2194,10 @@ export async function initEconomySystem(client) {
           })
           .setColor(0xffffff);
 
-        await msg.reply({ embeds: [payEmbed], flags: [MessageFlags.Ephemeral] });
+        await msg.reply({
+          embeds: [payEmbed],
+          flags: [MessageFlags.Ephemeral],
+        });
 
         try {
           const targetUser = await msg.client.users.fetch(targetUserId);
@@ -2052,7 +2210,7 @@ export async function initEconomySystem(client) {
         return;
       }
       if (subCommand === "get") {
-        if (msg.author.id === "1151971830983311441") {
+        if (msg.author.id == FABIAN_ID) {
           const existingKekse = await initEconomyGetKekse(client);
           return msg.reply(`Es sind aktuell ${existingKekse} Kekse im Umlauf.`);
         } else {
@@ -2105,9 +2263,7 @@ export async function initEconomySystem(client) {
           });
         }
 
-        const hasEcoRole = interaction.member.roles.cache.has(
-          "1506732560837771284",
-        );
+        const hasEcoRole = interaction.member.roles.cache.has(ECO_ROLE_ID);
         if (hasEcoRole) {
           return interaction.reply({
             content: "Du besitzt bereits ein registriertes Bankkonto.",
@@ -2132,9 +2288,7 @@ export async function initEconomySystem(client) {
         return;
       }
       if (interaction.customId.startsWith("daily_claim_")) {
-        const hasEcoRole = interaction.member.roles.cache.has(
-          "1506732560837771284",
-        );
+        const hasEcoRole = interaction.member.roles.cache.has(ECO_ROLE_ID);
         if (!hasEcoRole) {
           return interaction.reply({
             content:
@@ -2180,35 +2334,35 @@ export async function initEconomySystem(client) {
         const itemType = interaction.customId.replace("shop_", "");
         const SHOP_ITEMS = {
           giveaway: {
-            roleId: "1506164984202264656",
-            name: "🎉 Double Chance Giveaway",
+            roleId: GIVEAWAY_DOUBLE_ROLE_ID,
+            name: ":tada: Double Chance Giveaway",
             duration: null,
             price: 100000,
           },
           puffer: {
-            roleId: "1508050024355856494",
-            name: "🛡️ Counting Puffer",
+            roleId: COUNTING_PUFFER_ROLE_ID,
+            name: ":shield: Counting Puffer",
             duration: null,
             price: 25000,
           },
           xp30: {
-            roleId: "1506164829029666827",
-            name: "⚡ Counting XP Booster (30 Min)",
+            roleId: COUNTING_XP30_ROLE_ID,
+            name: ":zap: Counting XP Booster (30 Min)",
             duration: 30 * 60 * 1000,
             price: 50000,
           },
           xp60: {
-            roleId: "1508054186930208768",
-            name: "🔥 Counting XP Booster (60 Min)",
+            roleId: COUNTING_XP60_ROLE_ID,
+            name: ":fire: Counting XP Booster (60 Min)",
             duration: 60 * 60 * 1000,
             price: 100000,
           },
           vip: {
-            roleId: "1434555291252297728",
-            name: "💎 VIP-Rolle (7d)",
+            roleId: VIP_ROLE_ID,
+            name: ":gem: VIP-Rolle (7d)",
             duration: 7 * 24 * 60 * 60 * 1000,
             price: 500000,
-          }
+          },
         };
 
         const item = SHOP_ITEMS[itemType];
@@ -2255,7 +2409,7 @@ export async function initEconomySystem(client) {
 
           const invoiceEmbed = {
             color: 0xffffff,
-            title: "🧾 Deine Shop-Quittung",
+            title: ":receipt: Deine Shop-Quittung",
             description: `Vielen Dank für deinen Einkauf auf unserem Server!`,
             fields: [
               { name: "Gekauftes Item", value: item.name, inline: true },
@@ -2274,9 +2428,7 @@ export async function initEconomySystem(client) {
           };
 
           await interaction.user.send({ embeds: [invoiceEmbed] }).catch(() => {
-            console.log(
-              `Konnte keine DM an ${interaction.user.tag} senden.`,
-            );
+            console.log(`Konnte keine DM an ${interaction.user.tag} senden.`);
           });
 
           if (item.duration) {
@@ -2290,7 +2442,9 @@ export async function initEconomySystem(client) {
                   currentMember.roles.cache.has(item.roleId)
                 ) {
                   await currentMember.roles.remove(item.roleId);
-                  console.log(`[Shop] Rolle wurde von ${currentMember} entfernt`)
+                  console.log(
+                    `[Shop] Rolle wurde von ${currentMember} entfernt`,
+                  );
                   await currentMember
                     .send(
                       `Dein **${item.name}** ist abgelaufen und wurde entfernt!`,
@@ -2336,7 +2490,7 @@ export async function initEconomySystem(client) {
           .fetch(interaction.user.id)
           .catch(() => null);
         if (member) {
-          await member.roles.add("1506732560837771284").catch(() => {});
+          await member.roles.add(ECO_ROLE_ID).catch(() => {});
         }
 
         await interaction.reply({
@@ -2354,70 +2508,87 @@ export async function initEconomySystem(client) {
   });
 }
 export async function wage(force = false) {
-    const now = new Date();
-    const aktuellerMonat = now.getMonth();
-    
-    const istErzwungen = force === true; 
-    
-    if (istErzwungen) {
-        await fuehreGehaltszahlungAus(now);
-        return;
-    }
+  const now = new Date();
+  const aktuellerMonat = now.getMonth();
 
-    const status = await getWageData("status");
-    const gespeicherterMonat = status.letzterMonat !== undefined ? status.letzterMonat : -1;
-    
-    const istErsterDesMonats = now.getDate() === 1;
-    const istNullUhr = now.getHours() === 0;
-    const bereitsDiesenMonatGezahlt = gespeicherterMonat === aktuellerMonat;
+  const istErzwungen = force === true;
 
-    if (istErsterDesMonats && istNullUhr && !bereitsDiesenMonatGezahlt) {
-        await setWageData("status", { letzterMonat: aktuellerMonat });
-        await fuehreGehaltszahlungAus(now);
-    }
+  if (istErzwungen) {
+    await fuehreGehaltszahlungAus(now);
+    return;
+  }
+
+  const status = await getWageData("status");
+  const gespeicherterMonat =
+    status.letzterMonat !== undefined ? status.letzterMonat : -1;
+
+  const istErsterDesMonats = now.getDate() === 1;
+  const istNullUhr = now.getHours() === 0;
+  const bereitsDiesenMonatGezahlt = gespeicherterMonat === aktuellerMonat;
+
+  if (istErsterDesMonats && istNullUhr && !bereitsDiesenMonatGezahlt) {
+    await setWageData("status", { letzterMonat: aktuellerMonat });
+    await fuehreGehaltszahlungAus(now);
+  }
 }
 
 async function fuehreGehaltszahlungAus(now) {
-    try {
-        const guild = client.guilds.cache.first() || await client.guilds.fetch('1423413347168157718');
-        const role = guild.roles.cache.get('1457906448234319922') || await guild.roles.fetch('1457906448234319922');
-        const team = Array.from(role.members.values());
+  try {
+    const guild =
+      client.guilds.cache.first() ||
+      (await client.guilds.fetch(GUILD_ID));
+    const role =
+      guild.roles.cache.get(TEAM_ROLE_ID) ||
+      (await guild.roles.fetch(TEAM_ROLE_ID));
+    const team = Array.from(role.members.values());
 
-        const nowFormatted = now.toLocaleString('de-DE', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        }).replace(',', '');
+    const nowFormatted = now
+      .toLocaleString("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+      .replace(",", "");
 
-        for (const member of team) {
-            const userData = await getEcoData(member.user.id);
-            userData.balance = (userData.balance || 0) + 10000;
-            await setEcoData(member.user.id, userData);
+    for (const member of team) {
+      const userData = await getEcoData(member.user.id);
+      userData.balance = (userData.balance || 0) + 10000;
+      await setEcoData(member.user.id, userData);
 
-            const embed = {
-                title: '✅ Monatlicher Lohn',
-                description: 'Dir wurde erfolgreich der monatliche Lohn von `10.000 Kekse` gutgeschrieben. \nVielen Dank für dein Engagement im Team!\n\n\n**User:** <@' + member.user.id + '>\n**Menge:** 10000 Kekse\n**Typ:** Gutschrift',
-                color: 0x2ECC70,
-                footer: { text: nowFormatted }
-            };
+      const embed = {
+        title: ":white_check_mark: Monatlicher Lohn",
+        description:
+          "Dir wurde erfolgreich der monatliche Lohn von `10.000 Kekse` gutgeschrieben. \nVielen Dank für dein Engagement im Team!\n\n\n**User:** <@" +
+          member.user.id +
+          ">\n**Menge:** 10000 Kekse\n**Typ:** Gutschrift",
+        color: 0x2ecc70,
+        footer: { text: nowFormatted },
+      };
 
-            try {
-                await member.send({ 
-                    embeds: [embed], 
-                    content: `Dein aktueller Kontostand beträgt: **${userData.balance} Kekse** :cookie:` 
-                });
-                const logchanngel = client.channels.cache.get("1423413348220796991");
-                logchannel.send(`✅ Überweisung an <@${userData.userId}> erfolgreich.\n**Beschreibung:** Monatlicher Lohn (Team)\n**Menge:** 10000 Kekse\n**Typ:** Gutschrift\n**Datum:** ${newFormatted}`);
-                console.log(`Überweisung an <@${userData.userId}> erfolgreich.\n**Beschreibung:** Monatlicher Lohn (Team)\n**Menge:** 10000 Kekse\n**Typ:** Gutschrift\n**Datum:** ${newFormatted}`)
-            } catch (dmError) {
-                console.error(`DM konnte nicht an ${member.user.tag} gesendet werden:`, dmError);
-            }
-        }
-    } catch (error) {
-        console.error(error);
+      try {
+        await member.send({
+          embeds: [embed],
+          content: `Dein aktueller Kontostand beträgt: **${userData.balance} Kekse** :cookie:`,
+        });
+        const logchannel = client.channels.cache.get(LOG_CHANNEL_ID);
+        logchannel.send(
+          `:white_check_mark: Überweisung an <@${userData.userId}> erfolgreich.\n**Beschreibung:** Monatlicher Lohn (Team)\n**Menge:** 10000 Kekse\n**Typ:** Gutschrift\n**Datum:** ${newFormatted}`,
+        );
+        console.log(
+          `Überweisung an <@${userData.userId}> erfolgreich.\n**Beschreibung:** Monatlicher Lohn (Team)\n**Menge:** 10000 Kekse\n**Typ:** Gutschrift\n**Datum:** ${newFormatted}`,
+        );
+      } catch (dmError) {
+        console.error(
+          `DM konnte nicht an ${member.user.tag} gesendet werden:`,
+          dmError,
+        );
+      }
     }
+  } catch (error) {
+    console.error(error);
+  }
 }
 export function initAdminFun(client) {
   client.on("messageCreate", async (msg) => {
@@ -2534,7 +2705,9 @@ export function initAuditLogs(client) {
       "#ffffff",
       member.user.displayAvatarURL(),
     );
-    console.log(`<@${member.id}> (${member.user.tag}) hat den Server betreten.\nAccount erstellt: <t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`);
+    console.log(
+      `<@${member.id}> (${member.user.tag}) hat den Server betreten.\nAccount erstellt: <t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`,
+    );
   });
 
   client.on(Events.GuildMemberRemove, async (member) => {
@@ -2545,7 +2718,9 @@ export function initAuditLogs(client) {
       "#f04747",
       member.user.displayAvatarURL(),
     );
-    console.log(`<@${member.id}> (${member.user.tag}) hat den Server verlassen.`)
+    console.log(
+      `<@${member.id}> (${member.user.tag}) hat den Server verlassen.`,
+    );
   });
 
   client.on(Events.GuildMemberUpdate, async (oldMember, newMember) => {
@@ -2555,7 +2730,9 @@ export function initAuditLogs(client) {
         newMember.user,
         `Alt: \`${oldMember.nickname || "Kein"}\`\nNeu: \`${newMember.nickname || "Kein"}\``,
       );
-      console.log(`Alt: \`${oldMember.nickname || "Kein"}\`\nNeu: \`${newMember.nickname || "Kein"}\``)
+      console.log(
+        `Alt: \`${oldMember.nickname || "Kein"}\`\nNeu: \`${newMember.nickname || "Kein"}\``,
+      );
     }
     const addedRoles = newMember.roles.cache.filter(
       (r) => !oldMember.roles.cache.has(r.id),
@@ -2588,7 +2765,7 @@ export function initAuditLogs(client) {
         `Kanal: <#${newState.channelId}>`,
         "#ffffff",
       );
-      console.log(`${user} hat <#${newState.channelId}> betreten.`)
+      console.log(`${user} hat <#${newState.channelId}> betreten.`);
     } else if (oldState.channelId && !newState.channelId) {
       await sendLog(
         "VC Leave",
@@ -2596,7 +2773,7 @@ export function initAuditLogs(client) {
         `Kanal: <#${oldState.channelId}>`,
         "#ffffff",
       );
-      console.log(`${user} hat <#${oldState.channelId}> verlassen.`)
+      console.log(`${user} hat <#${oldState.channelId}> verlassen.`);
     } else if (oldState.channelId !== newState.channelId) {
       await sendLog(
         "VC Wechsel",
@@ -2604,7 +2781,9 @@ export function initAuditLogs(client) {
         `<#${oldState.channelId}> ➔ <#${newState.channelId}>`,
         "#ffffff",
       );
-      console.log(`${user} ist von <#${oldState.channelId}> in <#${newState.channelId}> gewechselt.`)
+      console.log(
+        `${user} ist von <#${oldState.channelId}> in <#${newState.channelId}> gewechselt.`,
+      );
     }
     if (!oldState.selfMute && newState.selfMute) {
       await sendLog(
@@ -2626,7 +2805,7 @@ export function initAuditLogs(client) {
         executor,
         `ID: <#${targetId}>\nEin neuer Kanal wurde angelegt.`,
       );
-      console.log(`ID: <#${targetId}>\nEin neuer Kanal wurde angelegt.`)
+      console.log(`ID: <#${targetId}>\nEin neuer Kanal wurde angelegt.`);
     }
     if (action === AuditLogEvent.ChannelDelete) {
       await sendLog(
@@ -2635,7 +2814,7 @@ export function initAuditLogs(client) {
         `ID: \`${targetId}\` (Kanal wurde entfernt)`,
         "#ffffff",
       );
-      console.log(`ID: \`${targetId}\` (Kanal wurde entfernt)`)
+      console.log(`ID: \`${targetId}\` (Kanal wurde entfernt)`);
     }
     if (action === AuditLogEvent.ChannelUpdate) {
       await sendLog(
@@ -2643,7 +2822,7 @@ export function initAuditLogs(client) {
         executor,
         `Einstellungen in <#${targetId}> wurden geändert.`,
       );
-      console.log(`Einstellungen in <#${targetId}> wurden geändert.`)
+      console.log(`Einstellungen in <#${targetId}> wurden geändert.`);
     }
     if (
       action === AuditLogEvent.ChannelOverwriteUpdate ||
@@ -2656,7 +2835,7 @@ export function initAuditLogs(client) {
         `Berechtigungen in <#${targetId}> wurden modifiziert.`,
         "#ffffff",
       );
-      console.log(`Berechtigungen in <#${targetId}> wurden modifiziert.`)
+      console.log(`Berechtigungen in <#${targetId}> wurden modifiziert.`);
     }
 
     if (action === AuditLogEvent.ThreadCreate) {
@@ -2734,7 +2913,6 @@ export function initAuditLogs(client) {
     );
   });
 }
-const TEAM_ROLE_ID = "1457906448234319922";
 export async function clear(client) {
   const sendKekseLog = async (action, user, details) => {
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
@@ -2754,7 +2932,7 @@ export async function clear(client) {
     if (!message.content.startsWith("!clear") || message.author.bot) return;
     if (!message.member.roles.cache.has(TEAM_ROLE_ID)) {
       await message.delete().catch(() => {});
-      const warnMsg = await message.channel.send("❌ Keine Berechtigung!");
+      const warnMsg = await message.channel.send(":x: Keine Berechtigung!");
       return setTimeout(() => warnMsg.delete().catch(() => {}), 5000);
     }
     const args = message.content.split(/\s+/).slice(1);
@@ -2845,7 +3023,7 @@ export async function clear(client) {
       }
     } catch (clearError) {
       console.log(
-        `[ClearCommand] Fehler bei der Ausführung: ${clearError.message}`,
+        `[Clear] Fehler bei der Ausführung: ${clearError.message}`,
       );
       if (statusMsg)
         await statusMsg
@@ -2879,186 +3057,16 @@ export async function clear(client) {
     setTimeout(() => finishMsg.delete().catch(() => {}), 15000);
   });
 }
-export const ruleMap = {
-  "§1a1n1": {
-    section: "Respekt und Freundlichkeit",
-    text: "Sei respektvoll. Beleidigungen, Diskriminierung, Mobbing oder Drohungen werden nicht toleriert.",
-  },
-  "§1a1n2": {
-    section: "Respekt und Freundlichkeit",
-    text: "Diskutiere sachlich und vermeide provokative Streitigkeiten.",
-  },
-  "§1a2n1": {
-    section: "Keine unangemessenen Inhalte",
-    text: "Keine anstößigen, pornografischen, rassistischen oder gewalttätigen Inhalte posten.",
-  },
-  "§1a2n2": {
-    section: "Keine unangemessenen Inhalte",
-    text: "Illegale Inhalte oder Diskussionen über illegale Aktivitäten sind verboten.",
-  },
-  "§1a3n1": {
-    section: "Spam, Werbung und Links",
-    text: "Spam jeglicher Art ist nicht erlaubt.",
-  },
-  "§1a3n2": {
-    section: "Spam, Werbung und Links",
-    text: "Werbung oder Links nur in genehmigten Kanälen mit Zustimmung der Moderatoren.",
-  },
-  "§2a1n1": {
-    section: "Datenschutz",
-    text: "Keine persönlichen Informationen ohne Erlaubnis teilen. Respektiere die Privatsphäre anderer Mitglieder.",
-  },
-  "§2a2n1": {
-    section: "Keine unerwünschte Kontaktaufnahme",
-    text: "Keine unaufgeforderten Direktnachrichten, insbesondere Werbung oder Anfragen.",
-  },
-  "§2a2n2": {
-    section: "Keine unerwünschte Kontaktaufnahme",
-    text: "Wünsche nach Ruhe respektieren.",
-  },
-  "§3a1n1": {
-    section: "Richtige Kanäle",
-    text: "Poste nur im passenden Kanal.",
-  },
-  "§3a1n2": {
-    section: "Richtige Kanäle",
-    text: "Nutze die richtigen Kanäle für Fragen, Diskussionen oder Medien.",
-  },
-  "§3a1n3": {
-    section: "Richtige Kanäle",
-    text: "Bots dürfen nur in den dafür vorgesehenen Channels verwendet werden.",
-  },
-  "§3a2n1": {
-    section: "Sprache und Ausdruck",
-    text: "Freundlich und konstruktiv kommunizieren. Fluchen nur in Maßen.",
-  },
-  "§3a2n2": {
-    section: "Sprache und Ausdruck",
-    text: "Server-Sprache: Deutsch.",
-  },
-  "§3a3n1": { section: "Voice Chats", text: "Störgeräusche vermeiden." },
-  "§3a3n2": {
-    section: "Voice Chats",
-    text: "Dauerhaftes Stummschalten oder wiederholtes Verlassen und Betreten ist nicht erlaubt.",
-  },
-  "§4a1n1": {
-    section: "Tickets",
-    text: "Missbrauch von Tickets, z. B. ohne Grund öffnen, wird bestraft.",
-  },
-  "§5a1n1": {
-    section: "Giveaways",
-    text: "Tickets für Giveaways müssen innerhalb von 2 Tagen nach Ende geöffnet werden, sonst erfolgt ein Reroll.",
-  },
-  "§5a1n2": {
-    section: "Giveaways",
-    text: "Mitglieder, die aktuell gebannt sind, dürfen nicht am Giveaway teilnehmen.",
-  },
-  "§6a1n1": {
-    section: "Verhalten gegenüber Moderatoren",
-    text: "Entscheidungen der Moderatoren respektieren. Probleme über ein Ticket klären.",
-  },
-  "§6a1n2": {
-    section: "Verhalten gegenüber Moderatoren",
-    text: "Den Anweisungen der Moderatoren Folge leisten.",
-  },
-  "-ssa-": {
-    section: "Mögliche Gefahr durch Spamming.",
-    text: "Der User wurde von Discord mit 'Engaged in suspected spam activity' gekennzeichnet und wird aufgrund der ausgehenden Gefahr vom Discord Server ausgeschlossen.",
-  },
-};
-
-export async function sendPunishmentInfo(user, type, reason, duration = null) {
-  let ruleText = "";
-  let sectionTitle = "";
-
-  const ruleMatch = reason ? reason.match(/§\d+a\d+n\d+|-ssa-/) : null;
-  if (ruleMatch) {
-    const code = ruleMatch[0];
-    const ruleInfo = ruleMap[code];
-    if (ruleInfo) {
-      sectionTitle = ruleInfo.section;
-      ruleText = `\n\nRegelauszug (${code}):\n[...] "${ruleInfo.text}" [...]`;
-    }
-  }
-
-  const durationText = duration ? `\n\nDauer: ${duration}` : "";
-  const typeLabels = {
-    ban: "Bann",
-    kick: "Kick",
-    timeout: "Timeout",
-  };
-  const label = typeLabels[type] || type;
-
-  const message = `Hey ${user.username},
-
-dein Account auf \`Kekse Clan\` hat eine Strafe erhalten: **${label}**.
-
-Grund: ${reason}${sectionTitle ? ` (${sectionTitle})` : ""}${durationText}${ruleText}
-
-Um sicherzustellen, dass unsere Community sicher und freundlich bleibt, befolge bitte unsere Regeln. Die vollständigen Regeln findest du hier: https://discord.com/channels/1423413347168157718/1423413348065611949`;
-
-  await user
-    .send(message)
-    .catch(() => console.log(`Konnte DM an ${user.tag} nicht senden.`));
-}
-export function initModSend(client) {
-  client.on("guildAuditLogEntryCreate", async (entry, guild) => {
-    const { action, targetId, reason, executorId } = entry;
-    if (executorId === client.user.id) return;
-    let type = "";
-    let duration = null;
-    if (action === AuditLogEvent.MemberBanAdd) type = "ban";
-    else if (action === AuditLogEvent.MemberKick) type = "kick";
-    else if (action === AuditLogEvent.MemberUpdate) {
-      const timeoutChange = entry.changes.find(
-        (c) => c.key === "communication_disabled_until",
-      );
-      if (timeoutChange && timeoutChange.new) {
-        type = "timeout";
-        duration = "Check Audit Log";
-      }
-    }
-
-    if (type) {
-      const target = await client.users.fetch(targetId).catch(() => null);
-      if (target) {
-        if (type === "timeout") {
-          const timeoutChange = entry.changes.find(
-            (c) => c.key === "communication_disabled_until",
-          );
-          if (timeoutChange && timeoutChange.new) {
-            const until = new Date(timeoutChange.new);
-            const now = new Date();
-            const diffMs = until - now;
-            const diffMin = Math.round(diffMs / 60000);
-
-            if (diffMin >= 60 * 24) {
-              duration = `${Math.round(diffMin / (60 * 24))} Tag(e)`;
-            } else if (diffMin >= 60) {
-              duration = `${Math.round(diffMin / 60)} Stunde(n)`;
-            } else {
-              duration = `${diffMin} Minute(n)`;
-            }
-          }
-        }
-        await sendPunishmentInfo(
-          target,
-          type,
-          reason || "Kein Grund angegeben.",
-          duration,
-        );
-      }
-    }
-  });
-}
 function hasPerm(member) {
   return member.permissions.has(PermissionsBitField.Flags.ModerateMembers);
 }
-
 export function initModeration(client) {
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot || !msg.content.startsWith("!")) return;
-    if (!msg.member.roles.cache.has("1457906448234319922") || !hasPerm(msg.member))
+    if (
+      !msg.member.roles.cache.has(TEAM_ROLE_ID) ||
+      !hasPerm(msg.member)
+    )
       return;
 
     const args = msg.content.slice(1).split(/\s+/);
@@ -3174,7 +3182,10 @@ export function initModeration(client) {
           flags: [MessageFlags.Ephemeral],
         });
       } catch (err) {
-        await msg.reply({ content: "Fehler beim Kick.", flags: [MessageFlags.Ephemeral] });
+        await msg.reply({
+          content: "Fehler beim Kick.",
+          flags: [MessageFlags.Ephemeral],
+        });
       }
       globalBotStats.commandsRunned += 1;
     }
@@ -3211,7 +3222,10 @@ export function initModeration(client) {
       const idInput = args[0]?.replace(/[<@!>]/g, "");
       const reason = args.slice(1).join(" ") || "Kein Grund";
       if (!idInput)
-        return msg.reply({ content: "user_id is missing", flags: [MessageFlags.Ephemeral] });
+        return msg.reply({
+          content: "user_id is missing",
+          flags: [MessageFlags.Ephemeral],
+        });
 
       try {
         const user = await client.users
@@ -3266,7 +3280,10 @@ export function initModeration(client) {
         });
       const userWarns = data.warns[user.id] || [];
       if (userWarns.length === 0)
-        return msg.reply({ content: "Keine Warnungen.", flags: [MessageFlags.Ephemeral] });
+        return msg.reply({
+          content: "Keine Warnungen.",
+          flags: [MessageFlags.Ephemeral],
+        });
       const embed = new EmbedBuilder()
         .setTitle(`Warnungen: ${user.username}`)
         .setColor("#ffffff")
@@ -3283,7 +3300,10 @@ export function initModeration(client) {
       const user = await getUser(args[0]);
       const index = parseInt(args[1]) - 1;
       if (!user || isNaN(index) || !data.warns[user.id]?.[index])
-        return msg.reply({ content: "not a valid index", flags: [MessageFlags.Ephemeral] });
+        return msg.reply({
+          content: "not a valid index",
+          flags: [MessageFlags.Ephemeral],
+        });
       const removed = data.warns[user.id].splice(index, 1);
       await setMData("moderation", data);
       await sendModLog(
@@ -3291,7 +3311,10 @@ export function initModeration(client) {
         user,
         `Grund war: ${removed[0].reason}`,
       );
-      await msg.reply({ content: "Warnung entfernt.", flags: [MessageFlags.Ephemeral] });
+      await msg.reply({
+        content: "Warnung entfernt.",
+        flags: [MessageFlags.Ephemeral],
+      });
       globalBotStats.commandsRunned += 1;
     }
   });
@@ -3300,8 +3323,6 @@ function parseTimDuration(amount, unit) {
   const map = { s: 1000, m: 60000, h: 3600000, d: 86400000 };
   return parseInt(amount) * map[unit];
 }
-const VERIFY_CHANNEL_ID = "1439337595090898955";
-const UNVERIFIED_ROLE_ID = "1439337577508245837";
 export function initVerification(client) {
   const sendKekseLog = async (action, user, details) => {
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
@@ -3390,49 +3411,44 @@ export function initVerification(client) {
 export function initRules(client) {
   client.on("messageCreate", async (msg) => {
     if (msg.content === "!setup_rules") {
-    if (!msg.member.roles.cache.has("1454169207838216253")) {
-      msg.reply(`Du hast keine Berechtigung diese Funktion zu nutzen.`);
-      return;
-    }
-    const defaultRule = new EmbedBuilder()
-      .setColor("#ffffff")
-      .setAuthor({ name: "Regelwerk" })
-      .setDescription(
-        `# Allgemeine Regeln\n## Respekt und Freundlichkeit\n\n- Sei respektvoll gegenüber anderen. Beleidigungen, Mobbing oder Drohungen werden nicht toleriert.\n\n- Diskutiere sachlich und vermeide provokative Streitigkeiten.\n\n## Keine unangemessene Inhalte\n\n- Sende keine anstößigen, pornografischen, rassistischen oder gewalttätigen Inhalte.\n\n- Verbreite keine illegale Inhalte oder diskutiere über illegale Aktivitäten.\n\n## Spam, Werbung und Links\n\n- Unterlasse Spam jeglicher Art.\n\n- Werbung darf nur mit Zustimmung der Moderation und in den dafür vorgesehenen Channels gesendet werden.\n\n## Serverlücken\n\n- Die Ausnutzung von Serverlücken ist strengstens untersagt\n\n- Gefundene Lücken müssen per Ticket an die Moderation gemeldet werden.\n\n## Regelverstöße\n\n- Regelverstöße müssen an das Server-Team gemeldet werden.`
-      )
-    const privacyRule = new EmbedBuilder()
-      .setColor("#ffffff")
-      .setDescription(
-        `# Privatsphäre und Sicherheit\n## Datenschutz\n\n- Teile nicht deine persönlichen Daten oder die anderer.\n\n- Respektiere die Privatsphäre anderer Mitglieder.\n\n## Keine unerwünschte Kontaktaufnahme\n\n- Sende nicht unaufgefordert Freundschaftsanfragen oder Direktnachrichten an andere.\n\n- Wünsche nach Ruhe sind zu respektieren.`
-      )
-    const useRule = new EmbedBuilder()
-      .setColor("#ffffff")
-      .setDescription(
-        `# Server Nutzung und Kommunikation\n## Richtige Kanäle\n\n- Poste wenn möglich in die dafür vorgesehenen Channels.\n\n- Bots dürfen nur in den dafür vorgesehenen Channels genutzt werden.\n\n## Sprache und Ausdruck\n\n- Kommuniziere freundlich, konstruktiv und versuche das Fluchen in Maßen zu halten.\n\n- Deutsch und Englisch sind die eizig erlaubten Sprachen auf diesem Server.\n\n## Verhalten in Voice Channels\n\n- Vermeide störgeräusche.\n\n- Das machen von Audio- und Videoaufnahmen von Voice-Chats ist nur mit der ausdrücklichen Erlaubnis aller Beteiligten erlaubt.`
-      )
-    const channelRule = new EmbedBuilder()
-      .setColor("#ffffff")
-      .setDescription(
-        `# Channelspezifische Regeln\n## Tickets\n\n- Der Missbrauch von Tickets, wie beispielsweise durch das öffnen ohne Grund ist nicht erlaubt.\n\n- Bot-Fehler sind per Ticket zu melden und nicht in öffentlichen Channels zu diskutieren.\n\n## Counting\n\n- Absichtliches Falschzählen (um andere zu provozieren) ist verboten.\n\n## Giveaways\n\n- Tickets für Giveaways müssen innerhalb von 2 Tagen nach Ende geöffnet werden.\n\n- Im Fall, dass der Nutzer auf einem Server gebannt ist, für den das Giveaway ist, darf am Giveaway nicht teilgenommen werden.\n\n- Mitglieder mit einer Konto-Sperre dürfen nicht an Giveaways teilnehmen, die ein aktives Konto voraussetzen.\n\n## Vorschläge\n\n- Verbesserungsvorschläge für Bot und Server sind im Vorschläge-Forum einzureichen.`
-      )
-    const modRule = new EmbedBuilder()
-      .setColor("#ffffff")
-      .setDescription(
-        `# Moderation und Konsequenzen\n## Verhalten gegenüber Moderatoren\n\n- Entscheidungen der Moderation sind zu respektieren. Bei Problemen mit Entscheidungen ist ein Ticket zu erstellen.\n\n- Den Anweisungen der Moderation ist Folge zu leisten.\n\n## Discord Nutzerbedingungen\n\n- Die offiziellen Discord Richtlinien und Nutzerbedingungen müssen zu jeder Zeit eingehalten werden.\n\n- https://discord.com/terms\n\n## Konsequenzen bei Verstößen\n\n- Bei Verstößen können Verwarnungen, temporäre oder permanente Sperren verhangen werden.\n\n- Moderatoren dürfen jederzeit Inhalte entfernen, die gegen Regeln verstoßen.\n\n- Administratoren ist jederzeit das Recht vorbehalten, Nutzer auch ohne Angabe eines Grundes zu verwarnen, zu sperren oder anderweitig zu bestrafen.`
-      )
-    msg.channel.send({
-      embeds: [defaultRule, privacyRule, useRule, channelRule, modRule]
-    }).catch(() => {});
+      if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) {
+        msg.reply(`Du hast keine Berechtigung diese Funktion zu nutzen.`);
+        return;
+      }
+      const defaultRule = new EmbedBuilder()
+        .setColor("#ffffff")
+        .setAuthor({ name: "Regelwerk" })
+        .setDescription(
+          `# Allgemeine Regeln\n## Respekt und Freundlichkeit\n\n- Sei respektvoll gegenüber anderen. Beleidigungen, Mobbing oder Drohungen werden nicht toleriert.\n\n- Diskutiere sachlich und vermeide provokative Streitigkeiten.\n\n## Keine unangemessene Inhalte\n\n- Sende keine anstößigen, pornografischen, rassistischen oder gewalttätigen Inhalte.\n\n- Verbreite keine illegale Inhalte oder diskutiere über illegale Aktivitäten.\n\n## Spam, Werbung und Links\n\n- Unterlasse Spam jeglicher Art.\n\n- Werbung darf nur mit Zustimmung der Moderation und in den dafür vorgesehenen Channels gesendet werden.\n\n## Serverlücken\n\n- Die Ausnutzung von Serverlücken ist strengstens untersagt\n\n- Gefundene Lücken müssen per Ticket an die Moderation gemeldet werden.\n\n## Regelverstöße\n\n- Regelverstöße müssen an das Server-Team gemeldet werden.`,
+        );
+      const privacyRule = new EmbedBuilder()
+        .setColor("#ffffff")
+        .setDescription(
+          `# Privatsphäre und Sicherheit\n## Datenschutz\n\n- Teile nicht deine persönlichen Daten oder die anderer.\n\n- Respektiere die Privatsphäre anderer Mitglieder.\n\n## Keine unerwünschte Kontaktaufnahme\n\n- Sende nicht unaufgefordert Freundschaftsanfragen oder Direktnachrichten an andere.\n\n- Wünsche nach Ruhe sind zu respektieren.`,
+        );
+      const useRule = new EmbedBuilder()
+        .setColor("#ffffff")
+        .setDescription(
+          `# Server Nutzung und Kommunikation\n## Richtige Kanäle\n\n- Poste wenn möglich in die dafür vorgesehenen Channels.\n\n- Bots dürfen nur in den dafür vorgesehenen Channels genutzt werden.\n\n## Sprache und Ausdruck\n\n- Kommuniziere freundlich, konstruktiv und versuche das Fluchen in Maßen zu halten.\n\n- Deutsch und Englisch sind die eizig erlaubten Sprachen auf diesem Server.\n\n## Verhalten in Voice Channels\n\n- Vermeide störgeräusche.\n\n- Das machen von Audio- und Videoaufnahmen von Voice-Chats ist nur mit der ausdrücklichen Erlaubnis aller Beteiligten erlaubt.`,
+        );
+      const channelRule = new EmbedBuilder()
+        .setColor("#ffffff")
+        .setDescription(
+          `# Channelspezifische Regeln\n## Tickets\n\n- Der Missbrauch von Tickets, wie beispielsweise durch das öffnen ohne Grund ist nicht erlaubt.\n\n- Bot-Fehler sind per Ticket zu melden und nicht in öffentlichen Channels zu diskutieren.\n\n## Counting\n\n- Absichtliches Falschzählen (um andere zu provozieren) ist verboten.\n\n## Giveaways\n\n- Tickets für Giveaways müssen innerhalb von 2 Tagen nach Ende geöffnet werden.\n\n- Im Fall, dass der Nutzer auf einem Server gebannt ist, für den das Giveaway ist, darf am Giveaway nicht teilgenommen werden.\n\n- Mitglieder mit einer Konto-Sperre dürfen nicht an Giveaways teilnehmen, die ein aktives Konto voraussetzen.\n\n## Vorschläge\n\n- Verbesserungsvorschläge für Bot und Server sind im Vorschläge-Forum einzureichen.`,
+        );
+      const modRule = new EmbedBuilder()
+        .setColor("#ffffff")
+        .setDescription(
+          `# Moderation und Konsequenzen\n## Verhalten gegenüber Moderatoren\n\n- Entscheidungen der Moderation sind zu respektieren. Bei Problemen mit Entscheidungen ist ein Ticket zu erstellen.\n\n- Den Anweisungen der Moderation ist Folge zu leisten.\n\n## Discord Nutzerbedingungen\n\n- Die offiziellen Discord Richtlinien und Nutzerbedingungen müssen zu jeder Zeit eingehalten werden.\n\n- https://discord.com/terms\n\n## Konsequenzen bei Verstößen\n\n- Bei Verstößen können Verwarnungen, temporäre oder permanente Sperren verhangen werden.\n\n- Moderatoren dürfen jederzeit Inhalte entfernen, die gegen Regeln verstoßen.\n\n- Administratoren ist jederzeit das Recht vorbehalten, Nutzer auch ohne Angabe eines Grundes zu verwarnen, zu sperren oder anderweitig zu bestrafen.`,
+        );
+      msg.channel
+        .send({
+          embeds: [defaultRule, privacyRule, useRule, channelRule, modRule],
+        })
+        .catch(() => {});
     }
   });
 }
-const PING_ID = "1151971830983311441";
-const LEVELS = [
-  { count: 5, duration: 1 * 86400000, label: "1 Tag" },
-  { count: 10, duration: 2 * 86400000, label: "2 Tage" },
-  { count: 25, duration: 7 * 86400000, label: "7 Tage" },
-  { count: 50, duration: 31 * 86400000, label: "31 Tage" },
-];
 function initReminder(client) {
   const sendKekseLog = async (action, user, details) => {
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
@@ -3523,14 +3539,9 @@ function initReminder(client) {
     };
     reminderData.reminders.push(newReminder);
     await setRData("reminders", reminderData);
-    message
-      .reply(
-        `Ich werde dich in **${timeStr}** erinnern.`,
-      )
-      .catch(() => {});
+    message.reply(`Ich werde dich in **${timeStr}** erinnern.`).catch(() => {});
   });
 }
-const COUNTING_CHANNEL = "1423434079390535730";
 let countingData = {
   currentNumber: 1,
   direction: 1,
@@ -3594,16 +3605,23 @@ export async function initCounting(client) {
     countingData.milestonesClaimed[claimKey] = true;
     const mileUserData = (await getEcoData(userId)) || {};
     mileUserData.balance = (mileUserData.balance || 0) + reward;
-    await logTransaction(userId, reward, "plus", `Counting Meilenstein ${score}`);
+    await logTransaction(
+      userId,
+      reward,
+      "plus",
+      `Counting Meilenstein ${score}`,
+    );
     await setEcoData(userId, mileUserData);
     await channel
-      .send(`🎉 <@${userId}> hat **${score} Zählungen** erreicht und erhält **${reward} Kekse** als Belohnung!`)
+      .send(
+        `:tada: <@${userId}> hat **${score} Zählungen** erreicht und erhält **${reward} Kekse** als Belohnung!`,
+      )
       .catch(() => {});
   };
 
   const handleCountingInner = async (msg, syncMode = false) => {
     if (!syncMode && msg.author.bot) return;
-    if (msg.channel.id !== COUNTING_CHANNEL) return;
+    if (msg.channel.id !== COUNTING_CHANNEL_ID) return;
     await loadCounting();
 
     if (!syncMode && msg.content === "!top") {
@@ -3612,7 +3630,7 @@ export async function initCounting(client) {
         .slice(0, 10);
 
       const embed = new EmbedBuilder()
-        .setTitle("🏆 Top 10 Counter")
+        .setTitle(":trophy: Top 10 Counter")
         .setDescription(
           sorted.map(([id, s], i) => `${i + 1}. <@${id}> • ${s}`).join("\n") ||
             "Keine Daten",
@@ -3625,7 +3643,7 @@ export async function initCounting(client) {
     }
     const match = msg.content.trim().match(/^-?\d+/);
     if (!match && !syncMode && msg.content.startsWith("!set_number")) {
-      if (msg.author.id !== "1151971830983311441") return;
+      if (msg.author.id !== FABIAN_ID) return;
       const args = msg.content.split(" ");
       const newNum = parseInt(args[1]);
       if (isNaN(newNum)) return;
@@ -3633,11 +3651,13 @@ export async function initCounting(client) {
       countingData.direction = newNum < 0 ? -1 : 1;
       await saveCounting();
       await sendKekseLog(
-        "Counting Reset (Admin)",
+        "Counting Reset",
         msg.author,
-        `Die Zahl wurde manuell auf **${newNum}** gesetzt.`,
+        `Die Zahl wurde auf **${newNum}** gesetzt.`,
       );
-      await msg.reply(`Die nächste Zahl wurde auf **${newNum}** gesetzt.`).catch(() => {});
+      await msg
+        .reply(`Die nächste Zahl wurde auf **${newNum}** gesetzt.`)
+        .catch(() => {});
       return;
     }
     if (!match) return;
@@ -3655,23 +3675,29 @@ export async function initCounting(client) {
     if (num > Number.MAX_SAFE_INTEGER || num < -Number.MAX_SAFE_INTEGER) {
       if (!syncMode) {
         await msg.react("❌").catch(() => {});
-        await msg.reply("Diese Zahl ist viel zu groß für das System!").catch(() => {});
+        await msg
+          .reply("Diese Zahl ist viel zu groß für das System!")
+          .catch(() => {});
       }
       return;
     }
 
-    const excludedUsers = ["1151971830983311441", "1274320881585356892"];
+    const excludedUsers = [FABIAN_ID, "1274320881585356892"];
 
     if (countingData.currentNumber === 1 && countingData.lastUserId === null) {
       if (num === 1 || num === -1) {
         countingData.direction = num;
         countingData.currentNumber = num + countingData.direction;
-        const currentHundred = Math.floor(Math.abs(countingData.currentNumber) / 100);
+        const currentHundred = Math.floor(
+          Math.abs(countingData.currentNumber) / 100,
+        );
         if (currentHundred > countingData.lastPufferGranted) {
           countingData.lastPufferGranted = currentHundred;
           countingData.systemPuffer = 1;
           if (!syncMode) {
-            await msg.channel.send(`🛡️ Puffer aufgeladen! Der nächste Fehler wird abgefangen.`).catch(() => {});
+            await msg.channel
+              .send(`:shield: Puffer aufgeladen! Der nächste Fehler wird abgefangen.`)
+              .catch(() => {});
           }
         }
         countingData.lastUserId = msg.author.id;
@@ -3691,9 +3717,8 @@ export async function initCounting(client) {
         num !== countingData.currentNumber
           ? `Falsche Zahl (${num} statt ${countingData.currentNumber})`
           : "Doppel-Post";
-
-      const COUNTING_PUFFER = "1508050024355856494";
-      const hasRolePuffer = !syncMode && member ? member.roles.cache.has(COUNTING_PUFFER) : false;
+      const hasRolePuffer =
+        !syncMode && member ? member.roles.cache.has(COUNTING_PUFFER_ROLE_ID) : false;
 
       if (countingData.systemPuffer > 0) {
         countingData.systemPuffer = 0;
@@ -3701,7 +3726,9 @@ export async function initCounting(client) {
         if (!syncMode) {
           await msg.react("🛡️").catch(() => {});
           await msg.channel
-            .send(`🛡️ Server-Puffer verbraucht! Weiter zählen ab **${countingData.currentNumber}**.`)
+            .send(
+              `:shield: Server-Puffer verbraucht! Weiter zählen ab **${countingData.currentNumber}**.`,
+            )
             .catch(() => {});
         }
         return;
@@ -3709,17 +3736,21 @@ export async function initCounting(client) {
 
       if (hasRolePuffer) {
         try {
-          await member.roles.remove(COUNTING_PUFFER);
+          await member.roles.remove(COUNTING_PUFFER_ROLE_ID);
         } catch {
           return;
         }
         countingData.currentNumber = num + countingData.direction;
-        const currentHundred = Math.floor(Math.abs(countingData.currentNumber) / 100);
+        const currentHundred = Math.floor(
+          Math.abs(countingData.currentNumber) / 100,
+        );
         if (currentHundred > countingData.lastPufferGranted) {
           countingData.lastPufferGranted = currentHundred;
           countingData.systemPuffer = 1;
           if (!syncMode) {
-            await msg.channel.send(`🛡️ Puffer aufgeladen! Der nächste Fehler wird abgefangen.`).catch(() => {});
+            await msg.channel
+              .send(`:shield: Puffer aufgeladen! Der nächste Fehler wird abgefangen.`)
+              .catch(() => {});
           }
         }
         countingData.lastUserId = msg.author.id;
@@ -3727,8 +3758,7 @@ export async function initCounting(client) {
         if (!excludedUsers.includes(msg.author.id)) {
           countingData.scoreboard[msg.author.id] ??= 0;
           countingData.scoreboard[msg.author.id]++;
-          const COUNTING_XP = "1506164829029666827";
-          if (member.roles.cache.has(COUNTING_XP)) {
+          if (member.roles.cache.has(COUNTING_XP30_ROLE_ID) || member.roles.cache.has(COUNTING_XP60_ROLE_ID)) {
             countingData.scoreboard[msg.author.id]++;
           }
           await checkMilestone(msg.author.id, msg.channel);
@@ -3760,21 +3790,26 @@ export async function initCounting(client) {
       await saveCounting();
       if (!syncMode) {
         await msg.react("❌").catch(() => {});
-        const replyContent = reason === "Doppel-Post"
-          ? `<@${msg.author.id}> nicht zwei mal nacheinander! Zurück auf den Start (1 oder -1).`
-          : `<@${msg.author.id}> hat falsch gezählt! Zurück auf den Start (1 oder -1).`;
+        const replyContent =
+          reason === "Doppel-Post"
+            ? `<@${msg.author.id}> nicht zwei mal nacheinander! Zurück auf den Start (1 oder -1).`
+            : `<@${msg.author.id}> hat falsch gezählt! Zurück auf den Start (1 oder -1).`;
         await msg.reply(replyContent).catch(() => {});
       }
       return;
     }
 
     countingData.currentNumber = num + (countingData.direction || 1);
-    const currentHundred = Math.floor(Math.abs(countingData.currentNumber) / 100);
+    const currentHundred = Math.floor(
+      Math.abs(countingData.currentNumber) / 100,
+    );
     if (currentHundred > countingData.lastPufferGranted) {
       countingData.lastPufferGranted = currentHundred;
       countingData.systemPuffer = 1;
       if (!syncMode) {
-        await msg.channel.send(`🛡️ Puffer aufgeladen! Der nächste Fehler wird abgefangen.`).catch(() => {});
+        await msg.channel
+          .send(`:shield: Puffer aufgeladen! Der nächste Fehler wird abgefangen.`)
+          .catch(() => {});
       }
     }
     countingData.lastUserId = msg.author.id;
@@ -3783,8 +3818,7 @@ export async function initCounting(client) {
     if (!excludedUsers.includes(msg.author.id)) {
       countingData.scoreboard[msg.author.id] ??= 0;
       countingData.scoreboard[msg.author.id]++;
-      const COUNTING_XP = "1506164829029666827";
-      if (member && member.roles.cache.has(COUNTING_XP)) {
+      if (member && (member.roles.cache.has(COUNTING_XP30_ROLE_ID) || member.roles.cache.has(COUNTING_XP60_ROLE_ID))) {
         countingData.scoreboard[msg.author.id]++;
       }
       await checkMilestone(msg.author.id, msg.channel);
@@ -3798,30 +3832,35 @@ export async function initCounting(client) {
     await setEcoData(msg.author.id, userData);
     if (!syncMode) await msg.react("✅").catch(() => {});
     const sorted = Object.entries(countingData.scoreboard || {})
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10);
-const roleId = "1511305653103104041";
-const prevTopCounter = msg.guild.members.cache.find(member => member.roles.cache.has(roleId));
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+    const prevTopCounter = msg.guild.members.cache.find((member) =>
+      member.roles.cache.has(COUNTING_KING_ROLE_ID),
+    );
 
-if (sorted.length > 0) {
-    const topCounter = sorted[0][0]; 
+    if (sorted.length > 0) {
+      const topCounter = sorted[0][0];
 
-    if (topCounter !== prevTopCounter?.id) {    
-        const newTopCounter = await msg.guild.members.fetch(topCounter).catch(() => null);
-        
+      if (topCounter !== prevTopCounter?.id) {
+        const newTopCounter = await msg.guild.members
+          .fetch(topCounter)
+          .catch(() => null);
+
         if (newTopCounter) {
-            if (prevTopCounter) {
-                await prevTopCounter.roles.remove(roleId).catch(console.error);
-            }
-            await newTopCounter.roles.add(roleId).catch(console.error);
+          if (prevTopCounter) {
+            await prevTopCounter.roles.remove(COUNTING_KING_ROLE_ID).catch(console.error);
+          }
+          await newTopCounter.roles.add(COUNTING_KING_ROLE_ID).catch(console.error);
 
-            const countingChannel = client.channels.cache.get(COUNTING_CHANNEL);
-            if (countingChannel) {
-                await countingChannel.send(`<@${topCounter}> ist der neue **King of Counting**!`);
-            }
+          const countingChannel = client.channels.cache.get(COUNTING_CHANNEL_ID);
+          if (countingChannel) {
+            await countingChannel.send(
+              `<@${topCounter}> ist der neue **King of Counting**!`,
+            );
+          }
         }
+      }
     }
-}
   };
   const handleCounting = (msg, syncMode = false) =>
     withCountingLock(() => handleCountingInner(msg, syncMode));
@@ -3830,7 +3869,7 @@ if (sorted.length > 0) {
     console.log("Starte Counting-Synchronisation...");
     await loadCounting();
     const channel = await client.channels
-      .fetch(COUNTING_CHANNEL)
+      .fetch(COUNTING_CHANNEL_ID)
       .catch((err) => {
         console.error("Fehler beim Abrufen des Counting-Kanals:", err);
         return null;
@@ -3843,7 +3882,9 @@ if (sorted.length > 0) {
         const lastMsg = await channel.messages.fetch({ limit: 1 });
         countingData.lastMessageId = lastMsg.first()?.id;
         await saveCounting();
-        console.log("Keine Referenz-ID gefunden. Starte ab der aktuellsten Nachricht.");
+        console.log(
+          "Keine Referenz-ID gefunden. Starte ab der aktuellsten Nachricht.",
+        );
         return;
       }
       let hasMore = true;
@@ -3867,7 +3908,9 @@ if (sorted.length > 0) {
         }
       }
       if (totalRecovered > 0) {
-        console.log(`Synchronisation abgeschlossen. ${totalRecovered} Nachrichten nachgeholt.`);
+        console.log(
+          `Synchronisation abgeschlossen. ${totalRecovered} Nachrichten nachgeholt.`,
+        );
       } else {
         console.log("Alles aktuell. Keine verpassten Zahlen gefunden.");
       }
@@ -3896,9 +3939,7 @@ if (sorted.length > 0) {
   }
   await loadCounting();
 }
-const GIVEAWAY_EMOJI = "🎉";
-const BOOSTER_ROLE_ID = "1464202435638722621";
-const REPORT_CHANNEL_ID = LOG_CHANNEL_ID;
+const GIVEAWAY_EMOJI = ":tada:";
 const EMBED_COLOR = 0xffffff;
 
 function countUnique(participants) {
@@ -3984,8 +4025,10 @@ export async function initGiveaway(client) {
         await endGiveaway(client, msg, giveawayData, sendKekseLog);
       } else {
         const embed = new EmbedBuilder()
-          .setTitle(`🎁 Giveaway: ${data.price}`)
-          .setDescription(buildDescription(data, countUnique(data.participants)))
+          .setTitle(`:gift: Giveaway: ${data.price}`)
+          .setDescription(
+            buildDescription(data, countUnique(data.participants)),
+          )
           .setColor(EMBED_COLOR);
         await msg.edit({ embeds: [embed] }).catch(function () {});
       }
@@ -4036,18 +4079,21 @@ export async function initGiveaway(client) {
         'Syntax: `!giveaway #channel 1h "Preis" "Text" winners=2 roles=@Rolle1,@Rolle2`',
       );
     const channel =
-      msg.mentions.channels.first() || msg.guild.channels.cache.get(positional[0]);
-    if (!channel) return msg.reply("❌ Kanal nicht gefunden.");
+      msg.mentions.channels.first() ||
+      msg.guild.channels.cache.get(positional[0]);
+    if (!channel) return msg.reply(":x: Kanal nicht gefunden.");
     const durationMs = parseDuration(positional[1]);
     if (durationMs <= 0)
       return msg.reply("Zeitformat ungültig (z.B. 1h, 30m, 1d).");
 
     if (rolesGiven && requiredRoles.length === 0)
-      return msg.reply("❌ Keine gültige Rolle bei `roles=` gefunden.");
+      return msg.reply(":x: Keine gültige Rolle bei `roles=` gefunden.");
     requiredRoles = [...new Set(requiredRoles)];
     for (const roleId of requiredRoles) {
       if (!msg.guild.roles.cache.has(roleId))
-        return msg.reply(`❌ Rolle \`${roleId}\` existiert nicht auf diesem Server.`);
+        return msg.reply(
+          `:x: Rolle \`${roleId}\` existiert nicht auf diesem Server.`,
+        );
     }
 
     const price = positional[2];
@@ -4068,7 +4114,7 @@ export async function initGiveaway(client) {
     };
 
     const embed = new EmbedBuilder()
-      .setTitle(`🎁 Giveaway: ${price}`)
+      .setTitle(`:gift: Giveaway: ${price}`)
       .setDescription(buildDescription(giveawayData, 0))
       .setColor(EMBED_COLOR);
     const row = new ActionRowBuilder().addComponents(
@@ -4079,7 +4125,7 @@ export async function initGiveaway(client) {
         .setStyle(ButtonStyle.Primary),
     );
     const giveawayMsg = await channel.send({
-      content: "<@&1424028650080178348>",
+      content: `<@&${GIVEAWAYS_ROLE_ID}}>`,
       embeds: [embed],
       components: [row],
     });
@@ -4100,14 +4146,22 @@ export async function initGiveaway(client) {
       if (!giveawayId || count < 1) {
         return msg.reply("Syntax: `!giveaway reroll <giveawayid> <anzahl>`");
       }
-      const error = await rerollGiveaway(client, msg.guild, giveawayId, count, msg.author, sendKekseLog);
+      const error = await rerollGiveaway(
+        client,
+        msg.guild,
+        giveawayId,
+        count,
+        msg.author,
+        sendKekseLog,
+      );
       if (error) return msg.reply(error);
       return msg.delete().catch(function () {});
     }
   });
 
   client.on("interactionCreate", async function (interaction) {
-    if (!interaction.isButton() || interaction.customId !== "join_giveaway") return;
+    if (!interaction.isButton() || interaction.customId !== "join_giveaway")
+      return;
     const giveaways = (await getGivData("activeGiveaways")) || {};
     const data = giveaways[interaction.message.id];
     if (!data) {
@@ -4160,13 +4214,15 @@ export async function initGiveaway(client) {
       }
     }
 
-       const bonusRoles = ["1464202435638722621", "1506164984202264656"];
-    const activeBonusCount = interaction.member.roles.cache.filter(function (role) {
-      return bonusRoles.includes(role.id);
-    }).size;
+    const bonusRoles = [BOOSTER_ROLE_ID, GIVEAWAY_DOUBLE_ROLE_ID];
+    const activeBonusCount = interaction.member.roles.cache.filter(
+      function (role) {
+        return bonusRoles.includes(role.id);
+      },
+    ).size;
     const totalTickets =
       activeBonusCount === 2 ? 4 : activeBonusCount === 1 ? 2 : 1;
-    const blockedUsers = ["1210284390568038410", "1531346210261307553", ]; // Idiotos
+    const blockedUsers = ["1210284390568038410", "1531346210261307553"]; // Idiotos
     if (blockedUsers.includes(interaction.user.id)) {
       await sendKekseLog(
         "Giveaway Teilnahme blockiert",
@@ -4174,7 +4230,7 @@ export async function initGiveaway(client) {
         `**Preis:** ${data.price}`,
       );
       console.log(
-        `${interaction.user.tag} hat versucht am Giveaway für "${data.price}" teilzunehmen.`
+        `${interaction.user.tag} hat versucht am Giveaway für "${data.price}" teilzunehmen.`,
       );
 
       addXP(interaction.user.id, 10, client);
@@ -4183,7 +4239,8 @@ export async function initGiveaway(client) {
       if (totalTickets === 2) {
         replyText += " (Inklusive **doppelter Chance** durch deine Rolle!)";
       } else if (totalTickets === 4) {
-        replyText += " (Inklusive **4-facher Chance**, da du beide Rollen besitzt!)";
+        replyText +=
+          " (Inklusive **4-facher Chance**, da du beide Rollen besitzt!)";
       }
 
       return interaction
@@ -4194,7 +4251,7 @@ export async function initGiveaway(client) {
     for (let i = 0; i < totalTickets; i++) {
       data.participants.push(interaction.user.id);
     }
-    
+
     giveaways[interaction.message.id] = data;
     await setGivData("activeGiveaways", giveaways);
 
@@ -4204,7 +4261,8 @@ export async function initGiveaway(client) {
     if (totalTickets === 2) {
       replyText += " (Inklusive **doppelter Chance** durch deine Rolle!)";
     } else if (totalTickets === 4) {
-      replyText += " (Inklusive **4-facher Chance**, da du beide Rollen besitzt!)";
+      replyText +=
+        " (Inklusive **4-facher Chance**, da du beide Rollen besitzt!)";
     }
 
     return interaction
@@ -4227,7 +4285,7 @@ async function endGiveaway(client, msg, data, logFunc) {
     : "Niemand";
 
   const endEmbed = EmbedBuilder.from(msg.embeds[0])
-    .setTitle(`🎊 Giveaway beendet: ${data.price}`)
+    .setTitle(`:confetti_ball: Giveaway beendet: ${data.price}`)
     .setDescription(
       `${data.messageText}\n\nBeendet am: <t:${Math.floor(data.endTime / 1000)}:f>\nTeilnehmer: **${countUnique(participants)}**\nGewinner: ${winnerMentions}`,
     )
@@ -4236,7 +4294,7 @@ async function endGiveaway(client, msg, data, logFunc) {
 
   if (winners.length > 0) {
     await msg.channel.send(
-      `🎉 Glückwunsch ${winnerMentions}! Du hast **${data.price}** gewonnen!\nMelde dich bitte zeitnah im Support.`,
+      `:tada: Glückwunsch ${winnerMentions}! Du hast **${data.price}** gewonnen!\nMelde dich bitte zeitnah im Support.`,
     );
   }
 
@@ -4251,15 +4309,13 @@ async function endGiveaway(client, msg, data, logFunc) {
     winners: winners,
   };
   await setGivData("endedGiveaways", ended);
-
-  const BONUS_ROLE_REMOVE = "1506164984202264656";
   const uniqueParticipants = [...new Set(participants)];
   for (const userId of uniqueParticipants) {
     const member = await guild.members.fetch(userId).catch(function () {
       return null;
     });
-    if (member && member.roles.cache.has(BONUS_ROLE_REMOVE)) {
-      await member.roles.remove(BONUS_ROLE_REMOVE).catch(function () {});
+    if (member && member.roles.cache.has(GIVEAWAY_DOUBLE_ROLE_ID)) {
+      await member.roles.remove(GIVEAWAY_DOUBLE_ROLE_ID).catch(function () {});
     }
   }
 
@@ -4324,28 +4380,37 @@ export function formatRoles(roleIds) {
   return parts.join(", ");
 }
 
-export async function rerollGiveaway(client, guild, giveawayId, count, actor, logFunc) {
+export async function rerollGiveaway(
+  client,
+  guild,
+  giveawayId,
+  count,
+  actor,
+  logFunc,
+) {
   const ended = (await getGivData("endedGiveaways")) || {};
   const data = ended[giveawayId];
 
   if (!data) {
     const active = (await getGivData("activeGiveaways")) || {};
     if (active[giveawayId])
-      return "❌ Dieses Giveaway läuft noch und kann nicht gerollt werden.";
-    return "❌ Kein beendetes Giveaway mit dieser ID gefunden.";
+      return ":x: Dieses Giveaway läuft noch und kann nicht gerollt werden.";
+    return ":x: Kein beendetes Giveaway mit dieser ID gefunden.";
   }
 
-  const channel = await client.channels.fetch(data.channelId).catch(function () {
-    return null;
-  });
-  if (!channel) return "❌ Der Kanal des Giveaways existiert nicht mehr.";
+  const channel = await client.channels
+    .fetch(data.channelId)
+    .catch(function () {
+      return null;
+    });
+  if (!channel) return ":x: Der Kanal des Giveaways existiert nicht mehr.";
 
   const pool = await buildPool(guild, data.participants);
   const previousWinners = data.winners || [];
   const winners = pickWinners(pool, count, previousWinners);
 
   if (winners.length === 0)
-    return "❌ Es gibt keine weiteren Teilnehmer für einen Reroll.";
+    return ":x: Es gibt keine weiteren Teilnehmer für einen Reroll.";
 
   const mentions = [];
   for (const id of winners) mentions.push(`<@${id}>`);
@@ -4369,7 +4434,6 @@ export async function rerollGiveaway(client, guild, giveawayId, count, actor, lo
 export function registerMessageCommands(client) {
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot || !msg.content.startsWith("!")) return;
-    const logChannelId = "1423413348220796991";
     if (
       !msg.member.roles.cache.has(TEAM_ROLE_ID) &&
       !msg.member.permissions.has(PermissionsBitField.Flags.ManageMessages)
@@ -4384,7 +4448,7 @@ export function registerMessageCommands(client) {
     const deleteCmd = () => msg.delete().catch(() => {});
 
     const sendKekseLog = async (commandName, target, content) => {
-      const logChannel = client.channels.cache.get(logChannelId);
+      const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
       if (logChannel) {
         const kekseEmbed = new EmbedBuilder()
           .setColor("#ffffff")
@@ -4410,15 +4474,13 @@ export function registerMessageCommands(client) {
         await channel.send(text);
         await sendKekseLog("send", channel.toString(), text);
         globalBotStats.commandsRunned += 1;
-        console.log(`${user.username} hat die "send"-Funktion genutzt`)
+        console.log(`${user.username} hat die "send"-Funktion genutzt`);
       }
     }
 
     if (cmd === "changelog") {
       await deleteCmd();
-      const changelogChannel = msg.guild.channels.cache.get(
-        "1464993818968588379",
-      );
+      const changelogChannel = msg.guild.channels.cache.get(CHANGELOG_CHANNEL_ID);
       if (!changelogChannel || args.length === 0) return;
       const date = new Date().toLocaleDateString("de-DE", {
         day: "2-digit",
@@ -4426,11 +4488,11 @@ export function registerMessageCommands(client) {
         year: "numeric",
       });
       const updateList = args.map((item) => `- ${item}`).join("\n");
-      const messageFormat = `<@&1464994942345547857>\n**:wrench: Änderungen (${date})**\n${updateList}`;
+      const messageFormat = `<@&${CHANGELOG_ROLE_ID}>\n**:wrench: Änderungen (${date})**\n${updateList}`;
       await changelogChannel.send(messageFormat);
       await sendKekseLog("changelog", changelogChannel.toString(), updateList);
       globalBotStats.commandsRunned += 1;
-      console.log(`${msg.author} hat die "changelog"-Funktion genutzt`)
+      console.log(`${msg.author} hat die "changelog"-Funktion genutzt`);
     }
 
     if (cmd === "embed") {
@@ -4451,7 +4513,7 @@ export function registerMessageCommands(client) {
           `Titel: ${title}\nText: ${text}`,
         );
         globalBotStats.commandsRunned += 1;
-        console.log(`${user.username} hat die "embed"-Funktion genutzt`)
+        console.log(`${user.username} hat die "embed"-Funktion genutzt`);
       }
     }
 
@@ -4464,7 +4526,7 @@ export function registerMessageCommands(client) {
         await user.send(text).catch(() => {});
         await sendKekseLog("dm", `${user.tag} (${userId})`, text);
         globalBotStats.commandsRunned += 1;
-        console.log(`${user.username} hat die "dm"-Funktion genutzt`)
+        console.log(`${user.username} hat die "dm"-Funktion genutzt`);
       }
     }
 
@@ -4540,7 +4602,7 @@ export function registerMessageCommands(client) {
         .join(" ");
       if (!msgId || !text) return;
       globalBotStats.commandsRunned += 1;
-      console.log(`${user.username} hat die "news"-Funktion genutzt`)
+      console.log(`${user.username} hat die "news"-Funktion genutzt`);
       try {
         const targetMsg = await channelMention.messages.fetch(msgId);
         targetMsg.system
@@ -4559,7 +4621,7 @@ export function initPing(client) {
   client.on("messageCreate", async (msg) => {
     if (!msg.content.startsWith("!ping") || msg.author.bot) return;
     if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) {
-      const warn = await msg.channel.send("❌ Keine Berechtigung.");
+      const warn = await msg.channel.send(":x: Keine Berechtigung.");
       return setTimeout(() => {
         warn.delete().catch(() => {});
         msg.delete().catch(() => {});
@@ -4567,14 +4629,14 @@ export function initPing(client) {
     }
     globalBotStats.commandsRunned += 1;
     const start = Date.now();
-    const sentMsg = await msg.channel.send("🏓 Pinging...").catch(() => null);
+    const sentMsg = await msg.channel.send(":ping_pong: Pinging...").catch(() => null);
     if (!sentMsg) return;
     const end = Date.now();
     const roundtrip = end - start;
     const wsPing = client.ws.ping;
     await sentMsg
       .edit({
-        content: `🏓 **Pong!**\n- API-Latenz: \`${roundtrip}ms\`\n- WebSocket: \`${wsPing}ms\``,
+        content: `:ping_pong: **Pong!**\n- API-Latenz: \`${roundtrip}ms\`\n- WebSocket: \`${wsPing}ms\``,
       })
       .catch(() => {});
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
@@ -4592,7 +4654,7 @@ export function initPing(client) {
         .setTimestamp();
 
       await logChannel.send({ embeds: [kekseLog] });
-      console.log(`${user.username} hat die "ping"-Funktion genutzt`)
+      console.log(`${user.username} hat die "ping"-Funktion genutzt`);
     }
     setTimeout(() => {
       sentMsg.delete().catch(() => {});
@@ -4600,258 +4662,15 @@ export function initPing(client) {
     }, 10000);
   });
 }
-export async function initPoll(client) {
-  const sendKekseLog = async (action, user, details) => {
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
-    if (!logChannel) return;
-    const logEmbed = new EmbedBuilder()
-      .setColor("#ffffff")
-      .setAuthor({
-        name: user.username,
-        iconURL: user.displayAvatarURL({ size: 512 }),
-      })
-      .setDescription(`**Aktion:** \`${action}\`\n${details}`)
-      .setFooter({ text: "Kekse Clan | Poll System" })
-      .setTimestamp();
-    await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
-  };
-  const createPollText = (q, d, opts, end, count, id, author) => {
-    return (
-      `## ${q}\n${d}\n\n` +
-      opts.map((o) => `${o.emoji} ${o.text}`).join("\n") +
-      `\n\n` +
-      `<:info:1467246059561685238> Endet am: <t:${Math.floor(end / 1000)}:R>\n` +
-      `<:profil:1467246030998343733> Erstellt von: ${author}\n` +
-      `<:statistiques:1467246038497886311> Teilnehmer: **${count}**\n` +
-      `<:identifiant:1467246041668780227> ID: \`${id}\``
-    );
-  };
-  const createPollButtons = (pollId, opts) => {
-    const rows = [];
-    let currentRow = new ActionRowBuilder();
-    opts.forEach((o, i) => {
-      if (i > 0 && i % 5 === 0) {
-        rows.push(currentRow);
-        currentRow = new ActionRowBuilder();
-      }
-      currentRow.addComponents(
-        new ButtonBuilder()
-          .setCustomId(`poll_vote_${pollId}_${i}`)
-          .setEmoji(o.emoji)
-          .setStyle(ButtonStyle.Secondary),
-      );
-    });
-    if (currentRow.components.length > 0) rows.push(currentRow);
-    return rows;
-  };
-  const closePoll = async (poll, polls, closer) => {
-    poll.closed = true;
-    const channel = await client.channels
-      .fetch(poll.channelId)
-      .catch(() => null);
-    const pollMsg = await channel?.messages
-      .fetch(poll.messageId)
-      .catch(() => null);
-    if (pollMsg) {
-      await pollMsg.edit({ components: [] }).catch(() => {});
-    }
-    const total = poll.voters.length;
-    let resultsText = `## <:statistiques:1467246038497886311> Ergebnisse: ${poll.question}\n\n`;
-    if (total === 0) {
-      resultsText += "Keine Teilnehmer.";
-    } else {
-      const winnerVotes = Math.max(...poll.options.map((o) => o.votes));
-      poll.options.forEach((o) => {
-        const perc = Math.round((o.votes / total) * 100);
-        resultsText += `${o.emoji} **${o.text}**\n**${o.votes} Stimmen** (${perc}%)${o.votes === winnerVotes && total > 0 ? " <:checkmark:1467245996584210554>" : ""}\n\n`;
-      });
-    }
-    if (channel) await channel.send(resultsText).catch(() => {});
-    const logChannel = client.channels.cache.get("1423413348220796991");
-    if (logChannel) {
-      const logEmbed = new EmbedBuilder()
-        .setColor("#ffffff")
-        .setAuthor({
-          name: closer.username,
-          iconURL: closer.displayAvatarURL(),
-        })
-        .setDescription(
-          `**Aktion:** \`Umfrage beendet\`\n**Frage:** ${poll.question}\n**Teilnehmer:** ${total}\n**ID:** \`${poll.id}\``,
-        )
-        .setFooter({ text: "Kekse Clan | Poll System" })
-        .setTimestamp();
-      await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
-    }
-    const updatedPolls = polls.filter((p) => p.id !== poll.id);
-    await setPollData("polls_data", updatedPolls);
-  };
-  client.on("messageCreate", async (msg) => {
-    if (msg.author.bot || !msg.content.startsWith("!")) return;
-    const args =
-      msg.content
-        .slice(1)
-        .match(/(?:[^\s,"]+|"[^"]*")+/g)
-        ?.map((a) => a.replace(/"/g, "").trim()) || [];
-    const cmd = args.shift()?.toLowerCase();
-    if (cmd === "poll") {
-      if (!msg.member.roles.cache.has(TEAM_ROLE_ID))
-        return msg.channel.send("Du hast keine Berechtigung diesen Befehl zu nutzen.");
-      if (args.length < 4)
-        return msg.reply('Nutzung: `!poll "Frage" "Minuten" ...`.');
-      const [question, timeStr, description, ...options] = args;
-      const time = parseInt(timeStr);
-      if (isNaN(time) || options.length < 2 || options.length > 10)
-        return msg.reply("invalid parameters");
-      const pollId = msg.id;
-      const emojis = [
-        "1️⃣",
-        "2️⃣",
-        "3️⃣",
-        "4️⃣",
-        "5️⃣",
-        "6️⃣",
-        "7️⃣",
-        "8️⃣",
-        "9️⃣",
-        "🔟",
-      ];
-      const pollOptions = options.map((opt, i) => ({
-        text: opt,
-        emoji: emojis[i],
-        votes: 0,
-      }));
-      const endTime = Date.now() + time * 60000;
-      const pollContent = createPollText(
-        question,
-        description,
-        pollOptions,
-        endTime,
-        0,
-        pollId,
-        msg.author,
-      );
-      const components = createPollButtons(pollId, pollOptions);
-      const pollMsg = await msg.channel.send({
-        content: `<@&1424028924387786762>\n${pollContent}`,
-        components: components,
-      });
-      const polls = (await getPollData("polls_data")) || [];
-      polls.push({
-        id: pollId,
-        messageId: pollMsg.id,
-        channelId: msg.channel.id,
-        question,
-        description,
-        options: pollOptions,
-        endTime,
-        creatorId: msg.author.id,
-        voters: [],
-        closed: false,
-      });
-      await setPollData("polls_data", polls);
-      await sendKekseLog(
-        "Umfrage gestartet",
-        msg.author,
-        `**Frage:** ${question}\n**Dauer:** ${time} Min.\n**ID:** \`${pollId}\``,
-      );
-      globalBotStats.pollsCreated += 1;
-      console.log(`${user.username} hat einen Poll erstellt`);
-    }
-    if (cmd === "closepoll") {
-      if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) return;
-      const pollId = args[0];
-      const polls = (await getPollData("polls_data")) || [];
-      const poll = polls.find((p) => p.id === pollId && !p.closed);
-      if (!poll) return msg.reply("❌ Poll nicht gefunden.");
-      await closePoll(poll, polls, msg.author);
-      globalBotStats.commandsRunned += 1;
-      console.log(`${user.username} hat einen Poll geschlossen`);
-    }
-    if (cmd === "listpolls") {
-      const polls = (await getPollData("polls_data")) || [];
-      const activePolls = polls.filter((p) => !p.closed);
-      if (activePolls.length === 0) return msg.reply("Keine aktiven Polls.");
-
-      const list = activePolls
-        .map((p) => `ID: \`${p.id}\` | ${p.question}`)
-        .join("\n");
-      msg.reply(`**Aktive Polls:**\n${list}`);
-      globalBotStats.commandsRunned += 1;
-      console.log(`${user.username} hat die polllist-Funktion verwendet`);
-    }
-  });
-  client.on("interactionCreate", async (interaction) => {
-    if (
-      !interaction.isButton() ||
-      !interaction.customId.startsWith("poll_vote_")
-    )
-      return;
-    const parts = interaction.customId.split("_");
-    const pollId = parts[2];
-    const optionIndex = parseInt(parts[3]);
-    let polls = (await getPollData("polls_data")) || [];
-    const poll = polls.find((p) => p.id === pollId && !p.closed);
-    if (!poll) {
-      return interaction.reply({
-        content:
-          "Diese Umfrage existiert nicht mehr oder ist bereits beendet.",
-        flags: [MessageFlags.Ephemeral],
-      });
-    }
-    if (poll.voters.includes(interaction.user.id)) {
-      return interaction.reply({
-        content: "Du hast bereits für diese Umfrage abgestimmt!",
-        flags: [MessageFlags.Ephemeral],
-      });
-    }
-    poll.voters.push(interaction.user.id);
-    poll.options[optionIndex].votes++;
-    await setPollData("polls_data", polls);
-    const creator = await client.users
-      .fetch(poll.creatorId)
-      .catch(() => ({ toString: () => "Unknown" }));
-    await interaction.message
-      .edit({
-        content: createPollText(
-          poll.question,
-          poll.description,
-          poll.options,
-          poll.endTime,
-          poll.voters.length,
-          poll.id,
-          creator,
-        ),
-      })
-      .catch(() => {});
-    await interaction.reply({
-      content: "Deine Stimme wurde gezählt!",
-      flags: [MessageFlags.Ephemeral],
-    });
-  });
-  setInterval(async () => {
-    const polls = (await getPollData("polls_data")) || [];
-    const now = Date.now();
-    for (const poll of polls) {
-      if (!poll.closed && poll.endTime <= now) {
-        const creator = await client.users
-          .fetch(poll.creatorId)
-          .catch(() => client.user);
-        await closePoll(poll, polls, creator);
-      }
-    }
-  }, 30000);
-}
 const CLAN = {
   MEMBER_CHANNEL: "1436074576076472411",
   TEAM_CHANNEL: "1423441064232222800",
   TEST: "1436073052638285959",
   MEMBER: "1423428139790499983",
-  TEAM: "1457906448234319922",
+  TEAM: TEAM_ROLE_ID,
   MOD: "1424020019070898186",
   ADMIN: "1423427747103113307",
 };
-
-// 0 = User, 1 = Test Member, 2 = Member, 3 = Team, 4 = Admin (geschützt)
 function clanRankOf(member) {
   const r = member.roles.cache;
   if (r.has(CLAN.ADMIN)) return 4;
@@ -4864,8 +4683,12 @@ function clanRankOf(member) {
 export async function clanChange(client, member, action) {
   const cur = clanRankOf(member);
   const id = member.id;
-  const memberCh = await client.channels.fetch(CLAN.MEMBER_CHANNEL).catch(() => null);
-  const teamCh = await client.channels.fetch(CLAN.TEAM_CHANNEL).catch(() => null);
+  const memberCh = await client.channels
+    .fetch(CLAN.MEMBER_CHANNEL)
+    .catch(() => null);
+  const teamCh = await client.channels
+    .fetch(CLAN.TEAM_CHANNEL)
+    .catch(() => null);
   const say = (ch, text) => ch?.send(text).catch(() => {});
 
   if (cur === 4) throw new Error("Admins können hier nicht verändert werden.");
@@ -4873,7 +4696,10 @@ export async function clanChange(client, member, action) {
   if (action === "promote") {
     if (cur === 0) {
       await member.roles.add(CLAN.TEST);
-      await say(memberCh, `<@${id}> hat den Clan betreten. Herzlich Willkommen 🍪`);
+      await say(
+        memberCh,
+        `<@${id}> hat den Clan betreten. Herzlich Willkommen :cookie:`,
+      );
       return "Neuer Rang: Test Member";
     }
     if (cur === 1) {
@@ -4899,7 +4725,7 @@ export async function clanChange(client, member, action) {
       return "Neuer Rang: Member";
     }
     await member.roles.remove([CLAN.TEST, CLAN.MEMBER]);
-    await say(memberCh, `<@${id}> hat den Clan verlassen. 👋`);
+    await say(memberCh, `<@${id}> hat den Clan verlassen. :wave:`);
     return "Neuer Rang: User";
   }
 
@@ -4907,8 +4733,9 @@ export async function clanChange(client, member, action) {
     if (cur === 0) throw new Error("User ist kein Clan-Mitglied.");
     const wasTeam = cur === 3;
     await member.roles.remove([CLAN.TEAM, CLAN.MOD, CLAN.MEMBER, CLAN.TEST]);
-    if (wasTeam) await say(teamCh, `⛔ <@${id}> wurde aus dem Team geschmissen.`);
-    await say(memberCh, `⛔ <@${id}> wurde aus dem Clan geschmissen.`);
+    if (wasTeam)
+      await say(teamCh, `:no_entry: <@${id}> wurde aus dem Team geschmissen.`);
+    await say(memberCh, `:no_entry: <@${id}> wurde aus dem Clan geschmissen.`);
     return wasTeam ? "Aus Team und Clan entfernt" : "Aus dem Clan entfernt";
   }
 
@@ -4918,32 +4745,41 @@ export function initMembers(client) {
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot || !msg.member) return;
     if (!msg.content.startsWith("!member")) return;
-    if (!msg.member.roles.cache.has(TEAM_ROLE)) return;
+    if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) return;
 
     const args = msg.content.trim().split(/\s+/);
     const sub = args[1]?.toLowerCase();
     const targetId = args[2]?.replace(/[<@!>]/g, "");
     if (!["add", "promote", "remove", "demote", "kick"].includes(sub)) return;
     if (!/^\d{17,20}$/.test(targetId || "")) {
-      return msg.reply("Nutzung: `!member <add|promote|demote|remove|kick> @User`").catch(() => {});
+      return msg
+        .reply("Nutzung: `!member <add|promote|demote|remove|kick> @User`")
+        .catch(() => {});
     }
 
     try {
       const target = await msg.guild.members.fetch(targetId).catch(() => null);
-      if (!target) return msg.reply("User nicht auf dem Server.").catch(() => {});
+      if (!target)
+        return msg.reply("User nicht auf dem Server.").catch(() => {});
 
-      const action = sub === "add" || sub === "promote" ? "promote"
-                   : sub === "kick" ? "kick" : "demote";
+      const action =
+        sub === "add" || sub === "promote"
+          ? "promote"
+          : sub === "kick"
+            ? "kick"
+            : "demote";
 
       if (sub === "add" && clanRankOf(target) !== 0)
         return msg.reply("User ist bereits im Clan.").catch(() => {});
 
       const result = await clanChange(client, target, action);
       globalBotStats.commandsRunned += 1;
-      console.log(`${msg.author.username} hat "!member ${sub}" für ${target.user.username} genutzt (${result})`);
+      console.log(
+        `${msg.author.username} hat "!member ${sub}" für ${target.user.username} genutzt (${result})`,
+      );
       await msg.react("✅").catch(() => {});
     } catch (error) {
-      await msg.reply(`❌ ${error.message}`).catch(() => {});
+      await msg.reply(`:x: ${error.message}`).catch(() => {});
     }
   });
 }
@@ -4972,11 +4808,11 @@ export function initReactions(client) {
 
     const content = message.content.toLowerCase().trim();
 
-    if (message.content.includes("🍪")) {
+    if (message.content.includes(":cookie:")) {
       try {
         console.log(`[REACTION] Keks-Reaktion für ${message.author.username}`);
         await message.channel.send("<:pepecookie:1453796363442585660>");
-        console.log(`${message.author.username} hat eine Reaktion ausgelöst`)
+        console.log(`${message.author.username} hat eine Reaktion ausgelöst`);
       } catch {}
     }
 
@@ -4986,7 +4822,7 @@ export function initReactions(client) {
           `[REACTION] Everyone-Ping-Reaktion für ${message.author.username}`,
         );
         await message.channel.send("<a:pingeveryone:1453800508329558218>");
-        console.log(`${message.author.username} hat eine Reaktion ausgelöst`)
+        console.log(`${message.author.username} hat eine Reaktion ausgelöst`);
       } catch {}
     } else if (message.mentions.has(client.user.id)) {
       try {
@@ -4994,7 +4830,7 @@ export function initReactions(client) {
           `[REACTION] Bot-Ping-Reaktion für ${message.author.username}`,
         );
         await message.channel.send("<:ping:1453799622303813714>");
-        console.log(`${message.author.username} hat eine Reaktion ausgelöst`)
+        console.log(`${message.author.username} hat eine Reaktion ausgelöst`);
       } catch {}
     }
   });
@@ -5033,10 +4869,6 @@ const TRIGGERS = [
   "rolle",
 ];
 
-const SUPPORT_CATEGORY = "1423413348065611953";
-const ADMIN_CATEGORY = "1426271033047912582";
-const ADMIN_ROLE = "1423427747103113307";
-
 export function initTicketCategory(client) {
   const askedUsers = new Set();
 
@@ -5044,14 +4876,14 @@ export function initTicketCategory(client) {
     if (msg.author.bot || !msg.guild) return;
 
     if (msg.content.startsWith("!moveadmin")) {
-      if (!msg.member.roles.cache.has(TEAM_ROLE)) return;
+      if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) return;
       await msg.delete().catch(() => {});
       return moveChannelToAdmin(msg.channel, true);
       globalBotStats.commandsRunned += 1;
     }
 
     const channel = msg.channel;
-    if (channel.parentId !== SUPPORT_CATEGORY) return;
+    if (channel.parentId !== SUPPORT_CATEGORY_ID) return;
 
     const content = msg.content.toLowerCase();
     const foundTrigger = TRIGGERS.find((t) => content.includes(t));
@@ -5075,8 +4907,8 @@ export function initTicketCategory(client) {
     );
 
     const questionText = isGerman
-      ? `⚠️ <@${msg.author.id}>, Keyword "**${foundTrigger}**" erkannt. Benötigt dieses Ticket einen **Admin**?`
-      : `⚠️ <@${msg.author.id}>, keyword "**${foundTrigger}**" detected. Does this ticket require an **Admin**?`;
+      ? `:warning: <@${msg.author.id}>, Keyword "**${foundTrigger}**" erkannt. Benötigt dieses Ticket einen **Admin**?`
+      : `:warning: <@${msg.author.id}>, keyword "**${foundTrigger}**" detected. Does this ticket require an **Admin**?`;
 
     const questionMsg = await channel.send({
       content: questionText,
@@ -5126,19 +4958,17 @@ export function initTicketCategory(client) {
 
 async function moveChannelToAdmin(channel, isGerman) {
   try {
-    await channel.setParent(ADMIN_CATEGORY);
+    await channel.setParent(ADMIN_CATEGORY_ID);
     await channel.send(
       isGerman
-        ? `Dieses Ticket wurde zu den **Admins** verschoben.\n<@&${ADMIN_ROLE}>`
-        : `This ticket has been moved to the **Admins**.\n<@&${ADMIN_ROLE}>`,
+        ? `Dieses Ticket wurde zu den **Admins** verschoben.\n<@&${ADMIN_ROLE_ID}>`
+        : `This ticket has been moved to the **Admins**.\n<@&${ADMIN_ROLE_ID}>`,
     );
   } catch (err) {
     console.error("Fehler beim Verschieben:", err);
     await channel.send("Fehler beim Verschieben des Channels.");
   }
 }
-const ARCHIVE_CATEGORY_ID = "1465452886657077593";
-const ADMIN_ROLE_ID = "1423427747103113307";
 const CATEGORY_EMOJI = {
   Support: "⚙️",
   Abholung: "🎉",
@@ -5148,7 +4978,7 @@ const CATEGORY_CHANNELS = {
   Support: "1423413348065611953",
   Abholung: "1423413348065611953",
   Bewerbung: "1434277752982474945",
-  Admin: "1426271033047912582"
+  Admin: "1426271033047912582",
 };
 let ticketData = { lastId: 0, tickets: {} };
 async function loadTickets() {
@@ -5272,12 +5102,12 @@ function buildModal(category, { needsIngameName }) {
         .setMaxLength(32);
       rows.push(new ActionRowBuilder().addComponents(ign));
     }
-    const vorlage = new TextInputBuilder() 
-      .setCustomId("vorlage") 
-      .setLabel("Benötigst du eine Vorlage? (ja/nein)") 
-      .setStyle(TextInputStyle.Short) 
-      .setRequired(true) 
-      .setMaxLength(10); 
+    const vorlage = new TextInputBuilder()
+      .setCustomId("vorlage")
+      .setLabel("Benötigst du eine Vorlage? (ja/nein)")
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true)
+      .setMaxLength(10);
     rows.push(new ActionRowBuilder().addComponents(vorlage));
     modal.addComponents(...rows);
     return modal;
@@ -5285,37 +5115,51 @@ function buildModal(category, { needsIngameName }) {
   return null;
 }
 
-function buildTicketInfoEmbeds({ idString, category, user, created, hasAccount, ingameName, anliegen }) {
+function buildTicketInfoEmbeds({
+  idString,
+  category,
+  user,
+  created,
+  hasAccount,
+  ingameName,
+  anliegen,
+}) {
   const embeds = [];
   embeds.push(
     new EmbedBuilder()
       .setTitle(" Ticket-Informationen")
       .setColor(0xffffff)
-      .setDescription([
-        `> **ID:** \`${idString}\``,
-        `> **Discord-Username:** ${user.username}`,
-        `> **Kategorie:** ${category}`,
-        `> **Erstellt:** <t:${Math.floor(created / 1000)}:F>`
-      ].join("\n"))
+      .setDescription(
+        [
+          `> **ID:** \`${idString}\``,
+          `> **Discord-Username:** ${user.username}`,
+          `> **Kategorie:** ${category}`,
+          `> **Erstellt:** <t:${Math.floor(created / 1000)}:F>`,
+        ].join("\n"),
+      ),
   );
   embeds.push(
     new EmbedBuilder()
       .setTitle(" Nutzer-Informationen")
       .setColor(0xffffff)
-      .setDescription([
-        `> **Anzeigename:** **${user.displayName || user.username}**`,
-        `> **Username:** ${user.username}`,
-        `> **Account vorhanden:** ${hasAccount ? " Ja" : " Nein"}`,
-        `> **Minecraft Ingame Name:** ${ingameName || "–"}`
-      ].join("\n"))
+      .setDescription(
+        [
+          `> **Anzeigename:** **${user.displayName || user.username}**`,
+          `> **Username:** ${user.username}`,
+          `> **Account vorhanden:** ${hasAccount ? " Ja" : " Nein"}`,
+          `> **Minecraft Ingame Name:** ${ingameName || "–"}`,
+        ].join("\n"),
+      ),
   );
   if (anliegen && Object.entries(anliegen).length > 0) {
-    const anliegenLines = Object.entries(anliegen).map(([label, value]) => `> **${label}:** ${value}`);
+    const anliegenLines = Object.entries(anliegen).map(
+      ([label, value]) => `> **${label}:** ${value}`,
+    );
     embeds.push(
       new EmbedBuilder()
         .setTitle(" Weiteres")
         .setColor(0xffffff)
-        .setDescription(anliegenLines.join("\n"))
+        .setDescription(anliegenLines.join("\n")),
     );
   }
   return embeds;
@@ -5341,7 +5185,7 @@ export async function initTickets(client) {
     if (!target) return false;
     const member = target.member || target;
     if (!member || !member.roles || !member.roles.cache) return false;
-    return member.roles.cache.has("1506732560837771284");
+    return member.roles.cache.has(ECO_ROLE_ID);
   }
 
   async function getStoredIngameName(userId) {
@@ -5352,9 +5196,9 @@ export async function initTickets(client) {
     try {
       const stored = (await getTickData("tickets")) || { tickets: {} };
       const allEntries = stored.tickets || {};
-      
+
       const ticket = Object.values(allEntries).find(
-        (t) => typeof t === "object" && t.channelId === channel.id
+        (t) => typeof t === "object" && t.channelId === channel.id,
       );
 
       if (!ticket) {
@@ -5369,7 +5213,7 @@ export async function initTickets(client) {
 
       delete stored.tickets[ticket.idString];
       await setTickData("tickets", stored);
-      
+
       await archiveTicket(
         {
           name: channel.name,
@@ -5377,7 +5221,7 @@ export async function initTickets(client) {
           creator: { id: ticket.userId, username: ticket.username },
           channel: channel,
         },
-        setTickData
+        setTickData,
       );
     } catch (err) {
       console.error("[TICKET] Fehler:", err);
@@ -5386,17 +5230,17 @@ export async function initTickets(client) {
 
   async function createTicket(category, user, guild, extra = {}) {
     if (await isBlocked(user.id)) return null;
-    
+
     const stored = (await getTickData("tickets")) || { tickets: { lastId: 0 } };
     if (!stored.tickets) stored.tickets = { lastId: 0 };
-    
+
     const currentLastId = parseInt(stored.tickets.lastId) || 0;
     const id = currentLastId + 1;
     const idString = id.toString().padStart(4, "0");
     stored.tickets.lastId = id;
-    
+
     const parentId = CATEGORY_CHANNELS[category];
-    
+
     try {
       const channel = await guild.channels.create({
         name: `${CATEGORY_EMOJI[category] || " "}-${category}-${idString}`,
@@ -5404,16 +5248,30 @@ export async function initTickets(client) {
         parent: parentId,
         permissionOverwrites: [
           { id: guild.roles.everyone, deny: [PermissionFlagsBits.ViewChannel] },
-          { id: TEAM_ROLE_ID, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] },
-          { id: user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }
+          {
+            id: TEAM_ROLE_ID,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+            ],
+          },
+          {
+            id: user.id,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+            ],
+          },
         ],
       });
 
       const member = guild.members.cache.get(user.id);
       const hasAccount = hasEconomyAccount(member);
 
-      const ingameName = hasAccount ? await getStoredIngameName(user.id) : extra.ingame;
-      
+      const ingameName = hasAccount
+        ? await getStoredIngameName(user.id)
+        : extra.ingame;
+
       const embeds = buildTicketInfoEmbeds({
         idString,
         category,
@@ -5421,7 +5279,7 @@ export async function initTickets(client) {
         created: Date.now(),
         hasAccount,
         ingameName,
-        anliegen: extra.anliegen || {}
+        anliegen: extra.anliegen || {},
       });
 
       const closeRow = new ActionRowBuilder().addComponents(
@@ -5429,10 +5287,14 @@ export async function initTickets(client) {
           .setCustomId(`ticket_close_${idString}`)
           .setLabel("Ticket schließen")
           .setEmoji("🗑️")
-          .setStyle(ButtonStyle.Danger)
+          .setStyle(ButtonStyle.Danger),
       );
 
-      await channel.send({ content: `${user} ||<@&1457906448234319922>||`, embeds, components: [closeRow] });
+      await channel.send({
+        content: `${user} ||<@&${TEAM_ROLE_ID}>||`,
+        embeds,
+        components: [closeRow],
+      });
 
       if (extra.needsTemplate) {
         await channel.send({ content: BEWERBUNG_VORLAGE_TEXT });
@@ -5443,12 +5305,16 @@ export async function initTickets(client) {
         channelId: channel.id,
         userId: user.id,
         username: user.username,
-        category: category
+        category: category,
       };
 
       await setTickData("tickets", stored);
-      await sendKekseLog("Ticket Erstellt", user, `Kategorie: \`${category}\`\nKanal: ${channel}`);
-      
+      await sendKekseLog(
+        "Ticket Erstellt",
+        user,
+        `Kategorie: \`${category}\`\nKanal: ${channel}`,
+      );
+
       return channel;
     } catch (error) {
       console.error("Fehler beim Erstellen des Tickets:", error);
@@ -5461,30 +5327,40 @@ export async function initTickets(client) {
         const currentChannel = interaction.channel;
         const user = interaction.user;
         if (!interaction.member.roles.cache.has(TEAM_ROLE_ID)) {
-        return interaction.reply({
-          content: "Du hast keine Berechtigung diese Funktion zu nutzen.",
+          return interaction.reply({
+            content: "Du hast keine Berechtigung diese Funktion zu nutzen.",
+            flags: [MessageFlags.Ephemeral],
+          });
+        }
+        await interaction.reply({
+          content: "Ticket-Schließung initiiert...",
           flags: [MessageFlags.Ephemeral],
         });
-      }
-      await interaction.reply({
-        content: "Ticket-Schließung initiiert...",
-        flags: [MessageFlags.Ephemeral],
-      });
-      await closeTicket(currentChannel, user);
-      console.log(`${user.username} hat ${currentChannel} geschlossen`)
-      globalBotStats.commandsRunned += 1;
+        await closeTicket(currentChannel, user);
+        console.log(`${user.username} hat ${currentChannel} geschlossen`);
+        globalBotStats.commandsRunned += 1;
       }
 
       if (interaction.customId.startsWith("t_")) {
         const category = interaction.customId.split("_")[1];
 
-        if (await isBlocked(interaction.user.id) && !interaction.member.roles.cache.has(TEAM_ROLE_ID)) {
-          return interaction.reply({ content: "Du bist gesperrt.", ephemeral: true });
+        if (
+          (await isBlocked(interaction.user.id)) &&
+          !interaction.member.roles.cache.has(TEAM_ROLE_ID)
+        ) {
+          return interaction.reply({
+            content: "Du bist gesperrt.",
+            ephemeral: true,
+          });
         }
         const verifiedOnlyIds = ["t_Bewerbung", "t_Abholung"];
-        if (verifiedOnlyIds.includes(interaction.customId) && interaction.member.roles.cache.has("1439337577508245837")) {
+        if (
+          verifiedOnlyIds.includes(interaction.customId) &&
+          interaction.member.roles.cache.has(UNVERIFIED_ROLE_ID)
+        ) {
           return interaction.reply({
-            content: "Du musst dich verifizieren bevor du etwas abholen oder dich bewerben kannst: <#1439337595090898955>",
+            content:
+              "Du musst dich verifizieren bevor du etwas abholen oder dich bewerben kannst: <#1439337595090898955>",
             flags: [MessageFlags.Ephemeral],
           });
         }
@@ -5495,60 +5371,86 @@ export async function initTickets(client) {
         if (modal) {
           await interaction.showModal(modal);
         } else {
-          return interaction.reply({ content: "Unbekannte Kategorie.", ephemeral: true });
+          return interaction.reply({
+            content: "Unbekannte Kategorie.",
+            ephemeral: true,
+          });
         }
       }
     }
-    if (interaction.isModalSubmit()) { 
-  if (interaction.customId.startsWith("tm_")) { 
-    await interaction.deferReply({ ephemeral: true });
-    const parts = interaction.customId.split("_");
-    const category = parts[1];
-    const extra = { anliegen: {} };
-    if (category === "Support") {
-      extra.anliegen["Kurze Beschreibung"] = interaction.fields.getTextInputValue("kurz");
-      extra.anliegen["Ausführliche Beschreibung"] = interaction.fields.getTextInputValue("lang");
-    } else if (category === "Abholung") {
-      if (parts[2] === "noacc") {
-        extra.ingame = interaction.fields.getTextInputValue("ingame");
+    if (interaction.isModalSubmit()) {
+      if (interaction.customId.startsWith("tm_")) {
+        await interaction.deferReply({ ephemeral: true });
+        const parts = interaction.customId.split("_");
+        const category = parts[1];
+        const extra = { anliegen: {} };
+        if (category === "Support") {
+          extra.anliegen["Kurze Beschreibung"] =
+            interaction.fields.getTextInputValue("kurz");
+          extra.anliegen["Ausführliche Beschreibung"] =
+            interaction.fields.getTextInputValue("lang");
+        } else if (category === "Abholung") {
+          if (parts[2] === "noacc") {
+            extra.ingame = interaction.fields.getTextInputValue("ingame");
+          }
+          extra.anliegen["Gewinn"] =
+            interaction.fields.getTextInputValue("gewonnen");
+        } else if (category === "Bewerbung") {
+          extra.anliegen["Name"] = interaction.fields.getTextInputValue("name");
+          if (parts[2] === "noacc") {
+            extra.ingame = interaction.fields.getTextInputValue("ingame");
+          }
+          const vorlageInput = interaction.fields.getTextInputValue("vorlage");
+          extra.needsTemplate = parseYesNo(vorlageInput);
+        }
+        const channel = await createTicket(
+          category,
+          interaction.user,
+          interaction.guild,
+          extra,
+        );
+        if (channel) {
+          await interaction.editReply({
+            content: `Ein Ticket wurde erfolgreich erstellt: ${channel}`,
+          });
+        } else {
+          await interaction.editReply({
+            content: "Fehler beim Erstellen des Tickets.",
+          });
+        }
       }
-      extra.anliegen["Gewinn"] = interaction.fields.getTextInputValue("gewonnen");
-    } else if (category === "Bewerbung") {
-      extra.anliegen["Name"] = interaction.fields.getTextInputValue("name");
-      if (parts[2] === "noacc") {
-        extra.ingame = interaction.fields.getTextInputValue("ingame");
-      }
-      const vorlageInput = interaction.fields.getTextInputValue("vorlage");
-      extra.needsTemplate = parseYesNo(vorlageInput);
     }
-    const channel = await createTicket(category, interaction.user, interaction.guild, extra);
-    if (channel) {
-      await interaction.editReply({ content: `Ein Ticket wurde erfolgreich erstellt: ${channel}` });
-    } else {
-      await interaction.editReply({ content: "Fehler beim Erstellen des Tickets." });
-    }
-  }
-}
   });
   client.on("messageCreate", async (msg) => {
     if (!msg.content.startsWith("!") || msg.author.bot) return;
     const args = msg.content.slice(1).split(/\s+/);
     const cmd = args.shift().toLowerCase();
     if (cmd === "ticket_panel" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
-       const embed = new EmbedBuilder()
-       .setTitle("Willkommen im Support")
-       .setDescription(`Wähle eins der Themen um ein Ticket zu erstellen. Ein Team-Mitglied wird sich schnellstmöglich um dein Anliegen kümmern.\n\n⚙️ **Support** → Allgemeine Support-Anliegen\n🎉 **Abholung** → Abholung von Giveaways und Events\n✉️ **Bewerbung** → Clan-Bewerbungen`)
-       .setColor("#ffffff");
+      const embed = new EmbedBuilder()
+        .setTitle("Willkommen im Support")
+        .setDescription(
+          `Wähle eins der Themen um ein Ticket zu erstellen. Ein Team-Mitglied wird sich schnellstmöglich um dein Anliegen kümmern.\n\n⚙️ **Support** → Allgemeine Support-Anliegen\n🎉 **Abholung** → Abholung von Giveaways und Events\n✉️ **Bewerbung** → Clan-Bewerbungen`,
+        )
+        .setColor("#ffffff");
 
-       const row = new ActionRowBuilder().addComponents(
-       new ButtonBuilder().setCustomId("t_Support").setLabel("⚙️ Support").setStyle(ButtonStyle.Secondary),
-       new ButtonBuilder().setCustomId("t_Abholung").setLabel("🎉 Abholung").setStyle(ButtonStyle.Secondary),
-       new ButtonBuilder().setCustomId("t_Bewerbung").setLabel("✉️ Bewerbung").setStyle(ButtonStyle.Secondary)
-       );
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("t_Support")
+          .setLabel("⚙️ Support")
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId("t_Abholung")
+          .setLabel("🎉 Abholung")
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId("t_Bewerbung")
+          .setLabel("✉️ Bewerbung")
+          .setStyle(ButtonStyle.Secondary),
+      );
 
-       await msg.channel.send({ embeds: [embed], components: [row] });
-       await msg.delete().catch(() => {});
-       globalBotStats.commandsRunned += 1;
+      await msg.channel.send({ embeds: [embed], components: [row] });
+      await msg.delete().catch(() => {});
+      globalBotStats.commandsRunned += 1;
     }
 
     if (cmd === "close") {
@@ -5565,7 +5467,7 @@ export async function initTickets(client) {
         flags: [MessageFlags.Ephemeral],
       });
       await closeTicket(currentChannel, user);
-      console.log(`${user.username} hat ${currentChannel} geschlossen`)
+      console.log(`${user.username} hat ${currentChannel} geschlossen`);
       globalBotStats.commandsRunned += 1;
     }
     if (cmd === "delete" && msg.member.roles.cache.has(ADMIN_ROLE_ID)) {
@@ -5574,7 +5476,10 @@ export async function initTickets(client) {
       globalBotStats.commandsRunned += 1;
     }
     if (cmd === "block" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
-      const target = msg.mentions.users.first() || { id: args[0], username: "Unbekannt" };
+      const target = msg.mentions.users.first() || {
+        id: args[0],
+        username: "Unbekannt",
+      };
       const days = parseInt(args[1]) || 7;
       if (!target.id) return msg.reply("ID fehlt.");
       await blockUser(target.id, target.username, days * 24 * 60 * 60 * 1000);
@@ -5582,10 +5487,7 @@ export async function initTickets(client) {
       globalBotStats.commandsRunned += 1;
     }
   });
-};
-const CREATOR_CHANNEL_ID = "1423413348220796991";
-const CATEGORY_ID = "1423413348493430902";
-const TRIGGER_CHANNEL_ID = "1423438527319900180";
+}
 const activeCreations = new Set();
 function toMonospace(text) {
   const normal =
@@ -5619,7 +5521,7 @@ export function initVoiceChannels(client) {
     const { member, guild } = newState;
     if (!member || member.user.bot) return;
 
-    if (newState.channelId === TRIGGER_CHANNEL_ID) {
+    if (newState.channelId === JTC_VOICE_CHANNEL_ID) {
       if (activeCreations.has(member.id)) return;
       activeCreations.add(member.id);
 
@@ -5630,7 +5532,7 @@ export function initVoiceChannels(client) {
         const tempChannel = await guild.channels.create({
           name: channelName,
           type: ChannelType.GuildVoice,
-          parent: CATEGORY_ID,
+          parent: VOICE_CATEGORY_ID,
           permissionOverwrites: [
             {
               id: guild.id,
@@ -5680,8 +5582,8 @@ export function initVoiceChannels(client) {
     const oldChannel = oldState.channel;
     if (
       oldChannel &&
-      oldChannel.parentId === CATEGORY_ID &&
-      oldChannel.id !== TRIGGER_CHANNEL_ID
+      oldChannel.parentId === VOICE_CATEGORY_ID &&
+      oldChannel.id !== JTC_VOICE_CHANNEL_ID
     ) {
       try {
         const freshChannel = await guild.channels
@@ -5709,17 +5611,15 @@ const ROLES_TIERS = [
   { id: "1540828086893936761", needed: 5000, name: "Platin" },
   { id: "1540828402968301679", needed: 10000, name: "Diamant" },
   { id: "1540828544463011850", needed: 50000, name: "Smaragd" },
-  { id: "1540828698310213683", needed: 100000, name: "Obsidian" }
+  { id: "1540828698310213683", needed: 100000, name: "Obsidian" },
 ];
-
-const GUILD_ID = "1423413347168157718";
 const invitesTracker = new Map();
 
 export async function addXP(userId, xpAmount, client) {
   if (xpAmount <= 0) return;
 
   const userData = await getXpData(userId);
-  
+
   let currentTier = userData.rang !== undefined ? userData.rang : 0;
   let currentXp = userData.xp !== undefined ? userData.xp : 0;
 
@@ -5732,7 +5632,10 @@ export async function addXP(userId, xpAmount, client) {
   currentXp += xpAmount;
   let leveledUp = false;
 
-  while (currentTier < ROLES_TIERS.length - 1 && currentXp >= ROLES_TIERS[currentTier].needed) {
+  while (
+    currentTier < ROLES_TIERS.length - 1 &&
+    currentXp >= ROLES_TIERS[currentTier].needed
+  ) {
     currentXp -= ROLES_TIERS[currentTier].needed;
     currentTier++;
     leveledUp = true;
@@ -5744,9 +5647,9 @@ export async function addXP(userId, xpAmount, client) {
     try {
       const guild = await client.guilds.fetch(GUILD_ID);
       const member = await guild.members.fetch(userId).catch(() => null);
-      
+
       if (member) {
-        const rolesToRemove = ROLES_TIERS.map(tier => tier.id);
+        const rolesToRemove = ROLES_TIERS.map((tier) => tier.id);
         await member.roles.remove(rolesToRemove);
         await member.roles.add(ROLES_TIERS[currentTier].id);
       }
@@ -5779,7 +5682,8 @@ export async function removeXP(userId, amount, client) {
   if (changed) await applyTierRole(userId, tier, client);
 }
 export function handleMessageXP(message) {
-  if (message.author.bot || !message.guild || message.guild.id !== GUILD_ID) return;
+  if (message.author.bot || !message.guild || message.guild.id !== GUILD_ID)
+    return;
   addXP(message.author.id, 1, message.client);
 }
 
@@ -5789,12 +5693,12 @@ export function startVoiceXpTracker(client) {
       const guild = await client.guilds.fetch(GUILD_ID);
       guild.voiceStates.cache.forEach(async (voiceState) => {
         if (
-          voiceState.channelId && 
-          !voiceState.member.user.bot && 
-          !voiceState.deaf && 
+          voiceState.channelId &&
+          !voiceState.member.user.bot &&
+          !voiceState.deaf &&
           !voiceState.mute &&
-          voiceState.channelId !== "1423413348493430901" &&
-          voiceState.channel.members.filter(m => !m.user.bot).size > 1
+          voiceState.channelId !== AFK_VOICE_CHANNEL_ID &&
+          voiceState.channel.members.filter((m) => !m.user.bot).size > 1
         ) {
           await addXP(voiceState.id, 2, client);
         }
@@ -5809,7 +5713,10 @@ export async function initInviteTracker(client) {
   try {
     const guild = await client.guilds.fetch(GUILD_ID);
     const guildInvites = await guild.invites.fetch().catch(() => new Map());
-    invitesTracker.set(guild.id, new Map(guildInvites.map(invite => [invite.code, invite.uses])));
+    invitesTracker.set(
+      guild.id,
+      new Map(guildInvites.map((invite) => [invite.code, invite.uses])),
+    );
   } catch (error) {
     console.error(error);
   }
@@ -5822,19 +5729,24 @@ export async function handleGuildMemberAdd(member) {
   if (!existingData || existingData.rang === undefined) {
     await setXpData(member.id, { rang: 0, xp: 0 });
   }
-  
+
   await member.roles.add(ROLES_TIERS[0].id).catch(console.error);
 
   try {
     const newInvites = await member.guild.invites.fetch();
     const oldInvites = invitesTracker.get(member.guild.id);
-    const inviteUsed = newInvites.find(i => oldInvites && i.uses > (oldInvites.get(i.code) || 0));
-    
+    const inviteUsed = newInvites.find(
+      (i) => oldInvites && i.uses > (oldInvites.get(i.code) || 0),
+    );
+
     if (inviteUsed && inviteUsed.inviter) {
       await addXP(inviteUsed.inviter.id, 50, member.client);
     }
-    
-    invitesTracker.set(member.guild.id, new Map(newInvites.map(invite => [invite.code, invite.uses])));
+
+    invitesTracker.set(
+      member.guild.id,
+      new Map(newInvites.map((invite) => [invite.code, invite.uses])),
+    );
   } catch (err) {
     console.error(err);
   }
@@ -5853,12 +5765,14 @@ export async function syncExistingUsers(client) {
     const members = await guild.members.fetch();
     for (const [memberId, member] of members) {
       if (member.user.bot) continue;
-      
+
       const existingData = await getXpData(memberId);
       if (!existingData || existingData.rang === undefined) {
         await setXpData(memberId, { rang: 0, xp: 0 });
-        
-        const hasTierRole = member.roles.cache.some(role => ROLES_TIERS.map(t => t.id).includes(role.id));
+
+        const hasTierRole = member.roles.cache.some((role) =>
+          ROLES_TIERS.map((t) => t.id).includes(role.id),
+        );
         if (!hasTierRole) {
           await member.roles.add(ROLES_TIERS[0].id).catch(console.error);
         }
@@ -5869,8 +5783,8 @@ export async function syncExistingUsers(client) {
   }
 }
 client.on("messageCreate", async (message) => {
-  if (message.channelId === "1423434079390535730") return;
-  handleMessageXP(message)
+  if (message.channelId == COUNTING_CHANNEL_ID) return;
+  handleMessageXP(message);
 });
 
 client.on("guildMemberAdd", async (member) => {
@@ -5880,7 +5794,6 @@ client.on("guildMemberAdd", async (member) => {
 client.on("inviteCreate", async (invite) => {
   handleInviteCreate(invite);
 });
-const TICKET_CHANNEL_ID = "1423413348493430905";
 
 const getHelpData = {
   getMainEmbed: () => {
@@ -5888,15 +5801,15 @@ const getHelpData = {
       .setTitle("Hilfemenü")
       .setDescription(
         "Willkommen im Hilfemenü! Klicke auf die Buttons unten, um zwischen den Kategorien zu wechseln.\n\n" +
-        `Falls du ein Supportanliegen hast, einen Gewinn abholen möchtest (Giveaway oder Event) oder dich für den Clan bewerben willst, erstelle bitte ein Ticket in <#${TICKET_CHANNEL_ID}>.`
+          `Falls du ein Supportanliegen hast, einen Gewinn abholen möchtest (Giveaway oder Event) oder dich für den Clan bewerben willst, erstelle bitte ein Ticket in <#${TICKET_CHANNEL_ID}>.`,
       )
       .setColor("#ffffff");
   },
 
   getProfileEmbed: async (userId, userUsername, userAvatarURL) => {
-    const ecoData = await getEcoData(userId) || {};
-    const xpData = await getXpData(userId) || {};
-    const countData = await getCouData("counting") || {};
+    const ecoData = (await getEcoData(userId)) || {};
+    const xpData = (await getXpData(userId)) || {};
+    const countData = (await getCouData("counting")) || {};
 
     const username = ecoData.username || userUsername;
     const mcUsername = ecoData.mcUsername || "Nicht verknüpft";
@@ -5908,13 +5821,13 @@ const getHelpData = {
     let nextTierPoints = "Max";
 
     for (let i = ROLES_TIERS.length - 1; i >= 0; i--) {
-      if (currentPoints >= ROLES_TIERS[i].needed) { 
+      if (currentPoints >= ROLES_TIERS[i].needed) {
         currentTierName = ROLES_TIERS[i + 1].name;
         break;
       }
     }
-    
-    const nextTier = ROLES_TIERS.find(t => currentPoints < t.needed);
+
+    const nextTier = ROLES_TIERS.find((t) => currentPoints < t.needed);
     if (nextTier) {
       nextTierPoints = nextTier.needed;
     }
@@ -5934,8 +5847,12 @@ const getHelpData = {
         { name: "Konto-Status", value: isBlocked, inline: true },
         { name: "Kontostand", value: `${balance} Kekse`, inline: true },
         { name: "Rang", value: currentTierName, inline: true },
-        { name: "XP", value: `${currentPoints}/${nextTierPoints}`, inline: true },
-        { name: "Counting", value: `${countedRight} Zahlen`, inline: true }
+        {
+          name: "XP",
+          value: `${currentPoints}/${nextTierPoints}`,
+          inline: true,
+        },
+        { name: "Counting", value: `${countedRight} Zahlen`, inline: true },
       );
   },
 
@@ -5945,23 +5862,23 @@ const getHelpData = {
       .setColor("#ffffff")
       .setDescription(
         "`!bank` (`/bank status`) - Zeige deinen aktuellen Kontostand an\n" +
-        "`!bank create` (`/bank create`) - Eröffne ein neues Bankkonto\n" +
-        "`!bank help` (`/bank help`) - Zeige Hilfe zum Bank-System\n" +
-        "`!bank pay @User x` (`/bank pay`) - Überweise einem anderen Nutzer Kekse\n" +
-        "`!casino` (`/casino`) - Zeige existierende Spiele im Casino\n" +
-        "`!casino blackjack x` (`/blackjack`) - Starte ein Spiel Blackjack\n" +
-        "`!casino coinflip x` (`/coinflip`) - Spiel Coinflip gegen das Haus\n" +
-        "`!casino crash x` (`/crash`) - Starte einen Crash\n" +
-        "`!casino highlow x` (`/highlow`) - Starte ein Highlow-Kartenspiel\n" +
-        "`!casino jackpot x` (`/jackpot`) - Kaufe Tickets für den Jackpot\n" +
-        "`!casino roulette x` (`/roulette`) - Setze Kekse am Roulette-Tisch\n" +
-        "`!help` (`/help`) - Öffnet dieses Hilfemenü\n" +
-        "`!leaderboard` (`/leaderboard`) - Zeigt die Top 5 der reichsten User\n" +
-        "`!listpolls` (`/listpolls`) - Liste alle aktiven Umfragen auf\n" +
-        "`!remind` (`/remind`) - Erstelle eine Erinnerung für dich\n" +
-        "`!top` (`/top`) - Zeige serverweite Bestenliste im Counting\n" +
-        "`!coinflip @User x` - Fordert einen Spieler zu Coinflip heraus\n" +
-        "`!ssp @User x` - Fordert einen Spieler zu Schere-Stein-Papier heraus"
+          "`!bank create` (`/bank create`) - Eröffne ein neues Bankkonto\n" +
+          "`!bank help` (`/bank help`) - Zeige Hilfe zum Bank-System\n" +
+          "`!bank pay @User x` (`/bank pay`) - Überweise einem anderen Nutzer Kekse\n" +
+          "`!casino` (`/casino`) - Zeige existierende Spiele im Casino\n" +
+          "`!casino blackjack x` (`/blackjack`) - Starte ein Spiel Blackjack\n" +
+          "`!casino coinflip x` (`/coinflip`) - Spiel Coinflip gegen das Haus\n" +
+          "`!casino crash x` (`/crash`) - Starte einen Crash\n" +
+          "`!casino highlow x` (`/highlow`) - Starte ein Highlow-Kartenspiel\n" +
+          "`!casino jackpot x` (`/jackpot`) - Kaufe Tickets für den Jackpot\n" +
+          "`!casino roulette x` (`/roulette`) - Setze Kekse am Roulette-Tisch\n" +
+          "`!help` (`/help`) - Öffnet dieses Hilfemenü\n" +
+          "`!leaderboard` (`/leaderboard`) - Zeigt die Top 5 der reichsten User\n" +
+          "`!listpolls` (`/listpolls`) - Liste alle aktiven Umfragen auf\n" +
+          "`!remind` (`/remind`) - Erstelle eine Erinnerung für dich\n" +
+          "`!top` (`/top`) - Zeige serverweite Bestenliste im Counting\n" +
+          "`!coinflip @User x` - Fordert einen Spieler zu Coinflip heraus\n" +
+          "`!ssp @User x` - Fordert einen Spieler zu Schere-Stein-Papier heraus",
       );
   },
 
@@ -5971,50 +5888,71 @@ const getHelpData = {
       .setColor("#ffffff")
       .setDescription(
         "<#1423413348065611949> Hier findest du das offizielle Regelwerk des Servers.\n" +
-        "<#1423637547363467346> Wichtige Neuigkeiten und Ankündigungen werden hier geteilt.\n" +
-        "<#1464993818968588379> Technische Änderungen und Bot-Updates werden hier aufgelistet.\n" +
-        "<#1423637646634123294> Hier finden regelmäßige Giveaways statt.\n" +
-        "<#1472658090812899358> Hier werden Events angekündigt\n" +
-        "<#1540111606917107772> In diesem Kanal darfst du deine eigenen Projekte bewerben.\n" +
-        "<#1423434079390535730> Der Kanal für das Counting Spiel\n" +
-        "<#1506746618601541774> Hier kannst du dir alle 24 Stunden 10 kostenlose Kekse abholen.\n" +
-        "<#1507385550825459812> Der Bereich für alle Casino-Spiele und Wetten.\n" +
-        "<#1508053328662364302> Tausche deine Kekse gegen Booster, doppelte Giveaway Chance oder die VIP-Rolle ein.\n" +
-        "<#1423413348493430905> Hier kannst du Tickets für Support, Gewinne oder Bewerbungen erstellen."
+          "<#1423637547363467346> Wichtige Neuigkeiten und Ankündigungen werden hier geteilt.\n" +
+          "<#1464993818968588379> Technische Änderungen und Bot-Updates werden hier aufgelistet.\n" +
+          "<#1423637646634123294> Hier finden regelmäßige Giveaways statt.\n" +
+          "<#1472658090812899358> Hier werden Events angekündigt\n" +
+          "<#1540111606917107772> In diesem Kanal darfst du deine eigenen Projekte bewerben.\n" +
+          "<#1423434079390535730> Der Kanal für das Counting Spiel\n" +
+          "<#1506746618601541774> Hier kannst du dir alle 24 Stunden 10 kostenlose Kekse abholen.\n" +
+          "<#1507385550825459812> Der Bereich für alle Casino-Spiele und Wetten.\n" +
+          "<#1508053328662364302> Tausche deine Kekse gegen Booster, doppelte Giveaway Chance oder die VIP-Rolle ein.\n" +
+          "<#1423413348493430905> Hier kannst du Tickets für Support, Gewinne oder Bewerbungen erstellen.",
       );
-  }
+  },
 };
 
 const helpRow = new ActionRowBuilder().addComponents(
-  new ButtonBuilder().setCustomId("help_profile").setLabel("Profil").setStyle(ButtonStyle.Secondary),
-  new ButtonBuilder().setCustomId("help_commands").setLabel("Befehle").setStyle(ButtonStyle.Secondary),
-  new ButtonBuilder().setCustomId("help_channels").setLabel("Channels").setStyle(ButtonStyle.Secondary)
+  new ButtonBuilder()
+    .setCustomId("help_profile")
+    .setLabel("Profil")
+    .setStyle(ButtonStyle.Secondary),
+  new ButtonBuilder()
+    .setCustomId("help_commands")
+    .setLabel("Befehle")
+    .setStyle(ButtonStyle.Secondary),
+  new ButtonBuilder()
+    .setCustomId("help_channels")
+    .setLabel("Channels")
+    .setStyle(ButtonStyle.Secondary),
 );
 
 export async function handleTextHelpCommand(msg) {
   const mainEmbed = getHelpData.getMainEmbed();
-  const responseMessage = await msg.reply({ embeds: [mainEmbed], components: [helpRow] });
+  const responseMessage = await msg.reply({
+    embeds: [mainEmbed],
+    components: [helpRow],
+  });
   createHelpCollector(responseMessage, msg.author.id, msg.author.username);
 }
 
 export async function handleSlashHelpCommand(interaction) {
   if (!interaction || !interaction.user) return;
   const mainEmbed = getHelpData.getMainEmbed();
-  const responseMessage = await interaction.reply({ embeds: [mainEmbed], components: [helpRow], fetchReply: true });
-  createHelpCollector(responseMessage, interaction.user.id, interaction.user.username);
+  const responseMessage = await interaction.reply({
+    embeds: [mainEmbed],
+    components: [helpRow],
+    fetchReply: true,
+  });
+  createHelpCollector(
+    responseMessage,
+    interaction.user.id,
+    interaction.user.username,
+  );
 }
 
 function createHelpCollector(messageTarget, userId, userUsername) {
   const collector = messageTarget.createMessageComponentCollector({
     componentType: ComponentType.Button,
-    time: 120000
+    time: 120000,
   });
 
   collector.on("collect", async (interaction) => {
     if (interaction.user.id !== userId) {
       return interaction.reply({
-        content: "Du hast diesen Befehl nicht gerufen! Benutze selbst `!help` oder `/help`.",
-        flags: [MessageFlags.Ephemeral]
+        content:
+          "Du hast diesen Befehl nicht gerufen! Benutze selbst `!help` oder `/help`.",
+        flags: [MessageFlags.Ephemeral],
       });
     }
 
@@ -6022,14 +5960,20 @@ function createHelpCollector(messageTarget, userId, userUsername) {
 
     let newEmbed;
     if (interaction.customId === "help_profile") {
-      newEmbed = await getHelpData.getProfileEmbed(userId, userUsername, interaction.user.displayAvatarURL({ size: 512 }));
+      newEmbed = await getHelpData.getProfileEmbed(
+        userId,
+        userUsername,
+        interaction.user.displayAvatarURL({ size: 512 }),
+      );
     } else if (interaction.customId === "help_commands") {
       newEmbed = getHelpData.getCommandsEmbed();
     } else if (interaction.customId === "help_channels") {
       newEmbed = getHelpData.getChannelsEmbed();
     }
 
-    await interaction.editReply({ embeds: [newEmbed], components: [helpRow] }).catch(() => {});
+    await interaction
+      .editReply({ embeds: [newEmbed], components: [helpRow] })
+      .catch(() => {});
   });
 
   collector.on("end", async () => {
@@ -6047,64 +5991,70 @@ export function initHelp(client) {
     if (cmd !== "help") return;
 
     console.log(`[HELP] Von ${msg.author.username}`);
-    await handleTextHelpCommand(msg)
+    await handleTextHelpCommand(msg);
     globalBotStats.commandsRunned += 1;
   });
 }
 export async function setupVoiceModToggle(client) {
-    const VOICE_CHANNEL_ID = '1567194137650925598';
-    const ALLOWED_USER_ID = '1151971830983311441';
-    const TARGET_ROLE_ID = '1457906448234319922';
-    const CUSTOM_BUTTON_ID = 'toggle_voice_lock';
-    client.on('interactionCreate', async (interaction) => {
-        if (!interaction.isButton() || interaction.customId !== CUSTOM_BUTTON_ID) return;
+  const CUSTOM_BUTTON_ID = "toggle_voice_lock";
+  client.on("interactionCreate", async (interaction) => {
+    if (!interaction.isButton() || interaction.customId !== CUSTOM_BUTTON_ID)
+      return;
 
-        if (interaction.user.id !== ALLOWED_USER_ID) {
-            return interaction.reply({ 
-                content: 'Du bist nicht berechtigt, diesen Button zu nutzen.', 
-                ephemeral: true 
-            });
-        }
+    if (interaction.user.id !== ADMIN_ROLE_ID) {
+      return interaction.reply({
+        content: "Du bist nicht berechtigt, diesen Button zu nutzen.",
+        ephemeral: true,
+      });
+    }
 
-        try {
-            await interaction.deferUpdate();
+    try {
+      await interaction.deferUpdate();
 
-            const voiceChannel = interaction.channel;
-            const currentOverwrites = voiceChannel.permissionOverwrites.cache.get(TARGET_ROLE_ID);
-            
-            let isCurrentlyLocked = false;
-            if (currentOverwrites && currentOverwrites.deny.has(PermissionFlagsBits.Connect)) {
-                isCurrentlyLocked = true;
-            }
+      const voiceChannel = interaction.channel;
+      const currentOverwrites =
+        voiceChannel.permissionOverwrites.cache.get(TEAM_ROLE_ID);
 
-            let nextLockState = !isCurrentlyLocked;
+      let isCurrentlyLocked = false;
+      if (
+        currentOverwrites &&
+        currentOverwrites.deny.has(PermissionFlagsBits.Connect)
+      ) {
+        isCurrentlyLocked = true;
+      }
 
-            if (isCurrentlyLocked) {
-                await voiceChannel.permissionOverwrites.edit(TARGET_ROLE_ID, {
-                    Connect: true
-                });
-            } else {
-                await voiceChannel.permissionOverwrites.edit(TARGET_ROLE_ID, {
-                    Connect: false
-                });
-            }
+      let nextLockState = !isCurrentlyLocked;
 
-            const updatedRow = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId(CUSTOM_BUTTON_ID)
-                    .setLabel(nextLockState ? 'Geschlossen' : 'Geöffnet')
-                    .setStyle(nextLockState ? ButtonStyle.Secondary : ButtonStyle.Secondary)
-            );
+      if (isCurrentlyLocked) {
+        await voiceChannel.permissionOverwrites.edit(TEAM_ROLE_ID, {
+          Connect: true,
+        });
+      } else {
+        await voiceChannel.permissionOverwrites.edit(TEAM_ROLE_ID, {
+          Connect: false,
+        });
+      }
 
-            await interaction.editReply({
-                components: [updatedRow]
-            });
+      const updatedRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(CUSTOM_BUTTON_ID)
+          .setLabel(nextLockState ? "Geschlossen" : "Geöffnet")
+          .setStyle(
+            nextLockState ? ButtonStyle.Secondary : ButtonStyle.Secondary,
+          ),
+      );
 
-        } catch (error) {
-            console.error(error);
-            await interaction.followUp({ content: 'Es gab einen Fehler beim Umschalten der Rechte.', ephemeral: true });
-        }
-    });
+      await interaction.editReply({
+        components: [updatedRow],
+      });
+    } catch (error) {
+      console.error(error);
+      await interaction.followUp({
+        content: "Es gab einen Fehler beim Umschalten der Rechte.",
+        ephemeral: true,
+      });
+    }
+  });
 }
 export async function initDashboard(app, client, globalBotStats) {
   const logs = [];
@@ -6115,7 +6065,6 @@ export async function initDashboard(app, client, globalBotStats) {
     logs.push({ t: Date.now(), m: message });
   };
 }
-const DASH_ECO_ROLE = "1506732560837771284";
 const ADMIN_TOKEN_HASH =
   "98b597cf0dab8d66c56c7368241dcb52db0c68eb6db44a6d762f7d45fb2db07c";
 
@@ -6129,11 +6078,25 @@ const RANK_LADDER = [
 ];
 
 const ADMIN_ACTIONS = new Set([
-  "promote-rang", "demote-rang",
-  "add-xp", "remove-xp", "add-kekse", "remove-kekse",
+  "promote-rang",
+  "demote-rang",
+  "add-xp",
+  "remove-xp",
+  "add-kekse",
+  "remove-kekse",
 ]);
 const MOD_ACTIONS = new Set([
-  "promote-user", "demote-user", "clan-kick", "toggle-block", "timeout", "untimeout", "kick", "ban", "unban", "warn", "unwarn",
+  "promote-user",
+  "demote-user",
+  "clan-kick",
+  "toggle-block",
+  "timeout",
+  "untimeout",
+  "kick",
+  "ban",
+  "unban",
+  "warn",
+  "unwarn",
 ]);
 
 function getTokenLevel(token) {
@@ -6162,7 +6125,8 @@ async function changeServerRank(guild, member, dir) {
   const target = RANK_LADDER[next];
   if (dir > 0) {
     await member.roles.add(target.roleId);
-    if (next === 2) await member.roles.remove(RANK_LADDER[1].roleId).catch(() => {});
+    if (next === 2)
+      await member.roles.remove(RANK_LADDER[1].roleId).catch(() => {});
   } else {
     await member.roles.remove(RANK_LADDER[cur].roleId);
     if (target.roleId) await member.roles.add(target.roleId);
@@ -6183,7 +6147,9 @@ async function getBans(guild) {
 }
 
 async function dashLog(level, action, userId, details) {
-  console.log(`[Dashboard] (${level}) ${action} -> ${userId}${details ? " | " + details : ""}`);
+  console.log(
+    `[Dashboard] (${level}) ${action} -> ${userId}${details ? " | " + details : ""}`,
+  );
   const ch = client.channels.cache.get(LOG_CHANNEL_ID);
   if (!ch) return;
   const embed = new EmbedBuilder()
@@ -6228,11 +6194,21 @@ async function buildUserDatabase(guild) {
     const ban = banMap.get(id);
     const tierIdx = Math.min(xp.rang ?? 0, ROLES_TIERS.length - 1);
     const rankIdx = getRankIndex(guild, id, member);
-    const hasAccount = member ? member.roles.cache.has(DASH_ECO_ROLE) : !!eco.username;
+    const hasAccount = member
+      ? member.roles.cache.has(ECO_ROLE_ID)
+      : !!eco.username;
     users.push({
       userId: id,
-      username: member?.user.username || eco.username || ban?.user.username || "Unbekannt",
-      displayName: member?.displayName || eco.username || ban?.user.username || "Unbekannt",
+      username:
+        member?.user.username ||
+        eco.username ||
+        ban?.user.username ||
+        "Unbekannt",
+      displayName:
+        member?.displayName ||
+        eco.username ||
+        ban?.user.username ||
+        "Unbekannt",
       inGuild: !!member,
       banned: !!ban,
       banReason: ban?.reason || null,
@@ -6255,7 +6231,8 @@ async function buildUserDatabase(guild) {
 
 app.get("/api/stats", async (req, res) => {
   try {
-    const guild = client.guilds.cache.get(GUILD_ID) || client.guilds.cache.first();
+    const guild =
+      client.guilds.cache.get(GUILD_ID) || client.guilds.cache.first();
     let ownerName = "Unbekannt";
     let userCount = globalBotStats.membersJoined;
     let botCount = 0;
@@ -6266,11 +6243,18 @@ app.get("/api/stats", async (req, res) => {
       botCount = guild.members.cache.filter((m) => m.user.bot).size;
     }
     const StorageModel = mongoose.model("BotStorage");
-    const pingDoc = await StorageModel.findOne({ namespace: "system", key: "ping_history" }).lean();
+    const pingDoc = await StorageModel.findOne({
+      namespace: "system",
+      key: "ping_history",
+    }).lean();
     const dbPingHistory =
-      pingDoc && pingDoc.value && Array.isArray(pingDoc.value.history) ? pingDoc.value.history : [];
+      pingDoc && pingDoc.value && Array.isArray(pingDoc.value.history)
+        ? pingDoc.value.history
+        : [];
 
-    const { users, txLogs } = guild ? await buildUserDatabase(guild) : { users: [], txLogs: {} };
+    const { users, txLogs } = guild
+      ? await buildUserDatabase(guild)
+      : { users: [], txLogs: {} };
 
     const mappedLogs = logs.map((l) => ({
       t: l.timestamp,
@@ -6280,7 +6264,7 @@ app.get("/api/stats", async (req, res) => {
     res.json({
       guild: {
         name: guild?.name || "Kekse Server",
-        id: guild?.id || "—",
+        id: guild?.id || "-",
         owner: ownerName,
         channels: guild?.channels?.cache?.size || 0,
       },
@@ -6310,7 +6294,8 @@ app.post("/api/auth/level", express.json(), (req, res) => {
 
 app.post("/api/users/action", express.json(), async (req, res) => {
   try {
-    const { token, userId, action, amount, reason, duration, index } = req.body || {};
+    const { token, userId, action, amount, reason, duration, index } =
+      req.body || {};
     const level = getTokenLevel(token);
     if (!level) return res.status(401).json({ error: "Ungültiger Token" });
 
@@ -6318,14 +6303,19 @@ app.post("/api/users/action", express.json(), async (req, res) => {
     if (!isAdminAction && !MOD_ACTIONS.has(action))
       return res.status(400).json({ error: "Unbekannte Aktion" });
     if (isAdminAction && level !== "admin")
-      return res.status(403).json({ error: "Diese Aktion erfordert einen Admin-Token" });
+      return res
+        .status(403)
+        .json({ error: "Diese Aktion erfordert einen Admin-Token" });
     if (!/^\d{17,20}$/.test(String(userId)))
       return res.status(400).json({ error: "Ungültige User-ID" });
 
     const guild = client.guilds.cache.get(GUILD_ID);
-    if (!guild) return res.status(503).json({ error: "Server nicht verfügbar" });
+    if (!guild)
+      return res.status(503).json({ error: "Server nicht verfügbar" });
 
-    const fail = (m) => { throw new Error(m); };
+    const fail = (m) => {
+      throw new Error(m);
+    };
     const member = await guild.members.fetch(userId).catch(() => null);
     const needMember = () => member || fail("User ist nicht auf dem Server.");
     const needAccount = async () => {
@@ -6334,7 +6324,8 @@ app.post("/api/users/action", express.json(), async (req, res) => {
       return d;
     };
     const val = parseInt(amount);
-    const note = (reason && String(reason).trim().slice(0, 200)) || "Kein Grund";
+    const note =
+      (reason && String(reason).trim().slice(0, 200)) || "Kein Grund";
     let info = "";
 
     if (level !== "admin" && ["timeout", "kick", "ban"].includes(action)) {
@@ -6359,7 +6350,8 @@ app.post("/api/users/action", express.json(), async (req, res) => {
         const d = await getXpData(userId);
         const cur = d.rang !== undefined ? d.rang : 0;
         const next = cur + (action === "promote-rang" ? 1 : -1);
-        if (next < 0 || next >= ROLES_TIERS.length) fail("Kein weiterer Rang möglich.");
+        if (next < 0 || next >= ROLES_TIERS.length)
+          fail("Kein weiterer Rang möglich.");
         await setXpData(userId, { rang: next, xp: 0 });
         await applyTierRole(userId, next, client);
         info = `Rang: ${ROLES_TIERS[next].name} (XP auf 0 gesetzt)`;
@@ -6397,7 +6389,12 @@ app.post("/api/users/action", express.json(), async (req, res) => {
       case "toggle-block": {
         const d = await needAccount();
         d.blocked = !d.blocked;
-        await logTransaction(userId, 0, "neutral", `Konto durch Dashboard ${d.blocked ? "gesperrt" : "entsperrt"}`);
+        await logTransaction(
+          userId,
+          0,
+          "neutral",
+          `Konto durch Dashboard ${d.blocked ? "gesperrt" : "entsperrt"}`,
+        );
         await setEcoData(userId, d);
         info = d.blocked ? "Konto gesperrt" : "Konto entsperrt";
         break;
@@ -6437,7 +6434,12 @@ app.post("/api/users/action", express.json(), async (req, res) => {
       case "warn": {
         const md = await getMData("moderation");
         md.warns ??= {};
-        (md.warns[userId] ??= []).push({ reason: note, by: client.user.id, date: Date.now(), via: "dashboard" });
+        (md.warns[userId] ??= []).push({
+          reason: note,
+          by: client.user.id,
+          date: Date.now(),
+          via: "dashboard",
+        });
         await setMData("moderation", md);
         info = `${note} (Gesamt: ${md.warns[userId].length})`;
         break;
@@ -6471,61 +6473,141 @@ process.on("uncaughtException", (err) => {
 });
 const commands = [
   new SlashCommandBuilder()
-    .setName('send')
-    .setDescription('Sendet eine Nachricht in einen bestimmten Kanal')
-    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Zielkanal').setRequired(true))
-    .addStringOption(opt => opt.setName('text').setDescription('Der Nachrichtentext').setRequired(true))
+    .setName("send")
+    .setDescription("Sendet eine Nachricht in einen bestimmten Kanal")
+    .addChannelOption((opt) =>
+      opt.setName("kanal").setDescription("Der Zielkanal").setRequired(true),
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName("text")
+        .setDescription("Der Nachrichtentext")
+        .setRequired(true),
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('changelog')
-    .setDescription('Erstellt einen neuen Changelog-Eintrag')
-    .addStringOption(opt => opt.setName('eintrag').setDescription('Inhalt des Updates (Nutze Kommas für Listenpunkte)').setRequired(true))
+    .setName("changelog")
+    .setDescription("Erstellt einen neuen Changelog-Eintrag")
+    .addStringOption((opt) =>
+      opt
+        .setName("eintrag")
+        .setDescription("Inhalt des Updates (Nutze Kommas für Listenpunkte)")
+        .setRequired(true),
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('embed')
-    .setDescription('Sendet ein strukturiertes Embed')
-    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Zielkanal').setRequired(true))
-    .addStringOption(opt => opt.setName('titel').setDescription('Der Titel des Embeds').setRequired(true))
-    .addStringOption(opt => opt.setName('text').setDescription('Die Beschreibung / Haupttext').setRequired(true))
-    .addStringOption(opt => opt.setName('farbe').setDescription('HEX-Farbe (z.B. #ff0000 oder #ffffff)').setRequired(false))
+    .setName("embed")
+    .setDescription("Sendet ein strukturiertes Embed")
+    .addChannelOption((opt) =>
+      opt.setName("kanal").setDescription("Der Zielkanal").setRequired(true),
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName("titel")
+        .setDescription("Der Titel des Embeds")
+        .setRequired(true),
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName("text")
+        .setDescription("Die Beschreibung / Haupttext")
+        .setRequired(true),
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName("farbe")
+        .setDescription("HEX-Farbe (z.B. #ff0000 oder #ffffff)")
+        .setRequired(false),
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('dm')
-    .setDescription('Sendet eine Direktnachricht an einen User')
-    .addStringOption(opt => opt.setName('userid').setDescription('Die Discord-ID des Users').setRequired(true))
-    .addStringOption(opt => opt.setName('text').setDescription('Der Nachrichtentext').setRequired(true))
+    .setName("dm")
+    .setDescription("Sendet eine Direktnachricht an einen User")
+    .addStringOption((opt) =>
+      opt
+        .setName("userid")
+        .setDescription("Die Discord-ID des Users")
+        .setRequired(true),
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName("text")
+        .setDescription("Der Nachrichtentext")
+        .setRequired(true),
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('news')
-    .setDescription('Sendet eine News-Nachricht mit integrierter Emoji-Ersetzung')
-    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Zielkanal').setRequired(true))
-    .addStringOption(opt => opt.setName('text').setDescription('Der Newstext (Nutze :emojiName:)').setRequired(true))
+    .setName("news")
+    .setDescription(
+      "Sendet eine News-Nachricht mit integrierter Emoji-Ersetzung",
+    )
+    .addChannelOption((opt) =>
+      opt.setName("kanal").setDescription("Der Zielkanal").setRequired(true),
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName("text")
+        .setDescription("Der Newstext (Nutze :emojiName:)")
+        .setRequired(true),
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('reply')
-    .setDescription('Antwortet auf eine existierende Nachricht')
-    .addStringOption(opt => opt.setName('msgid').setDescription('Die ID der Nachricht').setRequired(true))
-    .addStringOption(opt => opt.setName('text').setDescription('Der Antworttext').setRequired(true))
-    .addChannelOption(opt => opt.setName('kanal').setDescription('Kanal der Nachricht (Standard: aktueller Kanal)').setRequired(false))
+    .setName("reply")
+    .setDescription("Antwortet auf eine existierende Nachricht")
+    .addStringOption((opt) =>
+      opt
+        .setName("msgid")
+        .setDescription("Die ID der Nachricht")
+        .setRequired(true),
+    )
+    .addStringOption((opt) =>
+      opt.setName("text").setDescription("Der Antworttext").setRequired(true),
+    )
+    .addChannelOption((opt) =>
+      opt
+        .setName("kanal")
+        .setDescription("Kanal der Nachricht (Standard: aktueller Kanal)")
+        .setRequired(false),
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('ping')
-    .setDescription('Zeigt die aktuelle Latenz des Bots an')
+    .setName("ping")
+    .setDescription("Zeigt die aktuelle Latenz des Bots an")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('clear')
-    .setDescription('Löscht eine bestimmte Anzahl an Nachrichten mit Filtern')
-    .addIntegerOption(opt => opt.setName('anzahl').setDescription('Menge an Nachrichten (max. 500, Standard: 100)').setRequired(false))
-    .addChannelOption(opt => opt.setName('kanal').setDescription('Der Zielkanal (Standard: aktueller Kanal)').setRequired(false))
-    .addUserOption(opt => opt.setName('nutzer').setDescription('Filtert Nachrichten nach einem bestimmten User').setRequired(false))
-    .addStringOption(opt => opt.setName('zeitrahmen').setDescription('Zeitrahmen-Filter (z.B. 2h, 1d)').setRequired(false))
+    .setName("clear")
+    .setDescription("Löscht eine bestimmte Anzahl an Nachrichten mit Filtern")
+    .addIntegerOption((opt) =>
+      opt
+        .setName("anzahl")
+        .setDescription("Menge an Nachrichten (max. 500, Standard: 100)")
+        .setRequired(false),
+    )
+    .addChannelOption((opt) =>
+      opt
+        .setName("kanal")
+        .setDescription("Der Zielkanal (Standard: aktueller Kanal)")
+        .setRequired(false),
+    )
+    .addUserOption((opt) =>
+      opt
+        .setName("nutzer")
+        .setDescription("Filtert Nachrichten nach einem bestimmten User")
+        .setRequired(false),
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName("zeitrahmen")
+        .setDescription("Zeitrahmen-Filter (z.B. 2h, 1d)")
+        .setRequired(false),
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
@@ -6539,7 +6621,10 @@ const commands = [
           return o.setName("kanal").setDescription("Kanal").setRequired(true);
         })
         .addStringOption(function (o) {
-          return o.setName("dauer").setDescription("z.B. 1h, 30m, 1d").setRequired(true);
+          return o
+            .setName("dauer")
+            .setDescription("z.B. 1h, 30m, 1d")
+            .setRequired(true);
         })
         .addStringOption(function (o) {
           return o.setName("preis").setDescription("Preis").setRequired(true);
@@ -6548,7 +6633,10 @@ const commands = [
           return o.setName("text").setDescription("Beschreibung");
         })
         .addIntegerOption(function (o) {
-          return o.setName("gewinner").setDescription("Anzahl Gewinner").setMinValue(1);
+          return o
+            .setName("gewinner")
+            .setDescription("Anzahl Gewinner")
+            .setMinValue(1);
         })
         .addRoleOption(function (o) {
           return o.setName("rolle1").setDescription("Benötigte Rolle");
@@ -6565,2121 +6653,2509 @@ const commands = [
         .setName("reroll")
         .setDescription("Zieht neue Gewinner für ein beendetes Giveaway")
         .addStringOption(function (o) {
-          return o.setName("id").setDescription("Nachrichten-ID des Giveaways").setRequired(true);
+          return o
+            .setName("id")
+            .setDescription("Nachrichten-ID des Giveaways")
+            .setRequired(true);
         })
         .addIntegerOption(function (o) {
-          return o.setName("anzahl").setDescription("Anzahl neuer Gewinner").setRequired(true).setMinValue(1);
+          return o
+            .setName("anzahl")
+            .setDescription("Anzahl neuer Gewinner")
+            .setRequired(true)
+            .setMinValue(1);
         });
     }),
 
   new SlashCommandBuilder()
-    .setName('help')
-    .setDescription('Zeigt dir, wie du Hilfe oder Support erhalten kannst')
+    .setName("help")
+    .setDescription("Zeigt dir, wie du Hilfe oder Support erhalten kannst")
     .setContexts(0)
     .setIntegrationTypes(0),
 
   new SlashCommandBuilder()
-    .setName('moveadmin')
-    .setDescription('Verschiebt das aktuelle Ticket manuell in den Admin-Bereich')
+    .setName("moveadmin")
+    .setDescription(
+      "Verschiebt das aktuelle Ticket manuell in den Admin-Bereich",
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('setup-verify')
-    .setDescription('Erstellt das Verifizierungs-Panel mit Button im festgelegten Kanal')
+    .setName("setup-verify")
+    .setDescription(
+      "Erstellt das Verifizierungs-Panel mit Button im festgelegten Kanal",
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('top')
-    .setDescription('Zeigt die Top 10 User mit den meisten Punkten im Counting-System')
+    .setName("top")
+    .setDescription(
+      "Zeigt die Top 10 User mit den meisten Punkten im Counting-System",
+    )
     .setContexts(0)
     .setIntegrationTypes(0),
 
   new SlashCommandBuilder()
-    .setName('set-number')
-    .setDescription('Admin: Setzt die nächste zu zählende Nummer manuell fest')
-    .addIntegerOption(opt => opt.setName('nummer').setDescription('Die neue Zielzahl').setRequired(true))
+    .setName("set-number")
+    .setDescription("Admin: Setzt die nächste zu zählende Nummer manuell fest")
+    .addIntegerOption((opt) =>
+      opt
+        .setName("nummer")
+        .setDescription("Die neue Zielzahl")
+        .setRequired(true),
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer),
 
   new SlashCommandBuilder()
-    .setName('ticket-panel')
-    .setDescription('Sendet das Ticket-Panel mit Buttons in den aktuellen Kanal')
+    .setName("ticket-panel")
+    .setDescription(
+      "Sendet das Ticket-Panel mit Buttons in den aktuellen Kanal",
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer),
 
   new SlashCommandBuilder()
-    .setName('close')
-    .setDescription('Schließt und archiviert das aktuelle Ticket')
+    .setName("close")
+    .setDescription("Schließt und archiviert das aktuelle Ticket")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('delete')
-    .setDescription('Löscht den aktuellen Kanal nach einer kurzen Verzögerung')
+    .setName("delete")
+    .setDescription("Löscht den aktuellen Kanal nach einer kurzen Verzögerung")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('block')
-    .setDescription('Sperrt einen User für eine bestimmte Anzahl an Tagen für das Ticket-System')
-    .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu sperrende Nutzer').setRequired(true))
-    .addIntegerOption(opt => opt.setName('tage').setDescription('Anzahl der Tage für die Sperre (Standard: 7)').setRequired(false))
+    .setName("block")
+    .setDescription(
+      "Sperrt einen User für eine bestimmte Anzahl an Tagen für das Ticket-System",
+    )
+    .addUserOption((opt) =>
+      opt
+        .setName("nutzer")
+        .setDescription("Der zu sperrende Nutzer")
+        .setRequired(true),
+    )
+    .addIntegerOption((opt) =>
+      opt
+        .setName("tage")
+        .setDescription("Anzahl der Tage für die Sperre (Standard: 7)")
+        .setRequired(false),
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
   new SlashCommandBuilder()
-    .setName('daily-setup')
-    .setDescription('Entwickler: Richtet ein tägliches Belohnungssystem mit Button ein')
-    .addStringOption(opt => opt.setName('id').setDescription('Eine eindeutige ID für dieses Setup (z.B. event1)').setRequired(true))
-    .addStringOption(opt => opt.setName('beschreibung').setDescription('Zusätzlicher Beschreibungstext für das Einlösen').setRequired(false))
+    .setName("daily-setup")
+    .setDescription(
+      "Entwickler: Richtet ein tägliches Belohnungssystem mit Button ein",
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName("id")
+        .setDescription("Eine eindeutige ID für dieses Setup (z.B. event1)")
+        .setRequired(true),
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName("beschreibung")
+        .setDescription("Zusätzlicher Beschreibungstext für das Einlösen")
+        .setRequired(false),
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('shop-setup')
-    .setDescription('Entwickler: Richtet den Server-Shop im festgelegten Kanal ein')
-    .addStringOption(opt => opt.setName('beschreibung').setDescription('Zusätzlicher Beschreibungstext für den Shop').setRequired(false))
+    .setName("shop-setup")
+    .setDescription(
+      "Entwickler: Richtet den Server-Shop im festgelegten Kanal ein",
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName("beschreibung")
+        .setDescription("Zusätzlicher Beschreibungstext für den Shop")
+        .setRequired(false),
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('casino')
-    .setDescription('Zeigt eine Übersicht aller verfügbaren Casino-Spiele an')
+    .setName("casino")
+    .setDescription("Zeigt eine Übersicht aller verfügbaren Casino-Spiele an")
     .setContexts(0)
     .setIntegrationTypes(0),
 
   new SlashCommandBuilder()
-    .setName('roulette')
-    .setDescription('Spiele eine Runde Roulette')
-    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true))
-    .addStringOption(opt => opt.setName('typ').setDescription('Wettart: red, black, even, odd, Zahl 0-36, 1-18, 19-36').setRequired(true))
+    .setName("roulette")
+    .setDescription("Spiele eine Runde Roulette")
+    .addIntegerOption((opt) =>
+      opt
+        .setName("einsatz")
+        .setDescription("Einsatz in Keksen")
+        .setRequired(true),
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName("typ")
+        .setDescription(
+          "Wettart: red, black, even, odd, Zahl 0-36, 1-18, 19-36",
+        )
+        .setRequired(true),
+    )
     .setContexts(0)
     .setIntegrationTypes(0),
 
   new SlashCommandBuilder()
-    .setName('coinflip')
-    .setDescription('Mache einen Münzwurf')
-    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true))
-    .addStringOption(opt => opt.setName('seite').setDescription('Kopf oder Zahl?').setRequired(true).addChoices({ name: 'Kopf (Heads)', value: 'heads' }, { name: 'Zahl (Tails)', value: 'tails' }))
+    .setName("coinflip")
+    .setDescription("Mache einen Münzwurf")
+    .addIntegerOption((opt) =>
+      opt
+        .setName("einsatz")
+        .setDescription("Einsatz in Keksen")
+        .setRequired(true),
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName("seite")
+        .setDescription("Kopf oder Zahl?")
+        .setRequired(true)
+        .addChoices(
+          { name: "Kopf (Heads)", value: "heads" },
+          { name: "Zahl (Tails)", value: "tails" },
+        ),
+    )
     .setContexts(0)
     .setIntegrationTypes(0),
   new SlashCommandBuilder()
-    .setName('jackpot')
-    .setDescription('Zahle Kekse in den aktuellen Jackpot ein')
-    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true))
-    .setContexts(0)
-    .setIntegrationTypes(0),
-
-  new SlashCommandBuilder()
-    .setName('crash')
-    .setDescription('Starte ein Crash-Multiplikator-Spiel')
-    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true))
-    .setContexts(0)
-    .setIntegrationTypes(0),
-
-  new SlashCommandBuilder()
-    .setName('highlow')
-    .setDescription('Errate, ob die nächste Karte höher oder niedriger ist')
-    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true))
-    .setContexts(0)
-    .setIntegrationTypes(0),
-
-  new SlashCommandBuilder()
-    .setName('blackjack')
-    .setDescription('Spiele eine Runde Blackjack gegen den Bot')
-    .addIntegerOption(opt => opt.setName('einsatz').setDescription('Einsatz in Keksen').setRequired(true))
-    .setContexts(0)
-    .setIntegrationTypes(0), 
-  
-      new SlashCommandBuilder()
-    .setName('bank')
-    .setDescription('Nutze das integrierte Bank- und Währungssystem')
-    .addSubcommand(sub => sub.setName('status').setDescription('Zeigt dir privat deinen aktuellen Kontostand an'))
-    .addSubcommand(sub => sub.setName('create').setDescription('Erstellt dein persönliches Bankkonto'))
-    .addSubcommand(sub => sub.setName('help').setDescription('Zeigt die Hilfe-Übersicht des Bank-Systems an'))
-    .addSubcommand(sub => sub.setName('pay').setDescription('Überweist Kekse an einen anderen Spieler').addUserOption(opt => opt.setName('nutzer').setDescription('Der Empfänger der Kekse').setRequired(true)).addIntegerOption(opt => opt.setName('anzahl').setDescription('Die Menge an Keksen').setRequired(true)))
+    .setName("jackpot")
+    .setDescription("Zahle Kekse in den aktuellen Jackpot ein")
+    .addIntegerOption((opt) =>
+      opt
+        .setName("einsatz")
+        .setDescription("Einsatz in Keksen")
+        .setRequired(true),
+    )
     .setContexts(0)
     .setIntegrationTypes(0),
 
   new SlashCommandBuilder()
-    .setName('bank-admin')
-    .setDescription('Serverleitung: Konten von Mitgliedern modifizieren')
+    .setName("crash")
+    .setDescription("Starte ein Crash-Multiplikator-Spiel")
+    .addIntegerOption((opt) =>
+      opt
+        .setName("einsatz")
+        .setDescription("Einsatz in Keksen")
+        .setRequired(true),
+    )
+    .setContexts(0)
+    .setIntegrationTypes(0),
+
+  new SlashCommandBuilder()
+    .setName("highlow")
+    .setDescription("Errate, ob die nächste Karte höher oder niedriger ist")
+    .addIntegerOption((opt) =>
+      opt
+        .setName("einsatz")
+        .setDescription("Einsatz in Keksen")
+        .setRequired(true),
+    )
+    .setContexts(0)
+    .setIntegrationTypes(0),
+
+  new SlashCommandBuilder()
+    .setName("blackjack")
+    .setDescription("Spiele eine Runde Blackjack gegen den Bot")
+    .addIntegerOption((opt) =>
+      opt
+        .setName("einsatz")
+        .setDescription("Einsatz in Keksen")
+        .setRequired(true),
+    )
+    .setContexts(0)
+    .setIntegrationTypes(0),
+
+  new SlashCommandBuilder()
+    .setName("bank")
+    .setDescription("Nutze das integrierte Bank- und Währungssystem")
+    .addSubcommand((sub) =>
+      sub
+        .setName("status")
+        .setDescription("Zeigt dir privat deinen aktuellen Kontostand an"),
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("create")
+        .setDescription("Erstellt dein persönliches Bankkonto"),
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("help")
+        .setDescription("Zeigt die Hilfe-Übersicht des Bank-Systems an"),
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("pay")
+        .setDescription("Überweist Kekse an einen anderen Spieler")
+        .addUserOption((opt) =>
+          opt
+            .setName("nutzer")
+            .setDescription("Der Empfänger der Kekse")
+            .setRequired(true),
+        )
+        .addIntegerOption((opt) =>
+          opt
+            .setName("anzahl")
+            .setDescription("Die Menge an Keksen")
+            .setRequired(true),
+        ),
+    )
+    .setContexts(0)
+    .setIntegrationTypes(0),
+
+  new SlashCommandBuilder()
+    .setName("bank-admin")
+    .setDescription("Serverleitung: Konten von Mitgliedern modifizieren")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer)
-    .addSubcommand(sub => sub.setName('add').setDescription('Fügt einem Konto Kekse hinzu').addIntegerOption(opt => opt.setName('anzahl').setDescription('Die Menge an Keksen').setRequired(true)).addUserOption(opt => opt.setName('nutzer').setDescription('Der Zielnutzer').setRequired(false)))
-    .addSubcommand(sub => sub.setName('remove').setDescription('Zieht von einem Konto Kekse ab').addIntegerOption(opt => opt.setName('anzahl').setDescription('Die Menge an Keksen').setRequired(true)).addUserOption(opt => opt.setName('nutzer').setDescription('Der Zielnutzer').setRequired(false))),
+    .addSubcommand((sub) =>
+      sub
+        .setName("add")
+        .setDescription("Fügt einem Konto Kekse hinzu")
+        .addIntegerOption((opt) =>
+          opt
+            .setName("anzahl")
+            .setDescription("Die Menge an Keksen")
+            .setRequired(true),
+        )
+        .addUserOption((opt) =>
+          opt
+            .setName("nutzer")
+            .setDescription("Der Zielnutzer")
+            .setRequired(false),
+        ),
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("remove")
+        .setDescription("Zieht von einem Konto Kekse ab")
+        .addIntegerOption((opt) =>
+          opt
+            .setName("anzahl")
+            .setDescription("Die Menge an Keksen")
+            .setRequired(true),
+        )
+        .addUserOption((opt) =>
+          opt
+            .setName("nutzer")
+            .setDescription("Der Zielnutzer")
+            .setRequired(false),
+        ),
+    ),
 
   new SlashCommandBuilder()
-    .setName('bank-mod')
-    .setDescription('Team: Kontoinformationen und Umläufe einsehen')
+    .setName("bank-mod")
+    .setDescription("Team: Kontoinformationen und Umläufe einsehen")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
-    .addSubcommand(sub => sub.setName('see').setDescription('Zeigt detaillierte Kontoinformationen eines Nutzers').addUserOption(opt => opt.setName('nutzer').setDescription('Der zu prüfende Nutzer').setRequired(true)))
-    .addSubcommand(sub => sub.setName('get').setDescription('Zeigt an, wie viele Kekse insgesamt im Umlauf sind')),
+    .addSubcommand((sub) =>
+      sub
+        .setName("see")
+        .setDescription("Zeigt detaillierte Kontoinformationen eines Nutzers")
+        .addUserOption((opt) =>
+          opt
+            .setName("nutzer")
+            .setDescription("Der zu prüfende Nutzer")
+            .setRequired(true),
+        ),
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("get")
+        .setDescription("Zeigt an, wie viele Kekse insgesamt im Umlauf sind"),
+    ),
 
   new SlashCommandBuilder()
-    .setName('zweitaccount')
-    .setDescription('Verwaltet die Zweitaccounts von Mitgliedern')
+    .setName("zweitaccount")
+    .setDescription("Verwaltet die Zweitaccounts von Mitgliedern")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
-    .addSubcommand(sub => sub
-      .setName('add')
-      .setDescription('Verknüpft zwei Accounts miteinander (ID oder Erwähnung)')
-      .addStringOption(opt => opt.setName('account_1').setDescription('Erster Account (ID oder Erwähnung)').setRequired(true))
-      .addStringOption(opt => opt.setName('account_2').setDescription('Zweiter Account (ID oder Erwähnung)').setRequired(true)))
-    .addSubcommand(sub => sub
-      .setName('remove')
-      .setDescription('Löst eine bestimmte Account-Verknüpfung auf')
-      .addStringOption(opt => opt.setName('nutzer').setDescription('ID oder Erwähnung des zu entfernenden Accounts').setRequired(true))),
+    .addSubcommand((sub) =>
+      sub
+        .setName("add")
+        .setDescription(
+          "Verknüpft zwei Accounts miteinander (ID oder Erwähnung)",
+        )
+        .addStringOption((opt) =>
+          opt
+            .setName("account_1")
+            .setDescription("Erster Account (ID oder Erwähnung)")
+            .setRequired(true),
+        )
+        .addStringOption((opt) =>
+          opt
+            .setName("account_2")
+            .setDescription("Zweiter Account (ID oder Erwähnung)")
+            .setRequired(true),
+        ),
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("remove")
+        .setDescription("Löst eine bestimmte Account-Verknüpfung auf")
+        .addStringOption((opt) =>
+          opt
+            .setName("nutzer")
+            .setDescription("ID oder Erwähnung des zu entfernenden Accounts")
+            .setRequired(true),
+        ),
+    ),
 
   new SlashCommandBuilder()
-    .setName('remind')
-    .setDescription('Erstellt eine persönliche Erinnerung')
-    .addStringOption(opt => opt.setName('zeit').setDescription('Zeitspanne bis zur Erinnerung (z.B. 10s, 5m, 1h, 2d)').setRequired(true))
-    .addStringOption(opt => opt.setName('grund').setDescription('Waran soll der Bot dich erinnern?').setRequired(true))
+    .setName("remind")
+    .setDescription("Erstellt eine persönliche Erinnerung")
+    .addStringOption((opt) =>
+      opt
+        .setName("zeit")
+        .setDescription("Zeitspanne bis zur Erinnerung (z.B. 10s, 5m, 1h, 2d)")
+        .setRequired(true),
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName("grund")
+        .setDescription("Waran soll der Bot dich erinnern?")
+        .setRequired(true),
+    )
     .setContexts(0)
     .setIntegrationTypes(0),
 
   new SlashCommandBuilder()
-    .setName('listpolls')
-    .setDescription('Zeigt eine Übersicht aller aktiven Umfragen an')
+    .setName("listpolls")
+    .setDescription("Zeigt eine Übersicht aller aktiven Umfragen an")
     .setContexts(0)
     .setIntegrationTypes(0),
 
   new SlashCommandBuilder()
-    .setName('poll')
-    .setDescription('Verwaltet das Umfragen-System (Admin)')
+    .setName("poll")
+    .setDescription("Verwaltet das Umfragen-System (Admin)")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
-    .addSubcommand(sub => sub
-      .setName('start')
-      .setDescription('Startet eine neue Umfrage')
-      .addStringOption(opt => opt.setName('frage').setDescription('Die Hauptfrage').setRequired(true))
-      .addIntegerOption(opt => opt.setName('minuten').setDescription('Dauer in Minuten').setRequired(true))
-      .addStringOption(opt => opt.setName('beschreibung').setDescription('Zusätzliche Details').setRequired(true))
-      .addStringOption(opt => opt.setName('option_1').setDescription('Option 1').setRequired(true))
-      .addStringOption(opt => opt.setName('option_2').setDescription('Option 2').setRequired(true))
-      .addStringOption(opt => opt.setName('option_3').setDescription('Option 3').setRequired(false))
-      .addStringOption(opt => opt.setName('option_4').setDescription('Option 4').setRequired(false))
-      .addStringOption(opt => opt.setName('option_5').setDescription('Option 5').setRequired(false)))
-    .addSubcommand(sub => sub
-      .setName('close')
-      .setDescription('Beendet eine aktive Umfrage vorzeitig')
-      .addStringOption(opt => opt.setName('id').setDescription('Die ID der Umfrage').setRequired(true))),
-    new SlashCommandBuilder()
-    .setName('timeout')
-    .setDescription('Versetzt ein Mitglied in ein Timeout')
-    .addUserOption(opt => opt.setName('nutzer').setDescription('Der betroffene Nutzer').setRequired(true))
-    .addStringOption(opt => opt.setName('dauer').setDescription('Dauer (z.B. 10s, 5m, 2h, 1d)').setRequired(true))
-    .addStringOption(opt => opt.setName('grund').setDescription('Grund für das Timeout').setRequired(false))
+    .addSubcommand((sub) =>
+      sub
+        .setName("start")
+        .setDescription("Startet eine neue Umfrage")
+        .addStringOption((opt) =>
+          opt
+            .setName("frage")
+            .setDescription("Die Hauptfrage")
+            .setRequired(true),
+        )
+        .addIntegerOption((opt) =>
+          opt
+            .setName("minuten")
+            .setDescription("Dauer in Minuten")
+            .setRequired(true),
+        )
+        .addStringOption((opt) =>
+          opt
+            .setName("beschreibung")
+            .setDescription("Zusätzliche Details")
+            .setRequired(true),
+        )
+        .addStringOption((opt) =>
+          opt.setName("option_1").setDescription("Option 1").setRequired(true),
+        )
+        .addStringOption((opt) =>
+          opt.setName("option_2").setDescription("Option 2").setRequired(true),
+        )
+        .addStringOption((opt) =>
+          opt.setName("option_3").setDescription("Option 3").setRequired(false),
+        )
+        .addStringOption((opt) =>
+          opt.setName("option_4").setDescription("Option 4").setRequired(false),
+        )
+        .addStringOption((opt) =>
+          opt.setName("option_5").setDescription("Option 5").setRequired(false),
+        ),
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("close")
+        .setDescription("Beendet eine aktive Umfrage vorzeitig")
+        .addStringOption((opt) =>
+          opt
+            .setName("id")
+            .setDescription("Die ID der Umfrage")
+            .setRequired(true),
+        ),
+    ),
+  new SlashCommandBuilder()
+    .setName("timeout")
+    .setDescription("Versetzt ein Mitglied in ein Timeout")
+    .addUserOption((opt) =>
+      opt
+        .setName("nutzer")
+        .setDescription("Der betroffene Nutzer")
+        .setRequired(true),
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName("dauer")
+        .setDescription("Dauer (z.B. 10s, 5m, 2h, 1d)")
+        .setRequired(true),
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName("grund")
+        .setDescription("Grund für das Timeout")
+        .setRequired(false),
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('untimeout')
-    .setDescription('Hebt das Timeout eines Mitglieds vorzeitig auf')
-    .addUserOption(opt => opt.setName('nutzer').setDescription('Der betroffene Nutzer').setRequired(true))
-    .addStringOption(opt => opt.setName('grund').setDescription('Grund für die Aufhebung').setRequired(false))
+    .setName("untimeout")
+    .setDescription("Hebt das Timeout eines Mitglieds vorzeitig auf")
+    .addUserOption((opt) =>
+      opt
+        .setName("nutzer")
+        .setDescription("Der betroffene Nutzer")
+        .setRequired(true),
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName("grund")
+        .setDescription("Grund für die Aufhebung")
+        .setRequired(false),
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('kick')
-    .setDescription('Kickt ein Mitglied vom Server')
-    .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu kickende Nutzer').setRequired(true))
-    .addStringOption(opt => opt.setName('grund').setDescription('Grund für den Kick').setRequired(false))
+    .setName("kick")
+    .setDescription("Kickt ein Mitglied vom Server")
+    .addUserOption((opt) =>
+      opt
+        .setName("nutzer")
+        .setDescription("Der zu kickende Nutzer")
+        .setRequired(true),
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName("grund")
+        .setDescription("Grund für den Kick")
+        .setRequired(false),
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('ban')
-    .setDescription('Bannt einen User vom Server (auch per ID)')
-    .addStringOption(opt => opt.setName('userid').setDescription('Die Discord-ID oder Erwähnung des Users').setRequired(true))
-    .addStringOption(opt => opt.setName('grund').setDescription('Grund für den Ban').setRequired(false))
+    .setName("ban")
+    .setDescription("Bannt einen User vom Server (auch per ID)")
+    .addStringOption((opt) =>
+      opt
+        .setName("userid")
+        .setDescription("Die Discord-ID oder Erwähnung des Users")
+        .setRequired(true),
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName("grund")
+        .setDescription("Grund für den Ban")
+        .setRequired(false),
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('unban')
-    .setDescription('Hebt den Ban eines Users auf')
-    .addStringOption(opt => opt.setName('userid').setDescription('Die Discord-ID des Users').setRequired(true))
-    .addStringOption(opt => opt.setName('grund').setDescription('Grund für den Entban').setRequired(false))
+    .setName("unban")
+    .setDescription("Hebt den Ban eines Users auf")
+    .addStringOption((opt) =>
+      opt
+        .setName("userid")
+        .setDescription("Die Discord-ID des Users")
+        .setRequired(true),
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName("grund")
+        .setDescription("Grund für den Entban")
+        .setRequired(false),
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('warn')
-    .setDescription('Verwarnt ein Mitglied auf dem Server')
-    .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu verwarnende Nutzer').setRequired(true))
-    .addStringOption(opt => opt.setName('grund').setDescription('Grund für die Verwarnung').setRequired(false))
+    .setName("warn")
+    .setDescription("Verwarnt ein Mitglied auf dem Server")
+    .addUserOption((opt) =>
+      opt
+        .setName("nutzer")
+        .setDescription("Der zu verwarnende Nutzer")
+        .setRequired(true),
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName("grund")
+        .setDescription("Grund für die Verwarnung")
+        .setRequired(false),
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('warns')
-    .setDescription('Zeigt alle Verwarnungen eines Nutzers an')
-    .addUserOption(opt => opt.setName('nutzer').setDescription('Der zu prüfende Nutzer').setRequired(true))
+    .setName("warns")
+    .setDescription("Zeigt alle Verwarnungen eines Nutzers an")
+    .addUserOption((opt) =>
+      opt
+        .setName("nutzer")
+        .setDescription("Der zu prüfende Nutzer")
+        .setRequired(true),
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('warn-remove')
-    .setDescription('Entfernt eine bestimmte Verwarnung eines Nutzers anhand der Nummer')
-    .addUserOption(opt => opt.setName('nutzer').setDescription('Der betroffene Nutzer').setRequired(true))
-    .addIntegerOption(opt => opt.setName('nummer').setDescription('Die Nummer des Warns (z.B. 1)').setRequired(true))
+    .setName("warn-remove")
+    .setDescription(
+      "Entfernt eine bestimmte Verwarnung eines Nutzers anhand der Nummer",
+    )
+    .addUserOption((opt) =>
+      opt
+        .setName("nutzer")
+        .setDescription("Der betroffene Nutzer")
+        .setRequired(true),
+    )
+    .addIntegerOption((opt) =>
+      opt
+        .setName("nummer")
+        .setDescription("Die Nummer des Warns (z.B. 1)")
+        .setRequired(true),
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
   new SlashCommandBuilder()
-  .setName('leaderboard')
-  .setDescription('Zeigt die Top 5 Nutzer mit den meisten Keksen')
-  .setContexts(0)
-  .setIntegrationTypes(0)
-].map(cmd => cmd.toJSON());
+    .setName("leaderboard")
+    .setDescription("Zeigt die Top 5 Nutzer mit den meisten Keksen")
+    .setContexts(0)
+    .setIntegrationTypes(0),
+].map((cmd) => cmd.toJSON());
 
 export async function deploySlashCommands() {
   if (!process.env.BOT_TOKEN) {
-    console.error('❌ Fehler: BOT_TOKEN fehlt in den Umgebungsvariablen!');
+    console.error("❌ Fehler: BOT_TOKEN fehlt in den Umgebungsvariablen!");
     return;
   }
 
-  const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
+  const rest = new REST({ version: "10" }).setToken(process.env.BOT_TOKEN);
 
   try {
-    const base64Token = process.env.BOT_TOKEN.split('.')[0];
-    const botId = Buffer.from(base64Token, 'base64').toString('utf-8');
+    const base64Token = process.env.BOT_TOKEN.split(".")[0];
+    const botId = Buffer.from(base64Token, "base64").toString("utf-8");
     console.log(`Registriere Befehle für Bot-ID: ${botId}...`);
     await rest.put(
       Routes.applicationGuildCommands(botId, "1423413347168157718"),
-      { body: commands }
+      { body: commands },
     );
-    console.log('Befehle erfolgreich registriert.');
+    console.log("Befehle erfolgreich registriert.");
   } catch (error) {
-    console.error('Fehler bei der Registrierung:', error);
+    console.error("Fehler bei der Registrierung:", error);
   }
 }
-  client.on("interactionCreate", async (interaction) => {
-    if (!interaction.isChatInputCommand()) return;
-    const { commandName, options, member, guild, user, channelId, channel: currentChannel } = interaction;
-    const logChannelId = "1423413348220796991";
-    const TEAM_ROLE = "1457906448234319922";
-    const sendKekseLog = async (cmdName, target, content) => {
-      const logChannel = client.channels.cache.get(logChannelId);
-      if (logChannel) {
-        const kekseEmbed = new EmbedBuilder()
-          .setColor("#ffffff")
-          .setAuthor({
-            name: user.username,
-            iconURL: user.displayAvatarURL({ size: 512 }),
-          })
-          .setDescription(
-            `**Aktion:** \`/${cmdName}\`\n**Ziel:** ${target}\n**Inhalt:**\n\`\`\`${content || "Kein Inhalt"}\`\`\``,
-          )
-          .setFooter({ text: "Kekse Clan | Command Logs" })
-          .setTimestamp();
-
-        await logChannel.send({ embeds: [kekseEmbed] }).catch(() => {});
-      }
-    };
-    if (commandName === "leaderboard") {
-  const StorageModel = mongoose.model("BotStorage");
-  const allDocs = await StorageModel.find({ namespace: "economy" }).lean();
-
-  const sorted = allDocs
-    .filter(doc => /^\d+$/.test(doc.key) && doc.value?.balance > 0)
-    .sort((a, b) => b.value.balance - a.value.balance)
-    .slice(0, 5);
-
-  const embed = new EmbedBuilder()
-    .setTitle("🏆 Top 5 Balance")
-    .setColor("#ffffff")
-    .setDescription(
-      sorted.map((doc, i) =>
-        `**${i + 1}.** <@${doc.key}> • ${doc.value.balance.toLocaleString("de-DE")} Kekse`
-      ).join("\n") || "Keine Daten"
-    )
-    .setFooter({ text: "Kekse Clan" })
-    .setTimestamp();
-
-  return interaction.reply({ embeds: [embed] });
-}
-    if (commandName === "send") {
-      const targetChannel = options.getChannel("kanal");
-      const text = options.getString("text");
-
-      await targetChannel.send(text);
-      await interaction.reply({
-        content: `Nachricht in ${targetChannel} gesendet.`,
-        flags: [MessageFlags.Ephemeral],
-      });
-      await sendKekseLog("send", targetChannel.toString(), text);
-      globalBotStats.commandsRunned += 1;
-      console.log(`${user.username} hat die "send"-Funktion genutzt`)
-    }
-    if (commandName === "changelog") {
-      const changelogChannel = guild.channels.cache.get("1464993818968588379");
-      const eintrag = options.getString("eintrag");
-      if (!changelogChannel)
-        return interaction.reply({
-          content: "Kanal nicht gefunden.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      const date = new Date().toLocaleDateString("de-DE", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
-      const updateList = eintrag
-        .split(",")
-        .map((item) => `- ${item.trim()}`)
-        .join("\n");
-      const messageFormat = `<@&1464994942345547857>\n**:wrench: Änderungen (${date})**\n${updateList}`;
-      await changelogChannel.send(messageFormat);
-      await interaction.reply({
-        content: "Changelog erfolgreich gepostet.",
-        flags: [MessageFlags.Ephemeral],
-      });
-      await sendKekseLog("changelog", changelogChannel.toString(), updateList);
-      globalBotStats.commandsRunned += 1;
-      console.log(`${user.username} hat die "changelog"-Funktion genutzt`)
-    }
-
-    if (commandName === "embed") {
-      const targetChannel = options.getChannel("kanal");
-      const title = options.getString("titel");
-      const text = options.getString("text");
-      const color = options.getString("farbe") || "#ffffff";
-
-      const validColor = /^#[0-9A-F]{6}$/i.test(color) ? color : "#ffffff";
-
-      const embed = new EmbedBuilder()
-        .setTitle(title)
-        .setDescription(text)
-        .setColor(validColor);
-      await targetChannel.send({ embeds: [embed] });
-      await interaction.reply({
-        content: `Embed erfolgreich in ${targetChannel} gesendet.`,
-        flags: [MessageFlags.Ephemeral],
-      });
-      await sendKekseLog(
-        "embed",
-        targetChannel.toString(),
-        `Titel: ${title}\nText: ${text}`,
-      );
-      globalBotStats.commandsRunned += 1;
-      console.log(`${user.username} hat die "embed"-Funktion genutzt`)
-    }
-
-    if (commandName === "dm") {
-      const userId = options.getString("userid");
-      const text = options.getString("text");
-      const targetUser = await client.users.fetch(userId).catch(() => null);
-
-      if (!targetUser) {
-        return interaction.reply({
-          content: "❌ User konnte nicht gefunden werden. Ungültige ID?",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-
-      try {
-        await targetUser.send(text);
-        await interaction.reply({
-          content: `Direktnachricht an ${targetUser.tag} gesendet.`,
-          flags: [MessageFlags.Ephemeral],
-        });
-        await sendKekseLog("dm", `${targetUser.tag} (${userId})`, text);
-        globalBotStats.commandsRunned += 1;
-        console.log(`${user.username} hat die "dm"-Funktion genutzt`)
-      } catch (err) {
-        await interaction.reply({
-          content:
-            "❌ Die DM konnte nicht zugestellt werden (Privatsphäre-Einstellungen des Users).",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-    }
-
-    if (commandName === "news") {
-      const targetChannel = options.getChannel("kanal");
-      const rawText = options.getString("text");
-
-      const emojiMap = {
-        regles: "1467246063122649180",
-        mail: "1467246078226334040",
-        like: "1467246068235501733",
-        management: "1467246065437642999",
-        moins: "1467246060689690849",
-        info: "1467246059561685238",
-        web: "1467246058341142833",
-        dislike: "1467246057070268681",
-        logs: "1467246054910070938",
-        check: "1467246053911957759",
-        staff: "1467246044772569218",
-        lien: "1467246043182924040",
-        identifiant: "1467246041668780227",
-        cybersecurite: "1467246039731015794",
-        statistiques: "1467246038497886311",
-        administrateur: "1467246035922321478",
-        croix: "1467246034580410429",
-        certifier: "1467246033389092904",
-        supprimer: "1467246032181006499",
-        profil: "1467246030998343733",
-        moderateur: "1467246028758712575",
-        crayon: "1467246026846109821",
-        stats: "1467246025411658012",
-        ouvert: "1467246023872352358",
-        discordoff: "1467246022668583147",
-        warningicon: "1467246020445339875",
-        "2nd": "1467246019556282533",
-        discordon: "1467246018218430696",
-        "1st": "1467246016926453810",
-        help: "1467246015332618372",
-        timeout: "1467246013487255705",
-        unstableping: "1467246011578712186",
-        yinfo: "1467246010349785119",
-        "3rd": "1467246008734847138",
-        failed: "1467246005870264352",
-        mute: "1467246003890425928",
-        verified: "1467246002628202507",
-        cross: "1467246000258420767",
-        interruption: "1467245998043824128",
-        checkmark: "1467245996584210554",
-        moderatorprogramsalumnia: "1467245995510337659",
-        pingeveryone: "1453800508329558218",
-        ping: "1453799622303813714",
-        pepecookie: "1453796363442585660",
-      };
-      const formattedText = rawText.replace(
-        /:([a-zA-Z0-9_]+):/g,
-        (match, name) => {
-          return emojiMap[name] ? `<:emoji:${emojiMap[name]}>` : match;
-        },
-      );
-
-      await targetChannel.send(formattedText);
-      await interaction.reply({
-        content: `News-Nachricht erfolgreich in ${targetChannel} gepostet.`,
-        flags: [MessageFlags.Ephemeral],
-      });
-      await sendKekseLog("news", targetChannel.toString(), rawText);
-      globalBotStats.commandsRunned += 1;
-      console.log(`${user.username} hat die "news"-Funktion genutzt`)
-    }
-    if (commandName === "reply") {
-      const msgId = options.getString("msgid");
-      const text = options.getString("text");
-      const targetChannel = options.getChannel("kanal") || currentChannel;
-      try {
-        const targetMsg = await targetChannel.messages.fetch(msgId);
-        targetMsg.system
-          ? await targetChannel.send(text)
-          : await targetMsg.reply(text);
-        await interaction.reply({
-          content: "Erfolgreich auf die Nachricht geantwortet.",
-          flags: [MessageFlags.Ephemeral],
-        });
-        await sendKekseLog(
-          "reply",
-          `Nachricht ID ${msgId} in ${targetChannel}`,
-          text,
-        );
-        globalBotStats.commandsRunned += 1;
-        console.log(`${user.username} hat die "reply"-Funktion genutzt`)
-      } catch (err) {
-        await interaction.reply({
-          content: "❌ Nachricht im angegebenen Kanal nicht gefunden.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-    }
-    if (commandName === "ping") {
-      if (!member.roles.cache.has(TEAM_ROLE)) {
-        return interaction.reply({
-          content: "❌ Keine Berechtigung.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-
-      globalBotStats.commandsRunned += 1;
-
-      const start = Date.now();
-      await interaction.reply({ content: "🏓 Pinging...", flags: [MessageFlags.Ephemeral] });
-      const end = Date.now();
-
-      const roundtrip = end - start;
-      const wsPing = client.ws.ping;
-
-      await interaction
-        .editReply({
-          content: `🏓 **Pong!**\n- API-Latenz: \`${roundtrip}ms\`\n- WebSocket: \`${wsPing}ms\``,
-        })
-        .catch(() => {});
-
-      const logChannel = client.channels.cache.get(logChannelId);
-      console.log(`${user.username} hat eine Pingabfrage gestartet. Antwort: API-Latenz:${roundtrip}ms , WebSocket:${wsPing}ms`)
-      if (logChannel) {
-        const kekseLog = new EmbedBuilder()
-          .setColor("#ffffff")
-          .setAuthor({
-            name: user.username,
-            iconURL: user.displayAvatarURL({ size: 512 }),
-          })
-          .setDescription(
-            `**Aktion:** \`/ping\`\n**Ergebnis:** RT: \`${roundtrip}ms\` | WS: \`${wsPing}ms\``,
-          )
-          .setFooter({ text: "Kekse Clan | System Check" })
-          .setTimestamp();
-
-        await logChannel.send({ embeds: [kekseLog] }).catch(() => {});
-      }
-    }
-    if (commandName === "clear") {
-      if (!member.roles.cache.has(TEAM_ROLE)) {
-        return interaction.reply({
-          content: "❌ Keine Berechtigung.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-
-      const amount = Math.min(options.getInteger("anzahl") || 100, 500);
-      const targetChannel = options.getChannel("kanal") || currentChannel;
-      const targetUser = options.getUser("nutzer");
-      const timeframe = options.getString("zeitrahmen");
-
-      if (!targetChannel.isTextBased()) {
-        return interaction.reply({
-          content: "❌ Der ausgewählte Kanal ist kein Textkanal.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-
-      await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
-      const startTime = Date.now();
-
-      let messagesToDelete = [];
-      let lastId = null;
-      let deletedCount = 0;
-
-      try {
-        while (messagesToDelete.length < amount) {
-          const fetched = await targetChannel.messages.fetch({
-            limit: 100,
-            before: lastId || undefined,
-          });
-          if (!fetched || fetched.size === 0) break;
-
-          for (const msg of fetched.values()) {
-            if (targetUser && msg.author.id !== targetUser.id) continue;
-            if (timeframe) {
-              const ms = parseTimeframe(timeframe);
-              if (Date.now() - msg.createdTimestamp > ms) continue;
-            }
-            messagesToDelete.push(msg);
-            if (messagesToDelete.length >= amount) break;
-          }
-
-          const lastMsg = fetched.last();
-          if (!lastMsg) break;
-          lastId = lastMsg.id;
-          if (fetched.size < 100) break;
-        }
-
-        if (messagesToDelete.length === 0) {
-          return interaction.editReply({
-            content:
-              " Keine Nachrichten gefunden, die den Kriterien entsprechen.",
-          });
-        }
-
-        const fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
-        const youngMsgs = messagesToDelete.filter(
-          (m) => m.createdTimestamp > fourteenDaysAgo,
-        );
-        const oldMsgs = messagesToDelete.filter(
-          (m) => m.createdTimestamp <= fourteenDaysAgo,
-        );
-
-        if (youngMsgs.length > 0) {
-          await interaction.editReply({
-            content: ` Bulk-Löschung von ${youngMsgs.length} Nachrichten...`,
-          });
-          const deletedBulk = await targetChannel
-            .bulkDelete(youngMsgs, true)
-            .catch(() => new Map());
-          deletedCount += deletedBulk.size;
-        }
-
-        if (oldMsgs.length > 0) {
-          for (let i = 0; i < oldMsgs.length; i++) {
-            await oldMsgs[i].delete().catch(() => {});
-            deletedCount++;
-            if (deletedCount % 5 === 0) {
-              await interaction
-                .editReply({
-                  content: ` Lösche alte Nachrichten: **${deletedCount}/${messagesToDelete.length}**...`,
-                })
-                .catch(() => {});
-            }
-            await new Promise((r) => setTimeout(r, 1200));
-          }
-        }
-      } catch (clearError) {
-        console.log(
-          `[ClearCommand] Fehler bei der Ausführung: ${clearError.message}`,
-        );
-        return interaction.editReply({
-          content: "❌ Ein interner Fehler ist beim Löschen aufgetreten.",
-        });
-      }
-
-      const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-
-      await interaction.editReply({
-        content: `✅ **Abschlussbericht:**\n- Gelöscht: **${deletedCount}**\n- Dauer: **${duration}s**\n- Kanal: <#${targetChannel.id}>`,
-      });
-      console.log(`${user.username} hat die "clear"-Funktion genutzt: ${deletedCount} innerhalb von ${duration}s in ${targetChannel} gelöscht`)
-      const logChannel = client.channels.cache.get(logChannelId);
-      if (logChannel) {
-        const userList = targetUser ? `<@${targetUser.id}>` : "Alle User";
-        const logEmbed = new EmbedBuilder()
-          .setColor("#ffffff")
-          .setAuthor({
-            name: user.username,
-            iconURL: user.displayAvatarURL({ size: 512 }),
-          })
-          .setDescription(
-            `**Aktion:** \`Clear\`\n\n**Kanal:** <#${targetChannel.id}>\n**Anzahl:** ${deletedCount}\n**Filter (User):** ${userList}\n**Zeitrahmen:** ${timeframe || "Keiner"}\n**Dauer:** ${duration}s`,
-          )
-          .setFooter({ text: "Kekse Clan | Moderation System" })
-          .setTimestamp();
-        await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
-      }
-      globalBotStats.commandsRunned += 1;
-    }
-        if (commandName === "giveaway") {
-      if (!member.roles.cache.has(TEAM_ROLE)) {
-        return interaction.reply({
-          content: " Keine Rechte.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-
-      const subcommand = options.getSubcommand();
-
-      if (subcommand === "reroll") {
-        const giveawayId = options.getString("id");
-        const count = options.getInteger("anzahl");
-
-        await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
-        const error = await rerollGiveaway(
-          interaction.client,
-          interaction.guild,
-          giveawayId,
-          count,
-          user,
-          sendKekseLog,
-        );
-        if (error) return interaction.editReply({ content: error });
-        return interaction.editReply({ content: "✅ Reroll durchgeführt." });
-      }
-
-      const channel = options.getChannel("kanal");
-      const durationStr = options.getString("dauer");
-      const price = options.getString("preis");
-      const messageText = options.getString("text") || "Viel Glück 🍀";
-      const winnerCount = options.getInteger("gewinner") || 1;
-
-      if (!channel.isTextBased()) {
-        return interaction.reply({
-          content: "❌ Der ausgewählte Kanal ist kein Textkanal.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-
-      const durationMs = parseDuration(durationStr);
-      if (durationMs <= 0) {
-        return interaction.reply({
-          content: "❌ Zeitformat ungültig (z.B. 1h, 30m, 1d).",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-
-      const requiredRoles = [];
-      for (const optionName of ["rolle1", "rolle2", "rolle3"]) {
-        const role = options.getRole(optionName);
-        if (role && !requiredRoles.includes(role.id)) requiredRoles.push(role.id);
-      }
-
-      const startTime = Date.now();
-      const endTime = startTime + durationMs;
-
-      const giveawayData = {
-        channelId: channel.id,
-        startTime,
-        endTime,
-        price,
-        messageText,
-        winnerCount,
-        requiredRoles,
-        hostId: user.id,
-        participants: [],
-      };
-
-      const embed = new EmbedBuilder()
-        .setTitle(`🎁 Giveaway: ${price}`)
-        .setDescription(buildDescription(giveawayData, 0))
-        .setColor(EMBED_COLOR);
-
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId(`join_giveaway`)
-          .setLabel("Teilnehmen")
-          .setEmoji(GIVEAWAY_EMOJI)
-          .setStyle(ButtonStyle.Primary),
-      );
-
-      const giveawayMsg = await channel.send({
-        content: "<@&1424028650080178348>",
-        embeds: [embed],
-        components: [row],
-      });
-
-      const giveaways = (await getGivData("activeGiveaways")) || {};
-      giveaways[giveawayMsg.id] = giveawayData;
-      await setGivData("activeGiveaways", giveaways);
-
-      await interaction.reply({
-        content: `✅ Giveaway erfolgreich in ${channel} gestartet!\n**ID:** \`${giveawayMsg.id}\``,
-        flags: [MessageFlags.Ephemeral],
-      });
-
-      let logDetails = `**Preis:** ${price}\n**Kanal:** ${channel}\n**Dauer:** ${durationStr}\n**Gewinner:** ${winnerCount}`;
-      if (requiredRoles.length > 0)
-        logDetails += `\n**Benötigte Rolle:** ${formatRoles(requiredRoles)}`;
-      await sendKekseLog("Giveaway gestartet", user, logDetails);
-      console.log(`${user.username} hat ein Giveaway für ${price} in ${channel} erstellt.`);
-
-      globalBotStats.commandsRunned += 1;
-      globalBotStats.giveawaysCreated += 1;
-    }
-    if (commandName === "help") {
-      console.log(`[HELP] Von ${user.username}`);
-      await handleSlashHelpCommand(interaction);
-      console.log(`${user.username} hat die "help"-Funktion genutzt`)
-      globalBotStats.commandsRunned += 1;
-    }
-    const createPollText = (q, d, opts, end, count, id, author) => {
-  const optionsArray = Array.isArray(opts) ? opts : (opts ? Array.from(opts) : []);
-  
-  return `## ${q}\n${d}\n\n` +
-    optionsArray.map(o => `${o.emoji} ${o.text}`).join("\n") + `\n\n` +
-    `<:info:1467246059561685238> Endet am: <t:${Math.floor(end / 1000)}:R>\n` +
-    `<:profil:1467246030998343733> Erstellt von: ${author}\n` +
-    `<:statistiques:1467246038497886311> Teilnehmer: **${count}**\n` +
-    `<:identifiant:1467246041668780227> ID: \`${id}\``;
-};
-
-
-    const createPollButtons = (pollId, opts) => {
-      const rows = [];
-      let currentRow = new ActionRowBuilder();
-      opts.forEach((o, i) => {
-        if (i > 0 && i % 5 === 0) {
-          rows.push(currentRow);
-          currentRow = new ActionRowBuilder();
-        }
-        currentRow.addComponents(
-          new ButtonBuilder()
-            .setCustomId(`poll_vote_${pollId}_${i}`)
-            .setEmoji(o.emoji)
-            .setStyle(ButtonStyle.Secondary),
-        );
-      });
-      if (currentRow.components.length > 0) rows.push(currentRow);
-      return rows;
-    };
-    if (commandName === "poll") {
-      if (!member.roles.cache.has(TEAM_ROLE)) {
-        return interaction.reply({
-          content: "❌ Du hast keine Berechtigung.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-
-      const subCommand = options.getSubcommand();
-
-      if (subCommand === "start") {
-        const question = options.getString("frage");
-        const time = options.getInteger("minuten");
-        const description = options.getString("beschreibung");
-
-        const rawOptions = [];
-        for (let i = 1; i <= 10; i++) {
-          const optValue = options.getString(`option_${i}`);
-          if (optValue) rawOptions.push(optValue);
-        }
-
-        const pollId = interaction.id;
-        const emojis = [
-          "1️⃣",
-          "2️⃣",
-          "3️⃣",
-          "4️⃣",
-          "5️⃣",
-          "6️⃣",
-          "7️⃣",
-          "8️⃣",
-          "9️⃣",
-          "🔟",
-        ];
-        const pollOptions = rawOptions.map((opt, i) => ({
-          text: opt,
-          emoji: emojis[i],
-          votes: 0,
-        }));
-        const endTime = Date.now() + time * 60000;
-
-        const pollContent = createPollText(
-          question,
-          description,
-          pollOptions,
-          endTime,
-          0,
-          pollId,
-          user,
-        );
-        const components = createPollButtons(pollId, pollOptions);
-
-        await interaction.reply({
-          content: " Umfrage wird gestartet...",
-          flags: [MessageFlags.Ephemeral],
-        });
-        const pollMsg = await currentChannel.send({
-          content: `<@&1424028924387786762>\n${pollContent}`,
-          components: components,
-        });
-
-        const polls = (await getPollData("polls_data")) || [];
-        polls.push({
-          id: pollId,
-          messageId: pollMsg.id,
-          channelId: currentChannel.id,
-          question,
-          description,
-          options: pollOptions,
-          endTime,
-          creatorId: user.id,
-          voters: [],
-          closed: false,
-        });
-        await setPollData("polls_data", polls);
-
-        await sendKekseLog(
-          "Umfrage gestartet",
-          user,
-          `**Frage:** ${question}\n**Dauer:** ${time} Min.\n**ID:** \`${pollId}\``,
-        );
-        console.log(`${user.username} hat einen Poll gestartet: ${question}`)
-        globalBotStats.pollsCreated += 1;
-      }
-      const closePoll = async (poll, polls, closer) => {
-        poll.closed = true;
-        const channel = await client.channels
-          .fetch(poll.channelId)
-          .catch(() => null);
-        const pollMsg = await channel?.messages
-          .fetch(poll.messageId)
-          .catch(() => null);
-        if (pollMsg) {
-          await pollMsg.edit({ components: [] }).catch(() => {});
-        }
-        const total = poll.voters.length;
-        let resultsText = `## <:statistiques:1467246038497886311> Ergebnisse: ${poll.question}\n\n`;
-        if (total === 0) {
-          resultsText += "Keine Teilnehmer.";
-        } else {
-          const winnerVotes = Math.max(...poll.options.map((o) => o.votes));
-          poll.options.forEach((o) => {
-            const perc = Math.round((o.votes / total) * 100);
-            resultsText += `${o.emoji} **${o.text}**\n**${o.votes} Stimmen** (${perc}%)${o.votes === winnerVotes && total > 0 ? " <:checkmark:1467245996584210554>" : ""}\n\n`;
-          });
-        }
-        if (channel) await channel.send(resultsText).catch(() => {});
-        const logChannel = client.channels.cache.get("1423413348220796991");
-        if (logChannel) {
-          const logEmbed = new EmbedBuilder()
-            .setColor("#ffffff")
-            .setAuthor({
-              name: closer.username,
-              iconURL: closer.displayAvatarURL(),
-            })
-            .setDescription(
-              `**Aktion:** \`Umfrage beendet\`\n**Frage:** ${poll.question}\n**Teilnehmer:** ${total}\n**ID:** \`${poll.id}\``,
-            )
-            .setFooter({ text: "Kekse Clan | Poll System" })
-            .setTimestamp();
-          await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
-        }
-        const updatedPolls = polls.filter((p) => p.id !== poll.id);
-        await setPollData("polls_data", updatedPolls);
-      };
-      if (subCommand === "close") {
-        const pollId = options.getString("id");
-        const polls = (await getPollData("polls_data")) || [];
-        const poll = polls.find((p) => p.id === pollId && !p.closed);
-
-        if (!poll) {
-          return interaction.reply({
-            content: "❌ Poll nicht gefunden.",
-            flags: [MessageFlags.Ephemeral],
-          });
-        }
-
-        await closePoll(poll, polls, user);
-        await interaction.reply({
-          content: `✅ Die Umfrage mit der ID \`${pollId}\` wurde erfolgreich geschlossen.`,
-          flags: [MessageFlags.Ephemeral],
-        });
-        console.log(`${user.username} hat den Poll ${pollId} vorzeitig geschlossen`)
-        globalBotStats.commandsRunned += 1;
-      }
-    }
-    if (commandName === "listpolls") {
-      const polls = (await getPollData("polls_data")) || [];
-      const activePolls = polls.filter((p) => !p.closed);
-      if (activePolls.length === 0) {
-        return interaction.reply({
-          content: "Keine aktiven Umfragen vorhanden.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-      const list = activePolls
-        .map((p) => `ID: \`${p.id}\` | ${p.question}`)
-        .join("\n");
-      await interaction.reply({
-        content: `**Aktive Umfragen:**\n${list}`,
-        ephemeral: false,
-      });
-      console.log(`${user.username} hat die "listpolls"-Funktion genutzt`)
-      globalBotStats.commandsRunned += 1;
-    }
-    if (commandName === "moveadmin") {
-      if (!member.roles.cache.has(TEAM_ROLE)) {
-        return interaction.reply({
-          content: "❌ Keine Berechtigung.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-
-      await interaction.reply({
-        content: "⏳ Verschiebe Ticket in den Admin-Bereich...",
-        flags: [MessageFlags.Ephemeral],
-      });
-      await moveChannelToAdmin(currentChannel, true);
-      console.log(`${user.username} hat ein Ticket in die Admin-Kategorie verschoben`)
-      globalBotStats.commandsRunned += 1;
-    }
-    if (commandName === "ticket-panel") {
-      if (!member.roles.cache.has("1454169207838216253")) {
-        return interaction.reply({
-          content: "❌ Keine Berechtigung.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-
-      await interaction.reply({
-        content: "⏳ Sende Ticket-Panel...",
-        flags: [MessageFlags.Ephemeral],
-      });
-      await sendTicketPanel(currentChannel);
-      console.log(`${user.username} hat ein neues Ticket-Panel erstellt`)
-      globalBotStats.commandsRunned += 1;
-    }
-    async function closeTicket(channel, moderator) {
-      try {
-        const stored = (await getTickData("tickets")) || { tickets: {} };
-        const allEntries = stored.tickets || {};
-        const ticket = Object.values(allEntries).find(
-          (t) => typeof t === "object" && t.channelId === channel.id,
-        );
-        if (!ticket) {
-          return channel.send(
-            "❌ Kein aktives Ticket in der Datenbank gefunden.",
-          );
-        }
-        await channel.permissionOverwrites
-          .delete(ticket.userId)
-          .catch(() => {});
-        await channel.send({
-          content: `⏳ **Ticket wird archiviert...**\nErstellt von: ${ticket.username}\nID: ${ticket.idString}`,
-        });
-        delete stored.tickets[ticket.idString];
-        await setTickData("tickets", stored);
-        await archiveTicket(
-        {
-          name: channel.name,
-          closedBy: moderator,
-          creator: { id: ticket.userId, username: ticket.username },
-          channel: channel,
-        },
-        setTickData
-      );
-      } catch (err) {
-        console.error("[TICKET] Fehler:", err);
-      }
-    }
-    if (commandName === "close") {
-      if (!member.roles.cache.has(TEAM_ROLE)) {
-        return interaction.reply({
-          content: "❌ Keine Berechtigung.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-      await interaction.reply({
-        content: "⏳ Ticket-Schließung initiiert...",
-        flags: [MessageFlags.Ephemeral],
-      });
-      await closeTicket(currentChannel, user);
-      console.log(`${user.username} hat ${currentChannel} geschlossen`)
-      globalBotStats.commandsRunned += 1;
-    }
-    if (commandName === "block") {
-      if (!member.roles.cache.has(TEAM_ROLE)) {
-        return interaction.reply({
-          content: "❌ Keine Berechtigung.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-      const targetUser = options.getUser("nutzer");
-      const days = options.getInteger("tage") || 7;
-
-      await blockUser(
-        targetUser.id,
-        targetUser.username,
-        days * 24 * 60 * 60 * 1000,
-      );
-      console.log(`${user.username} hat ${targetUser.username} von der Erstellung von Tickets ausgeschlossen`)
-      await interaction.reply({
-        content: `✅ <@${targetUser.id}> wurde für ${days} Tage gesperrt.`,
-        flags: [MessageFlags.Ephemeral],
-      });
-      globalBotStats.commandsRunned += 1;
-    }
-    if (!member.roles.cache.has(TEAM_ROLE) || !hasPerm(member)) {
-      if (
-        [
-          "timeout",
-          "untimeout",
-          "kick",
-          "ban",
-          "unban",
-          "warn",
-          "warns",
-          "warn-remove",
-        ].includes(commandName)
-      ) {
-        return interaction.reply({
-          content: "❌ Keine Berechtigung.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-    }
-
-    let moderationData = (await getMData("moderation")) || { warns: {} };
-
-    const sendModLog = async (action, target, reason, extra = null) => {
-      const logChannel = await client.channels
-        .fetch(logChannelId)
-        .catch(() => null);
-      if (!logChannel) return;
-
+client.on("interactionCreate", async (interaction) => {
+  if (!interaction.isChatInputCommand()) return;
+  const {
+    commandName,
+    options,
+    member,
+    guild,
+    user,
+    channelId,
+    channel: currentChannel,
+  } = interaction;
+  const logChannelId = "1423413348220796991";
+  const TEAM_ROLE = "1457906448234319922";
+  const sendKekseLog = async (cmdName, target, content) => {
+    const logChannel = client.channels.cache.get(logChannelId);
+    if (logChannel) {
       const kekseEmbed = new EmbedBuilder()
         .setColor("#ffffff")
         .setAuthor({
           name: user.username,
           iconURL: user.displayAvatarURL({ size: 512 }),
         })
-        .setTitle(`🛠️ Mod-Aktion: ${action}`)
         .setDescription(
-          `**Target:** ${target.tag || target.id} (\`${target.id}\`)\n**Grund:** ${reason}${extra ? `\n**Info:** ${extra}` : ""}`,
+          `**Aktion:** \`/${cmdName}\`\n**Ziel:** ${target}\n**Inhalt:**\n\`\`\`${content || "Kein Inhalt"}\`\`\``,
         )
-        .setFooter({ text: "Kekse Clan | Moderation Logs" })
+        .setFooter({ text: "Kekse Clan | Command Logs" })
         .setTimestamp();
 
       await logChannel.send({ embeds: [kekseEmbed] }).catch(() => {});
+    }
+  };
+  if (commandName === "leaderboard") {
+    const StorageModel = mongoose.model("BotStorage");
+    const allDocs = await StorageModel.find({ namespace: "economy" }).lean();
+
+    const sorted = allDocs
+      .filter((doc) => /^\d+$/.test(doc.key) && doc.value?.balance > 0)
+      .sort((a, b) => b.value.balance - a.value.balance)
+      .slice(0, 5);
+
+    const embed = new EmbedBuilder()
+      .setTitle("🏆 Top 5 Balance")
+      .setColor("#ffffff")
+      .setDescription(
+        sorted
+          .map(
+            (doc, i) =>
+              `**${i + 1}.** <@${doc.key}> • ${doc.value.balance.toLocaleString("de-DE")} Kekse`,
+          )
+          .join("\n") || "Keine Daten",
+      )
+      .setFooter({ text: "Kekse Clan" })
+      .setTimestamp();
+
+    return interaction.reply({ embeds: [embed] });
+  }
+  if (commandName === "send") {
+    const targetChannel = options.getChannel("kanal");
+    const text = options.getString("text");
+
+    await targetChannel.send(text);
+    await interaction.reply({
+      content: `Nachricht in ${targetChannel} gesendet.`,
+      flags: [MessageFlags.Ephemeral],
+    });
+    await sendKekseLog("send", targetChannel.toString(), text);
+    globalBotStats.commandsRunned += 1;
+    console.log(`${user.username} hat die "send"-Funktion genutzt`);
+  }
+  if (commandName === "changelog") {
+    const changelogChannel = guild.channels.cache.get("1464993818968588379");
+    const eintrag = options.getString("eintrag");
+    if (!changelogChannel)
+      return interaction.reply({
+        content: "Kanal nicht gefunden.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    const date = new Date().toLocaleDateString("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+    const updateList = eintrag
+      .split(",")
+      .map((item) => `- ${item.trim()}`)
+      .join("\n");
+    const messageFormat = `<@&1464994942345547857>\n**:wrench: Änderungen (${date})**\n${updateList}`;
+    await changelogChannel.send(messageFormat);
+    await interaction.reply({
+      content: "Changelog erfolgreich gepostet.",
+      flags: [MessageFlags.Ephemeral],
+    });
+    await sendKekseLog("changelog", changelogChannel.toString(), updateList);
+    globalBotStats.commandsRunned += 1;
+    console.log(`${user.username} hat die "changelog"-Funktion genutzt`);
+  }
+
+  if (commandName === "embed") {
+    const targetChannel = options.getChannel("kanal");
+    const title = options.getString("titel");
+    const text = options.getString("text");
+    const color = options.getString("farbe") || "#ffffff";
+
+    const validColor = /^#[0-9A-F]{6}$/i.test(color) ? color : "#ffffff";
+
+    const embed = new EmbedBuilder()
+      .setTitle(title)
+      .setDescription(text)
+      .setColor(validColor);
+    await targetChannel.send({ embeds: [embed] });
+    await interaction.reply({
+      content: `Embed erfolgreich in ${targetChannel} gesendet.`,
+      flags: [MessageFlags.Ephemeral],
+    });
+    await sendKekseLog(
+      "embed",
+      targetChannel.toString(),
+      `Titel: ${title}\nText: ${text}`,
+    );
+    globalBotStats.commandsRunned += 1;
+    console.log(`${user.username} hat die "embed"-Funktion genutzt`);
+  }
+
+  if (commandName === "dm") {
+    const userId = options.getString("userid");
+    const text = options.getString("text");
+    const targetUser = await client.users.fetch(userId).catch(() => null);
+
+    if (!targetUser) {
+      return interaction.reply({
+        content: "❌ User konnte nicht gefunden werden. Ungültige ID?",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+
+    try {
+      await targetUser.send(text);
+      await interaction.reply({
+        content: `Direktnachricht an ${targetUser.tag} gesendet.`,
+        flags: [MessageFlags.Ephemeral],
+      });
+      await sendKekseLog("dm", `${targetUser.tag} (${userId})`, text);
+      globalBotStats.commandsRunned += 1;
+      console.log(`${user.username} hat die "dm"-Funktion genutzt`);
+    } catch (err) {
+      await interaction.reply({
+        content:
+          "❌ Die DM konnte nicht zugestellt werden (Privatsphäre-Einstellungen des Users).",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+  }
+
+  if (commandName === "news") {
+    const targetChannel = options.getChannel("kanal");
+    const rawText = options.getString("text");
+
+    const emojiMap = {
+      regles: "1467246063122649180",
+      mail: "1467246078226334040",
+      like: "1467246068235501733",
+      management: "1467246065437642999",
+      moins: "1467246060689690849",
+      info: "1467246059561685238",
+      web: "1467246058341142833",
+      dislike: "1467246057070268681",
+      logs: "1467246054910070938",
+      check: "1467246053911957759",
+      staff: "1467246044772569218",
+      lien: "1467246043182924040",
+      identifiant: "1467246041668780227",
+      cybersecurite: "1467246039731015794",
+      statistiques: "1467246038497886311",
+      administrateur: "1467246035922321478",
+      croix: "1467246034580410429",
+      certifier: "1467246033389092904",
+      supprimer: "1467246032181006499",
+      profil: "1467246030998343733",
+      moderateur: "1467246028758712575",
+      crayon: "1467246026846109821",
+      stats: "1467246025411658012",
+      ouvert: "1467246023872352358",
+      discordoff: "1467246022668583147",
+      warningicon: "1467246020445339875",
+      "2nd": "1467246019556282533",
+      discordon: "1467246018218430696",
+      "1st": "1467246016926453810",
+      help: "1467246015332618372",
+      timeout: "1467246013487255705",
+      unstableping: "1467246011578712186",
+      yinfo: "1467246010349785119",
+      "3rd": "1467246008734847138",
+      failed: "1467246005870264352",
+      mute: "1467246003890425928",
+      verified: "1467246002628202507",
+      cross: "1467246000258420767",
+      interruption: "1467245998043824128",
+      checkmark: "1467245996584210554",
+      moderatorprogramsalumnia: "1467245995510337659",
+      pingeveryone: "1453800508329558218",
+      ping: "1453799622303813714",
+      pepecookie: "1453796363442585660",
     };
+    const formattedText = rawText.replace(
+      /:([a-zA-Z0-9_]+):/g,
+      (match, name) => {
+        return emojiMap[name] ? `<:emoji:${emojiMap[name]}>` : match;
+      },
+    );
 
-    if (commandName === "timeout") {
-      const targetUser = options.getUser("nutzer");
-      const durationStr = options.getString("dauer");
-      const reason = options.getString("grund") || "Kein Grund";
-
-      const match = durationStr.match(/^(\d+)([smhd])$/);
-      if (!match)
-        return interaction.reply({
-          content: " Format: 10s, 5m, 2h, 1d",
-          flags: [MessageFlags.Ephemeral],
-        });
-
-      const durationMs = parseTimeframe(durationStr);
-      if (durationMs === 0)
-        return interaction.reply({
-          content: " Ungültige Zeitangabe.",
-          flags: [MessageFlags.Ephemeral],
-        });
-
-      try {
-        const targetMember = await guild.members.fetch(targetUser.id);
-        await targetMember.timeout(durationMs, reason);
-        await interaction.reply({
-          content: ` **Timeout**: <@${targetUser.id}> für ${durationStr}.`,
-          flags: [MessageFlags.Ephemeral],
-        });
-        await sendModLog(
-          "Timeout",
-          targetUser,
-          reason,
-          `Dauer: ${durationStr}`,
-        );
-        console.log(`${user.username} hat ${targetUser} wegen ${reason} für ${durationStr} in den timeout versetzt`)
-        globalBotStats.commandsRunned += 1;
-      } catch (err) {
-        await interaction.reply({
-          content: " Fehler: User nicht auf Server oder fehlende Rechte.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-    }
-
-    if (commandName === "untimeout") {
-      const targetUser = options.getUser("nutzer");
-      const reason = options.getString("grund") || "Kein Grund";
-
-      try {
-        const targetMember = await guild.members.fetch(targetUser.id);
-        await targetMember.timeout(null, reason);
-        await interaction.reply({
-          content: `✅ **Untimeout**: <@${targetUser.id}>`,
-          flags: [MessageFlags.Ephemeral],
-        });
-        await sendModLog("Untimeout", targetUser, reason);
-        console.log(`${user.username} hat ${targetUser} wegen ${reason} aus dem timeout geholt`)
-        globalBotStats.commandsRunned += 1;
-      } catch (err) {
-        await interaction.reply({
-          content: "❌ Fehler beim Untimeout.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-    }
-
-    if (commandName === "kick") {
-      const targetUser = options.getUser("nutzer");
-      const reason = options.getString("grund") || "Kein Grund";
-
-      try {
-        await guild.members.kick(targetUser.id, reason);
-        await interaction.reply({
-          content: `✅ **Kick**: <@${targetUser.id}>`,
-          flags: [MessageFlags.Ephemeral],
-        });
-        await sendModLog("Kick", targetUser, reason);
-        console.log(`${user.username} hat ${targetUser} wegen ${reason} vom Server gekickt`)
-        globalBotStats.commandsRunned += 1;
-      } catch (err) {
-        await interaction.reply({
-          content: "❌ Fehler beim Kick.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-    }
-
-    if (commandName === "ban") {
-      const idInput = options.getString("userid").replace(/[<@!>]/g, "");
-      const reason = options.getString("grund") || "Kein Grund";
-
-      if (!/^\d{17,20}$/.test(idInput)) {
-        return interaction.reply({
-          content: "❌ Gültige ID/Erwähnung angeben.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-
-      try {
-        const fetchedUser = await client.users
-          .fetch(idInput)
-          .catch(() => ({ id: idInput, tag: "Unknown#0000" }));
-        await guild.members.ban(idInput, { reason });
-        await interaction.reply({
-          content: `✅ **Ban**: ${fetchedUser.tag || idInput} wurde gebannt.`,
-          flags: [MessageFlags.Ephemeral],
-        });
-        await sendModLog("Ban", fetchedUser, reason);
-        console.log(`${user.username} hat ${fetchedUser} wegen ${reason} vom Server gebannt`)
-        globalBotStats.commandsRunned += 1;
-      } catch (err) {
-        await interaction.reply({
-          content: "❌ Fehler beim Ban (Rechte?).",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-    }
-
-    if (commandName === "unban") {
-      const idInput = options.getString("userid").replace(/[<@!>]/g, "");
-      const reason = options.getString("grund") || "Kein Grund";
-
-      try {
-        const fetchedUser = await client.users
-          .fetch(idInput)
-          .catch(() => ({ id: idInput, tag: idInput }));
-        await guild.members.unban(idInput, reason);
-        await interaction.reply({
-          content: `✅ **Unban**: ${fetchedUser.tag || idInput}`,
-          flags: [MessageFlags.Ephemeral],
-        });
-        await sendModLog("Unban", fetchedUser, reason);
-        console.log(`${user.username} hat ${fetchedUser} wegen ${reason} vom Server entbannt`)
-        globalBotStats.commandsRunned += 1;
-      } catch (err) {
-        await interaction.reply({
-          content: "❌ User nicht gebannt oder ID falsch.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-    }
-
-    if (commandName === "warn") {
-      const targetUser = options.getUser("nutzer");
-      const reason = options.getString("grund") || "Kein Grund";
-
-      moderationData.warns[targetUser.id] ??= [];
-      moderationData.warns[targetUser.id].push({
-        reason,
-        by: user.id,
-        date: Date.now(),
-      });
-      await setMData("moderation", moderationData);
-
+    await targetChannel.send(formattedText);
+    await interaction.reply({
+      content: `News-Nachricht erfolgreich in ${targetChannel} gepostet.`,
+      flags: [MessageFlags.Ephemeral],
+    });
+    await sendKekseLog("news", targetChannel.toString(), rawText);
+    globalBotStats.commandsRunned += 1;
+    console.log(`${user.username} hat die "news"-Funktion genutzt`);
+  }
+  if (commandName === "reply") {
+    const msgId = options.getString("msgid");
+    const text = options.getString("text");
+    const targetChannel = options.getChannel("kanal") || currentChannel;
+    try {
+      const targetMsg = await targetChannel.messages.fetch(msgId);
+      targetMsg.system
+        ? await targetChannel.send(text)
+        : await targetMsg.reply(text);
       await interaction.reply({
-        content: `⚠️ **Warn**: <@${targetUser.id}> (Gesamt: ${moderationData.warns[targetUser.id].length})`,
+        content: "Erfolgreich auf die Nachricht geantwortet.",
         flags: [MessageFlags.Ephemeral],
       });
-      await sendModLog(
-        "Warnung",
-        targetUser,
-        reason,
-        `Warn-Stand: ${moderationData.warns[targetUser.id].length}`,
+      await sendKekseLog(
+        "reply",
+        `Nachricht ID ${msgId} in ${targetChannel}`,
+        text,
       );
-      console.log(`${user.username} hat ${targetUser} wegen ${reason} gewarnt`)
       globalBotStats.commandsRunned += 1;
+      console.log(`${user.username} hat die "reply"-Funktion genutzt`);
+    } catch (err) {
+      await interaction.reply({
+        content: "❌ Nachricht im angegebenen Kanal nicht gefunden.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+  }
+  if (commandName === "ping") {
+    if (!member.roles.cache.has(TEAM_ROLE_ID)) {
+      return interaction.reply({
+        content: "❌ Keine Berechtigung.",
+        flags: [MessageFlags.Ephemeral],
+      });
     }
 
-    if (commandName === "warns") {
-      const targetUser = options.getUser("nutzer");
-      const userWarns = moderationData.warns[targetUser.id] || [];
+    globalBotStats.commandsRunned += 1;
 
-      if (userWarns.length === 0) {
-        return interaction.reply({
-          content: "✅ Keine Warnungen.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
+    const start = Date.now();
+    await interaction.reply({
+      content: "🏓 Pinging...",
+      flags: [MessageFlags.Ephemeral],
+    });
+    const end = Date.now();
 
-      const embed = new EmbedBuilder()
-        .setTitle(`Warnungen: ${targetUser.username}`)
+    const roundtrip = end - start;
+    const wsPing = client.ws.ping;
+
+    await interaction
+      .editReply({
+        content: `🏓 **Pong!**\n- API-Latenz: \`${roundtrip}ms\`\n- WebSocket: \`${wsPing}ms\``,
+      })
+      .catch(() => {});
+
+    const logChannel = client.channels.cache.get(logChannelId);
+    console.log(
+      `${user.username} hat eine Pingabfrage gestartet. Antwort: API-Latenz:${roundtrip}ms , WebSocket:${wsPing}ms`,
+    );
+    if (logChannel) {
+      const kekseLog = new EmbedBuilder()
         .setColor("#ffffff")
+        .setAuthor({
+          name: user.username,
+          iconURL: user.displayAvatarURL({ size: 512 }),
+        })
         .setDescription(
-          userWarns
-            .map((w, i) => `**${i + 1}.** ${w.reason} (von <@${w.by}>)`)
-            .join("\n"),
+          `**Aktion:** \`/ping\`\n**Ergebnis:** RT: \`${roundtrip}ms\` | WS: \`${wsPing}ms\``,
         )
-        .setFooter({ text: "Kekse Clan" });
+        .setFooter({ text: "Kekse Clan | System Check" })
+        .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
-      console.log(`${user.username} hat sich die Warnungen von ${targetUser} angeschaut`)
-      globalBotStats.commandsRunned += 1;
+      await logChannel.send({ embeds: [kekseLog] }).catch(() => {});
     }
-
-    if (commandName === "warn-remove") {
-      const targetUser = options.getUser("nutzer");
-      const index = options.getInteger("nummer") - 1;
-
-      if (!moderationData.warns[targetUser.id]?.[index]) {
-        return interaction.reply({
-          content: "❌ Ungültige Warn-Nummer.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-
-      const removed = moderationData.warns[targetUser.id].splice(index, 1);
-      await setMData("moderation", moderationData);
-
-      await interaction.reply({
-        content: "✅ Warnung entfernt.",
+  }
+  if (commandName === "clear") {
+    if (!member.roles.cache.has(TEAM_ROLE_ID)) {
+      return interaction.reply({
+        content: ":x: Keine Berechtigung.",
         flags: [MessageFlags.Ephemeral],
       });
-      await sendModLog(
-        "Warn entfernt",
-        targetUser,
-        `Grund war: ${removed[0].reason}`,
-      );
-      console.log(`${user.username} hat ${targetUser} für ${removed[0].reason} entwarnt`)
-      globalBotStats.commandsRunned += 1;
     }
-    if (commandName === "setup-verify") {
-      if (!member.roles.cache.has(TEAM_ROLE)) {
-        return interaction.reply({
-          content: "❌ Keine Berechtigung.",
-          flags: [MessageFlags.Ephemeral],
+
+    const amount = Math.min(options.getInteger("anzahl") || 100, 500);
+    const targetChannel = options.getChannel("kanal") || currentChannel;
+    const targetUser = options.getUser("nutzer");
+    const timeframe = options.getString("zeitrahmen");
+
+    if (!targetChannel.isTextBased()) {
+      return interaction.reply({
+        content: "❌ Der ausgewählte Kanal ist kein Textkanal.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
+    const startTime = Date.now();
+
+    let messagesToDelete = [];
+    let lastId = null;
+    let deletedCount = 0;
+
+    try {
+      while (messagesToDelete.length < amount) {
+        const fetched = await targetChannel.messages.fetch({
+          limit: 100,
+          before: lastId || undefined,
         });
-        console.log(`${user.username} hat ein Verifikations-Setup erstellt`)
+        if (!fetched || fetched.size === 0) break;
+
+        for (const msg of fetched.values()) {
+          if (targetUser && msg.author.id !== targetUser.id) continue;
+          if (timeframe) {
+            const ms = parseTimeframe(timeframe);
+            if (Date.now() - msg.createdTimestamp > ms) continue;
+          }
+          messagesToDelete.push(msg);
+          if (messagesToDelete.length >= amount) break;
+        }
+
+        const lastMsg = fetched.last();
+        if (!lastMsg) break;
+        lastId = lastMsg.id;
+        if (fetched.size < 100) break;
       }
 
-      const targetChannel = client.channels.cache.get(VERIFY_CHANNEL_ID);
-      if (!targetChannel) {
-        return interaction.reply({
+      if (messagesToDelete.length === 0) {
+        return interaction.editReply({
           content:
-            "❌ Verifizierungs-Kanal konnte nicht in der Cache gefunden werden.",
-          flags: [MessageFlags.Ephemeral],
+            " Keine Nachrichten gefunden, die den Kriterien entsprechen.",
         });
       }
+
+      const fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
+      const youngMsgs = messagesToDelete.filter(
+        (m) => m.createdTimestamp > fourteenDaysAgo,
+      );
+      const oldMsgs = messagesToDelete.filter(
+        (m) => m.createdTimestamp <= fourteenDaysAgo,
+      );
+
+      if (youngMsgs.length > 0) {
+        await interaction.editReply({
+          content: ` Bulk-Löschung von ${youngMsgs.length} Nachrichten...`,
+        });
+        const deletedBulk = await targetChannel
+          .bulkDelete(youngMsgs, true)
+          .catch(() => new Map());
+        deletedCount += deletedBulk.size;
+      }
+
+      if (oldMsgs.length > 0) {
+        for (let i = 0; i < oldMsgs.length; i++) {
+          await oldMsgs[i].delete().catch(() => {});
+          deletedCount++;
+          if (deletedCount % 5 === 0) {
+            await interaction
+              .editReply({
+                content: ` Lösche alte Nachrichten: **${deletedCount}/${messagesToDelete.length}**...`,
+              })
+              .catch(() => {});
+          }
+          await new Promise((r) => setTimeout(r, 1200));
+        }
+      }
+    } catch (clearError) {
+      console.log(
+        `[ClearCommand] Fehler bei der Ausführung: ${clearError.message}`,
+      );
+      return interaction.editReply({
+        content: "❌ Ein interner Fehler ist beim Löschen aufgetreten.",
+      });
+    }
+
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+
+    await interaction.editReply({
+      content: `✅ **Abschlussbericht:**\n- Gelöscht: **${deletedCount}**\n- Dauer: **${duration}s**\n- Kanal: <#${targetChannel.id}>`,
+    });
+    console.log(
+      `${user.username} hat die "clear"-Funktion genutzt: ${deletedCount} innerhalb von ${duration}s in ${targetChannel} gelöscht`,
+    );
+    const logChannel = client.channels.cache.get(logChannelId);
+    if (logChannel) {
+      const userList = targetUser ? `<@${targetUser.id}>` : "Alle User";
+      const logEmbed = new EmbedBuilder()
+        .setColor("#ffffff")
+        .setAuthor({
+          name: user.username,
+          iconURL: user.displayAvatarURL({ size: 512 }),
+        })
+        .setDescription(
+          `**Aktion:** \`Clear\`\n\n**Kanal:** <#${targetChannel.id}>\n**Anzahl:** ${deletedCount}\n**Filter (User):** ${userList}\n**Zeitrahmen:** ${timeframe || "Keiner"}\n**Dauer:** ${duration}s`,
+        )
+        .setFooter({ text: "Kekse Clan | Moderation System" })
+        .setTimestamp();
+      await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
+    }
+    globalBotStats.commandsRunned += 1;
+  }
+  if (commandName === "giveaway") {
+    if (!member.roles.cache.has(TEAM_ROLE_ID)) {
+      return interaction.reply({
+        content: " Keine Rechte.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+
+    const subcommand = options.getSubcommand();
+
+    if (subcommand === "reroll") {
+      const giveawayId = options.getString("id");
+      const count = options.getInteger("anzahl");
 
       await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
-
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId("verify_user")
-          .setLabel("Verifizieren")
-          .setStyle(ButtonStyle.Success),
-      );
-
-      const imageUrl = new AttachmentBuilder("./verify.png");
-
-      await targetChannel.send({
-        content:
-          "**Willkommen!** Klicke auf den Button, um die Verifizierung abzuschließen.",
-        files: [imageUrl],
-        components: [row],
-      });
-
-      await interaction.editReply({
-        content: `✅ Das Verifizierungs-Panel wurde erfolgreich in ${targetChannel} aufgesetzt.`,
-      });
-
-      await sendKekseLog(
-        "Verification Setup",
+      const error = await rerollGiveaway(
+        interaction.client,
+        interaction.guild,
+        giveawayId,
+        count,
         user,
-        `Das Verifizierungs-Panel wurde in <#${VERIFY_CHANNEL_ID}> neu aufgesetzt.`,
+        sendKekseLog,
       );
-      globalBotStats.commandsRunned += 1;
-    }
-    if (commandName === "top") {
-      await loadCounting();
-
-      const sorted = Object.entries(countingData.scoreboard || {})
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10);
-
-      const embed = new EmbedBuilder()
-        .setTitle("🏆 Top 10 Counter")
-        .setDescription(
-          sorted.map(([id, s], i) => `${i + 1}. <@${id}> • ${s}`).join("\n") ||
-            "Keine Daten",
-        )
-        .setColor("#ffffff")
-        .setFooter({ text: "Kekse Clan" });
-
-      await interaction.reply({ embeds: [embed] });
-      console.log(`${user.username} hat die "top"-Funktion genutzt`)
-      globalBotStats.commandsRunned += 1;
+      if (error) return interaction.editReply({ content: error });
+      return interaction.editReply({ content: "✅ Reroll durchgeführt." });
     }
 
-    if (commandName === "set-number") {
-      if (user.id !== "1151971830983311441") {
-        return interaction.reply({
-          content: "❌ Nur der Haupt-Admin darf diesen Befehl nutzen.",
-          flags: [MessageFlags.Ephemeral],
-        });
+    const channel = options.getChannel("kanal");
+    const durationStr = options.getString("dauer");
+    const price = options.getString("preis");
+    const messageText = options.getString("text") || "Viel Glück 🍀";
+    const winnerCount = options.getInteger("gewinner") || 1;
+
+    if (!channel.isTextBased()) {
+      return interaction.reply({
+        content: "❌ Der ausgewählte Kanal ist kein Textkanal.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+
+    const durationMs = parseDuration(durationStr);
+    if (durationMs <= 0) {
+      return interaction.reply({
+        content: "❌ Zeitformat ungültig (z.B. 1h, 30m, 1d).",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+
+    const requiredRoles = [];
+    for (const optionName of ["rolle1", "rolle2", "rolle3"]) {
+      const role = options.getRole(optionName);
+      if (role && !requiredRoles.includes(role.id)) requiredRoles.push(role.id);
+    }
+
+    const startTime = Date.now();
+    const endTime = startTime + durationMs;
+
+    const giveawayData = {
+      channelId: channel.id,
+      startTime,
+      endTime,
+      price,
+      messageText,
+      winnerCount,
+      requiredRoles,
+      hostId: user.id,
+      participants: [],
+    };
+
+    const embed = new EmbedBuilder()
+      .setTitle(`🎁 Giveaway: ${price}`)
+      .setDescription(buildDescription(giveawayData, 0))
+      .setColor(EMBED_COLOR);
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`join_giveaway`)
+        .setLabel("Teilnehmen")
+        .setEmoji(GIVEAWAY_EMOJI)
+        .setStyle(ButtonStyle.Primary),
+    );
+
+    const giveawayMsg = await channel.send({
+      content: "<@&1424028650080178348>",
+      embeds: [embed],
+      components: [row],
+    });
+
+    const giveaways = (await getGivData("activeGiveaways")) || {};
+    giveaways[giveawayMsg.id] = giveawayData;
+    await setGivData("activeGiveaways", giveaways);
+
+    await interaction.reply({
+      content: `✅ Giveaway erfolgreich in ${channel} gestartet!\n**ID:** \`${giveawayMsg.id}\``,
+      flags: [MessageFlags.Ephemeral],
+    });
+
+    let logDetails = `**Preis:** ${price}\n**Kanal:** ${channel}\n**Dauer:** ${durationStr}\n**Gewinner:** ${winnerCount}`;
+    if (requiredRoles.length > 0)
+      logDetails += `\n**Benötigte Rolle:** ${formatRoles(requiredRoles)}`;
+    await sendKekseLog("Giveaway gestartet", user, logDetails);
+    console.log(
+      `${user.username} hat ein Giveaway für ${price} in ${channel} erstellt.`,
+    );
+
+    globalBotStats.commandsRunned += 1;
+    globalBotStats.giveawaysCreated += 1;
+  }
+  if (commandName === "help") {
+    console.log(`[HELP] Von ${user.username}`);
+    await handleSlashHelpCommand(interaction);
+    console.log(`${user.username} hat die "help"-Funktion genutzt`);
+    globalBotStats.commandsRunned += 1;
+  }
+  const createPollText = (q, d, opts, end, count, id, author) => {
+    const optionsArray = Array.isArray(opts)
+      ? opts
+      : opts
+        ? Array.from(opts)
+        : [];
+
+    return (
+      `## ${q}\n${d}\n\n` +
+      optionsArray.map((o) => `${o.emoji} ${o.text}`).join("\n") +
+      `\n\n` +
+      `<:info:1467246059561685238> Endet am: <t:${Math.floor(end / 1000)}:R>\n` +
+      `<:profil:1467246030998343733> Erstellt von: ${author}\n` +
+      `<:statistiques:1467246038497886311> Teilnehmer: **${count}**\n` +
+      `<:identifiant:1467246041668780227> ID: \`${id}\``
+    );
+  };
+
+  const createPollButtons = (pollId, opts) => {
+    const rows = [];
+    let currentRow = new ActionRowBuilder();
+    opts.forEach((o, i) => {
+      if (i > 0 && i % 5 === 0) {
+        rows.push(currentRow);
+        currentRow = new ActionRowBuilder();
+      }
+      currentRow.addComponents(
+        new ButtonBuilder()
+          .setCustomId(`poll_vote_${pollId}_${i}`)
+          .setEmoji(o.emoji)
+          .setStyle(ButtonStyle.Secondary),
+      );
+    });
+    if (currentRow.components.length > 0) rows.push(currentRow);
+    return rows;
+  };
+  if (commandName === "poll") {
+    if (!member.roles.cache.has(TEAM_ROLE_ID)) {
+      return interaction.reply({
+        content: ":x: Du hast keine Berechtigung.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+
+    const subCommand = options.getSubcommand();
+
+    if (subCommand === "start") {
+      const question = options.getString("frage");
+      const time = options.getInteger("minuten");
+      const description = options.getString("beschreibung");
+
+      const rawOptions = [];
+      for (let i = 1; i <= 10; i++) {
+        const optValue = options.getString(`option_${i}`);
+        if (optValue) rawOptions.push(optValue);
       }
 
-      const newNum = options.getInteger("nummer");
+      const pollId = interaction.id;
+      const emojis = [
+        "1️⃣",
+        "2️⃣",
+        "3️⃣",
+        "4️⃣",
+        "5️⃣",
+        "6️⃣",
+        "7️⃣",
+        "8️⃣",
+        "9️⃣",
+        "🔟",
+      ];
+      const pollOptions = rawOptions.map((opt, i) => ({
+        text: opt,
+        emoji: emojis[i],
+        votes: 0,
+      }));
+      const endTime = Date.now() + time * 60000;
 
-      await loadCounting();
-      countingData.currentNumber = newNum;
-      countingData.direction = newNum < 0 ? -1 : 1;
-      await saveCounting();
+      const pollContent = createPollText(
+        question,
+        description,
+        pollOptions,
+        endTime,
+        0,
+        pollId,
+        user,
+      );
+      const components = createPollButtons(pollId, pollOptions);
 
-      const logChannel = client.channels.cache.get(logChannelId);
+      await interaction.reply({
+        content: " Umfrage wird gestartet...",
+        flags: [MessageFlags.Ephemeral],
+      });
+      const pollMsg = await currentChannel.send({
+        content: `<@&1424028924387786762>\n${pollContent}`,
+        components: components,
+      });
+
+      const polls = (await getPollData("polls_data")) || [];
+      polls.push({
+        id: pollId,
+        messageId: pollMsg.id,
+        channelId: currentChannel.id,
+        question,
+        description,
+        options: pollOptions,
+        endTime,
+        creatorId: user.id,
+        voters: [],
+        closed: false,
+      });
+      await setPollData("polls_data", polls);
+
+      await sendKekseLog(
+        "Umfrage gestartet",
+        user,
+        `**Frage:** ${question}\n**Dauer:** ${time} Min.\n**ID:** \`${pollId}\``,
+      );
+      console.log(`${user.username} hat einen Poll gestartet: ${question}`);
+      globalBotStats.pollsCreated += 1;
+    }
+    const closePoll = async (poll, polls, closer) => {
+      poll.closed = true;
+      const channel = await client.channels
+        .fetch(poll.channelId)
+        .catch(() => null);
+      const pollMsg = await channel?.messages
+        .fetch(poll.messageId)
+        .catch(() => null);
+      if (pollMsg) {
+        await pollMsg.edit({ components: [] }).catch(() => {});
+      }
+      const total = poll.voters.length;
+      let resultsText = `## <:statistiques:1467246038497886311> Ergebnisse: ${poll.question}\n\n`;
+      if (total === 0) {
+        resultsText += "Keine Teilnehmer.";
+      } else {
+        const winnerVotes = Math.max(...poll.options.map((o) => o.votes));
+        poll.options.forEach((o) => {
+          const perc = Math.round((o.votes / total) * 100);
+          resultsText += `${o.emoji} **${o.text}**\n**${o.votes} Stimmen** (${perc}%)${o.votes === winnerVotes && total > 0 ? " <:checkmark:1467245996584210554>" : ""}\n\n`;
+        });
+      }
+      if (channel) await channel.send(resultsText).catch(() => {});
+      const logChannel = client.channels.cache.get("1423413348220796991");
       if (logChannel) {
         const logEmbed = new EmbedBuilder()
           .setColor("#ffffff")
           .setAuthor({
-            name: user.username,
-            iconURL: user.displayAvatarURL({ size: 512 }),
+            name: closer.username,
+            iconURL: closer.displayAvatarURL(),
           })
           .setDescription(
-            `**Aktion:** \`Counting Reset (Admin)\`\nDie Zahl wurde manuell auf **${newNum}** gesetzt.`,
+            `**Aktion:** \`Umfrage beendet\`\n**Frage:** ${poll.question}\n**Teilnehmer:** ${total}\n**ID:** \`${poll.id}\``,
           )
-          .setFooter({ text: "Kekse Clan | Counting System" })
+          .setFooter({ text: "Kekse Clan | Poll System" })
           .setTimestamp();
         await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
       }
+      const updatedPolls = polls.filter((p) => p.id !== poll.id);
+      await setPollData("polls_data", updatedPolls);
+    };
+    if (subCommand === "close") {
+      const pollId = options.getString("id");
+      const polls = (await getPollData("polls_data")) || [];
+      const poll = polls.find((p) => p.id === pollId && !p.closed);
 
-      await interaction.reply({
-        content: ` Die nächste Zahl wurde auf **${newNum}** gesetzt.`,
-        flags: [MessageFlags.Ephemeral],
-      });
-      console.log(`${user.username} hat die Zahl im Counting auf ${newNum} gesetzt`)
-      globalBotStats.commandsRunned += 1;
-    }
-    if (commandName === "daily-setup") {
-      if (user.id !== "1151971830983311441") {
+      if (!poll) {
         return interaction.reply({
-          content: "❌ Nur der Haupt-Admin darf diesen Befehl nutzen.",
+          content: "❌ Poll nicht gefunden.",
           flags: [MessageFlags.Ephemeral],
         });
       }
 
-      const setupId = options.getString("id");
-      const description =
-        options.getString("beschreibung") ||
-        "Hole dir hier deine täglichen Kekse ab!";
-
-      await setEcoData(`setup_${setupId}`, {
-        description: description,
-        exists: true,
+      await closePoll(poll, polls, user);
+      await interaction.reply({
+        content: `✅ Die Umfrage mit der ID \`${pollId}\` wurde erfolgreich geschlossen.`,
+        flags: [MessageFlags.Ephemeral],
       });
-
-      const embed = new EmbedBuilder()
-        .setTitle("🍪 Tägliche Kekse")
-        .setDescription(
-          `${description}\n\nKlicke auf den Button unten, um 10 Kekse zu erhalten.`,
-        )
-        .setColor(0xffffff);
-
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId(`daily_claim_${setupId}`)
-          .setLabel("Kekse abholen")
-          .setStyle(ButtonStyle.Success)
-          .setEmoji("🍪"),
-      );
-
-      await currentChannel.send({ embeds: [embed], components: [row] });
       console.log(
-        `[Economy] Neues Daily Setup erstellt. (daily_claim_${setupId})`,
+        `${user.username} hat den Poll ${pollId} vorzeitig geschlossen`,
       );
-
-      await interaction.reply({
-        content: "✅ Daily Setup erfolgreich platziert.",
-        flags: [MessageFlags.Ephemeral],
-      });
-      console.log(`${user.username} hat ein neues Daily-Setup erstellt`)
       globalBotStats.commandsRunned += 1;
     }
+  }
+  if (commandName === "listpolls") {
+    const polls = (await getPollData("polls_data")) || [];
+    const activePolls = polls.filter((p) => !p.closed);
+    if (activePolls.length === 0) {
+      return interaction.reply({
+        content: "Keine aktiven Umfragen vorhanden.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+    const list = activePolls
+      .map((p) => `ID: \`${p.id}\` | ${p.question}`)
+      .join("\n");
+    await interaction.reply({
+      content: `**Aktive Umfragen:**\n${list}`,
+      ephemeral: false,
+    });
+    console.log(`${user.username} hat die "listpolls"-Funktion genutzt`);
+    globalBotStats.commandsRunned += 1;
+  }
+  if (commandName === "moveadmin") {
+    if (!member.roles.cache.has(TEAM_ROLE_ID)) {
+      return interaction.reply({
+        content: ":x: Keine Berechtigung.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
 
-    if (commandName === "shop-setup") {
-      if (user.id !== "1151971830983311441") {
-        return interaction.reply({
-          content: "❌ Nur der Haupt-Admin darf diesen Befehl nutzen.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
+    await interaction.reply({
+      content: "⏳ Verschiebe Ticket in den Admin-Bereich...",
+      flags: [MessageFlags.Ephemeral],
+    });
+    await moveChannelToAdmin(currentChannel, true);
+    console.log(
+      `${user.username} hat ein Ticket in die Admin-Kategorie verschoben`,
+    );
+    globalBotStats.commandsRunned += 1;
+  }
+  if (commandName === "ticket-panel") {
+    if (!member.roles.cache.has("1454169207838216253")) {
+      return interaction.reply({
+        content: "❌ Keine Berechtigung.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
 
-      const description =
-        options.getString("beschreibung") || "Hole dir hier deine Items ab!";
-      const SHOP_CHANNEL_ID = "1508053328662364302";
-      const shopChannel = guild.channels.cache.get(SHOP_CHANNEL_ID);
-
-      if (!shopChannel) {
-        return interaction.reply({
-          content: "❌ Shop-Kanal wurde auf diesem Server nicht gefunden!",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-
-      const shopEmbed = new EmbedBuilder()
-        .setTitle(`🛒 Server Shop`)
-        .setDescription(description)
-        .setColor(0xffffff)
-        .addFields(
-          {
-            name: "🎉 Double Chance Giveaway - `100.000 Kekse`",
-            value: "Erhöht deine Gewinnchance bei Giveaways.",
-            inline: false,
-          },
-          {
-            name: "🛡️ Counting Puffer - `25.000 Kekse`",
-            value:
-              "Erlaubt dir einen Fehler beim Zählen, ohne die Zahl zurückzusetzen.",
-            inline: false,
-          },
-          {
-            name: "⚡ Counting XP Booster (30 Min) - `50.000 Kekse`",
-            value: "Du erhältst 30 Minuten lang doppelte XP beim Zählen.",
-            inline: false,
-          },
-          {
-            name: "🔥 Counting XP Booster (60 Min) - `100.000 Kekse`",
-            value: "Du erhältst 60 Minuten lang doppelte XP beim Zählen.",
-            inline: false,
-          },
+    await interaction.reply({
+      content: "⏳ Sende Ticket-Panel...",
+      flags: [MessageFlags.Ephemeral],
+    });
+    await sendTicketPanel(currentChannel);
+    console.log(`${user.username} hat ein neues Ticket-Panel erstellt`);
+    globalBotStats.commandsRunned += 1;
+  }
+  async function closeTicket(channel, moderator) {
+    try {
+      const stored = (await getTickData("tickets")) || { tickets: {} };
+      const allEntries = stored.tickets || {};
+      const ticket = Object.values(allEntries).find(
+        (t) => typeof t === "object" && t.channelId === channel.id,
+      );
+      if (!ticket) {
+        return channel.send(
+          "❌ Kein aktives Ticket in der Datenbank gefunden.",
         );
-
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId("shop_giveaway")
-          .setLabel("Giveaway Chance")
-          .setStyle(ButtonStyle.Primary)
-          .setEmoji("🎉"),
-        new ButtonBuilder()
-          .setCustomId("shop_puffer")
-          .setLabel("Counting Puffer")
-          .setStyle(ButtonStyle.Primary)
-          .setEmoji("🛡️"),
-        new ButtonBuilder()
-          .setCustomId("shop_xp30")
-          .setLabel("XP Booster 30m")
-          .setStyle(ButtonStyle.Success)
-          .setEmoji("⚡"),
-        new ButtonBuilder()
-          .setCustomId("shop_xp60")
-          .setLabel("XP Booster 60m")
-          .setStyle(ButtonStyle.Success)
-          .setEmoji("🔥"),
+      }
+      await channel.permissionOverwrites.delete(ticket.userId).catch(() => {});
+      await channel.send({
+        content: `⏳ **Ticket wird archiviert...**\nErstellt von: ${ticket.username}\nID: ${ticket.idString}`,
+      });
+      delete stored.tickets[ticket.idString];
+      await setTickData("tickets", stored);
+      await archiveTicket(
+        {
+          name: channel.name,
+          closedBy: moderator,
+          creator: { id: ticket.userId, username: ticket.username },
+          channel: channel,
+        },
+        setTickData,
       );
-
-      await shopChannel.send({ embeds: [shopEmbed], components: [row] });
-
-      await interaction.reply({
-        content: `✅ Shop erfolgreich im Kanal <#${SHOP_CHANNEL_ID}> eingerichtet!`,
+    } catch (err) {
+      console.error("[TICKET] Fehler:", err);
+    }
+  }
+  if (commandName === "close") {
+    if (!member.roles.cache.has(TEAM_ROLE_ID)) {
+      return interaction.reply({
+        content: ":x: Keine Berechtigung.",
         flags: [MessageFlags.Ephemeral],
       });
-      console.log(`${user.username} hat ein neues Shop-Setup erstellt`)
-      globalBotStats.commandsRunned += 1;
     }
-    const CASINO_CHANNEL_ID = "1507385550825459812";
-    const ECO_ROLE_ID = "1506732560837771284";
-
-    if (commandName === "casino") {
-      if (channelId !== CASINO_CHANNEL_ID) {
-        return interaction.reply({
-          content: `Das Casino ist nur in <#${CASINO_CHANNEL_ID}> nutzbar.`,
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-
-      const listEmbed = new EmbedBuilder()
-        .setTitle("🎲 Kekse Clan Casino")
-        .setDescription(
-          "Hier sind alle Befehle, die du direkt im Chat eingeben kannst:\n\n" +
-            "**/roulette** `<Einsatz>` `<Wettart>` - Setze auf Farben, Zahlen oder Bereiche\n" +
-            "**/coinflip** `<Einsatz>` `<Kopf/Zahl>` - Setze auf das Ergebnis eines Münzwurfs\n" +
-            "**/jackpot** `<Einsatz>` - Tritt dem globalen Pott bei\n" +
-            "**/crash** `<Einsatz>` - Cashing out bevor die Rakete explodiert\n" +
-            "**/highlow** `<Einsatz>` - Errate die nächste Karte\n" +
-            "**/blackjack** `<Einsatz>` - Gewinne im Kartenspiel gegen den Dealer",
-        )
-        .setColor("#ffffff");
-
-      return interaction.reply({ embeds: [listEmbed] });
+    await interaction.reply({
+      content: "⏳ Ticket-Schließung initiiert...",
+      flags: [MessageFlags.Ephemeral],
+    });
+    await closeTicket(currentChannel, user);
+    console.log(`${user.username} hat ${currentChannel} geschlossen`);
+    globalBotStats.commandsRunned += 1;
+  }
+  if (commandName === "block") {
+    if (!member.roles.cache.has(TEAM_ROLE_ID)) {
+      return interaction.reply({
+        content: ":x: Keine Berechtigung.",
+        flags: [MessageFlags.Ephemeral],
+      });
     }
+    const targetUser = options.getUser("nutzer");
+    const days = options.getInteger("tage") || 7;
 
+    await blockUser(
+      targetUser.id,
+      targetUser.username,
+      days * 24 * 60 * 60 * 1000,
+    );
+    console.log(
+      `${user.username} hat ${targetUser.username} von der Erstellung von Tickets ausgeschlossen`,
+    );
+    await interaction.reply({
+      content: `✅ <@${targetUser.id}> wurde für ${days} Tage gesperrt.`,
+      flags: [MessageFlags.Ephemeral],
+    });
+    globalBotStats.commandsRunned += 1;
+  }
+  if (!member.roles.cache.has(TEAM_ROLE_ID) || !hasPerm(member)) {
     if (
       [
-        "roulette",
-        "coinflip",
-        "jackpot",
-        "crash",
-        "highlow",
-        "blackjack",
+        "timeout",
+        "untimeout",
+        "kick",
+        "ban",
+        "unban",
+        "warn",
+        "warns",
+        "warn-remove",
       ].includes(commandName)
     ) {
-      const hasEcoRole = member.roles.cache.has(ECO_ROLE_ID);
-      if (!hasEcoRole) {
-        return interaction.reply({
-          content:
-            "Du benötigst ein Bankkonto, um am Casino teilzunehmen. Nutze `/bank create`.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-
-      if (channelId !== CASINO_CHANNEL_ID) {
-        return interaction.reply({
-          content: `Das Casino ist nur in <#${CASINO_CHANNEL_ID}> nutzbar.`,
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-
-      const userData = await getEcoData(user.id);
-      if (userData.blocked) {
-        return interaction.reply({
-          content: "Dein Konto ist gesperrt. Bitte wende dich an den Support.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-
-      const betAmount = options.getInteger("einsatz");
-      if (betAmount <= 0) {
-        return interaction.reply({
-          content: "Bitte gib einen gültigen Einsatz über 0 an.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-
-      if (betAmount > (userData.balance || 0)) {
-        return interaction.reply({
-          content: "Du hast nicht genug Kekse für diesen Einsatz.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-      if (commandName === "roulette") {
-        const betType = options.getString("typ").toLowerCase();
-        const redNumbers = new Set([
-          1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36,
-        ]);
-        const spin = Math.floor(Math.random() * 37);
-        const spinColor =
-          spin === 0 ? "green" : redNumbers.has(spin) ? "red" : "black";
-        const spinEmoji = spin === 0 ? "🟢" : spinColor === "red" ? "🔴" : "⚫";
-
-        let won = false;
-        let payout = 0;
-        let betDesc = betType;
-        const numBet = parseInt(betType);
-
-        if (!isNaN(numBet) && numBet >= 0 && numBet <= 36) {
-          won = spin === numBet;
-          payout = won ? betAmount * 35 : -betAmount;
-          betDesc = `Zahl ${numBet}`;
-        } else if (betType === "red") {
-          won = spinColor === "red";
-          payout = won ? betAmount : -betAmount;
-          betDesc = "🔴 Rot";
-        } else if (betType === "black") {
-          won = spinColor === "black";
-          payout = won ? betAmount : -betAmount;
-          betDesc = "⚫ Schwarz";
-        } else if (betType === "even") {
-          won = spin !== 0 && spin % 2 === 0;
-          payout = won ? betAmount : -betAmount;
-          betDesc = "Gerade";
-        } else if (betType === "odd") {
-          won = spin % 2 !== 0;
-          payout = won ? betAmount : -betAmount;
-          betDesc = "Ungerade";
-        } else if (betType === "1-18") {
-          won = spin >= 1 && spin <= 18;
-          payout = won ? betAmount : -betAmount;
-          betDesc = "1–18";
-        } else if (betType === "19-36") {
-          won = spin >= 19 && spin <= 36;
-          payout = won ? betAmount : -betAmount;
-          betDesc = "19–36";
-        } else {
-          return interaction.reply({
-            content:
-              "Ungültige Wettart. Nutze: `red`, `black`, `even`, `odd`, eine Zahl (0–36), `1-18` oder `19-36`.",
-            flags: [MessageFlags.Ephemeral],
-          });
-        }
-
-        userData.balance = (userData.balance || 0) + payout;
-        await logTransaction(
-          user.id,
-          payout,
-          payout >= 0 ? "plus" : "minus",
-          "Casino Roulette",
-        );
-        await setEcoData(user.id, userData);
-
-        const roulEmbed = new EmbedBuilder()
-          .setTitle("Roulette")
-          .setDescription(
-            `Die Kugel landet auf: **${spinEmoji} ${spin}**\n\nDeine Wette: **${betDesc}** | Einsatz: **${betAmount} Kekse**`,
-          )
-          .addFields({
-            name: won ? "✅ Gewonnen!" : "❌ Verloren!",
-            value: `${payout >= 0 ? "+" : ""}${payout} Kekse\nNeuer Kontostand: **${userData.balance} Kekse**`,
-          })
-          .setColor(0x333333);
-
-        return interaction.reply({ embeds: [roulEmbed] });
-      }
-      if (commandName === "coinflip") {
-        const choice = options.getString("seite");
-        const flip = Math.random() < 0.5 ? "heads" : "tails";
-        const won = flip === choice;
-
-        userData.balance =
-          (userData.balance || 0) + (won ? betAmount : -betAmount);
-        await logTransaction(
-          user.id,
-          betAmount,
-          won ? "plus" : "minus",
-          "Casino Coinflip",
-        );
-        await setEcoData(user.id, userData);
-
-        const cfEmbed = new EmbedBuilder()
-          .setTitle(`Coinflip`)
-          .setDescription(
-            `Die Münze zeigt: **${flip === "heads" ? "Kopf (Heads)" : "Zahl (Tails)"}**\n\nDu hast auf **${choice === "heads" ? "Kopf" : "Zahl"}** gesetzt.`,
-          )
-          .addFields({
-            name: won ? "✅ Gewonnen!" : "❌ Verloren!",
-            value: `${won ? "+" : "-"}${betAmount} Kekse\nNeuer Kontostand: **${userData.balance} Kekse**`,
-          })
-          .setColor(0x333333);
-
-        return interaction.reply({ embeds: [cfEmbed] });
-      }
-      if (commandName === "jackpot") {
-  if (jackpotState.entries.find((e) => e.userId === user.id)) {
-    return interaction.reply({
-      content: "Du bist bereits im Jackpot! Warte auf die Ziehung.",
-      flags: [MessageFlags.Ephemeral],
-    });
+      return interaction.reply({
+        content: ":x: Keine Berechtigung.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
   }
 
-  userData.balance -= betAmount;
-  await logTransaction(user.id, betAmount, "minus", "Casino Jackpot");
-  await setEcoData(user.id, userData);
+  let moderationData = (await getMData("moderation")) || { warns: {} };
 
-  jackpotState.entries.push({
-    userId: user.id,
-    username: user.username,
-    betAmount,
-  });
-  jackpotState.totalPool += betAmount;
+  const sendModLog = async (action, target, reason, extra = null) => {
+    const logChannel = await client.channels
+      .fetch(logChannelId)
+      .catch(() => null);
+    if (!logChannel) return;
 
-  const buildJackpotEmbed = (extra = "") => {
-    const list = jackpotState.entries
-      .map((e) => {
-        const pct = ((e.betAmount / jackpotState.totalPool) * 100).toFixed(1);
-        return `<@${e.userId}> — **${e.betAmount} Kekse** (${pct}%)`;
+    const kekseEmbed = new EmbedBuilder()
+      .setColor("#ffffff")
+      .setAuthor({
+        name: user.username,
+        iconURL: user.displayAvatarURL({ size: 512 }),
       })
-      .join("\n");
+      .setTitle(`🛠️ Mod-Aktion: ${action}`)
+      .setDescription(
+        `**Target:** ${target.tag || target.id} (\`${target.id}\`)\n**Grund:** ${reason}${extra ? `\n**Info:** ${extra}` : ""}`,
+      )
+      .setFooter({ text: "Kekse Clan | Moderation Logs" })
+      .setTimestamp();
 
-    return new EmbedBuilder()
-      .setTitle("Jackpot")
-      .setDescription(`**Pool: ${jackpotState.totalPool} Kekse**\n\n${extra}`)
-      .addFields({
-        name: `Teilnehmer (${jackpotState.entries.length})`,
-        value: list || "Keine",
-      })
-      .setColor(0xffffff)
-      .setFooter({ text: "Je mehr du einsetzt, desto höher deine Gewinnchance!" });
+    await logChannel.send({ embeds: [kekseEmbed] }).catch(() => {});
   };
 
-  const casinoChannel = guild.channels.cache.get(CASINO_CHANNEL_ID);
+  if (commandName === "timeout") {
+    const targetUser = options.getUser("nutzer");
+    const durationStr = options.getString("dauer");
+    const reason = options.getString("grund") || "Kein Grund";
 
-  if (!jackpotState.countdownTimer) {
-    const drawTime = Date.now() + 5 * 60 * 1000;
-    jackpotState.countdownEndTime = drawTime;
-    jackpotState.countdownTimer = setTimeout(
-      () => runJackpotDraw(casinoChannel),
-      5 * 60 * 1000
-    );
+    const match = durationStr.match(/^(\d+)([smhd])$/);
+    if (!match)
+      return interaction.reply({
+        content: " Format: 10s, 5m, 2h, 1d",
+        flags: [MessageFlags.Ephemeral],
+      });
+
+    const durationMs = parseTimeframe(durationStr);
+    if (durationMs === 0)
+      return interaction.reply({
+        content: " Ungültige Zeitangabe.",
+        flags: [MessageFlags.Ephemeral],
+      });
+
+    try {
+      const targetMember = await guild.members.fetch(targetUser.id);
+      await targetMember.timeout(durationMs, reason);
+      await interaction.reply({
+        content: ` **Timeout**: <@${targetUser.id}> für ${durationStr}.`,
+        flags: [MessageFlags.Ephemeral],
+      });
+      await sendModLog("Timeout", targetUser, reason, `Dauer: ${durationStr}`);
+      console.log(
+        `${user.username} hat ${targetUser} wegen ${reason} für ${durationStr} in den timeout versetzt`,
+      );
+      globalBotStats.commandsRunned += 1;
+    } catch (err) {
+      await interaction.reply({
+        content: " Fehler: User nicht auf Server oder fehlende Rechte.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
   }
 
-  const timestamp = `<t:${Math.floor(jackpotState.countdownEndTime / 1000)}:R>`;
-  const extraText = `Ziehung ${timestamp}`;
+  if (commandName === "untimeout") {
+    const targetUser = options.getUser("nutzer");
+    const reason = options.getString("grund") || "Kein Grund";
 
-  if (jackpotState.entries.length === 1) {
-    const jMsg = await casinoChannel.send({
-      embeds: [buildJackpotEmbed(extraText)],
+    try {
+      const targetMember = await guild.members.fetch(targetUser.id);
+      await targetMember.timeout(null, reason);
+      await interaction.reply({
+        content: `✅ **Untimeout**: <@${targetUser.id}>`,
+        flags: [MessageFlags.Ephemeral],
+      });
+      await sendModLog("Untimeout", targetUser, reason);
+      console.log(
+        `${user.username} hat ${targetUser} wegen ${reason} aus dem timeout geholt`,
+      );
+      globalBotStats.commandsRunned += 1;
+    } catch (err) {
+      await interaction.reply({
+        content: "❌ Fehler beim Untimeout.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+  }
+
+  if (commandName === "kick") {
+    const targetUser = options.getUser("nutzer");
+    const reason = options.getString("grund") || "Kein Grund";
+
+    try {
+      await guild.members.kick(targetUser.id, reason);
+      await interaction.reply({
+        content: `✅ **Kick**: <@${targetUser.id}>`,
+        flags: [MessageFlags.Ephemeral],
+      });
+      await sendModLog("Kick", targetUser, reason);
+      console.log(
+        `${user.username} hat ${targetUser} wegen ${reason} vom Server gekickt`,
+      );
+      globalBotStats.commandsRunned += 1;
+    } catch (err) {
+      await interaction.reply({
+        content: "❌ Fehler beim Kick.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+  }
+
+  if (commandName === "ban") {
+    const idInput = options.getString("userid").replace(/[<@!>]/g, "");
+    const reason = options.getString("grund") || "Kein Grund";
+
+    if (!/^\d{17,20}$/.test(idInput)) {
+      return interaction.reply({
+        content: "❌ Gültige ID/Erwähnung angeben.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+
+    try {
+      const fetchedUser = await client.users
+        .fetch(idInput)
+        .catch(() => ({ id: idInput, tag: "Unknown#0000" }));
+      await guild.members.ban(idInput, { reason });
+      await interaction.reply({
+        content: `✅ **Ban**: ${fetchedUser.tag || idInput} wurde gebannt.`,
+        flags: [MessageFlags.Ephemeral],
+      });
+      await sendModLog("Ban", fetchedUser, reason);
+      console.log(
+        `${user.username} hat ${fetchedUser} wegen ${reason} vom Server gebannt`,
+      );
+      globalBotStats.commandsRunned += 1;
+    } catch (err) {
+      await interaction.reply({
+        content: "❌ Fehler beim Ban (Rechte?).",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+  }
+
+  if (commandName === "unban") {
+    const idInput = options.getString("userid").replace(/[<@!>]/g, "");
+    const reason = options.getString("grund") || "Kein Grund";
+
+    try {
+      const fetchedUser = await client.users
+        .fetch(idInput)
+        .catch(() => ({ id: idInput, tag: idInput }));
+      await guild.members.unban(idInput, reason);
+      await interaction.reply({
+        content: `✅ **Unban**: ${fetchedUser.tag || idInput}`,
+        flags: [MessageFlags.Ephemeral],
+      });
+      await sendModLog("Unban", fetchedUser, reason);
+      console.log(
+        `${user.username} hat ${fetchedUser} wegen ${reason} vom Server entbannt`,
+      );
+      globalBotStats.commandsRunned += 1;
+    } catch (err) {
+      await interaction.reply({
+        content: "❌ User nicht gebannt oder ID falsch.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+  }
+
+  if (commandName === "warn") {
+    const targetUser = options.getUser("nutzer");
+    const reason = options.getString("grund") || "Kein Grund";
+
+    moderationData.warns[targetUser.id] ??= [];
+    moderationData.warns[targetUser.id].push({
+      reason,
+      by: user.id,
+      date: Date.now(),
     });
-    jackpotState.announceMessage = jMsg;
-  } else if (jackpotState.announceMessage) {
-    await jackpotState.announceMessage
-      .edit({ embeds: [buildJackpotEmbed(extraText)] })
-      .catch(() => {});
-  }
+    await setMData("moderation", moderationData);
 
-  const userChance = ((betAmount / jackpotState.totalPool) * 100).toFixed(1);
-  return interaction.reply({
-    content: `Du bist dem Jackpot beigetreten! Einsatz: **${betAmount} Kekse** (${userChance}% Chance)\nPool: **${jackpotState.totalPool} Kekse**\nZiehung findet ${timestamp} statt.`,
-    flags: [MessageFlags.Ephemeral],
-  });
-}
-if (commandName === "crash") {
-  if (crashGames.has(user.id)) {
-    return interaction.reply({
-      content: "Du hast bereits ein aktives Crash-Spiel!",
+    await interaction.reply({
+      content: `⚠️ **Warn**: <@${targetUser.id}> (Gesamt: ${moderationData.warns[targetUser.id].length})`,
       flags: [MessageFlags.Ephemeral],
     });
+    await sendModLog(
+      "Warnung",
+      targetUser,
+      reason,
+      `Warn-Stand: ${moderationData.warns[targetUser.id].length}`,
+    );
+    console.log(`${user.username} hat ${targetUser} wegen ${reason} gewarnt`);
+    globalBotStats.commandsRunned += 1;
   }
 
-  userData.balance -= betAmount;
-  await logTransaction(user.id, betAmount, "minus", "Casino Crash");
-  await setEcoData(user.id, userData);
+  if (commandName === "warns") {
+    const targetUser = options.getUser("nutzer");
+    const userWarns = moderationData.warns[targetUser.id] || [];
 
-  const crashPoint = parseFloat(
-    Math.max(1.01, 0.97 / (1 - Math.random())).toFixed(2),
-  );
-  let multiplier = 1.0;
-  let intervalHandle = null;
+    if (userWarns.length === 0) {
+      return interaction.reply({
+        content: "✅ Keine Warnungen.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
 
-  const cashoutRow = () =>
-    new ActionRowBuilder().addComponents(
+    const embed = new EmbedBuilder()
+      .setTitle(`Warnungen: ${targetUser.username}`)
+      .setColor("#ffffff")
+      .setDescription(
+        userWarns
+          .map((w, i) => `**${i + 1}.** ${w.reason} (von <@${w.by}>)`)
+          .join("\n"),
+      )
+      .setFooter({ text: "Kekse Clan" });
+
+    await interaction.reply({ embeds: [embed] });
+    console.log(
+      `${user.username} hat sich die Warnungen von ${targetUser} angeschaut`,
+    );
+    globalBotStats.commandsRunned += 1;
+  }
+
+  if (commandName === "warn-remove") {
+    const targetUser = options.getUser("nutzer");
+    const index = options.getInteger("nummer") - 1;
+
+    if (!moderationData.warns[targetUser.id]?.[index]) {
+      return interaction.reply({
+        content: "❌ Ungültige Warn-Nummer.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+
+    const removed = moderationData.warns[targetUser.id].splice(index, 1);
+    await setMData("moderation", moderationData);
+
+    await interaction.reply({
+      content: "✅ Warnung entfernt.",
+      flags: [MessageFlags.Ephemeral],
+    });
+    await sendModLog(
+      "Warn entfernt",
+      targetUser,
+      `Grund war: ${removed[0].reason}`,
+    );
+    console.log(
+      `${user.username} hat ${targetUser} für ${removed[0].reason} entwarnt`,
+    );
+    globalBotStats.commandsRunned += 1;
+  }
+  if (commandName === "setup-verify") {
+    if (!member.roles.cache.has(TEAM_ROLE_ID)) {
+      return interaction.reply({
+        content: ":x: Keine Berechtigung.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+
+    const targetChannel = client.channels.cache.get(VERIFY_CHANNEL_ID);
+    if (!targetChannel) {
+      return interaction.reply({
+        content:
+          ":x: Verifizierungs-Kanal konnte nicht in der Cache gefunden werden.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
+
+    const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId(`crash_cashout_${user.id}`)
-        .setLabel(`Cash Out (${Math.floor(betAmount * multiplier)} Kekse)`)
+        .setCustomId("verify_user")
+        .setLabel("Verifizieren")
         .setStyle(ButtonStyle.Success),
     );
 
-  const crashEmbed = (crashed = false, cashedAt = null) => {
-    if (crashed)
-      return new EmbedBuilder()
-        .setTitle("💥 CRASH!")
-        .setDescription(
-          `Gecrasht bei **${crashPoint.toFixed(2)}x**!\n\nEinsatz: **${betAmount} Kekse** — **Verloren!**\nNeuer Kontostand: **${userData.balance} Kekse**`,
-        )
-        .setColor(0x333333);
-    if (cashedAt !== null) {
-      const win = Math.floor(betAmount * cashedAt);
-      return new EmbedBuilder()
-        .setTitle("💰 Cash Out!")
-        .setDescription(
-          `Ausgecasht bei **${cashedAt.toFixed(2)}x**!\n\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${userData.balance + win} Kekse**`,
-        )
-        .setColor(0x333333);
-    }
-    return new EmbedBuilder()
-      .setTitle("Crash")
+    const imageUrl = new AttachmentBuilder("./verify.png");
+
+    await targetChannel.send({
+      content:
+        "**Willkommen!** Klicke auf den Button, um die Verifizierung abzuschließen.",
+      files: [imageUrl],
+      components: [row],
+    });
+
+    await interaction.editReply({
+      content: `:white_check_box: Das Verifizierungs-Panel wurde erfolgreich in ${targetChannel} erstellt.`,
+    });
+
+    await sendKekseLog(
+      "Verification Setup",
+      user,
+      `Das Verifizierungs-Panel wurde in <#${VERIFY_CHANNEL_ID}> neu aufgesetzt.`,
+    );
+    globalBotStats.commandsRunned += 1;
+  }
+  if (commandName === "top") {
+    await loadCounting();
+
+    const sorted = Object.entries(countingData.scoreboard || {})
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+
+    const embed = new EmbedBuilder()
+      .setTitle(":trophy: Top 10 Counter")
       .setDescription(
-        `**${multiplier.toFixed(2)}x** — Steigt noch…\n\nEinsatz: **${betAmount} Kekse**\nMöglicher Gewinn: **${Math.floor(betAmount * multiplier)} Kekse**\n\nDrücke **Cash Out** bevor die Rakete crasht!`,
+        sorted.map(([id, s], i) => `${i + 1}. <@${id}> • ${s}`).join("\n") ||
+          "Keine Daten",
+      )
+      .setColor("#ffffff")
+      .setFooter({ text: "Kekse Clan" });
+
+    await interaction.reply({ embeds: [embed] });
+    console.log(`${user.username} hat die "top"-Funktion genutzt`);
+    globalBotStats.commandsRunned += 1;
+  }
+
+  if (commandName === "set-number") {
+    if (user.id !== FABIAN_ID) {
+      return interaction.reply({
+        content: ":x: Nur der Haupt-Admin darf diesen Befehl nutzen.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+
+    const newNum = options.getInteger("nummer");
+
+    await loadCounting();
+    countingData.currentNumber = newNum;
+    countingData.direction = newNum < 0 ? -1 : 1;
+    await saveCounting();
+
+    const logChannel = client.channels.cache.get(logChannelId);
+    if (logChannel) {
+      const logEmbed = new EmbedBuilder()
+        .setColor("#ffffff")
+        .setAuthor({
+          name: user.username,
+          iconURL: user.displayAvatarURL({ size: 512 }),
+        })
+        .setDescription(
+          `**Aktion:** \`Counting Reset (Admin)\`\nDie Zahl wurde manuell auf **${newNum}** gesetzt.`,
+        )
+        .setFooter({ text: "Kekse Clan | Counting System" })
+        .setTimestamp();
+      await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
+    }
+
+    await interaction.reply({
+      content: ` Die nächste Zahl wurde auf **${newNum}** gesetzt.`,
+      flags: [MessageFlags.Ephemeral],
+    });
+    console.log(
+      `${user.username} hat die Zahl im Counting auf ${newNum} gesetzt`,
+    );
+    globalBotStats.commandsRunned += 1;
+  }
+  if (commandName === "daily-setup") {
+    if (user.id !== FABIAN_ID) {
+      return interaction.reply({
+        content: ":x: Nur der Haupt-Admin darf diesen Befehl nutzen.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+
+    const setupId = options.getString("id");
+    const description =
+      options.getString("beschreibung") ||
+      "Hole dir hier deine täglichen Kekse ab!";
+
+    await setEcoData(`setup_${setupId}`, {
+      description: description,
+      exists: true,
+    });
+
+    const embed = new EmbedBuilder()
+      .setTitle(":cookie: Tägliche Kekse")
+      .setDescription(
+        `${description}\n\nKlicke auf den Button unten, um 10 Kekse zu erhalten.`,
       )
       .setColor(0xffffff);
-  };
 
-  const gameMsg = await interaction.reply({
-    embeds: [crashEmbed()],
-    components: [cashoutRow()],
-    fetchReply: true,
-  });
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`daily_claim_${setupId}`)
+        .setLabel("Kekse abholen")
+        .setStyle(ButtonStyle.Success)
+        .setEmoji("🍪"),
+    );
 
-  crashGames.set(user.id, {
-    betAmount,
-    crashPoint,
-    cashedOut: false,
-    cashedAtMultiplier: null,
-  });
+    await currentChannel.send({ embeds: [embed], components: [row] });
+    console.log(
+      `[Economy] Neues Daily Setup erstellt. (daily_claim_${setupId})`,
+    );
 
-  const collector = gameMsg.createMessageComponentCollector({
-    filter: (i) =>
-      i.user.id === user.id && i.customId === `crash_cashout_${user.id}`,
-    componentType: ComponentType.Button,
-    time: 120000,
-  });
+    await interaction.reply({
+      content: ":white_check_box: Daily Setup erfolgreich platziert.",
+      flags: [MessageFlags.Ephemeral],
+    });
+    console.log(`${user.username} hat ein neues Daily-Setup erstellt`);
+    globalBotStats.commandsRunned += 1;
+  }
 
-  collector.on("collect", async (i) => {
-    const game = crashGames.get(user.id);
-    if (!game || game.cashedOut) {
-      await i.reply({
-        content: "Zu spät — das Spiel ist bereits beendet!",
+  if (commandName === "shop-setup") {
+    if (user.id !== FABIAN_ID) {
+      return interaction.reply({
+        content: ":x: Nur der Haupt-Admin darf diesen Befehl nutzen.",
         flags: [MessageFlags.Ephemeral],
-      }).catch(() => {});
-      return;
+      });
     }
 
-    game.cashedOut = true;
-    game.cashedAtMultiplier = multiplier;
-    if (intervalHandle) clearInterval(intervalHandle);
-    crashGames.delete(user.id);
-    collector.stop("cashout");
+    const description =
+      options.getString("beschreibung") || "Hole dir hier deine Items ab!";
+    const shopChannel = guild.channels.cache.get(SHOP_CHANNEL_ID);
 
-    const win = Math.floor(betAmount * game.cashedAtMultiplier);
-    userData.balance += win;
-    await logTransaction(user.id, win, "plus", "Casino Crash");
-    await setEcoData(user.id, userData);
-
-    await i.update({
-      embeds: [crashEmbed(false, game.cashedAtMultiplier)],
-      components: [],
-    }).catch(() => {});
-  });
-
-  intervalHandle = setInterval(async () => {
-    const game = crashGames.get(user.id);
-    if (!game) {
-      clearInterval(intervalHandle);
-      return;
+    if (!shopChannel) {
+      return interaction.reply({
+        content: ":x: Shop-Kanal wurde auf diesem Server nicht gefunden!",
+        flags: [MessageFlags.Ephemeral],
+      });
     }
 
-    multiplier = parseFloat((multiplier + 0.08).toFixed(2));
+    const shopEmbed = new EmbedBuilder()
+      .setTitle(`🛒 Server Shop`)
+      .setDescription(description)
+      .setColor(0xffffff)
+      .addFields(
+        {
+          name: "🎉 Double Chance Giveaway - `100.000 Kekse`",
+          value: "Erhöht deine Gewinnchance bei Giveaways.",
+          inline: false,
+        },
+        {
+          name: "🛡️ Counting Puffer - `25.000 Kekse`",
+          value:
+            "Erlaubt dir einen Fehler beim Zählen, ohne die Zahl zurückzusetzen.",
+          inline: false,
+        },
+        {
+          name: "⚡ Counting XP Booster (30 Min) - `50.000 Kekse`",
+          value: "Du erhältst 30 Minuten lang doppelte XP beim Zählen.",
+          inline: false,
+        },
+        {
+          name: "🔥 Counting XP Booster (60 Min) - `100.000 Kekse`",
+          value: "Du erhältst 60 Minuten lang doppelte XP beim Zählen.",
+          inline: false,
+        },
+      );
 
-    if (multiplier >= game.crashPoint) {
-      clearInterval(intervalHandle);
-      crashGames.delete(user.id);
-      collector.stop("crashed");
-      await gameMsg
-        .edit({ embeds: [crashEmbed(true)], components: [] })
-        .catch(() => {});
-      return;
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("shop_giveaway")
+        .setLabel("Giveaway Chance")
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji("🎉"),
+      new ButtonBuilder()
+        .setCustomId("shop_puffer")
+        .setLabel("Counting Puffer")
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji("🛡️"),
+      new ButtonBuilder()
+        .setCustomId("shop_xp30")
+        .setLabel("XP Booster 30m")
+        .setStyle(ButtonStyle.Success)
+        .setEmoji("⚡"),
+      new ButtonBuilder()
+        .setCustomId("shop_xp60")
+        .setLabel("XP Booster 60m")
+        .setStyle(ButtonStyle.Success)
+        .setEmoji("🔥"),
+    );
+
+    await shopChannel.send({ embeds: [shopEmbed], components: [row] });
+
+    await interaction.reply({
+      content: `:white_check_box: Shop erfolgreich im Kanal <#${SHOP_CHANNEL_ID}> eingerichtet!`,
+      flags: [MessageFlags.Ephemeral],
+    });
+    console.log(`${user.username} hat ein neues Shop-Setup erstellt`);
+    globalBotStats.commandsRunned += 1;
+  }
+  if (commandName === "casino") {
+    if (channelId !== CASINO_CHANNEL_ID) {
+      return interaction.reply({
+        content: `Das Casino ist nur in <#${CASINO_CHANNEL_ID}> nutzbar.`,
+        flags: [MessageFlags.Ephemeral],
+      });
     }
 
-    await gameMsg
-      .edit({ embeds: [crashEmbed()], components: [cashoutRow()] })
-      .catch(() => {});
-  }, 600);
+    const listEmbed = new EmbedBuilder()
+      .setTitle("🎲 Kekse Clan Casino")
+      .setDescription(
+        "Hier sind alle Befehle, die du direkt im Chat eingeben kannst:\n\n" +
+          "**/roulette** `<Einsatz>` `<Wettart>` - Setze auf Farben, Zahlen oder Bereiche\n" +
+          "**/coinflip** `<Einsatz>` `<Kopf/Zahl>` - Setze auf das Ergebnis eines Münzwurfs\n" +
+          "**/jackpot** `<Einsatz>` - Tritt dem globalen Pott bei\n" +
+          "**/crash** `<Einsatz>` - Cashing out bevor die Rakete explodiert\n" +
+          "**/highlow** `<Einsatz>` - Errate die nächste Karte\n" +
+          "**/blackjack** `<Einsatz>` - Gewinne im Kartenspiel gegen den Dealer",
+      )
+      .setColor("#ffffff");
 
-  collector.on("end", async (collected, reason) => {
-    if (reason === "time") {
-      clearInterval(intervalHandle);
-      const game = crashGames.get(user.id);
-      if (game && !game.cashedOut) {
-        crashGames.delete(user.id);
-        await gameMsg
-          .edit({ embeds: [crashEmbed(true)], components: [] })
+    return interaction.reply({ embeds: [listEmbed] });
+  }
+
+  if (
+    [
+      "roulette",
+      "coinflip",
+      "jackpot",
+      "crash",
+      "highlow",
+      "blackjack",
+    ].includes(commandName)
+  ) {
+    const hasEcoRole = member.roles.cache.has(ECO_ROLE_ID);
+    if (!hasEcoRole) {
+      return interaction.reply({
+        content:
+          "Du benötigst ein Bankkonto, um am Casino teilzunehmen. Nutze `/bank create`.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+
+    if (channelId !== CASINO_CHANNEL_ID) {
+      return interaction.reply({
+        content: `Das Casino ist nur in <#${CASINO_CHANNEL_ID}> nutzbar.`,
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+
+    const userData = await getEcoData(user.id);
+    if (userData.blocked) {
+      return interaction.reply({
+        content: "Dein Konto ist gesperrt. Bitte wende dich an den Support.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+
+    const betAmount = options.getInteger("einsatz");
+    if (betAmount <= 0) {
+      return interaction.reply({
+        content: "Bitte gib einen gültigen Einsatz über 0 an.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+
+    if (betAmount > (userData.balance || 0)) {
+      return interaction.reply({
+        content: "Du hast nicht genug Kekse für diesen Einsatz.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+    if (commandName === "roulette") {
+      const betType = options.getString("typ").toLowerCase();
+      const redNumbers = new Set([
+        1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36,
+      ]);
+      const spin = Math.floor(Math.random() * 37);
+      const spinColor =
+        spin === 0 ? "green" : redNumbers.has(spin) ? "red" : "black";
+      const spinEmoji = spin === 0 ? "🟢" : spinColor === "red" ? "🔴" : "⚫";
+
+      let won = false;
+      let payout = 0;
+      let betDesc = betType;
+      const numBet = parseInt(betType);
+
+      if (!isNaN(numBet) && numBet >= 0 && numBet <= 36) {
+        won = spin === numBet;
+        payout = won ? betAmount * 35 : -betAmount;
+        betDesc = `Zahl ${numBet}`;
+      } else if (betType === "red") {
+        won = spinColor === "red";
+        payout = won ? betAmount : -betAmount;
+        betDesc = "🔴 Rot";
+      } else if (betType === "black") {
+        won = spinColor === "black";
+        payout = won ? betAmount : -betAmount;
+        betDesc = "⚫ Schwarz";
+      } else if (betType === "even") {
+        won = spin !== 0 && spin % 2 === 0;
+        payout = won ? betAmount : -betAmount;
+        betDesc = "Gerade";
+      } else if (betType === "odd") {
+        won = spin % 2 !== 0;
+        payout = won ? betAmount : -betAmount;
+        betDesc = "Ungerade";
+      } else if (betType === "1-18") {
+        won = spin >= 1 && spin <= 18;
+        payout = won ? betAmount : -betAmount;
+        betDesc = "1-18";
+      } else if (betType === "19-36") {
+        won = spin >= 19 && spin <= 36;
+        payout = won ? betAmount : -betAmount;
+        betDesc = "19-36";
+      } else {
+        return interaction.reply({
+          content:
+            "Ungültige Wettart. Nutze: `red`, `black`, `even`, `odd`, eine Zahl (0–36), `1-18` oder `19-36`.",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+
+      userData.balance = (userData.balance || 0) + payout;
+      await logTransaction(
+        user.id,
+        payout,
+        payout >= 0 ? "plus" : "minus",
+        "Casino Roulette",
+      );
+      await setEcoData(user.id, userData);
+
+      const roulEmbed = new EmbedBuilder()
+        .setTitle("Roulette")
+        .setDescription(
+          `Die Kugel landet auf: **${spinEmoji} ${spin}**\n\nDeine Wette: **${betDesc}** | Einsatz: **${betAmount} Kekse**`,
+        )
+        .addFields({
+          name: won ? "✅ Gewonnen!" : "❌ Verloren!",
+          value: `${payout >= 0 ? "+" : ""}${payout} Kekse\nNeuer Kontostand: **${userData.balance} Kekse**`,
+        })
+        .setColor(0x333333);
+
+      return interaction.reply({ embeds: [roulEmbed] });
+    }
+    if (commandName === "coinflip") {
+      const choice = options.getString("seite");
+      const flip = Math.random() < 0.5 ? "heads" : "tails";
+      const won = flip === choice;
+
+      userData.balance =
+        (userData.balance || 0) + (won ? betAmount : -betAmount);
+      await logTransaction(
+        user.id,
+        betAmount,
+        won ? "plus" : "minus",
+        "Casino Coinflip",
+      );
+      await setEcoData(user.id, userData);
+
+      const cfEmbed = new EmbedBuilder()
+        .setTitle(`Coinflip`)
+        .setDescription(
+          `Die Münze zeigt: **${flip === "heads" ? "Kopf (Heads)" : "Zahl (Tails)"}**\n\nDu hast auf **${choice === "heads" ? "Kopf" : "Zahl"}** gesetzt.`,
+        )
+        .addFields({
+          name: won ? "✅ Gewonnen!" : "❌ Verloren!",
+          value: `${won ? "+" : "-"}${betAmount} Kekse\nNeuer Kontostand: **${userData.balance} Kekse**`,
+        })
+        .setColor(0x333333);
+
+      return interaction.reply({ embeds: [cfEmbed] });
+    }
+    if (commandName === "jackpot") {
+      if (jackpotState.entries.find((e) => e.userId === user.id)) {
+        return interaction.reply({
+          content: "Du bist bereits im Jackpot! Warte auf die Ziehung.",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+
+      userData.balance -= betAmount;
+      await logTransaction(user.id, betAmount, "minus", "Casino Jackpot");
+      await setEcoData(user.id, userData);
+
+      jackpotState.entries.push({
+        userId: user.id,
+        username: user.username,
+        betAmount,
+      });
+      jackpotState.totalPool += betAmount;
+
+      const buildJackpotEmbed = (extra = "") => {
+        const list = jackpotState.entries
+          .map((e) => {
+            const pct = ((e.betAmount / jackpotState.totalPool) * 100).toFixed(
+              1,
+            );
+            return `<@${e.userId}> — **${e.betAmount} Kekse** (${pct}%)`;
+          })
+          .join("\n");
+
+        return new EmbedBuilder()
+          .setTitle("Jackpot")
+          .setDescription(
+            `**Pool: ${jackpotState.totalPool} Kekse**\n\n${extra}`,
+          )
+          .addFields({
+            name: `Teilnehmer (${jackpotState.entries.length})`,
+            value: list || "Keine",
+          })
+          .setColor(0xffffff)
+          .setFooter({
+            text: "Je mehr du einsetzt, desto höher deine Gewinnchance!",
+          });
+      };
+
+      const casinoChannel = guild.channels.cache.get(CASINO_CHANNEL_ID);
+
+      if (!jackpotState.countdownTimer) {
+        const drawTime = Date.now() + 5 * 60 * 1000;
+        jackpotState.countdownEndTime = drawTime;
+        jackpotState.countdownTimer = setTimeout(
+          () => runJackpotDraw(casinoChannel),
+          5 * 60 * 1000,
+        );
+      }
+
+      const timestamp = `<t:${Math.floor(jackpotState.countdownEndTime / 1000)}:R>`;
+      const extraText = `Ziehung ${timestamp}`;
+
+      if (jackpotState.entries.length === 1) {
+        const jMsg = await casinoChannel.send({
+          embeds: [buildJackpotEmbed(extraText)],
+        });
+        jackpotState.announceMessage = jMsg;
+      } else if (jackpotState.announceMessage) {
+        await jackpotState.announceMessage
+          .edit({ embeds: [buildJackpotEmbed(extraText)] })
           .catch(() => {});
       }
-    }
-  });
 
-  return;
-}
-      if (commandName === "highlow") {
-        if (hlGames.has(user.id)) {
-          return interaction.reply({
-            content: "Du hast bereits ein aktives Higher/Lower-Spiel!",
-            flags: [MessageFlags.Ephemeral],
-          });
+      const userChance = ((betAmount / jackpotState.totalPool) * 100).toFixed(
+        1,
+      );
+      return interaction.reply({
+        content: `Du bist dem Jackpot beigetreten! Einsatz: **${betAmount} Kekse** (${userChance}% Chance)\nPool: **${jackpotState.totalPool} Kekse**\nZiehung findet ${timestamp} statt.`,
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+    if (commandName === "crash") {
+      if (crashGames.has(user.id)) {
+        return interaction.reply({
+          content: "Du hast bereits ein aktives Crash-Spiel!",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+
+      userData.balance -= betAmount;
+      await logTransaction(user.id, betAmount, "minus", "Casino Crash");
+      await setEcoData(user.id, userData);
+
+      const crashPoint = parseFloat(
+        Math.max(1.01, 0.97 / (1 - Math.random())).toFixed(2),
+      );
+      let multiplier = 1.0;
+      let intervalHandle = null;
+
+      const cashoutRow = () =>
+        new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`crash_cashout_${user.id}`)
+            .setLabel(`Cash Out (${Math.floor(betAmount * multiplier)} Kekse)`)
+            .setStyle(ButtonStyle.Success),
+        );
+
+      const crashEmbed = (crashed = false, cashedAt = null) => {
+        if (crashed)
+          return new EmbedBuilder()
+            .setTitle("💥 CRASH!")
+            .setDescription(
+              `Gecrasht bei **${crashPoint.toFixed(2)}x**!\n\nEinsatz: **${betAmount} Kekse** — **Verloren!**\nNeuer Kontostand: **${userData.balance} Kekse**`,
+            )
+            .setColor(0x333333);
+        if (cashedAt !== null) {
+          const win = Math.floor(betAmount * cashedAt);
+          return new EmbedBuilder()
+            .setTitle("💰 Cash Out!")
+            .setDescription(
+              `Ausgecasht bei **${cashedAt.toFixed(2)}x**!\n\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${userData.balance + win} Kekse**`,
+            )
+            .setColor(0x333333);
+        }
+        return new EmbedBuilder()
+          .setTitle("Crash")
+          .setDescription(
+            `**${multiplier.toFixed(2)}x** — Steigt noch…\n\nEinsatz: **${betAmount} Kekse**\nMöglicher Gewinn: **${Math.floor(betAmount * multiplier)} Kekse**\n\nDrücke **Cash Out** bevor die Rakete crasht!`,
+          )
+          .setColor(0xffffff);
+      };
+
+      const gameMsg = await interaction.reply({
+        embeds: [crashEmbed()],
+        components: [cashoutRow()],
+        fetchReply: true,
+      });
+
+      crashGames.set(user.id, {
+        betAmount,
+        crashPoint,
+        cashedOut: false,
+        cashedAtMultiplier: null,
+      });
+
+      const collector = gameMsg.createMessageComponentCollector({
+        filter: (i) =>
+          i.user.id === user.id && i.customId === `crash_cashout_${user.id}`,
+        componentType: ComponentType.Button,
+        time: 120000,
+      });
+
+      collector.on("collect", async (i) => {
+        const game = crashGames.get(user.id);
+        if (!game || game.cashedOut) {
+          await i
+            .reply({
+              content: "Zu spät — das Spiel ist bereits beendet!",
+              flags: [MessageFlags.Ephemeral],
+            })
+            .catch(() => {});
+          return;
         }
 
-        userData.balance -= betAmount;
-        await logTransaction(
-          user.id,
-          betAmount,
-          "minus",
-          "Casino Higher Lower",
-        );
+        game.cashedOut = true;
+        game.cashedAtMultiplier = multiplier;
+        if (intervalHandle) clearInterval(intervalHandle);
+        crashGames.delete(user.id);
+        collector.stop("cashout");
+
+        const win = Math.floor(betAmount * game.cashedAtMultiplier);
+        userData.balance += win;
+        await logTransaction(user.id, win, "plus", "Casino Crash");
         await setEcoData(user.id, userData);
-        hlGames.set(user.id, true);
 
-        const cardNames = [
-          "2",
-          "3",
-          "4",
-          "5",
-          "6",
-          "7",
-          "8",
-          "9",
-          "10",
-          "J",
-          "Q",
-          "K",
-          "A",
-        ];
-        const cardVals = {
-          2: 2,
-          3: 3,
-          4: 4,
-          5: 5,
-          6: 6,
-          7: 7,
-          8: 8,
-          9: 9,
-          10: 10,
-          J: 11,
-          Q: 12,
-          K: 13,
-          A: 14,
-        };
-        const suits = ["♠️", "♥️", "♦️", "♣️"];
-        const getCard = () => {
-          const n = cardNames[Math.floor(Math.random() * cardNames.length)];
-          return {
-            display: `${n}${suits[Math.floor(Math.random() * 4)]}`,
-            value: cardVals[n],
-          };
-        };
+        await i
+          .update({
+            embeds: [crashEmbed(false, game.cashedAtMultiplier)],
+            components: [],
+          })
+          .catch(() => {});
+      });
 
-        let currentCard = getCard();
-        let streak = 0;
-        let multiplier = 1.0;
+      intervalHandle = setInterval(async () => {
+        const game = crashGames.get(user.id);
+        if (!game) {
+          clearInterval(intervalHandle);
+          return;
+        }
 
-        const hlRow = (disabled = false) =>
-          new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-              .setCustomId(`hl_higher_${user.id}`)
-              .setLabel("Higher")
-              .setStyle(ButtonStyle.Primary)
-              .setDisabled(disabled),
-            new ButtonBuilder()
-              .setCustomId(`hl_lower_${user.id}`)
-              .setLabel("Lower")
-              .setStyle(ButtonStyle.Danger)
-              .setDisabled(disabled),
-            new ButtonBuilder()
-              .setCustomId(`hl_cashout_${user.id}`)
-              .setLabel(
-                `Cash Out (${Math.floor(betAmount * multiplier)} Kekse)`,
-              )
-              .setStyle(ButtonStyle.Success)
-              .setDisabled(disabled || streak === 0),
-          );
+        multiplier = parseFloat((multiplier + 0.08).toFixed(2));
 
-        const hlEmbed = (desc, color = 0xffffff) =>
-          new EmbedBuilder()
-            .setTitle("Higher or Lower")
-            .setDescription(desc)
-            .setColor(color);
+        if (multiplier >= game.crashPoint) {
+          clearInterval(intervalHandle);
+          crashGames.delete(user.id);
+          collector.stop("crashed");
+          await gameMsg
+            .edit({ embeds: [crashEmbed(true)], components: [] })
+            .catch(() => {});
+          return;
+        }
 
-        const gameMsg = await interaction.reply({
-          embeds: [
-            hlEmbed(
-              `Aktuelle Karte: **${currentCard.display}**\n\nStreak: **0** | Multiplikator: **1.00x**\nMöglicher Gewinn: **${betAmount} Kekse**\n\nIst die nächste Karte höher oder niedriger?`,
-            ),
-          ],
-          components: [hlRow()],
-          fetchReply: true,
-        });
+        await gameMsg
+          .edit({ embeds: [crashEmbed()], components: [cashoutRow()] })
+          .catch(() => {});
+      }, 600);
 
-        const collector = gameMsg.createMessageComponentCollector({
-          filter: (i) => i.user.id === user.id,
-          componentType: ComponentType.Button,
-          time: 90000,
-        });
-
-        collector.on("collect", async (i) => {
-          await i.deferUpdate();
-          const id = i.customId;
-          if (id === `hl_cashout_${user.id}`) {
-            collector.stop("cashout");
-            return;
-          }
-
-          const nextCard = getCard();
-          const choice = id.startsWith(`hl_higher`) ? "higher" : "lower";
-          const isTie = nextCard.value === currentCard.value;
-          const correct =
-            !isTie &&
-            ((choice === "higher" && nextCard.value > currentCard.value) ||
-              (choice === "lower" && nextCard.value < currentCard.value));
-
-          if (isTie) {
-            currentCard = nextCard;
+      collector.on("end", async (collected, reason) => {
+        if (reason === "time") {
+          clearInterval(intervalHandle);
+          const game = crashGames.get(user.id);
+          if (game && !game.cashedOut) {
+            crashGames.delete(user.id);
             await gameMsg
-              .edit({
-                embeds: [
-                  hlEmbed(
-                    `Unentschieden! Neue Karte: **${nextCard.display}**\nStreak: **${streak}** | Multiplikator: **${multiplier.toFixed(2)}x**`,
-                  ),
-                ],
-                components: [hlRow()],
-              })
+              .edit({ embeds: [crashEmbed(true)], components: [] })
               .catch(() => {});
-            return;
           }
+        }
+      });
 
-          if (correct) {
-            streak++;
-            multiplier = parseFloat((multiplier + 0.5).toFixed(2));
-            currentCard = nextCard;
-            await gameMsg
-              .edit({
-                embeds: [
-                  hlEmbed(
-                    `Richtig! Nächste Karte war **${nextCard.display}**\n\nAktuelle Karte: **${currentCard.display}**\nStreak: **${streak}** | Multiplikator: **${multiplier.toFixed(2)}x**\nMöglicher Gewinn: **${Math.floor(betAmount * multiplier)} Kekse**`,
-                    0xffffff,
-                  ),
-                ],
-                components: [hlRow()],
-              })
-              .catch(() => {});
-          } else {
-            collector.stop("wrong");
-          }
+      return;
+    }
+    if (commandName === "highlow") {
+      if (hlGames.has(user.id)) {
+        return interaction.reply({
+          content: "Du hast bereits ein aktives Higher/Lower-Spiel!",
+          flags: [MessageFlags.Ephemeral],
         });
+      }
 
-        collector.on("end", async (collected, reason) => {
-          hlGames.delete(user.id);
-          const fresh = await getEcoData(user.id);
-          if (reason === "cashout") {
+      userData.balance -= betAmount;
+      await logTransaction(user.id, betAmount, "minus", "Casino Higher Lower");
+      await setEcoData(user.id, userData);
+      hlGames.set(user.id, true);
+
+      const cardNames = [
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "J",
+        "Q",
+        "K",
+        "A",
+      ];
+      const cardVals = {
+        2: 2,
+        3: 3,
+        4: 4,
+        5: 5,
+        6: 6,
+        7: 7,
+        8: 8,
+        9: 9,
+        10: 10,
+        J: 11,
+        Q: 12,
+        K: 13,
+        A: 14,
+      };
+      const suits = ["♠️", "♥️", "♦️", "♣️"];
+      const getCard = () => {
+        const n = cardNames[Math.floor(Math.random() * cardNames.length)];
+        return {
+          display: `${n}${suits[Math.floor(Math.random() * 4)]}`,
+          value: cardVals[n],
+        };
+      };
+
+      let currentCard = getCard();
+      let streak = 0;
+      let multiplier = 1.0;
+
+      const hlRow = (disabled = false) =>
+        new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`hl_higher_${user.id}`)
+            .setLabel("Higher")
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(disabled),
+          new ButtonBuilder()
+            .setCustomId(`hl_lower_${user.id}`)
+            .setLabel("Lower")
+            .setStyle(ButtonStyle.Danger)
+            .setDisabled(disabled),
+          new ButtonBuilder()
+            .setCustomId(`hl_cashout_${user.id}`)
+            .setLabel(`Cash Out (${Math.floor(betAmount * multiplier)} Kekse)`)
+            .setStyle(ButtonStyle.Success)
+            .setDisabled(disabled || streak === 0),
+        );
+
+      const hlEmbed = (desc, color = 0xffffff) =>
+        new EmbedBuilder()
+          .setTitle("Higher or Lower")
+          .setDescription(desc)
+          .setColor(color);
+
+      const gameMsg = await interaction.reply({
+        embeds: [
+          hlEmbed(
+            `Aktuelle Karte: **${currentCard.display}**\n\nStreak: **0** | Multiplikator: **1.00x**\nMöglicher Gewinn: **${betAmount} Kekse**\n\nIst die nächste Karte höher oder niedriger?`,
+          ),
+        ],
+        components: [hlRow()],
+        fetchReply: true,
+      });
+
+      const collector = gameMsg.createMessageComponentCollector({
+        filter: (i) => i.user.id === user.id,
+        componentType: ComponentType.Button,
+        time: 90000,
+      });
+
+      collector.on("collect", async (i) => {
+        await i.deferUpdate();
+        const id = i.customId;
+        if (id === `hl_cashout_${user.id}`) {
+          collector.stop("cashout");
+          return;
+        }
+
+        const nextCard = getCard();
+        const choice = id.startsWith(`hl_higher`) ? "higher" : "lower";
+        const isTie = nextCard.value === currentCard.value;
+        const correct =
+          !isTie &&
+          ((choice === "higher" && nextCard.value > currentCard.value) ||
+            (choice === "lower" && nextCard.value < currentCard.value));
+
+        if (isTie) {
+          currentCard = nextCard;
+          await gameMsg
+            .edit({
+              embeds: [
+                hlEmbed(
+                  `Unentschieden! Neue Karte: **${nextCard.display}**\nStreak: **${streak}** | Multiplikator: **${multiplier.toFixed(2)}x**`,
+                ),
+              ],
+              components: [hlRow()],
+            })
+            .catch(() => {});
+          return;
+        }
+
+        if (correct) {
+          streak++;
+          multiplier = parseFloat((multiplier + 0.5).toFixed(2));
+          currentCard = nextCard;
+          await gameMsg
+            .edit({
+              embeds: [
+                hlEmbed(
+                  `Richtig! Nächste Karte war **${nextCard.display}**\n\nAktuelle Karte: **${currentCard.display}**\nStreak: **${streak}** | Multiplikator: **${multiplier.toFixed(2)}x**\nMöglicher Gewinn: **${Math.floor(betAmount * multiplier)} Kekse**`,
+                  0xffffff,
+                ),
+              ],
+              components: [hlRow()],
+            })
+            .catch(() => {});
+        } else {
+          collector.stop("wrong");
+        }
+      });
+
+      collector.on("end", async (collected, reason) => {
+        hlGames.delete(user.id);
+        const fresh = await getEcoData(user.id);
+        if (reason === "cashout") {
+          const win = Math.floor(betAmount * multiplier);
+          fresh.balance = (fresh.balance || 0) + win;
+          await logTransaction(user.id, win, "plus", "Casino Higher Lower");
+          await setEcoData(user.id, fresh);
+          await gameMsg
+            .edit({
+              embeds: [
+                hlEmbed(
+                  `Cash Out bei **${multiplier.toFixed(2)}x**!\n\n**+${win - betAmount} Kekse** Gewinn\nNeuer Kontostand: **${fresh.balance} Kekse**`,
+                  0x333333,
+                ),
+              ],
+              components: [],
+            })
+            .catch(() => {});
+        } else if (reason === "wrong") {
+          await gameMsg
+            .edit({
+              embeds: [
+                hlEmbed(
+                  `❌ Falsch! Du hast **${betAmount} Kekse** verloren.\nNeuer Kontostand: **${fresh.balance} Kekse**`,
+                  0x333333,
+                ),
+              ],
+              components: [],
+            })
+            .catch(() => {});
+        } else {
+          if (streak > 0) {
             const win = Math.floor(betAmount * multiplier);
             fresh.balance = (fresh.balance || 0) + win;
             await logTransaction(user.id, win, "plus", "Casino Higher Lower");
@@ -8688,573 +9164,662 @@ if (commandName === "crash") {
               .edit({
                 embeds: [
                   hlEmbed(
-                    `Cash Out bei **${multiplier.toFixed(2)}x**!\n\n**+${win - betAmount} Kekse** Gewinn\nNeuer Kontostand: **${fresh.balance} Kekse**`,
+                    `Zeit abgelaufen! Auto Cash-Out bei **${multiplier.toFixed(2)}x**\n**+${win - betAmount} Kekse**\nNeuer Kontostand: **${fresh.balance} Kekse**`,
                     0x333333,
                   ),
                 ],
                 components: [],
               })
               .catch(() => {});
-          } else if (reason === "wrong") {
+          } else {
             await gameMsg
               .edit({
                 embeds: [
                   hlEmbed(
-                    `❌ Falsch! Du hast **${betAmount} Kekse** verloren.\nNeuer Kontostand: **${fresh.balance} Kekse**`,
+                    `Zeit abgelaufen! **${betAmount} Kekse** verloren.\nNeuer Kontostand: **${fresh.balance} Kekse**`,
                     0x333333,
                   ),
                 ],
                 components: [],
               })
               .catch(() => {});
-          } else {
-            if (streak > 0) {
-              const win = Math.floor(betAmount * multiplier);
-              fresh.balance = (fresh.balance || 0) + win;
-              await logTransaction(user.id, win, "plus", "Casino Higher Lower");
-              await setEcoData(user.id, fresh);
-              await gameMsg
-                .edit({
-                  embeds: [
-                    hlEmbed(
-                      `Zeit abgelaufen! Auto Cash-Out bei **${multiplier.toFixed(2)}x**\n**+${win - betAmount} Kekse**\nNeuer Kontostand: **${fresh.balance} Kekse**`,
-                      0x333333,
-                    ),
-                  ],
-                  components: [],
-                })
-                .catch(() => {});
-            } else {
-              await gameMsg
-                .edit({
-                  embeds: [
-                    hlEmbed(
-                      `Zeit abgelaufen! **${betAmount} Kekse** verloren.\nNeuer Kontostand: **${fresh.balance} Kekse**`,
-                      0x333333,
-                    ),
-                  ],
-                  components: [],
-                })
-                .catch(() => {});
-            }
-          }
-        });
-        return;
-      }
-
-      if (commandName === "blackjack") {
-        const suits = ["♠️", "♥️", "♦️", "♣️"];
-        const values = [
-          { n: "2", v: 2 },
-          { n: "3", v: 3 },
-          { n: "4", v: 4 },
-          { n: "5", v: 5 },
-          { n: "6", v: 6 },
-          { n: "7", v: 7 },
-          { n: "8", v: 8 },
-          { n: "9", v: 9 },
-          { n: "10", v: 10 },
-          { n: "J", v: 10 },
-          { n: "Q", v: 10 },
-          { n: "K", v: 10 },
-          { n: "A", v: 11 },
-        ];
-
-        let deck = [];
-        for (const suit of suits) {
-          for (const val of values) {
-            deck.push({ name: `${val.n}${suit}`, value: val.v });
           }
         }
-        deck = deck.sort(() => Math.random() - 0.5);
-
-        const playerHand = [deck.pop(), deck.pop()];
-        const dealerHand = [deck.pop(), deck.pop()];
-
-        const calculateScore = (hand) => {
-          let score = hand.reduce((sum, card) => sum + card.value, 0);
-          let aces = hand.filter((card) => card.name.startsWith("A")).length;
-          while (score > 21 && aces > 0) {
-            score -= 10;
-            aces--;
-          }
-          return score;
-        };
-
-        const row = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId("bj_hit")
-            .setLabel("Karte ziehen (Hit)")
-            .setStyle(ButtonStyle.Primary),
-          new ButtonBuilder()
-            .setCustomId("bj_stand")
-            .setLabel("Halten (Stand)")
-            .setStyle(ButtonStyle.Secondary),
-        );
-
-        const createEmbed = (title, color, showAllDealer = false) => {
-          const pScore = calculateScore(playerHand);
-          const dScore = showAllDealer
-            ? calculateScore(dealerHand)
-            : dealerHand[0].value;
-          const pCards = playerHand.map((c) => c.name).join(" ");
-          const dCards = showAllDealer
-            ? dealerHand.map((c) => c.name).join(" ")
-            : `${dealerHand[0].name} 🃏`;
-          return new EmbedBuilder()
-            .setTitle(title)
-            .setColor(color)
-            .setDescription(`Dein Einsatz: **${betAmount} Kekse**`)
-            .addFields(
-              { name: `Deine Hand (${pScore})`, value: pCards, inline: true },
-              {
-                name: `Dealer Hand (${showAllDealer ? dScore : dScore + " + ?"})`,
-                value: dCards,
-                inline: true,
-              },
-            );
-        };
-
-        if (calculateScore(playerHand) === 21) {
-          let dScore = calculateScore(dealerHand);
-          let status = "";
-          let finalColor = 0x333333;
-          if (dScore === 21) {
-            status = "Beide haben Blackjack! Unentschieden.";
-          } else {
-            status = "Echter Blackjack! Du gewinnst das 1.5-fache!";
-            userData.balance += Math.floor(betAmount * 1.5);
-            await logTransaction(
-              user.id,
-              Math.floor(betAmount * 1.5),
-              "plus",
-              "Casino Blackjack",
-            );
-          }
-          await setEcoData(user.id, userData);
-          const finalEmbed = createEmbed(
-            `Blackjack - ${status}`,
-            finalColor,
-            true,
-          ).setFooter({ text: `Neuer Kontostand: ${userData.balance} Kekse` });
-          return interaction.reply({ embeds: [finalEmbed] });
-        }
-
-        const gameMessage = await interaction.reply({
-          embeds: [createEmbed("Blackjack", 0xffffff)],
-          components: [row],
-          fetchReply: true,
-        });
-
-        const collector = gameMessage.createMessageComponentCollector({
-          filter: (i) => i.user.id === user.id,
-          componentType: ComponentType.Button,
-          time: 60000,
-        });
-
-        collector.on("collect", async (i) => {
-          await i.deferUpdate();
-          if (i.customId === "bj_hit") {
-            playerHand.push(deck.pop());
-            if (calculateScore(playerHand) >= 21) {
-              collector.stop(
-                calculateScore(playerHand) > 21 ? "busted" : "stand",
-              );
-            } else {
-              await gameMessage.edit({
-                embeds: [createEmbed("Blackjack", 0xffffff)],
-              });
-            }
-          }
-          if (i.customId === "bj_stand") {
-            collector.stop("stand");
-          }
-        });
-
-        collector.on("end", async (collected, reason) => {
-          let pScore = calculateScore(playerHand);
-          let dScore = calculateScore(dealerHand);
-          let status = "";
-          let finalColor = 0x333333;
-
-          if (reason !== "busted") {
-            while (dScore < 17) {
-              dealerHand.push(deck.pop());
-              dScore = calculateScore(dealerHand);
-            }
-          }
-
-          if (reason === "busted" || pScore > 21) {
-            status = "❌ Überkauft! Du hast verloren.";
-            userData.balance -= betAmount;
-            await logTransaction(
-              user.id,
-              betAmount,
-              "minus",
-              "Casino Blackjack",
-            );
-          } else if (dScore > 21) {
-            status = "🎉 Dealer überkauft! Du gewinnst!";
-            userData.balance += betAmount;
-            await logTransaction(
-              user.id,
-              betAmount,
-              "plus",
-              "Casino Blackjack",
-            );
-          } else if (pScore > dScore) {
-            status = "🎉 Mehr Punkte als der Dealer. Du gewinnst!";
-            userData.balance += betAmount;
-            await logTransaction(
-              user.id,
-              betAmount,
-              "plus",
-              "Casino Blackjack",
-            );
-          } else if (pScore < dScore) {
-            status = "❌ Dealer hat mehr Punkte. Verloren!";
-            userData.balance -= betAmount;
-            await logTransaction(
-              user.id,
-              betAmount,
-              "minus",
-              "Casino Blackjack",
-            );
-          } else {
-            status = "🤝 Unentschieden! Kekse zurück.";
-          }
-
-          await setEcoData(user.id, userData);
-          const finalEmbed = createEmbed(
-            `Blackjack - ${status}`,
-            finalColor,
-            true,
-          ).setFooter({ text: `Neuer Kontostand: ${userData.balance} Kekse` });
-          await gameMessage.edit({ embeds: [finalEmbed], components: [] });
-        });
-        return;
-      }
+      });
+      return;
     }
-          if (commandName === "bank") {
-      const subCommand = options.getSubcommand();
-      const hasEcoRole = member.roles.cache.has("1506732560837771284");
 
-      if (subCommand === "create") {
-        if (hasEcoRole) {
-          return interaction.reply({ content: "Du besitzt bereits ein registriertes Bankkonto.", flags: [MessageFlags.Ephemeral] });
+    if (commandName === "blackjack") {
+      const suits = ["♠️", "♥️", "♦️", "♣️"];
+      const values = [
+        { n: "2", v: 2 },
+        { n: "3", v: 3 },
+        { n: "4", v: 4 },
+        { n: "5", v: 5 },
+        { n: "6", v: 6 },
+        { n: "7", v: 7 },
+        { n: "8", v: 8 },
+        { n: "9", v: 9 },
+        { n: "10", v: 10 },
+        { n: "J", v: 10 },
+        { n: "Q", v: 10 },
+        { n: "K", v: 10 },
+        { n: "A", v: 11 },
+      ];
+
+      let deck = [];
+      for (const suit of suits) {
+        for (const val of values) {
+          deck.push({ name: `${val.n}${suit}`, value: val.v });
         }
-
-        const row = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId(`open_bank_modal_${user.id}`)
-            .setLabel("Registrierungsformular öffnen")
-            .setStyle(ButtonStyle.Primary)
-        );
-
-        return interaction.reply({
-          content: "Klicke auf den Button unten, um dein Konto zu erstellen. Dieser Button funktioniert nur für dich.",
-          components: [row],
-          flags: [MessageFlags.Ephemeral]
-        });
-        console.log(`${user.username} hat eine Konto-Erstellung gestartet`)
       }
+      deck = deck.sort(() => Math.random() - 0.5);
 
-      if (subCommand === "help") {
-        const helpEmbed = new EmbedBuilder()
-          .setTitle("🏦 Bank-System Hilfe")
-          .setColor(0xFFFFFF)
-          .setDescription("Hier findest du alle verfügbaren Befehle:")
+      const playerHand = [deck.pop(), deck.pop()];
+      const dealerHand = [deck.pop(), deck.pop()];
+
+      const calculateScore = (hand) => {
+        let score = hand.reduce((sum, card) => sum + card.value, 0);
+        let aces = hand.filter((card) => card.name.startsWith("A")).length;
+        while (score > 21 && aces > 0) {
+          score -= 10;
+          aces--;
+        }
+        return score;
+      };
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("bj_hit")
+          .setLabel("Karte ziehen (Hit)")
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId("bj_stand")
+          .setLabel("Halten (Stand)")
+          .setStyle(ButtonStyle.Secondary),
+      );
+
+      const createEmbed = (title, color, showAllDealer = false) => {
+        const pScore = calculateScore(playerHand);
+        const dScore = showAllDealer
+          ? calculateScore(dealerHand)
+          : dealerHand[0].value;
+        const pCards = playerHand.map((c) => c.name).join(" ");
+        const dCards = showAllDealer
+          ? dealerHand.map((c) => c.name).join(" ")
+          : `${dealerHand[0].name} 🃏`;
+        return new EmbedBuilder()
+          .setTitle(title)
+          .setColor(color)
+          .setDescription(`Dein Einsatz: **${betAmount} Kekse**`)
           .addFields(
-            { name: "`/bank create`", value: "Erstellt dein persönliches Bankkonto (Erfordert Minecraft-Namen)." },
-            { name: "`/bank status`", value: "Zeigt dir deinen aktuellen Kontostand (Privat für dich)." },
-            { name: "`/bank pay`", value: "Überträgt Kekse sicher auf das Konto eines Mitspielers." }
+            { name: `Deine Hand (${pScore})`, value: pCards, inline: true },
+            {
+              name: `Dealer Hand (${showAllDealer ? dScore : dScore + " + ?"})`,
+              value: dCards,
+              inline: true,
+            },
           );
+      };
 
-        return interaction.reply({ embeds: [helpEmbed], flags: [MessageFlags.Ephemeral] });
-        console.log(`${user.username} hat die "bank help"-Funktion genutzt`)
-      }
-
-      if (subCommand === "pay") {
-        const targetUser = options.getUser("nutzer");
-        const amount = options.getInteger("anzahl");
-        const userData = await getEcoData(user.id);
-
-        if (amount <= 0) {
-          return interaction.reply({ content: "Bitte gib eine gültige Anzahl an Keksen an.", flags: [MessageFlags.Ephemeral] });
+      if (calculateScore(playerHand) === 21) {
+        let dScore = calculateScore(dealerHand);
+        let status = "";
+        let finalColor = 0x333333;
+        if (dScore === 21) {
+          status = "Beide haben Blackjack! Unentschieden.";
+        } else {
+          status = "Echter Blackjack! Du gewinnst das 1.5-fache!";
+          userData.balance += Math.floor(betAmount * 1.5);
+          await logTransaction(
+            user.id,
+            Math.floor(betAmount * 1.5),
+            "plus",
+            "Casino Blackjack",
+          );
         }
-
-        if (targetUser.id === user.id) {
-          return interaction.reply({ content: "Du kannst dir selbst keine Kekse überweisen.", flags: [MessageFlags.Ephemeral] });
-        }
-
-        if (amount > (userData.balance || 0)) {
-          return interaction.reply({ content: "Du hast nicht genug Kekse für diese Überweisung.", flags: [MessageFlags.Ephemeral] });
-        }
-
-        const targetData = await getEcoData(targetUser.id);
-        if (!targetData || targetData.blocked) {
-          return interaction.reply({ content: "Der Zielnutzer hat kein aktives Konto oder ist gesperrt.", flags: [MessageFlags.Ephemeral] });
-        }
-
-        userData.balance -= amount;
-        targetData.balance = (targetData.balance || 0) + amount;
-        
-        await logTransaction(user.id, amount, "minus", `Pay an ${targetData.username}`);
-        await logTransaction(targetUser.id, amount, "plus", `Pay von ${userData.username}`);
         await setEcoData(user.id, userData);
-        await setEcoData(targetUser.id, targetData);
+        const finalEmbed = createEmbed(
+          `Blackjack - ${status}`,
+          finalColor,
+          true,
+        ).setFooter({ text: `Neuer Kontostand: ${userData.balance} Kekse` });
+        return interaction.reply({ embeds: [finalEmbed] });
+      }
 
-        console.log(`[Economy] Überweisung von ${userData.username || user.username} an ${targetData.username || targetUser.id} für ${amount} Kekse.`);
+      const gameMessage = await interaction.reply({
+        embeds: [createEmbed("Blackjack", 0xffffff)],
+        components: [row],
+        fetchReply: true,
+      });
 
-        const payEmbed = new EmbedBuilder()
-          .setTitle("Überweisung erfolgreich")
-          .setDescription(`Du hast **${amount} Kekse** an <@${targetUser.id}> überwiesen.`)
-          .addFields({ name: "Neuer Kontostand", value: `${userData.balance} Kekse` })
-          .setColor(0xFFFFFF);
+      const collector = gameMessage.createMessageComponentCollector({
+        filter: (i) => i.user.id === user.id,
+        componentType: ComponentType.Button,
+        time: 60000,
+      });
 
-        const getEmbed = new EmbedBuilder()
-          .setTitle("Kekse erhalten!")
-          .setDescription(`Du hast **${amount} Kekse** von <@${user.id}> erhalten.`)
-          .addFields({ name: "Neuer Kontostand", value: `${targetData.balance} Kekse` })
-          .setColor(0xFFFFFF);
+      collector.on("collect", async (i) => {
+        await i.deferUpdate();
+        if (i.customId === "bj_hit") {
+          playerHand.push(deck.pop());
+          if (calculateScore(playerHand) >= 21) {
+            collector.stop(
+              calculateScore(playerHand) > 21 ? "busted" : "stand",
+            );
+          } else {
+            await gameMessage.edit({
+              embeds: [createEmbed("Blackjack", 0xffffff)],
+            });
+          }
+        }
+        if (i.customId === "bj_stand") {
+          collector.stop("stand");
+        }
+      });
 
-        await interaction.reply({ embeds: [payEmbed], flags: [MessageFlags.Ephemeral] });
+      collector.on("end", async (collected, reason) => {
+        let pScore = calculateScore(playerHand);
+        let dScore = calculateScore(dealerHand);
+        let status = "";
+        let finalColor = 0x333333;
 
-        await targetUser.send({ embeds: [getEmbed] }).catch(() => {
-          console.log(`Konnte keine DM an ${targetUser.id} senden.`);
+        if (reason !== "busted") {
+          while (dScore < 17) {
+            dealerHand.push(deck.pop());
+            dScore = calculateScore(dealerHand);
+          }
+        }
+
+        if (reason === "busted" || pScore > 21) {
+          status = "❌ Überkauft! Du hast verloren.";
+          userData.balance -= betAmount;
+          await logTransaction(user.id, betAmount, "minus", "Casino Blackjack");
+        } else if (dScore > 21) {
+          status = "🎉 Dealer überkauft! Du gewinnst!";
+          userData.balance += betAmount;
+          await logTransaction(user.id, betAmount, "plus", "Casino Blackjack");
+        } else if (pScore > dScore) {
+          status = "🎉 Mehr Punkte als der Dealer. Du gewinnst!";
+          userData.balance += betAmount;
+          await logTransaction(user.id, betAmount, "plus", "Casino Blackjack");
+        } else if (pScore < dScore) {
+          status = "❌ Dealer hat mehr Punkte. Verloren!";
+          userData.balance -= betAmount;
+          await logTransaction(user.id, betAmount, "minus", "Casino Blackjack");
+        } else {
+          status = "🤝 Unentschieden! Kekse zurück.";
+        }
+
+        await setEcoData(user.id, userData);
+        const finalEmbed = createEmbed(
+          `Blackjack - ${status}`,
+          finalColor,
+          true,
+        ).setFooter({ text: `Neuer Kontostand: ${userData.balance} Kekse` });
+        await gameMessage.edit({ embeds: [finalEmbed], components: [] });
+      });
+      return;
+    }
+  }
+  if (commandName === "bank") {
+    const subCommand = options.getSubcommand();
+    const hasEcoRole = member.roles.cache.has("1506732560837771284");
+
+    if (subCommand === "create") {
+      if (hasEcoRole) {
+        return interaction.reply({
+          content: "Du besitzt bereits ein registriertes Bankkonto.",
+          flags: [MessageFlags.Ephemeral],
         });
-        return;
       }
 
-      if (subCommand === "status") {
-        if (!hasEcoRole) {
-          return interaction.reply({ content: "Du hast noch kein Konto. Nutze `/bank create`, um dich zu registrieren.", flags: [MessageFlags.Ephemeral] });
-        }
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`open_bank_modal_${user.id}`)
+          .setLabel("Registrierungsformular öffnen")
+          .setStyle(ButtonStyle.Primary),
+      );
 
-        const userData = await getEcoData(user.id);
-
-        if (userData.blocked) {
-          return interaction.reply({ content: "Dein Konto ist aktuell gesperrt. Bitte wende dich an den Support.", flags: [MessageFlags.Ephemeral] });
-        }
-
-        await user.send({ content: `Dein aktueller Kontostand beträgt: **${userData.balance || 0} Kekse** 🍪` }).catch(() => {});
-        return interaction.reply({ content: "✅ Dein aktueller Kontostand wurde dir per DM zugestellt.", flags: [MessageFlags.Ephemeral] });
-        console.log(`${user.username} hat seinen Kontostand eingesehen.`)
-      }
+      return interaction.reply({
+        content:
+          "Klicke auf den Button unten, um dein Konto zu erstellen. Dieser Button funktioniert nur für dich.",
+        components: [row],
+        flags: [MessageFlags.Ephemeral],
+      });
+      console.log(`${user.username} hat eine Konto-Erstellung gestartet`);
     }
 
-    if (commandName === "bank-admin") {
-      const subCommand = options.getSubcommand();
-      const isDev = user.id === "1151971830983311441";
+    if (subCommand === "help") {
+      const helpEmbed = new EmbedBuilder()
+        .setTitle("🏦 Bank-System Hilfe")
+        .setColor(0xffffff)
+        .setDescription("Hier findest du alle verfügbaren Befehle:")
+        .addFields(
+          {
+            name: "`/bank create`",
+            value:
+              "Erstellt dein persönliches Bankkonto (Erfordert Minecraft-Namen).",
+          },
+          {
+            name: "`/bank status`",
+            value: "Zeigt dir deinen aktuellen Kontostand (Privat für dich).",
+          },
+          {
+            name: "`/bank pay`",
+            value: "Überträgt Kekse sicher auf das Konto eines Mitspielers.",
+          },
+        );
 
-      if (!member.permissions.has(PermissionsBitField.Flags.ManageServer) && !isDev) {
-        return interaction.reply({ content: "❌ Dieser Befehl ist der Serverleitung vorbehalten.", flags: [MessageFlags.Ephemeral] });
-      }
+      return interaction.reply({
+        embeds: [helpEmbed],
+        flags: [MessageFlags.Ephemeral],
+      });
+      console.log(`${user.username} hat die "bank help"-Funktion genutzt`);
+    }
 
+    if (subCommand === "pay") {
+      const targetUser = options.getUser("nutzer");
       const amount = options.getInteger("anzahl");
-      const targetUser = options.getUser("nutzer") || user;
+      const userData = await getEcoData(user.id);
 
       if (amount <= 0) {
-        return interaction.reply({ content: "Bitte gib eine gültige Anzahl an Keksen an.", flags: [MessageFlags.Ephemeral] });
+        return interaction.reply({
+          content: "Bitte gib eine gültige Anzahl an Keksen an.",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+
+      if (targetUser.id === user.id) {
+        return interaction.reply({
+          content: "Du kannst dir selbst keine Kekse überweisen.",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+
+      if (amount > (userData.balance || 0)) {
+        return interaction.reply({
+          content: "Du hast nicht genug Kekse für diese Überweisung.",
+          flags: [MessageFlags.Ephemeral],
+        });
       }
 
       const targetData = await getEcoData(targetUser.id);
-      let currentBalance = targetData.balance || 0;
-
-      if (subCommand === "add") {
-        currentBalance += amount;
-        console.log(`${user.username} hat sich ${amount} Kekse hinzugefügt`)
-      } else if (subCommand === "remove") {
-        currentBalance = Math.max(0, currentBalance - amount);
-        console.log(`${user.username} hat sich ${amount} Kekse entfernt`)
+      if (!targetData || targetData.blocked) {
+        return interaction.reply({
+          content: "Der Zielnutzer hat kein aktives Konto oder ist gesperrt.",
+          flags: [MessageFlags.Ephemeral],
+        });
       }
 
-      targetData.balance = currentBalance;
+      userData.balance -= amount;
+      targetData.balance = (targetData.balance || 0) + amount;
+
+      await logTransaction(
+        user.id,
+        amount,
+        "minus",
+        `Pay an ${targetData.username}`,
+      );
+      await logTransaction(
+        targetUser.id,
+        amount,
+        "plus",
+        `Pay von ${userData.username}`,
+      );
+      await setEcoData(user.id, userData);
       await setEcoData(targetUser.id, targetData);
 
-      const logEmbed = new EmbedBuilder()
-        .setTitle("Konto-Aktualisierung")
-        .setDescription(`Konto von <@${targetUser.id}> wurde aktualisiert.`)
-        .addFields(
-          { name: "Aktion", value: subCommand === "add" ? `+${amount} Kekse` : `-${amount} Kekse` },
-          { name: "Neuer Kontostand", value: `${currentBalance} Kekse` }
+      console.log(
+        `[Economy] Überweisung von ${userData.username || user.username} an ${targetData.username || targetUser.id} für ${amount} Kekse.`,
+      );
+
+      const payEmbed = new EmbedBuilder()
+        .setTitle("Überweisung erfolgreich")
+        .setDescription(
+          `Du hast **${amount} Kekse** an <@${targetUser.id}> überwiesen.`,
         )
-        .setColor(0xFFFFFF);
+        .addFields({
+          name: "Neuer Kontostand",
+          value: `${userData.balance} Kekse`,
+        })
+        .setColor(0xffffff);
 
-      await user.send({ embeds: [logEmbed] }).catch(() => {});
-      return interaction.reply({ content: `✅ Das Konto von <@${targetUser.id}> wurde erfolgreich modifiziert.`, flags: [MessageFlags.Ephemeral] });
+      const getEmbed = new EmbedBuilder()
+        .setTitle("Kekse erhalten!")
+        .setDescription(
+          `Du hast **${amount} Kekse** von <@${user.id}> erhalten.`,
+        )
+        .addFields({
+          name: "Neuer Kontostand",
+          value: `${targetData.balance} Kekse`,
+        })
+        .setColor(0xffffff);
+
+      await interaction.reply({
+        embeds: [payEmbed],
+        flags: [MessageFlags.Ephemeral],
+      });
+
+      await targetUser.send({ embeds: [getEmbed] }).catch(() => {
+        console.log(`Konnte keine DM an ${targetUser.id} senden.`);
+      });
+      return;
     }
 
-    if (commandName === "bank-mod") {
-      const subCommand = options.getSubcommand();
-      const isDev = user.id === "1151971830983311441";
-
-      if (!member.permissions.has(PermissionsBitField.Flags.ManageMessages) && !member.permissions.has(PermissionsBitField.Flags.ManageServer) && !isDev) {
-        return interaction.reply({ content: "❌ Du hast keine Berechtigung, um Kontoinformationen einzusehen.", flags: [MessageFlags.Ephemeral] });
-      }
-
-      if (subCommand === "see") {
-        const targetUser = options.getUser("nutzer");
-        const data = await getEcoData(targetUser.id);
-        const dmEmbed = new EmbedBuilder()
-          .setTitle(`Konto-Details von ${targetUser.username}`)
-          .setColor(0xFFFFFF)
-          .addFields(
-            { name: "User ID", value: data.userId || targetUser.id },
-            { name: "Discord Name", value: data.username || "Kein Name" },
-            { name: "Minecraft Name", value: data.mcUsername || "Nicht registriert" },
-            { name: "Kontostand", value: `${data.balance || 0} Kekse` },
-            { name: "Gesperrt?", value: data.blocked ? "Ja" : "Nein" }
-          );
-
-        await user.send({ embeds: [dmEmbed] }).catch(() => {});
-        return interaction.reply({ content: `✅ Die Kontodetails von ${targetUser.username} wurden dir per DM zugestellt.`, flags: [MessageFlags.Ephemeral] });
-        console.log(`${user.username} hat den Kontostand von ${targetUser.username} eingesehen`)
-      }
-
-      if (subCommand === "get") {
-        const existingKekse = await initEconomyGetKekse(client);
-        return interaction.reply({ content: `Es sind aktuell ${existingKekse} Kekse im Umlauf.`, flags: [MessageFlags.Ephemeral] });
-        console.log(`${user.username} hat die "bank get"-Funktion genutzt`)
-      }
-    }
-      if (commandName === "remind") {
-        const timeStr = options.getString("zeit");
-        const reason = options.getString("grund");
-
-        const ms = parseTimeframe(timeStr);
-        if (!ms || ms < 10000) {
-          return interaction.reply({
-            content:
-              "❌ Ungültige Zeitangabe. Mindestens 10 Sekunden (z.B. 10s, 5m, 1h, 2d).",
-            flags: [MessageFlags.Ephemeral],
-          });
-        }
-
-        const reminderData = (await getRData("reminders")) || { reminders: [] };
-        const newReminder = {
-          userId: user.id,
-          channelId: currentChannel.id,
-          time: Date.now() + ms,
-          reason: reason,
-        };
-
-        reminderData.reminders.push(newReminder);
-        await setRData("reminders", reminderData);
-        console.log(`${user.username} hat einen Reminder für sich gestartet`)
-
-        await interaction.reply({
-          content: `✅ Ich werde dich in **${timeStr}** an folgendes erinnern: ${reason}`,
-          ephemeral: false,
+    if (subCommand === "status") {
+      if (!hasEcoRole) {
+        return interaction.reply({
+          content:
+            "Du hast noch kein Konto. Nutze `/bank create`, um dich zu registrieren.",
+          flags: [MessageFlags.Ephemeral],
         });
-
-        const logChannel = client.channels.cache.get(logChannelId);
-        if (logChannel) {
-          const logEmbed = new EmbedBuilder()
-            .setColor("#ffffff")
-            .setAuthor({
-              name: user.username,
-              iconURL: user.displayAvatarURL({ size: 512 }),
-            })
-            .setDescription(
-              `**Aktion:** \`Reminder gesetzt\`\n**Zeitraum:** ${timeStr}\n**Grund:** ${reason}`,
-            )
-            .setFooter({ text: "Kekse Clan | Reminder System" })
-            .setTimestamp();
-          await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
-        }
-
-        globalBotStats.commandsRunned += 1;
-      }
-          if (commandName === "zweitaccount") {
-      if (!member.roles.cache.has(TEAM_ROLE_ID) && !member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
-        return interaction.reply({ content: "❌ Keine Berechtigung.", flags: [MessageFlags.Ephemeral] });
       }
 
-      const subCommand = options.getSubcommand();
-      let networks = await getSaData("alt_networks") || {};
+      const userData = await getEcoData(user.id);
 
-      if (subCommand === "add") {
-        const input1 = options.getString("account_1").replace(/[<@!>]/g, "");
-        const input2 = options.getString("account_2").replace(/[<@!>]/g, "");
-
-        if (!/^\d{17,20}$/.test(input1) || !/^\d{17,20}$/.test(input2)) {
-          return interaction.reply({ content: "❌ Ungültige IDs oder Erwähnungen angegeben.", flags: [MessageFlags.Ephemeral] });
-        }
-
-        if (input1 === input2) {
-          return interaction.reply({ content: "❌ Ein Account kann nicht mit sich selbst verknüpft werden.", flags: [MessageFlags.Ephemeral] });
-        }
-
-        let list1 = networks[input1] || [];
-        let list2 = networks[input2] || [];
-
-        let allLinked = new Set([input1, input2, ...list1, ...list2]);
-        const finalGroup = Array.from(allLinked);
-
-        for (const id of finalGroup) {
-          networks[id] = finalGroup.filter(uid => uid !== id);
-        }
-
-        await setSaData("alt_networks", networks);
-
-        await interaction.reply({ content: `✅ Die Accounts <@${input1}> und <@${input2}> wurden erfolgreich verknüpft.`, flags: [MessageFlags.Ephemeral] });
-        
-        const logChannel = client.channels.cache.get(logChannelId);
-        if (logChannel) {
-          const logEmbed = new EmbedBuilder()
-            .setColor('#ffffff')
-            .setAuthor({ name: user.username, iconURL: user.displayAvatarURL({ size: 512 }) })
-            .setDescription(`**Aktion:** \`Zweitaccount verknüpft\`\n**Accounts:** <@${input1}> und <@${input2}>\n**Gruppe Gesamt:** ${finalGroup.map(uid => `<@${uid}>`).join(', ')}`)
-            .setTimestamp();
-          await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
-        }
-        console.log(`${user.username} hat einen Zweitaccount verifiziert`)
-        globalBotStats.commandsRunned += 1;
+      if (userData.blocked) {
+        return interaction.reply({
+          content:
+            "Dein Konto ist aktuell gesperrt. Bitte wende dich an den Support.",
+          flags: [MessageFlags.Ephemeral],
+        });
       }
 
-      if (subCommand === "remove") {
-        const targetId = options.getString("nutzer").replace(/[<@!>]/g, "");
+      await user
+        .send({
+          content: `Dein aktueller Kontostand beträgt: **${userData.balance || 0} Kekse** 🍪`,
+        })
+        .catch(() => {});
+      return interaction.reply({
+        content: "✅ Dein aktueller Kontostand wurde dir per DM zugestellt.",
+        flags: [MessageFlags.Ephemeral],
+      });
+      console.log(`${user.username} hat seinen Kontostand eingesehen.`);
+    }
+  }
 
-        if (!/^\d{17,20}$/.test(targetId)) {
-          return interaction.reply({ content: "❌ Ungültige ID oder Erwähnung angegeben.", flags: [MessageFlags.Ephemeral] });
-        }
+  if (commandName === "bank-admin") {
+    const subCommand = options.getSubcommand();
+    const isDev = user.id === "1151971830983311441";
 
-        const linkedWith = networks[targetId];
-        if (!linkedWith || linkedWith.length === 0) {
-          return interaction.reply({ content: "❌ Für diesen Account existieren keine Verknüpfungen.", flags: [MessageFlags.Ephemeral] });
-        }
+    if (
+      !member.permissions.has(PermissionsBitField.Flags.ManageServer) &&
+      !isDev
+    ) {
+      return interaction.reply({
+        content: "❌ Dieser Befehl ist der Serverleitung vorbehalten.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
 
-        const fullGroup = [targetId, ...linkedWith];
-        delete networks[targetId];
+    const amount = options.getInteger("anzahl");
+    const targetUser = options.getUser("nutzer") || user;
 
-        for (const id of linkedWith) {
-          if (networks[id]) {
-            networks[id] = networks[id].filter(uid => uid !== targetId);
-            if (networks[id].length === 0) {
-              delete networks[id];
-            }
+    if (amount <= 0) {
+      return interaction.reply({
+        content: "Bitte gib eine gültige Anzahl an Keksen an.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+
+    const targetData = await getEcoData(targetUser.id);
+    let currentBalance = targetData.balance || 0;
+
+    if (subCommand === "add") {
+      currentBalance += amount;
+      console.log(`${user.username} hat sich ${amount} Kekse hinzugefügt`);
+    } else if (subCommand === "remove") {
+      currentBalance = Math.max(0, currentBalance - amount);
+      console.log(`${user.username} hat sich ${amount} Kekse entfernt`);
+    }
+
+    targetData.balance = currentBalance;
+    await setEcoData(targetUser.id, targetData);
+
+    const logEmbed = new EmbedBuilder()
+      .setTitle("Konto-Aktualisierung")
+      .setDescription(`Konto von <@${targetUser.id}> wurde aktualisiert.`)
+      .addFields(
+        {
+          name: "Aktion",
+          value: subCommand === "add" ? `+${amount} Kekse` : `-${amount} Kekse`,
+        },
+        { name: "Neuer Kontostand", value: `${currentBalance} Kekse` },
+      )
+      .setColor(0xffffff);
+
+    await user.send({ embeds: [logEmbed] }).catch(() => {});
+    return interaction.reply({
+      content: `✅ Das Konto von <@${targetUser.id}> wurde erfolgreich modifiziert.`,
+      flags: [MessageFlags.Ephemeral],
+    });
+  }
+
+  if (commandName === "bank-mod") {
+    const subCommand = options.getSubcommand();
+    const isDev = user.id === "1151971830983311441";
+
+    if (
+      !member.permissions.has(PermissionsBitField.Flags.ManageMessages) &&
+      !member.permissions.has(PermissionsBitField.Flags.ManageServer) &&
+      !isDev
+    ) {
+      return interaction.reply({
+        content:
+          "❌ Du hast keine Berechtigung, um Kontoinformationen einzusehen.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+
+    if (subCommand === "see") {
+      const targetUser = options.getUser("nutzer");
+      const data = await getEcoData(targetUser.id);
+      const dmEmbed = new EmbedBuilder()
+        .setTitle(`Konto-Details von ${targetUser.username}`)
+        .setColor(0xffffff)
+        .addFields(
+          { name: "User ID", value: data.userId || targetUser.id },
+          { name: "Discord Name", value: data.username || "Kein Name" },
+          {
+            name: "Minecraft Name",
+            value: data.mcUsername || "Nicht registriert",
+          },
+          { name: "Kontostand", value: `${data.balance || 0} Kekse` },
+          { name: "Gesperrt?", value: data.blocked ? "Ja" : "Nein" },
+        );
+
+      await user.send({ embeds: [dmEmbed] }).catch(() => {});
+      return interaction.reply({
+        content: `✅ Die Kontodetails von ${targetUser.username} wurden dir per DM zugestellt.`,
+        flags: [MessageFlags.Ephemeral],
+      });
+      console.log(
+        `${user.username} hat den Kontostand von ${targetUser.username} eingesehen`,
+      );
+    }
+
+    if (subCommand === "get") {
+      const existingKekse = await initEconomyGetKekse(client);
+      return interaction.reply({
+        content: `Es sind aktuell ${existingKekse} Kekse im Umlauf.`,
+        flags: [MessageFlags.Ephemeral],
+      });
+      console.log(`${user.username} hat die "bank get"-Funktion genutzt`);
+    }
+  }
+  if (commandName === "remind") {
+    const timeStr = options.getString("zeit");
+    const reason = options.getString("grund");
+
+    const ms = parseTimeframe(timeStr);
+    if (!ms || ms < 10000) {
+      return interaction.reply({
+        content:
+          "❌ Ungültige Zeitangabe. Mindestens 10 Sekunden (z.B. 10s, 5m, 1h, 2d).",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+
+    const reminderData = (await getRData("reminders")) || { reminders: [] };
+    const newReminder = {
+      userId: user.id,
+      channelId: currentChannel.id,
+      time: Date.now() + ms,
+      reason: reason,
+    };
+
+    reminderData.reminders.push(newReminder);
+    await setRData("reminders", reminderData);
+    console.log(`${user.username} hat einen Reminder für sich gestartet`);
+
+    await interaction.reply({
+      content: `✅ Ich werde dich in **${timeStr}** an folgendes erinnern: ${reason}`,
+      ephemeral: false,
+    });
+
+    const logChannel = client.channels.cache.get(logChannelId);
+    if (logChannel) {
+      const logEmbed = new EmbedBuilder()
+        .setColor("#ffffff")
+        .setAuthor({
+          name: user.username,
+          iconURL: user.displayAvatarURL({ size: 512 }),
+        })
+        .setDescription(
+          `**Aktion:** \`Reminder gesetzt\`\n**Zeitraum:** ${timeStr}\n**Grund:** ${reason}`,
+        )
+        .setFooter({ text: "Kekse Clan | Reminder System" })
+        .setTimestamp();
+      await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
+    }
+
+    globalBotStats.commandsRunned += 1;
+  }
+  if (commandName === "zweitaccount") {
+    if (
+      !member.roles.cache.has(TEAM_ROLE_ID) &&
+      !member.permissions.has(PermissionsBitField.Flags.ManageMessages)
+    ) {
+      return interaction.reply({
+        content: "❌ Keine Berechtigung.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+
+    const subCommand = options.getSubcommand();
+    let networks = (await getSaData("alt_networks")) || {};
+
+    if (subCommand === "add") {
+      const input1 = options.getString("account_1").replace(/[<@!>]/g, "");
+      const input2 = options.getString("account_2").replace(/[<@!>]/g, "");
+
+      if (!/^\d{17,20}$/.test(input1) || !/^\d{17,20}$/.test(input2)) {
+        return interaction.reply({
+          content: "❌ Ungültige IDs oder Erwähnungen angegeben.",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+
+      if (input1 === input2) {
+        return interaction.reply({
+          content:
+            "❌ Ein Account kann nicht mit sich selbst verknüpft werden.",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+
+      let list1 = networks[input1] || [];
+      let list2 = networks[input2] || [];
+
+      let allLinked = new Set([input1, input2, ...list1, ...list2]);
+      const finalGroup = Array.from(allLinked);
+
+      for (const id of finalGroup) {
+        networks[id] = finalGroup.filter((uid) => uid !== id);
+      }
+
+      await setSaData("alt_networks", networks);
+
+      await interaction.reply({
+        content: `✅ Die Accounts <@${input1}> und <@${input2}> wurden erfolgreich verknüpft.`,
+        flags: [MessageFlags.Ephemeral],
+      });
+
+      const logChannel = client.channels.cache.get(logChannelId);
+      if (logChannel) {
+        const logEmbed = new EmbedBuilder()
+          .setColor("#ffffff")
+          .setAuthor({
+            name: user.username,
+            iconURL: user.displayAvatarURL({ size: 512 }),
+          })
+          .setDescription(
+            `**Aktion:** \`Zweitaccount verknüpft\`\n**Accounts:** <@${input1}> und <@${input2}>\n**Gruppe Gesamt:** ${finalGroup.map((uid) => `<@${uid}>`).join(", ")}`,
+          )
+          .setTimestamp();
+        await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
+      }
+      console.log(`${user.username} hat einen Zweitaccount verifiziert`);
+      globalBotStats.commandsRunned += 1;
+    }
+
+    if (subCommand === "remove") {
+      const targetId = options.getString("nutzer").replace(/[<@!>]/g, "");
+
+      if (!/^\d{17,20}$/.test(targetId)) {
+        return interaction.reply({
+          content: "❌ Ungültige ID oder Erwähnung angegeben.",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+
+      const linkedWith = networks[targetId];
+      if (!linkedWith || linkedWith.length === 0) {
+        return interaction.reply({
+          content: "❌ Für diesen Account existieren keine Verknüpfungen.",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+
+      const fullGroup = [targetId, ...linkedWith];
+      delete networks[targetId];
+
+      for (const id of linkedWith) {
+        if (networks[id]) {
+          networks[id] = networks[id].filter((uid) => uid !== targetId);
+          if (networks[id].length === 0) {
+            delete networks[id];
           }
         }
-
-        await setSaData("alt_networks", networks);
-
-        await interaction.reply({ content: `✅ Der Account <@${targetId}> wurde aus dem Netzwerk gelöst.`, flags: [MessageFlags.Ephemeral] });
-        
-        const logChannel = client.channels.cache.get(logChannelId);
-        if (logChannel) {
-          const logEmbed = new EmbedBuilder()
-            .setColor('#ffffff')
-            .setAuthor({ name: user.username, iconURL: user.displayAvatarURL({ size: 512 }) })
-            .setDescription(`**Aktion:** \`Zweitaccount entfernt\`\n**Account:** <@${targetId}>\n**Vorherige Gruppe:** ${fullGroup.map(uid => `<@${uid}>`).join(', ')}`)
-            .setTimestamp();
-          await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
-        }
-        console.log(`${user.username} hat einen Zweitaccount entfernt`)
-        globalBotStats.commandsRunned += 1;
       }
+
+      await setSaData("alt_networks", networks);
+
+      await interaction.reply({
+        content: `✅ Der Account <@${targetId}> wurde aus dem Netzwerk gelöst.`,
+        flags: [MessageFlags.Ephemeral],
+      });
+
+      const logChannel = client.channels.cache.get(logChannelId);
+      if (logChannel) {
+        const logEmbed = new EmbedBuilder()
+          .setColor("#ffffff")
+          .setAuthor({
+            name: user.username,
+            iconURL: user.displayAvatarURL({ size: 512 }),
+          })
+          .setDescription(
+            `**Aktion:** \`Zweitaccount entfernt\`\n**Account:** <@${targetId}>\n**Vorherige Gruppe:** ${fullGroup.map((uid) => `<@${uid}>`).join(", ")}`,
+          )
+          .setTimestamp();
+        await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
+      }
+      console.log(`${user.username} hat einen Zweitaccount entfernt`);
+      globalBotStats.commandsRunned += 1;
     }
-  });
+  }
+});
 client.once("clientReady", async () => {
   setBotPresence();
   try {
@@ -9286,38 +9851,47 @@ client.once("clientReady", async () => {
     startVoiceXpTracker(client);
     await wage(client);
     const guild = client.guilds.cache.get("1423413347168157718");
-    console.log(`Server-Sync gestartet...`)
+    console.log(`Server-Sync gestartet...`);
     console.log(`Bot online: ${client.user.tag}`);
     await startStorages();
   } catch (err) {
     console.error("[Ready] Kritischer Fehler beim Initialisieren:", err);
   }
   try {
-    const VOICE_CHANNEL_ID = '1567194137650925598';
-    const ALLOWED_USER_ID = '1423427747103113307';
-    const TARGET_ROLE_ID = '1457906448234319922';
-    const CUSTOM_BUTTON_ID = 'toggle_voice_lock';
+    const VOICE_CHANNEL_ID = "1567194137650925598";
+    const ALLOWED_USER_ID = "1423427747103113307";
+    const TARGET_ROLE_ID = "1457906448234319922";
+    const CUSTOM_BUTTON_ID = "toggle_voice_lock";
     const voiceChannel = await client.channels.fetch(VOICE_CHANNEL_ID);
     if (!voiceChannel || voiceChannel.type !== ChannelType.GuildVoice) return;
     const messages = await voiceChannel.messages.fetch({ limit: 5 });
-    const existingBotMessage = messages.find(msg => msg.author.id === client.user.id && msg.components.some(row => row.components.some(comp => comp.customId === CUSTOM_BUTTON_ID)));
+    const existingBotMessage = messages.find(
+      (msg) =>
+        msg.author.id === client.user.id &&
+        msg.components.some((row) =>
+          row.components.some((comp) => comp.customId === CUSTOM_BUTTON_ID),
+        ),
+    );
     if (!existingBotMessage) {
-        const currentOverwrites = voiceChannel.permissionOverwrites.cache.get(TARGET_ROLE_ID);
-        const isLocked = currentOverwrites && currentOverwrites.deny.has(PermissionFlagsBits.Connect);
-        const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-                .setCustomId(CUSTOM_BUTTON_ID)
-                .setLabel(isLocked ? 'Geschlossen' : 'Geöffnet')
-                .setStyle(isLocked ? ButtonStyle.Danger : ButtonStyle.Success)
-        );
-        await voiceChannel.send({
-            content: 'Status des Sprachkanals verwalten:',
-            components: [row]
-        });
-     }
-} catch (error) {
+      const currentOverwrites =
+        voiceChannel.permissionOverwrites.cache.get(TARGET_ROLE_ID);
+      const isLocked =
+        currentOverwrites &&
+        currentOverwrites.deny.has(PermissionFlagsBits.Connect);
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(CUSTOM_BUTTON_ID)
+          .setLabel(isLocked ? "Geschlossen" : "Geöffnet")
+          .setStyle(isLocked ? ButtonStyle.Danger : ButtonStyle.Success),
+      );
+      await voiceChannel.send({
+        content: "Status des Sprachkanals verwalten:",
+        components: [row],
+      });
+    }
+  } catch (error) {
     console.error(error);
-}
+  }
 });
 app.get("/api/stats_internal", (req, res) => {
   const totalSeconds = client.uptime / 1000;
@@ -9335,11 +9909,12 @@ app.get("/api/stats_internal", (req, res) => {
 client.setMaxListeners(50);
 client.on("error", console.error);
 client.on("warn", console.warn);
-mongoose.connect(process.env.MONGODB_URI)
+mongoose
+  .connect(process.env.MONGODB_URI)
   .then(async () => {
-    console.log('MongoDB verbunden!');
+    console.log("MongoDB verbunden!");
     await startStorages();
     await deploySlashCommands();
     client.login(process.env.BOT_TOKEN);
   })
-  .catch(err => console.error('MongoDB Fehler:', err));
+  .catch((err) => console.error("MongoDB Fehler:", err));
