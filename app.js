@@ -1206,7 +1206,7 @@ export async function initEconomySystem(client) {
         }
 
         userData.balance = (userData.balance || 0) + payout;
-        console.log(`${msg.author.username} hat im Roulette ${payout} Kekse gewonnen.`);
+        console.log(`${msg.author.username} hat im Roulette ${payout>0 ? payout : -payout} Kekse ${payout>0 ? `gewonnen` : `verloren`}.`);
         await logTransaction(
           msg.author.id,
           payout,
