@@ -94,32 +94,28 @@ setInterval(async () => {
       if (
         globalBotStats.pingMinimum === 0 ||
         currentPing < globalBotStats.pingMinimum
-      )
+      ) {
         globalBotStats.pingMinimum = currentPing;
-      if (
-        globalBotStats.pingMaximum ||
-        currentPing > globalBotStats.pingMaximum
-      )
+      }
+      if (currentPing > globalBotStats.pingMaximum) {
         globalBotStats.pingMaximum = currentPing;
+      }
       try {
         const StorageModel = mongoose.model("BotStorage");
-        let pingDoc = await StorageModel.findOne({
-          namespace: "system",
-          key: "ping_history",
-        });
-        let history =
-          pingDoc && pingDoc.value && Array.isArray(pingDoc.value.history)
-            ? pingDoc.value.history
-            : [];
-        history.push({ x: Date.now(), y: currentPing });
-        if (history.length > 2880) history.shift();
         await StorageModel.updateOne(
           { namespace: "system", key: "ping_history" },
-          { value: { history: history } },
-          { upsert: true },
+          { 
+            $push: { 
+              "value.history": { 
+                $each: [{ x: Date.now(), y: currentPing }], 
+                $slice: -2880 
+              } 
+            } 
+          },
+          { upsert: true }
         );
       } catch (err) {
-        originalError.apply([console, err]);
+        originalError.apply(console, [err]);
       }
     }
   }
