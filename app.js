@@ -4797,7 +4797,7 @@ export function initPing(client) {
         .setTimestamp();
 
       await logChannel.send({ embeds: [kekseLog] });
-      console.log(`${user.username} hat die "ping"-Funktion genutzt`);
+      console.log(`${msg.author.username} hat die "ping"-Funktion genutzt`);
     }
     setTimeout(() => {
       sentMsg.delete().catch(() => {});
