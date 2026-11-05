@@ -6402,7 +6402,7 @@ app.get("/api/stats", async (req, res) => {
 
     const mappedLogs = logs.map((l) => ({
       t: l.timestamp,
-      m: `[${l.type.toUpperCase()}] ${l.message}`,
+      m: `${l.message}`,
     }));
 
     res.json({
