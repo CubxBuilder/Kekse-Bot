@@ -373,6 +373,25 @@ console.error = function (...args) {
   originalError.apply(console, args);
   captureLog("error", args);
 };
+function formatArgs(args) {
+  return args
+    .map(function (arg) {
+      if (arg instanceof Error) return arg.stack || arg.message;
+      if (typeof arg === "object" && arg !== null) {
+        try {
+          if (arg.embeds || arg.content) {
+            return `${arg.content || ""} ${arg.embeds ? JSON.stringify(arg.embeds) : ""}`;
+          }
+          return util.inspect(arg, { depth: 2, colors: false });
+        } catch (e) {
+          return "[Komplexes Objekt]";
+        }
+      }
+      return String(arg);
+    })
+    .join(" ");
+}
+
 function captureLog(type, args) {
   logs.push({ timestamp: Date.now(), type: type, message: formatArgs(args) });
   if (logs.length > 500) logs.shift();
