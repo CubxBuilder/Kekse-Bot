@@ -30,7 +30,7 @@ const options = {
 
 const port = 5000;
 https.createServer(options, app).listen(port, "0.0.0.0", () => {
-  console.log(`Dashboard läuft sicher auf Port ${port} via HTTPS!`);
+  console.log(`Dashboard läuft auf Port ${port}`);
 });
 
 const GUILD_ID = "1423413347168157718";
@@ -118,8 +118,9 @@ setInterval(async () => {
           { value: { history: history } },
           { upsert: true },
         );
+        console.log(`Ping-History gestartet.`);
       } catch (err) {
-        originalError.apply(console, ["[Ping-Storage-Fehler]", err]);
+        originalError.apply(console, err]);
       }
     }
   }
@@ -131,6 +132,7 @@ function setBotPresence() {
       activities: [{ name: "!help", type: 0 }],
       status: "online",
     });
+    console.log(`BotPresence gesetzt. (Status: online, Activities: "!help")`);
   } catch (err) {
     console.error("[Presence] Fehler beim Setzen:", err);
   }
@@ -184,10 +186,10 @@ export async function initTicketArchive(app, getTickData, setTickData) {
     const stored = (await getTickData("archive_list")) || {};
     archives = Array.isArray(stored.archive) ? stored.archive : [];
     console.log(
-      `[TicketArchive] ${archives.length} archivierte Tickets geladen.`,
+      `${archives.length} Tickets geladen.`,
     );
   } catch (e) {
-    console.log("[TicketArchive] Fehler beim Laden: " + e.message);
+    console.log("Fehler beim Laden der archivierten Tickets: " + e.message);
   }
   app.get("/admin/login", (req, res) => {
     res.sendFile(
@@ -282,7 +284,7 @@ export async function archiveTicket(
     if (archives.length > 100) archives.pop();
     await setTickData("archive_list", { archive: archives });
     console.log(
-      `[TicketArchive] "${name}" archiviert: ${messages.length} Nachrichten.`,
+      `"${name}" archiviert. Ersteller: ${creator?.username ?? "Unbekannt"} Nachrichten: ${messages.length}`,
     );
     const sendKekseLog = async (ticketName, ticketMessages) => {
       const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
@@ -308,7 +310,7 @@ export async function archiveTicket(
       await channel.delete().catch(() => {});
     }, 2000);
   } catch (e) {
-    console.log(`[TicketArchive] Fehler bei "${name}": ${e.message}`);
+    console.log(`Fehler bei "${name}": ${e.message}`);
   }
 }
 export let globalBotStats = {
@@ -337,10 +339,10 @@ async function startStorages() {
     if (stats) {
       globalBotStats = { ...globalBotStats, ...stats };
     }
-    console.log("[Storage] Globale Statistiken geladen.");
+    console.log("Globale Statistiken geladen.");
   } catch (error) {
     console.log(
-      `[Storage] Fehler beim Laden der Statistiken: ${error.message}`,
+      `Fehler beim Laden der Statistiken: ${error.message}`,
     );
   }
 }
@@ -379,7 +381,7 @@ function captureLog(type, args) {
       if (typeof arg === "object" && arg !== null) {
         try {
           if (arg.embeds || arg.content) {
-            return `[Bot-Nachricht] ${arg.content || ""} ${arg.embeds ? JSON.stringify(arg.embeds) : ""}`;
+            return `${arg.content || ""} ${arg.embeds ? JSON.stringify(arg.embeds) : ""}`;
           }
           return util.inspect(arg, { depth: 2, colors: false });
         } catch (e) {
@@ -520,7 +522,7 @@ export async function initEconomyGetKekse(client) {
     }, 0);
     return existingKekse;
   } catch (err) {
-    console.error("Fehler beim Berechnen der exestierenden Kekse:", err);
+    console.error(err);
     return 0;
   }
 }
@@ -585,6 +587,7 @@ export async function initEconomySystem(client) {
         .edit({ embeds: [winEmbed], components: [] })
         .catch(() => {});
     else await channel.send({ embeds: [winEmbed] }).catch(() => {});
+    console.log(`${winner.username} hat den Jackpot in höhe von ${totalPool} gewonnen.`);
   };
 
   client.on("messageCreate", async (msg) => {
@@ -595,6 +598,7 @@ export async function initEconomySystem(client) {
       msg.author.id == FABIAN_ID
     ) {
       await wage(true);
+      console.log(`Team-Mitgliedern wurde der monatliche Lohn manuell gutgeschrieben.`);
     }
     const args = msg.content.trim().split(/ +/);
     const command = args[0].toLowerCase();
@@ -621,13 +625,15 @@ export async function initEconomySystem(client) {
         )
         .setFooter({ text: "Kekse Clan" })
         .setTimestamp();
-
+      console.log(`${msg.author.username} hat !leaderboard genutzt`);
+      console.log(`Reply ${msg.author.username}: [leaderboard]`);
       return msg.reply({ embeds: [embed] });
     }
     if (command === "!daily_setup") {
       if (msg.author.id !== FABIAN_ID) return;
       const setupId = args[1];
       if (!setupId) {
+        console.log(`Reply ${msg.author.username}: setup_id is missing`);
         return msg.reply({
           content: "setup_id is missing",
         });
@@ -656,7 +662,7 @@ export async function initEconomySystem(client) {
 
       await msg.channel.send({ embeds: [embed], components: [row] });
       console.log(
-        `[Economy] Neues Daily Setup erstellt. (daily_claim_${setupId})`,
+        `Neues Daily Setup erstellt. (daily_claim_${setupId})`,
       );
       return msg.delete().catch(() => {});
     }
@@ -664,6 +670,7 @@ export async function initEconomySystem(client) {
       if (msg.author.id !== FABIAN_ID) return;
       const setupId = args[0];
       if (!setupId) {
+        console.log(`Reply ${msg.author.username}: setup_id is missing`);
         return msg.reply({
           content: "setup_id is missing",
         });
@@ -742,6 +749,8 @@ export async function initEconomySystem(client) {
       );
 
       await shopChannel.send({ embeds: [shopEmbed], components: [row] });
+      console.log(`Neuer Shop erstellt (setup_${setupId})`);
+      console.log(`Reply ${msg.author.username}: Shop erfolgreich im Kanal #Shop erstellt.`);
       return msg.reply(
         `Shop erfolgreich im Kanal <#${SHOP_CHANNEL_ID}> erstellt`,
       );
@@ -751,18 +760,21 @@ export async function initEconomySystem(client) {
       const betAmount = parseInt(args[2]);
 
       if (!targetUser || isNaN(betAmount) || betAmount <= 0) {
+        console.log(`Reply ${msg.author.username}: Nutzung: "!coinflip @User <Einsatz>"`);
         return msg.reply({
           content: "Nutzung: `!coinflip @User <Einsatz>`",
           flags: [MessageFlags.Ephemeral],
         });
       }
       if (targetUser.id === msg.author.id) {
+        console.log(`Reply ${msg.author.username}: Du kannst nicht gegen dich selbst spielen.`);
         return msg.reply({
           content: "Du kannst nicht gegen dich selbst spielen.",
           flags: [MessageFlags.Ephemeral],
         });
       }
       if (msg.channelId !== CASINO_CHANNEL_ID) {
+        console.log(`Reply ${msg.author.username}: Nur in #Casino nutzbar.`);
         return msg.reply({
           content: `Nur in <#${CASINO_CHANNEL_ID}> nutzbar.`,
           flags: [MessageFlags.Ephemeral],
@@ -773,12 +785,14 @@ export async function initEconomySystem(client) {
       const challengedData = await getEcoData(targetUser.id);
 
       if ((challengerData.balance || 0) < betAmount) {
+        console.log(`Reply ${msg.author.username}: du hast nicht genug Kekse.`);
         return msg.reply({
           content: "Du hast nicht genug Kekse.",
           flags: [MessageFlags.Ephemeral],
         });
       }
       if ((challengedData.balance || 0) < betAmount) {
+        console.log(`Reply ${msg.author.username}: ${targetUser.username} hat nicht genug Kekse.`);
         return msg.reply({
           content: `<@${targetUser.id}> hat nicht genug Kekse.`,
           flags: [MessageFlags.Ephemeral],
@@ -797,7 +811,7 @@ export async function initEconomySystem(client) {
           .setLabel("Ablehnen")
           .setStyle(ButtonStyle.Danger),
       );
-
+      console.log(`${targetUser.username} wurde von ${msg.author.username} zu einem Coinflip um ${betAmount} Kekse herausgefordert.`);
       const challengeMsg = await msg.channel.send({
         content: `<@${targetUser.id}>, du wurdest von <@${msg.author.id}> zu einem Coinflip um **${betAmount} Kekse** herausgefordert.`,
         components: [row],
@@ -811,6 +825,7 @@ export async function initEconomySystem(client) {
 
       collector.on("collect", async (interaction) => {
         if (interaction.customId.startsWith("cf_decline_")) {
+          console.log(`${targetUser.username} hat die Herausforderung abgelehnt.`);
           await interaction.update({
             content: `<@${targetUser.id}> hat die Herausforderung abgelehnt.`,
             components: [],
@@ -828,6 +843,7 @@ export async function initEconomySystem(client) {
             content: "Jemand hat nicht mehr genug Kekse.",
             components: [],
           });
+          console.log(`Herausforderung abgebrochen.`);
           return collector.stop();
         }
 
@@ -840,7 +856,7 @@ export async function initEconomySystem(client) {
 
         winnerData.balance = (winnerData.balance || 0) + betAmount;
         loserData.balance = (loserData.balance || 0) - betAmount;
-
+        console.log(`${winnerData.username} hat ${loseData.username} in einem Coinflip um ${betAmount} besiegt.`);
         await logTransaction(
           winner.id,
           betAmount,
@@ -874,6 +890,7 @@ export async function initEconomySystem(client) {
 
       collector.on("end", (_, reason) => {
         if (reason === "time") {
+          console.log(`Herausforderung abgebrochen.`);
           challengeMsg
             .edit({ content: "Die Anfrage ist abgelaufen.", components: [] })
             .catch(() => {});
@@ -885,18 +902,21 @@ export async function initEconomySystem(client) {
       const betAmount = parseInt(args[2]);
 
       if (!targetUser || isNaN(betAmount) || betAmount <= 0) {
+        console.log(`Reply ${msg.author.username}: Nutzung: "!ssp @User <Einsatz>"`);
         return msg.reply({
           content: "Nutzung: `!ssp @User <Einsatz>`",
           flags: [MessageFlags.Ephemeral],
         });
       }
       if (targetUser.id === msg.author.id) {
+        console.log(`Reply ${msg.author.username}: Du kannst nicht gegen dich selbst spielen.`);
         return msg.reply({
           content: "Du kannst nicht gegen dich selbst spielen.",
           flags: [MessageFlags.Ephemeral],
         });
       }
       if (msg.channelId !== CASINO_CHANNEL_ID) {
+        console.log(`Reply ${msg.author.username}: Nur in #Casino nutzbar.`);
         return msg.reply({
           content: `Nur in <#${CASINO_CHANNEL_ID}> nutzbar.`,
           flags: [MessageFlags.Ephemeral],
@@ -907,12 +927,14 @@ export async function initEconomySystem(client) {
       const challengedData = await getEcoData(targetUser.id);
 
       if ((challengerData.balance || 0) < betAmount) {
+        console.log(`Reply ${msg.author.username}: Du hast nicht genug Kekse.`);
         return msg.reply({
           content: "Du hast nicht genug Kekse.",
           flags: [MessageFlags.Ephemeral],
         });
       }
       if ((challengedData.balance || 0) < betAmount) {
+        console.log(`Reply ${msg.author.username}: ${targetUser.username} hat nicht genug Kekse.`);
         return msg.reply({
           content: `<@${targetUser.id}> hat nicht genug Kekse.`,
           flags: [MessageFlags.Ephemeral],
@@ -952,6 +974,7 @@ export async function initEconomySystem(client) {
         content: `<@${targetUser.id}>, du wurdest von <@${msg.author.id}> zu **Schere Stein Papier** um **${betAmount} Kekse** herausgefordert!`,
         components: [inviteRow],
       });
+      console.log(`${msg.author.username} hat ${targetUser.username} zu Schere Stein Papier um ${betAmount} Kekse herausgefordert.`);
 
       const inviteCollector = inviteMsg.createMessageComponentCollector({
         filter: (i) => i.user.id === targetUser.id,
@@ -962,12 +985,13 @@ export async function initEconomySystem(client) {
 
       inviteCollector.on("collect", async (inviteInt) => {
         if (inviteInt.customId.startsWith("ssp_invite_decline_")) {
+          console.log(`${targetUser.username} hat abgelehnt.`);
           return inviteInt.update({
             content: `<@${targetUser.id}> hat abgelehnt.`,
             components: [],
           });
         }
-
+        console.log(`${targetUser.username} hat die Herausforderung angenommen.`);
         await inviteInt.update({
           content: `Herausforderung angenommen! Beide Spieler wählen jetzt per DM.`,
           components: [],
@@ -991,6 +1015,7 @@ export async function initEconomySystem(client) {
               dmCollector.on("collect", async (i) => {
                 const choice = i.customId.split("_")[2];
                 choices[playerUser.id] = choice;
+                console.log(`${playerUser.username} hat gewählt. (${choice})`);
                 await i.update({
                   content: `Du hast **${SSP_EMOJI[choice]} ${choice}** gewählt. Warte auf deinen Gegner...`,
                   components: [],
@@ -1000,6 +1025,7 @@ export async function initEconomySystem(client) {
 
               dmCollector.on("end", (_, reason) => {
                 if (reason === "time") {
+                  console.log(`Herausforderung abgebrochen.`);
                   choices[playerUser.id] = choices[playerUser.id] || null;
                   resolve(null);
                 }
@@ -1017,6 +1043,7 @@ export async function initEconomySystem(client) {
         const c2 = choices[targetUser.id];
         if (!c1 || !c2) {
           const whoTimeout = !c1 ? msg.author : targetUser;
+          console.log(`${whoTimeout.username} hat nicht rechtzeitig gewählt. Herausforderung abgebrochen.`);
           return inviteMsg.channel.send(
             `<@${whoTimeout.id}> hat nicht rechtzeitig gewählt. Das Spiel wurde abgebrochen.`,
           );
@@ -1031,6 +1058,7 @@ export async function initEconomySystem(client) {
 
         if (c1 === c2) {
           resultText = `**Unentschieden!** Beide haben ${c1} gewählt.`;
+          console.log(`Herausforderung beendet. Unentschieden.`);
         } else if (beats[c1] === c2) {
           winner = msg.author;
           loser = targetUser;
@@ -1040,6 +1068,7 @@ export async function initEconomySystem(client) {
           await logTransaction(loser.id, betAmount, "minus", "Multiplayer SSP");
           await setEcoData(winner.id, freshChallenger);
           await setEcoData(loser.id, freshChallenged);
+          console.log(`${winner.username} hat ${loser.username} in Schere Stein Papier um ${betAmount} Kekse besiegt.`);
           resultText = `**Gewinner:** <@${winner.id}> ${SSP_EMOJI[c1]} **+${betAmount} Kekse**\n**Verlierer:** <@${loser.id}> ${SSP_EMOJI[c2]} **-${betAmount} Kekse**`;
         } else {
           winner = targetUser;
@@ -1050,6 +1079,7 @@ export async function initEconomySystem(client) {
           await logTransaction(loser.id, betAmount, "minus", "Multiplayer SSP");
           await setEcoData(winner.id, freshChallenged);
           await setEcoData(loser.id, freshChallenger);
+          console.log(`${winner.username} hat ${loser.username} in Schere Stein Papier um ${betAmount} Kekse besiegt.`);
           resultText = `**Gewinner:** <@${winner.id}> ${SSP_EMOJI[c2]} **+${betAmount} Kekse**\n**Verlierer:** <@${loser.id}> ${SSP_EMOJI[c1]} **-${betAmount} Kekse**`;
         }
 
@@ -1066,6 +1096,7 @@ export async function initEconomySystem(client) {
 
       inviteCollector.on("end", (collected, reason) => {
         if (reason === "time") {
+          console.log(`Herausforderung abgebrochen.`);
           inviteMsg
             .edit({ content: "Die Anfrage ist abgelaufen.", components: [] })
             .catch(() => {});
@@ -1075,6 +1106,7 @@ export async function initEconomySystem(client) {
     if (command === "!casino") {
       const hasEcoRole = msg.member.roles.cache.has(ECO_ROLE_ID);
       if (!hasEcoRole) {
+        console.log(`Reply ${msg.author.username}: Du benötigst ein Account um im Casino zu spielen. nutze "!bank create".`);
         return msg.reply({
           content:
             "Du benötigst ein Account um im Casino zu spielen. Nutze `!bank create`.",
@@ -1082,6 +1114,7 @@ export async function initEconomySystem(client) {
         });
       }
       if (msg.channelId !== CASINO_CHANNEL_ID) {
+        console.log(`Reply ${msg.author.username}: Das Casino ist nur in #Casino nutzbar.`);
         return msg.reply({
           content: `Das Casino ist nur in <#${CASINO_CHANNEL_ID}> nutzbar.`,
           flags: [MessageFlags.Ephemeral],
@@ -1089,6 +1122,7 @@ export async function initEconomySystem(client) {
       }
       const userData = await getEcoData(msg.author.id);
       if (userData.blocked) {
+        console.log(`Reply ${msg.author.username}: Dein Konto ist gesperrt. Wenn es sich um ein Missverständnis handelt wende dich an den Support -> #Ticket`);
         return msg.reply({
           content:
             "Dein Konto ist gesperrt. Wenn es sich um ein Missverständnis handelt wende dich an den Support → <#1423413348493430905>",
@@ -1099,6 +1133,7 @@ export async function initEconomySystem(client) {
         const betAmount = parseInt(args[2]);
         const betType = args[3]?.toLowerCase();
         if (isNaN(betAmount) || betAmount <= 0) {
+          console.log(`Reply ${msg.author.username}: Nutzung: "!casino roulette <Einsatz> <red|black|even|odd|0-36>"`);
           return msg.reply({
             content:
               "Nutzung: `!casino roulette <Einsatz> <red|black|even|odd|0-36>`",
@@ -1106,6 +1141,7 @@ export async function initEconomySystem(client) {
           });
         }
         if (!betType) {
+          console.log(`Reply ${msg.author.username}: Bitte gib eine Wettart an: "red", "black", "even", "odd", eine Zahl "0"-"36"`);
           return msg.reply({
             content:
               "Bitte gib eine Wettart an: `red`, `black`, `even`, `odd`, eine Zahl `0`-`36`.",
@@ -1113,6 +1149,7 @@ export async function initEconomySystem(client) {
           });
         }
         if (betAmount > (userData.balance || 0)) {
+          console.log(`Reply ${msg.author.username}: Du hast nicht genug Kekse.`);
           return msg.reply({
             content: "Du hast nicht genug Kekse für diesen Einsatz.",
             flags: [MessageFlags.Ephemeral],
@@ -1161,6 +1198,7 @@ export async function initEconomySystem(client) {
           payout = won ? betAmount : -betAmount;
           betDesc = "19-36";
         } else {
+          console.log(`Reply ${msg.author.username}: Ungültige Angabe. Nutze: "red", "black", "even", "odd", eine Zahl (0-36).`);
           return msg.reply({
             content:
               "Ungültige Angabe. Nutze: `red`, `black`, `even`, `odd`, eine Zahl (0-36).",
@@ -1169,6 +1207,7 @@ export async function initEconomySystem(client) {
         }
 
         userData.balance = (userData.balance || 0) + payout;
+        console.log(`${msg.author.username} hat im Roulette ${payout} Kekse gewonnen.`);
         await logTransaction(
           msg.author.id,
           payout,
@@ -1187,27 +1226,30 @@ export async function initEconomySystem(client) {
             value: `${payout >= 0 ? "+" : ""}${payout} Kekse\nNeuer Kontostand: **${userData.balance} Kekse**`,
           })
           .setColor(won ? 0x333333 : 0x333333);
-
+        console.log(`Reply ${msg.author.username}: [roulette]`);
         return msg.reply({ embeds: [roulEmbed] });
       }
       if (subCommand === "coinflip") {
         const betAmount = parseInt(args[2]);
         const choice = args[3]?.toLowerCase();
         if (isNaN(betAmount) || betAmount <= 0) {
+          console.log(`Reply ${msg.author.username}: Nutzung: "!casino coinlip <Einsatz> <heads|tails>"`);
           return msg.reply({
             content: "Nutzung: `!casino coinflip <Einsatz> <heads|tails>`",
             flags: [MessageFlags.Ephemeral],
           });
         }
         if (choice !== "heads" && choice !== "tails") {
+          console.log(`Reply ${msg.author.username}: Bitte wähle "heads" (Kopf) oder "tails" (Zahl).`);
           return msg.reply({
             content: "Bitte wähle `heads` (Kopf) oder `tails` (Zahl).",
             flags: [MessageFlags.Ephemeral],
           });
         }
         if (betAmount > (userData.balance || 0)) {
+          console.log(`Reply ${msg.author.username}: Du hast nicht genug Kekse.`);
           return msg.reply({
-            content: "Du hast nicht genug Kekse für diesen Einsatz.",
+            content: "Du hast nicht genug Kekse.",
             flags: [MessageFlags.Ephemeral],
           });
         }
@@ -1216,6 +1258,7 @@ export async function initEconomySystem(client) {
         const won = flip === choice;
         userData.balance =
           (userData.balance || 0) + (won ? betAmount : -betAmount);
+        console.log(`${msg.author.username} hat im Coinflip ` + betAmount + ` Kekse ` + (won ? `gewonnen` : `verloren`) + `.`);
         await logTransaction(
           msg.author.id,
           betAmount,
@@ -1234,24 +1277,27 @@ export async function initEconomySystem(client) {
             value: `${won ? "+" : "-"}${betAmount} Kekse\nNeuer Kontostand: **${userData.balance} Kekse**`,
           })
           .setColor(won ? 0x333333 : 0x333333);
-
+        console.log(`Reply ${msg.author.username}: [coinflip]`);
         return msg.reply({ embeds: [cfEmbed] });
       }
       if (subCommand === "jackpot") {
         const betAmount = parseInt(args[2]);
         if (isNaN(betAmount) || betAmount <= 0) {
+          console.log(`Reply ${msg.author.username}: Nutzung: "!casino jackpot <Einsatz>"`);
           return msg.reply({
             content: "Nutzung: `!casino jackpot <Einsatz>`",
             flags: [MessageFlags.Ephemeral],
           });
         }
         if (betAmount > (userData.balance || 0)) {
+          console.log(`Reply ${msg.author.username}: Du hast nicht genug Kekse.`);
           return msg.reply({
-            content: "Du hast nicht genug Kekse für diesen Einsatz.",
+            content: "Du hast nicht genug Kekse.",
             flags: [MessageFlags.Ephemeral],
           });
         }
         if (jackpotState.entries.find((e) => e.userId === msg.author.id)) {
+          console.log(`Reply ${msg.author.username}: Du bist bereits im Jackpot! Warte auf die Ziehung.`);
           return msg.reply({
             content: "Du bist bereits im Jackpot! Warte auf die Ziehung.",
             flags: [MessageFlags.Ephemeral],
@@ -1265,6 +1311,7 @@ export async function initEconomySystem(client) {
           "minus",
           "Casino Jackpot",
         );
+        console.log(`${userData.username} hat den Jackpot mit ${betAmount} betreten.`);
         await setEcoData(msg.author.id, userData);
         jackpotState.entries.push({
           userId: msg.author.id,
@@ -1280,7 +1327,7 @@ export async function initEconomySystem(client) {
                 (e.betAmount / jackpotState.totalPool) *
                 100
               ).toFixed(1);
-              return `<@${e.userId}> — **${e.betAmount} Kekse** (${pct}%)`;
+              return `<@${e.userId}> - **${e.betAmount} Kekse** (${pct}%)`;
             })
             .join("\n");
           return new EmbedBuilder()
@@ -1306,6 +1353,7 @@ export async function initEconomySystem(client) {
           const jMsg = await msg.channel.send({
             embeds: [buildJackpotEmbed("Warte auf weitere Teilnehmer…")],
           });
+          console.log(`Reply ${msg.author.username}: [jackpot]`);
           jackpotState.announceMessage = jMsg;
         }
 
@@ -1342,18 +1390,21 @@ export async function initEconomySystem(client) {
       if (subCommand === "crash") {
         const betAmount = parseInt(args[2]);
         if (isNaN(betAmount) || betAmount <= 0) {
+          console.log(`Reply ${msg.author.username}: Nutzung: "!casino crash <Einsatz>"`);
           return msg.reply({
             content: "Nutzung: `!casino crash <Einsatz>`",
             flags: [MessageFlags.Ephemeral],
           });
         }
         if (betAmount > (userData.balance || 0)) {
+          console.log(`Reply ${msg.author.username}: Du hast nicht genug Kekse.`);
           return msg.reply({
-            content: "Du hast nicht genug Kekse für diesen Einsatz.",
+            content: "Du hast nicht genug Kekse.",
             flags: [MessageFlags.Ephemeral],
           });
         }
         if (crashGames.has(msg.author.id)) {
+          console.log(`Reply ${msg.author.username}: Du hast bereits ein aktives Crash-Spiel!`);
           return msg.reply({
             content: "Du hast bereits ein aktives Crash-Spiel!",
             flags: [MessageFlags.Ephemeral],
@@ -1361,6 +1412,7 @@ export async function initEconomySystem(client) {
         }
 
         userData.balance -= betAmount;
+        console.log(`${userData.username} hat einen Crash gestartet.`);
         await logTransaction(msg.author.id, betAmount, "minus", "Casino Crash");
         await setEcoData(msg.author.id, userData);
 
@@ -1404,7 +1456,7 @@ export async function initEconomySystem(client) {
             )
             .setColor(0xffffff);
         };
-
+        console.log(`Reply ${msg.author.username}: [crash]`);
         const gameMsg = await msg.reply({
           embeds: [crashEmbed()],
           components: [cashoutRow()],
@@ -1430,7 +1482,7 @@ export async function initEconomySystem(client) {
           if (!game || game.cashedOut) {
             await interaction
               .reply({
-                content: "Zu spät — das Spiel ist bereits beendet!",
+                content: "Zu spät - das Spiel ist bereits beendet!",
                 flags: [MessageFlags.Ephemeral],
               })
               .catch(() => {});
@@ -1445,6 +1497,7 @@ export async function initEconomySystem(client) {
 
           const win = Math.floor(betAmount * game.cashedAtMultiplier);
           userData.balance += win;
+          console.log(`${userData.username} hat den Crash mit ${win} Keksen verlassen.`);
           await logTransaction(msg.author.id, win, "plus", "Casino Crash");
           await setEcoData(msg.author.id, userData);
 
@@ -1469,6 +1522,7 @@ export async function initEconomySystem(client) {
             clearInterval(intervalHandle);
             crashGames.delete(msg.author.id);
             collector.stop("crashed");
+            console.log(`Crash beendet.`);
             await gameMsg
               .edit({ embeds: [crashEmbed(true)], components: [] })
               .catch(() => {});
@@ -1498,18 +1552,21 @@ export async function initEconomySystem(client) {
       if (subCommand === "highlow" || subCommand === "hl") {
         const betAmount = args.map(Number).find((n) => !isNaN(n) && n > 0);
         if (isNaN(betAmount) || betAmount <= 0) {
+          console.log(`Reply ${msg.author.username}: Nutzung: "!casino highlow <Einsatz>"`);
           return msg.reply({
             content: "Nutzung: `!casino highlow <Einsatz>`",
             flags: [MessageFlags.Ephemeral],
           });
         }
         if (betAmount > (userData.balance || 0)) {
+          console.log(`Reply ${msg.author.username}: Du hast nicht genug Kekse.`);
           return msg.reply({
-            content: "Du hast nicht genug Kekse für diesen Einsatz.",
+            content: "Du hast nicht genug Kekse.",
             flags: [MessageFlags.Ephemeral],
           });
         }
         if (hlGames.has(msg.author.id)) {
+          console.log(`Reply ${msg.author.username}: Du hast bereits ein aktives Higher/Lower-Spiel.`);
           return msg.reply({
             content: "Du hast bereits ein aktives Higher/Lower-Spiel!",
             flags: [MessageFlags.Ephemeral],
@@ -1521,6 +1578,7 @@ export async function initEconomySystem(client) {
           userData.hl_today_count = 0;
         }
         if ((userData.hl_today_count || 0) >= 5) {
+          console.log(`Reply ${msg.author.username}: Du hast dein Limit von 5 Higher/Lower-Spielen für heute bereits erreicht! Komm morgen wieder.`);
           return msg.reply({
             content:
               "Du hast dein Limit von **5 Higher/Lower-Spielen** für heute bereits erreicht! Komm morgen wieder.",
@@ -1529,7 +1587,7 @@ export async function initEconomySystem(client) {
         }
         userData.hl_today_count = (userData.hl_today_count || 0) + 1;
         userData.balance -= betAmount;
-
+        console.log(`${userData.username} hat ein Higher/Lower-Spiel gestartet.`);
         await logTransaction(
           msg.author.id,
           betAmount,
@@ -1609,7 +1667,7 @@ export async function initEconomySystem(client) {
             .setTitle("Higher or Lower")
             .setDescription(desc)
             .setColor(0xffffff);
-
+        console.log(`Reply ${msg.author.username}: [higher/lower]`);
         const gameMsg = await msg.reply({
           embeds: [
             hlEmbed(
@@ -1691,6 +1749,7 @@ export async function initEconomySystem(client) {
           if (reason === "cashout") {
             const win = Math.floor(betAmount * multiplier);
             fresh.balance = (fresh.balance || 0) + win;
+            console.log(`${fresh.username} hat das Higher/Lower-Spiel mit ${win} Keksen verlassen.`);
             await logTransaction(
               msg.author.id,
               win,
@@ -1710,6 +1769,7 @@ export async function initEconomySystem(client) {
               })
               .catch(() => {});
           } else if (reason === "wrong") {
+            console.log(`Higher/Lower-Spiel beendet.`);
             await gameMsg
               .edit({
                 embeds: [
@@ -1732,6 +1792,7 @@ export async function initEconomySystem(client) {
                 "Casino Higher Lower",
               );
               await setEcoData(msg.author.id, fresh);
+              console.log(`${fresh.username} hat das Higher/Lower-Spiel mit ${win} Keksen verlassen.`);
               await gameMsg
                 .edit({
                   embeds: [
@@ -1764,15 +1825,17 @@ export async function initEconomySystem(client) {
       if (subCommand === "blackjack") {
         const betAmount = parseInt(args[2]);
         if (isNaN(betAmount) || betAmount <= 0) {
+          console.log(`Reply ${msg.author.username}: Nutzung: "!casino blackjack <Einsatz>"`);
           return msg.reply({
             content:
-              "Bitte gib einen gültigen Einsatz an (z.B. `!casino blackjack 10`).",
+              "Nutzung: `!casino blackjack <Einsatz>`",
             flags: [MessageFlags.Ephemeral],
           });
         }
         if (betAmount > (userData.balance || 0)) {
+          console.log(`Reply ${msg.author.username}: Du hast nicht genug Kekse.`);
           return msg.reply({
-            content: "Du hast nicht genug Kekse für diesen Einsatz.",
+            content: "Du hast nicht genug Kekse.",
             flags: [MessageFlags.Ephemeral],
           });
         }
@@ -1860,6 +1923,7 @@ export async function initEconomySystem(client) {
           } else {
             status = "Blackjack! Du erhältst das 1.5-fache deines Einsatzes!";
             userData.balance += Math.floor(betAmount * 1.5);
+            console.log(`${userData.username} hat einen Blackjack und erhält ${betAmount * 1.5} Kekse.`);
             await logTransaction(
               msg.author.id,
               Math.floor(betAmount * 1.5),
@@ -1876,7 +1940,7 @@ export async function initEconomySystem(client) {
           ).setFooter({ text: `Neuer Kontostand: ${userData.balance} Kekse` });
           return msg.reply({ embeds: [finalEmbed] });
         }
-
+        console.log(`Reply ${msg.author.username}: [blackjack]`);
         const gameMessage = await msg.reply({
           embeds: [createEmbed("Blackjack", 0xffffff)],
           components: [row],
@@ -1925,6 +1989,7 @@ export async function initEconomySystem(client) {
           if (reason === "busted" || pScore > 21) {
             status = "Überkauft! Du hast verloren.";
             userData.balance -= betAmount;
+            console.log(`Blackjack beendet.`);
             await logTransaction(
               msg.author.id,
               betAmount,
@@ -1935,6 +2000,7 @@ export async function initEconomySystem(client) {
           } else if (dScore > 21) {
             status = "Dealer überkauft! Du gewinnst!";
             userData.balance += betAmount;
+            console.log(`Dealer überkauft. ${userData.username} erhält ${betAmount} Kekse.`);
             await logTransaction(
               msg.author.id,
               betAmount,
@@ -1944,6 +2010,7 @@ export async function initEconomySystem(client) {
           } else if (pScore > dScore) {
             status = "Mehr Punkte als der Dealer. Du gewinnst!";
             userData.balance += betAmount;
+            console.log(`Mehr Punkte als der Dealer. ${userData.username} erhält ${betAmount} Kekse.`);
             await logTransaction(
               msg.author.id,
               betAmount,
@@ -1953,6 +2020,7 @@ export async function initEconomySystem(client) {
           } else if (pScore < dScore) {
             status = "Dealer hat mehr Punkte. Verloren!";
             userData.balance -= betAmount;
+            console.log(`Blackjack beendet.`);
             await logTransaction(
               msg.author.id,
               betAmount,
@@ -1961,6 +2029,7 @@ export async function initEconomySystem(client) {
             );
             finalColor = 0x333333;
           } else {
+            console.log(`Blackjack beendet. Unentschieden.`);
             status = "Unentschieden! Du erhältst deinen Einsatz zurück.";
             finalColor = 0x333333;
           }
@@ -1976,6 +2045,7 @@ export async function initEconomySystem(client) {
         });
         return;
       }
+      console.log(`Reply ${msg.author.username}: Unbekanntes Spiel. Verfügbare Spiele: "roulette", "coinflip", "jackpot", "crash", "highlow", "blackjack"`);
       return msg.reply({
         content:
           "Unbekanntes Spiel. Verfügbare Spiele: `roulette`, `coinflip`, `jackpot`, `crash`, `highlow`, `blackjack`",
@@ -1996,6 +2066,7 @@ export async function initEconomySystem(client) {
 
         if (subCommand === "see") {
           if (!targetUser)
+            console.log(`Reply ${msg.author.username}: user is missing`);
             return msg.reply({
               content: "user is missing",
               flags: [MessageFlags.Ephemeral],
@@ -2014,6 +2085,7 @@ export async function initEconomySystem(client) {
               { name: "Kontostand", value: `${data.balance || 0} Kekse` },
               { name: "Gesperrt?", value: data.blocked ? "Ja" : "Nein" },
             );
+          console.log(`Reply ${msg.author.username}: [bank see]`);
           await msg.author.send({ embeds: [dmEmbed] }).catch(() => {});
           return msg.delete().catch(() => {});
         }
@@ -2026,6 +2098,7 @@ export async function initEconomySystem(client) {
         }
 
         if (isNaN(amount) || amount <= 0) {
+          console.log(`Reply ${msg.author.username}: incorrect amount`);
           return msg.reply({
             content: "incorrect amount",
             flags: [MessageFlags.Ephemeral],
@@ -2037,8 +2110,10 @@ export async function initEconomySystem(client) {
 
         if (subCommand === "add") {
           currentBalance += amount;
+          console.log(`${targetData.username} erhält ${amount} Kekse.`);
         } else {
           currentBalance = Math.max(0, currentBalance - amount);
+          console.log(`${targetData.username} verliert ${amount} Kekse`);
         }
 
         targetData.balance = currentBalance;
@@ -2058,11 +2133,13 @@ export async function initEconomySystem(client) {
           .setColor(0xffffff);
 
         await msg.author.send({ embeds: [logEmbed] }).catch(() => {});
+        console.log(`Reply ${msg.author.username}: [Konto-Aktualisierung]`);
         return msg.delete().catch(() => {});
       }
 
       if (subCommand === "create") {
         if (hasEcoRole) {
+          console.log(`Reply ${msg.author.username}: Du besitzt bereits ein registriertes Bankkonto`);
           return msg.reply({
             content: "Du besitzt bereits ein registriertes Bankkonto.",
             flags: [MessageFlags.Ephemeral],
@@ -2075,7 +2152,7 @@ export async function initEconomySystem(client) {
             .setLabel("Konto erstellen")
             .setStyle(ButtonStyle.Primary),
         );
-
+        console.log(`Reply ${msg.author.username}: Klicke auf den Button unten, um dein Konto zu erstellen. Dieser Button ist nur von dir Nutzbar. [Button]`);
         const reply = await msg.reply({
           content:
             "Klicke auf den Button unten, um dein Konto zu erstellen. Dieser Button ist nur von dir Nutzbar.",
@@ -2108,7 +2185,7 @@ export async function initEconomySystem(client) {
               value: "Überweise Kekse an eine andere Person.",
             },
           );
-
+        console.log(`Reply ${msg.author.username}: [Bank help]`);
         return msg.reply({
           embeds: [helpEmbed],
           flags: [MessageFlags.Ephemeral],
@@ -2123,6 +2200,7 @@ export async function initEconomySystem(client) {
         const userData = await getEcoData(msg.author.id);
 
         if (!targetUserId || isNaN(amount) || amount <= 0) {
+          console.log(`Reply ${msg.author.username}: Nutzung: "!bank pay @User <Betrag>"`);
           return msg.reply({
             content: "Nutzung: `!bank pay @User <Betrag>`",
             flags: [MessageFlags.Ephemeral],
@@ -2130,6 +2208,7 @@ export async function initEconomySystem(client) {
         }
 
         if (targetUserId === msg.author.id) {
+          console.log(`Reply ${msg.author.username}: Du kannst dir selbst keine Kekse überweisen.`);
           return msg.reply({
             content: "Du kannst dir selbst keine Kekse überweisen.",
             flags: [MessageFlags.Ephemeral],
@@ -2137,14 +2216,16 @@ export async function initEconomySystem(client) {
         }
 
         if (amount > (userData.balance || 0)) {
+          console.log(`Reply ${msg.author.username}: Du hast nicht genug Kekse.`);
           return msg.reply({
-            content: "Du hast nicht genug Kekse für diese Überweisung.",
+            content: "Du hast nicht genug Kekse.",
             flags: [MessageFlags.Ephemeral],
           });
         }
 
         const targetData = await getEcoData(targetUserId);
         if (!targetData || targetData.blocked) {
+          console.log(`Reply ${msg.author.username}: Der Zielnutzer hat kein aktives Konto oder ist gesperrt.`);
           return msg.reply({
             content: "Der Zielnutzer hat kein aktives Konto oder ist gesperrt.",
             flags: [MessageFlags.Ephemeral],
@@ -2169,7 +2250,7 @@ export async function initEconomySystem(client) {
         await setEcoData(targetUserId, targetData);
 
         console.log(
-          `[Economy] Überweisung von ${userData.username || msg.author.username} an ${targetData.username || targetUserId} für ${amount} Kekse.`,
+          `Überweisung von ${userData.username || msg.author.username} an ${targetData.username || targetUserId} für ${amount} Kekse.`,
         );
 
         const payEmbed = new EmbedBuilder()
@@ -2193,7 +2274,7 @@ export async function initEconomySystem(client) {
             value: `${targetData.balance} Kekse`,
           })
           .setColor(0xffffff);
-
+        console.log(`Reply ${msg.author.username}: [pay]`);
         await msg.reply({
           embeds: [payEmbed],
           flags: [MessageFlags.Ephemeral],
@@ -2214,6 +2295,7 @@ export async function initEconomySystem(client) {
           const existingKekse = await initEconomyGetKekse(client);
           return msg.reply(`Es sind aktuell ${existingKekse} Kekse im Umlauf.`);
         } else {
+          console.log(`Reply ${msg.author.username}: Du hast nicht die Berechtigung diese Funktion zu nutzen. Wenn es sich um einen Fehler handelt wende dich bitte an den Support.`);
           return msg.reply(
             `Du hast nicht die Berechtigung diese Funktion zu nutzen. Wenn es sich um einen Fehler handelt wende dich bitte an den Support.`,
           );
@@ -2221,6 +2303,7 @@ export async function initEconomySystem(client) {
       }
       if (!subCommand) {
         if (!hasEcoRole) {
+          console.log(`Reply ${msg.author.username}: Du hast noch kein Konto. Nutze "!bank create", um dich zu registrieren.`);
           return msg.reply({
             content:
               "Du hast noch kein Konto. Nutze `!bank create`, um dich zu registrieren.",
@@ -2231,6 +2314,7 @@ export async function initEconomySystem(client) {
         const userData = await getEcoData(msg.author.id);
 
         if (userData.blocked) {
+          console.log(`Reply ${msg.author.username}: Dein Konto ist gesperrt. Wenn es sich um ein Missverständnis handelt wende dich an den Support -> #Ticket`);
           return msg.reply({
             content:
               "Dein Konto ist gesperrt. Wenn es sich um ein Missverständnis handelt wende dich an den Support → <#1423413348493430905>",
@@ -2240,6 +2324,7 @@ export async function initEconomySystem(client) {
         const userName = msg.author;
         if (msg.content.startsWith("!bank")) {
           await msg.delete().catch(() => {});
+          console.log(`Send ${msg.author.username}: Dein aktueller Kontostand beträgt: ${userData.balance} Kekse.`);
           return userName.send({
             content: `Dein aktueller Kontostand beträgt: **${userData.balance || 0} Kekse**`,
           });
@@ -2256,6 +2341,7 @@ export async function initEconomySystem(client) {
         );
 
         if (interaction.user.id !== allowedUserId) {
+          console.log(`Reply ${msg.author.username}: Du kannst diesen Button nicht nutzen, da du den Befehl nicht eingegeben hast.`);
           return interaction.reply({
             content:
               "Du kannst diesen Button nicht nutzen, da du den Befehl nicht eingegeben hast.",
@@ -2265,6 +2351,7 @@ export async function initEconomySystem(client) {
 
         const hasEcoRole = interaction.member.roles.cache.has(ECO_ROLE_ID);
         if (hasEcoRole) {
+          console.log(`Reply ${msg.author.username}: Du besitzt bereits ein registriertes Bankkonto.`);
           return interaction.reply({
             content: "Du besitzt bereits ein registriertes Bankkonto.",
             flags: [MessageFlags.Ephemeral],
@@ -2290,6 +2377,7 @@ export async function initEconomySystem(client) {
       if (interaction.customId.startsWith("daily_claim_")) {
         const hasEcoRole = interaction.member.roles.cache.has(ECO_ROLE_ID);
         if (!hasEcoRole) {
+          console.log(`Reply ${msg.author.username}: Du benötigst zuerst ein registriertes Bankkonto ("!bank create")`);
           return interaction.reply({
             content:
               "Du benötigst zuerst ein registriertes Bankkonto (`!bank create`).",
@@ -2307,6 +2395,7 @@ export async function initEconomySystem(client) {
           userData.claimedDailies = {};
         }
         if (userData.claimedDailies[setupId] === localizedDateStr) {
+          console.log(`Reply ${interaction.user.username}: Du hast deine Kekse für dieses Event heute bereits abgeholt! Versuche es nach 00:00 Uhr (de-DE) erneut.`);
           return interaction.reply({
             content: `Du hast deine Kekse für **dieses Event** heute bereits abgeholt! Versuche es nach 00:00 Uhr (de-DE) erneut.`,
             flags: [MessageFlags.Ephemeral],
@@ -2323,6 +2412,7 @@ export async function initEconomySystem(client) {
           userData.claimedDailies = { ...userData.claimedDailies };
         }
         await setEcoData(interaction.user.id, userData);
+        console.log(`Reply ${interaction.user.username}: Erfolgreich! Dir wurden 100 Kekse auf dein Bankkonto gutgeschrieben.`);
         return interaction.reply({
           content:
             "Erfolgreich! Dir wurden 100 Kekse auf dein Bankkonto gutgeschrieben.",
@@ -2367,12 +2457,14 @@ export async function initEconomySystem(client) {
 
         const item = SHOP_ITEMS[itemType];
         if (!item)
+          console.log(`Reply ${interaction.user.username}: Dieses Item existiert nicht.`);
           return interaction.reply({
             content: "Dieses Item existiert nicht!",
             flags: MessageFlags.Ephemeral,
           });
 
         if (member.roles.cache.has(item.roleId)) {
+          console.log(`Reply ${interaction.user.username}: Du besitzt das Item ${item.name} bereits.`);
           return interaction.reply({
             content: `Du besitzt das Item **${item.name}** bereits!`,
             flags: MessageFlags.Ephemeral,
@@ -2384,6 +2476,7 @@ export async function initEconomySystem(client) {
         let currentCookies = freshData.balance || 0;
 
         if (currentCookies < item.price) {
+          console.log(`Reply ${interaction.user.username}: Du hast nicht genug Kekse für diesen Kauf! 1x ${item.name} kostet ${item.price.toLocaleString("de-DE")} Kekse (Du hast: ${currentCookies.toLocaleString("de-DE")}).`);
           return interaction.reply({
             content: `Du hast nicht genug Kekse für diesen Kauf! 1x **${item.name}** kostet **${item.price.toLocaleString("de-DE")} Kekse** (Du hast: ${currentCookies.toLocaleString("de-DE")}).`,
             flags: MessageFlags.Ephemeral,
@@ -2400,7 +2493,8 @@ export async function initEconomySystem(client) {
 
           await setEcoData(interaction.user.id, finalData);
           await member.roles.add(item.roleId);
-
+          console.log(`${interaction.user.username} hat ${item.name} im Shop erworben.`);
+          console.log(`Reply ${interaction.user.username}: Kauf erfolgreich: Du hast ${item.name} erhalten!`);
           await interaction.reply({
             content: `Kauf erfolgreich: Du hast **${item.name}** erhalten!`,
             flags: MessageFlags.Ephemeral,
@@ -2446,6 +2540,7 @@ export async function initEconomySystem(client) {
                     `[Shop] Rolle wurde von ${currentMember} entfernt`,
                   );
                   await currentMember
+                    console.log(`Send ${interaction.user.username}: Dein ${item.name} ist abgelaufen und wurde entfernt.`);
                     .send(
                       `Dein **${item.name}** ist abgelaufen und wurde entfernt!`,
                     )
@@ -2461,6 +2556,7 @@ export async function initEconomySystem(client) {
           }
         } catch (error) {
           console.error("Fehler beim Shop-Kauf:", error);
+          console.log(`Reply ${interaction.user.username}: Es gab einen Fehler beim Verarbeiten deines Kaufs.`);
           return interaction.reply({
             content: "Es gab einen Fehler beim Verarbeiten deines Kaufs!",
             flags: MessageFlags.Ephemeral,
@@ -2492,17 +2588,12 @@ export async function initEconomySystem(client) {
         if (member) {
           await member.roles.add(ECO_ROLE_ID).catch(() => {});
         }
-
+        console.log(`${interaction.user.username} hat ein Konto erstellt.`);
+        console.log(`Reply ${interaction.user.username}: Dein Konto wurde erfolgreich angelegt! Minecraft-Name: ${mcUsername}, Startguthaben: 100 Kekse, Du hast nun zugriff auf dein Konto mit "!bank"`);
         await interaction.reply({
           content: `Dein Konto wurde erfolgreich angelegt!\n**Minecraft-Name:** ${mcUsername}\n**Startguthaben:** 100 Kekse\nDu hast nun Zugriff auf dein Konto mit \`!bank\`.`,
           flags: MessageFlags.Ephemeral,
         });
-
-        if (typeof dashboardLog === "function") {
-          console.log(
-            `[Economy] Neues Konto für ${interaction.user.id} (MC: ${mcUsername}) erstellt.`,
-          );
-        }
       }
     }
   });
@@ -2555,6 +2646,7 @@ async function fuehreGehaltszahlungAus(now) {
     for (const member of team) {
       const userData = await getEcoData(member.user.id);
       userData.balance = (userData.balance || 0) + 10000;
+      console.log(`${userData.username} wurde der monatliche Team-Lohn in höhe von 10000 Keksen gutgeschrieben. Neuer Kontostand: ${userData.balance} Kekse`);
       await setEcoData(member.user.id, userData);
 
       const embed = {
@@ -2600,6 +2692,7 @@ export function initAdminFun(client) {
       const attachment = new AttachmentBuilder(filePfad, {
         name: "blobfish.jpg",
       });
+      console.log(`${msg.author.username} hat !blob genutzt.`);
       msg.channel.send({ files: [attachment] });
     }
     if (cmd === "sand") {
@@ -2607,6 +2700,7 @@ export function initAdminFun(client) {
       const attachment = new AttachmentBuilder(filePfad, {
         name: "sandkorn.png",
       });
+      console.log(`${msg.author.username} hat !sand genutzt.`);
       msg.channel.send({ files: [attachment] });
     }
     if (cmd === "sandkorn") {
@@ -2614,6 +2708,7 @@ export function initAdminFun(client) {
       const attachment = new AttachmentBuilder(filePfad, {
         name: "strand.jpg",
       });
+      console.log(`${msg.author.username} hat !sandkorn genutzt.`);
       msg.channel.send({ files: [attachment] });
     }
   });
@@ -2633,7 +2728,7 @@ async function loadActiveTransfers() {
       activeTransfers.set(id, transfer);
     }
     console.log(
-      `[Transfer] ${activeTransfers.size} aktive Transfers aus DB geladen.`,
+      `${activeTransfers.size} aktive Transfers aus DB geladen.`,
     );
   }
 }
@@ -3038,6 +3133,7 @@ export async function clear(client) {
     const finishMsg = await message.channel.send(
       `**Abschlussbericht:**\n- Gelöscht: **${deletedCount}**\n- Dauer: **${duration}s**\n- Kanal: <#${targetChannel.id}>`,
     );
+    console.log(`Clear: ${deletedCount} Nachrichten, Dauer: ${duration}s, Kanal: <#${targetChannel.id}>`);
 
     const userList =
       userIds.length > 0
@@ -3099,7 +3195,7 @@ export function initModeration(client) {
         )
         .setFooter({ text: "Kekse Clan | Moderation Logs" })
         .setTimestamp();
-
+      console.log(`Aktion: ${action}, Von: ${msg.author.username}, User: ${target.tag}, Grund: ${reason}${extra ? `Info: ${extra}`}`);
       await logChannel.send({ embeds: [kekseEmbed] }).catch(() => {});
     };
     if (cmd === "timeout") {
@@ -3107,18 +3203,21 @@ export function initModeration(client) {
       const durationStr = args[1];
       const reason = args.slice(2).join(" ") || "Kein Grund";
       if (!user || !durationStr)
+        console.log(`Reply ${msg.author.username}:Syntax: "!timeout @user 10m Grund"`);
         return msg.reply({
           content: " Syntax: `!timeout @user 10m Grund`.",
           flags: [MessageFlags.Ephemeral],
         });
       const match = durationStr.match(/^(\d+)([smhd])$/);
       if (!match)
+        console.log(`Reply ${msg.author.username}: Format: 10s, 5m, 2h, 1d`);
         return msg.reply({
           content: " Format: 10s, 5m, 2h, 1d",
           flags: [MessageFlags.Ephemeral],
         });
       const durationMs = parseTimeframe(durationStr);
       if (durationMs === 0)
+        console.log(`Reply ${msg.author.username}: Ungültige Zeitangabe.`);
         return msg.reply({
           content: " Ungültige Zeitangabe.",
           flags: [MessageFlags.Ephemeral],
@@ -3127,11 +3226,13 @@ export function initModeration(client) {
         const member = await msg.guild.members.fetch(user.id);
         await member.timeout(durationMs, reason);
         await sendModLog("Timeout", user, reason, `Dauer: ${durationStr}`);
+        console.log(`Reply ${msg.author.username}: Timeout: ${user.username} für ${durationStr}`);
         await msg.reply({
           content: ` **Timeout**: <@${user.id}> für ${durationStr}.`,
           flags: [MessageFlags.Ephemeral],
         });
       } catch (err) {
+        console.log(`Reply ${msg.author.username}: Fehler: User nicht auf Server oder fehlende Rechte.`);
         await msg.reply({
           content: " Fehler: User nicht auf Server oder fehlende Rechte.",
           flags: [MessageFlags.Ephemeral],
@@ -3143,6 +3244,7 @@ export function initModeration(client) {
       const user = await getUser(args[0]);
       const reason = args.slice(1).join(" ") || "Kein Grund";
       if (!user)
+        console.log(`Reply ${msg.author.username}: User nicht gefunden.`);
         return msg.reply({
           content: "User nicht gefunden.",
           flags: [MessageFlags.Ephemeral],
@@ -3152,11 +3254,13 @@ export function initModeration(client) {
         const member = await msg.guild.members.fetch(user.id);
         await member.timeout(null, reason);
         await sendModLog("Untimeout", user, reason);
+        console.log(`Reply ${msg.author.username}: Untimeout: ${user.username}`);
         await msg.reply({
           content: `**Untimeout**: <@${user.id}>`,
           flags: [MessageFlags.Ephemeral],
         });
       } catch (err) {
+        console.log(`Reply ${msg.author.username}: Fehler beim Untimeout.`);
         await msg.reply({
           content: "Fehler beim Untimeout.",
           flags: [MessageFlags.Ephemeral],
@@ -3169,6 +3273,7 @@ export function initModeration(client) {
       const user = await getUser(args[0]);
       const reason = args.slice(1).join(" ") || "Kein Grund";
       if (!user)
+        console.log(`Reply ${msg.author.username}: User niciht gefunden.`);
         return msg.reply({
           content: "User nicht gefunden.",
           flags: [MessageFlags.Ephemeral],
@@ -3177,11 +3282,13 @@ export function initModeration(client) {
       try {
         await msg.guild.members.kick(user.id, reason);
         await sendModLog("Kick", user, reason);
+        console.log(`Reply ${msg.author.username}: Kick: ${user.username}`);
         await msg.reply({
           content: `**Kick**: <@${user.id}>`,
           flags: [MessageFlags.Ephemeral],
         });
       } catch (err) {
+        console.log(`Reply ${msg.author.username}: Fehler beim Kick.`);
         await msg.reply({
           content: "Fehler beim Kick.",
           flags: [MessageFlags.Ephemeral],
@@ -3194,6 +3301,7 @@ export function initModeration(client) {
       const idInput = args[0]?.replace(/[<@!>]/g, "");
       const reason = args.slice(1).join(" ") || "Kein Grund";
       if (!idInput || !/^\d{17,20}$/.test(idInput))
+        console.log(`Reply ${msg.author.username}: enter valid user_id`);
         return msg.reply({
           content: "enter valid user_id",
           flags: [MessageFlags.Ephemeral],
@@ -3205,11 +3313,13 @@ export function initModeration(client) {
           .catch(() => ({ id: idInput, tag: "Unknown#0000" }));
         await msg.guild.members.ban(idInput, { reason });
         await sendModLog("Ban", user, reason);
+        console.log(`Reply ${msg.author.username}: Ban: ${user.tag} wurde gebannt.`);
         await msg.reply({
           content: `**Ban**: ${user.tag || idInput} wurde gebannt.`,
           flags: [MessageFlags.Ephemeral],
         });
       } catch (err) {
+        console.log(`Reply ${msg.author.username}: Fehler beim Ban.`);
         await msg.reply({
           content: "Fehler beim Ban.",
           flags: [MessageFlags.Ephemeral],
@@ -3222,6 +3332,7 @@ export function initModeration(client) {
       const idInput = args[0]?.replace(/[<@!>]/g, "");
       const reason = args.slice(1).join(" ") || "Kein Grund";
       if (!idInput)
+        console.log(`Reply ${msg.author.username}: user_id is missing`);
         return msg.reply({
           content: "user_id is missing",
           flags: [MessageFlags.Ephemeral],
@@ -3233,11 +3344,13 @@ export function initModeration(client) {
           .catch(() => ({ id: idInput, tag: idInput }));
         await msg.guild.members.unban(idInput, reason);
         await sendModLog("Unban", user, reason);
+        console.log(`Reply ${msg.author.username}: Unban: ${user.tag}`);
         await msg.reply({
           content: `**Unban**: ${user.tag || idInput}`,
           flags: [MessageFlags.Ephemeral],
         });
       } catch (err) {
+        console.log(`Reply ${msg.author.username}: enter valid user_id`);
         await msg.reply({
           content: "enter valid user_id",
           flags: [MessageFlags.Ephemeral],
@@ -3250,6 +3363,7 @@ export function initModeration(client) {
       const user = await getUser(args[0]);
       const reason = args.slice(1).join(" ") || "Kein Grund";
       if (!user)
+        console.log(`Reply ${msg.author.username}: user not found`);
         return msg.reply({
           content: "user not found",
           flags: [MessageFlags.Ephemeral],
@@ -3265,6 +3379,7 @@ export function initModeration(client) {
         reason,
         `Warn-Stand: ${data.warns[user.id].length}`,
       );
+      console.log(`Reply ${msg.author.username}: Warn: ${user.username} (Gesamt: ${data.warns[user.id].length})`);
       await msg.reply({
         content: `**Warn**: <@${user.id}> (Gesamt: ${data.warns[user.id].length})`,
         flags: [MessageFlags.Ephemeral],
@@ -3274,12 +3389,14 @@ export function initModeration(client) {
     if (cmd === "warns") {
       const user = await getUser(args[0]);
       if (!user)
+        console.log(`Reply ${msg.author.username}: user not found`);
         return msg.reply({
           content: "user not found",
           flags: [MessageFlags.Ephemeral],
         });
       const userWarns = data.warns[user.id] || [];
       if (userWarns.length === 0)
+        console.log(`Reply ${msg.author.username}: Keine Warnungen.`);
         return msg.reply({
           content: "Keine Warnungen.",
           flags: [MessageFlags.Ephemeral],
@@ -3293,6 +3410,7 @@ export function initModeration(client) {
             .join("\n"),
         )
         .setFooter({ text: "Kekse Clan" });
+      console.log(`Reply ${msg.author.username}: [warns]`);
       await msg.reply({ embeds: [embed] });
       globalBotStats.commandsRunned += 1;
     }
@@ -3300,6 +3418,7 @@ export function initModeration(client) {
       const user = await getUser(args[0]);
       const index = parseInt(args[1]) - 1;
       if (!user || isNaN(index) || !data.warns[user.id]?.[index])
+        console.log(`Reply ${msg.author.username}: not a valid index`);
         return msg.reply({
           content: "not a valid index",
           flags: [MessageFlags.Ephemeral],
@@ -3311,6 +3430,7 @@ export function initModeration(client) {
         user,
         `Grund war: ${removed[0].reason}`,
       );
+      console.log(`Reply ${msg.author.username}: Warnung entfernt.`);
       await msg.reply({
         content: "Warnung entfernt.",
         flags: [MessageFlags.Ephemeral],
@@ -3346,6 +3466,7 @@ export function initVerification(client) {
       return;
     const member = interaction.member;
     if (!member.roles.cache.has(UNVERIFIED_ROLE_ID)) {
+      console.log(`Reply ${interaction.user.username}: Du bist bereits verifiziert.`);
       return interaction.reply({
         content: "Du bist bereits verifiziert.",
         flags: [MessageFlags.Ephemeral],
@@ -3353,12 +3474,13 @@ export function initVerification(client) {
     }
     try {
       await member.roles.remove(UNVERIFIED_ROLE_ID);
+      console.log(`${interaction.user.username} hat sich verifiziert.`);
       await sendKekseLog(
         "User Verifiziert",
         interaction.user,
         `<@${interaction.user.id}> hat sich verifiziert.`,
       );
-
+      console.log(`Reply ${interaction.user.username}: Erfolgreich verifiziert!`);
       await interaction.reply({
         content: "Erfolgreich verifiziert!",
         flags: [MessageFlags.Ephemeral],
@@ -3366,9 +3488,10 @@ export function initVerification(client) {
       globalBotStats.usersVerified += 1;
       globalBotStats.commandsRunned += 1;
     } catch (err) {
+      console.log(`Reply ${interaction.user.username}: Fehler: Bot-Rolle steht in der Liste vermutlich unter der Verifizierungs-Rolle.`);
       await interaction.reply({
         content:
-          "Fehler: Meine Rolle steht in der Liste vermutlich unter der Verifizierungs-Rolle.",
+          "Es ist ein Problem bei der Verifizierung aufgetreten. Bitte erstelle ein #Ticket.",
         flags: [MessageFlags.Ephemeral],
       });
     }
@@ -3387,7 +3510,7 @@ export function initVerification(client) {
       const channel = client.channels.cache.get(VERIFY_CHANNEL_ID);
       if (channel) {
         const imageUrl = new AttachmentBuilder("./verify.png");
-
+        console.log(`Send: [Verify]`);
         await channel.send({
           content:
             `**Herzlich willkommen!** Klicke auf den Button unten, um Zugriff auf die Channels des Servers zu erhalten.\n` +
@@ -3412,6 +3535,7 @@ export function initRules(client) {
   client.on("messageCreate", async (msg) => {
     if (msg.content === "!setup_rules") {
       if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) {
+        console.log(`Reply ${msg.author.username}: Du hast keine Berechtigung diese funktion zu nutzen.`);
         msg.reply(`Du hast keine Berechtigung diese Funktion zu nutzen.`);
         return;
       }
@@ -3441,6 +3565,7 @@ export function initRules(client) {
         .setDescription(
           `# Moderation und Konsequenzen\n## Verhalten gegenüber Moderatoren\n\n- Entscheidungen der Moderation sind zu respektieren. Bei Problemen mit Entscheidungen ist ein Ticket zu erstellen.\n\n- Den Anweisungen der Moderation ist Folge zu leisten.\n\n## Discord Nutzerbedingungen\n\n- Die offiziellen Discord Richtlinien und Nutzerbedingungen müssen zu jeder Zeit eingehalten werden.\n\n- https://discord.com/terms\n\n## Konsequenzen bei Verstößen\n\n- Bei Verstößen können Verwarnungen, temporäre oder permanente Sperren verhangen werden.\n\n- Moderatoren dürfen jederzeit Inhalte entfernen, die gegen Regeln verstoßen.\n\n- Administratoren ist jederzeit das Recht vorbehalten, Nutzer auch ohne Angabe eines Grundes zu verwarnen, zu sperren oder anderweitig zu bestrafen.`,
         );
+      console.log(`Send: [Rules]`);
       msg.channel
         .send({
           embeds: [defaultRule, privacyRule, useRule, channelRule, modRule],
@@ -3493,6 +3618,7 @@ function initReminder(client) {
           .fetch(r.channelId)
           .catch(() => null);
         if (channel && channel.isTextBased()) {
+          console.log(`Send: [remind]`);
           await channel.send(`<@${r.userId}>, Erinnerung: ${r.reason}`);
           continue;
         }
@@ -3504,7 +3630,7 @@ function initReminder(client) {
         }
       } catch (err) {
         console.log(
-          `[Reminder] Fehler beim Senden einer Erinnerung: ${err.message}`,
+          `Fehler beim Senden einer Erinnerung: ${err.message}`,
         );
       }
     }
@@ -3516,14 +3642,16 @@ function initReminder(client) {
     const timeStr = args.shift();
     const reason = args.join(" ");
     if (!timeStr || !reason) {
+      console.log(`Reply ${msg.author.username}: Nutzung: "!remind <Zeit(m/h/d)> <Grund>"`);
       return message
         .reply(
-          "Nutzung: `!remind <Zeit(m/h/d)> <Grund>` (z.B. `!remind 10m Keks essen`)",
+          "Nutzung: `!remind <Zeit(m/h/d)> <Grund>`",
         )
         .catch(() => {});
     }
     const ms = parseTimeframe(timeStr);
     if (!ms || ms < 10000) {
+      console.log(`Reply ${msg.author.username}: Ungültige Zeitangabe. Mindestens 10 Sekunden (z.B. 10s, 5m, 1h, 2d).`);
       return message
         .reply(
           "Ungültige Zeitangabe. Mindestens 10 Sekunden (z.B. 10s, 5m, 1h, 2d).",
@@ -3539,6 +3667,7 @@ function initReminder(client) {
     };
     reminderData.reminders.push(newReminder);
     await setRData("reminders", reminderData);
+    console.log(`Reply ${msg.author.username}: Ich werde dich in ${timeStr} erinnern.`);
     message.reply(`Ich werde dich in **${timeStr}** erinnern.`).catch(() => {});
   });
 }
@@ -3637,7 +3766,7 @@ export async function initCounting(client) {
         )
         .setColor("#ffffff")
         .setFooter({ text: "Kekse Clan" });
-
+      console.log(`Reply ${msg.author.username}: [top]`);
       await msg.reply({ embeds: [embed] }).catch(() => {});
       return;
     }
@@ -3655,6 +3784,7 @@ export async function initCounting(client) {
         msg.author,
         `Die Zahl wurde auf **${newNum}** gesetzt.`,
       );
+      console.log(`Reply ${msg.author.username}: Die nächste Zahl wurde auf ${newNum} gesetzt.`);
       await msg
         .reply(`Die nächste Zahl wurde auf **${newNum}** gesetzt.`)
         .catch(() => {});
@@ -3675,6 +3805,7 @@ export async function initCounting(client) {
     if (num > Number.MAX_SAFE_INTEGER || num < -Number.MAX_SAFE_INTEGER) {
       if (!syncMode) {
         await msg.react("❌").catch(() => {});
+        console.log(`Reply ${msg.author.username}: Diese zahl ist viel zu groß für das System.`);
         await msg
           .reply("Diese Zahl ist viel zu groß für das System!")
           .catch(() => {});
@@ -3695,6 +3826,7 @@ export async function initCounting(client) {
           countingData.lastPufferGranted = currentHundred;
           countingData.systemPuffer = 1;
           if (!syncMode) {
+            console.log(`Counting Puffer aufgeladen.`);
             await msg.channel
               .send(`:shield: Puffer aufgeladen! Der nächste Fehler wird abgefangen.`)
               .catch(() => {});
@@ -3725,6 +3857,7 @@ export async function initCounting(client) {
         await saveCounting();
         if (!syncMode) {
           await msg.react("🛡️").catch(() => {});
+          console.log(` Server-Counting-Puffer verbraucht.`);
           await msg.channel
             .send(
               `:shield: Server-Puffer verbraucht! Weiter zählen ab **${countingData.currentNumber}**.`,
@@ -3747,6 +3880,7 @@ export async function initCounting(client) {
         if (currentHundred > countingData.lastPufferGranted) {
           countingData.lastPufferGranted = currentHundred;
           countingData.systemPuffer = 1;
+          console.log(`Counting Puffer aufgeladen.`);
           if (!syncMode) {
             await msg.channel
               .send(`:shield: Puffer aufgeladen! Der nächste Fehler wird abgefangen.`)
@@ -3774,6 +3908,7 @@ export async function initCounting(client) {
       }
 
       if (!syncMode) {
+        console.log(`Counting Fehler von ${msg.author.username}. Grund: ${reason}`);
         await sendKekseLog(
           "Counting Fehler",
           msg.author,
@@ -3807,6 +3942,7 @@ export async function initCounting(client) {
       countingData.lastPufferGranted = currentHundred;
       countingData.systemPuffer = 1;
       if (!syncMode) {
+        console.log(`Countig Puffer aufgeladen.`);
         await msg.channel
           .send(`:shield: Puffer aufgeladen! Der nächste Fehler wird abgefangen.`)
           .catch(() => {});
@@ -3854,6 +3990,7 @@ export async function initCounting(client) {
 
           const countingChannel = client.channels.cache.get(COUNTING_CHANNEL_ID);
           if (countingChannel) {
+            console.log(`<@${topCounter}> ist der neue King of Counting.`);
             await countingChannel.send(
               `<@${topCounter}> ist der neue **King of Counting**!`,
             );
@@ -3912,7 +4049,7 @@ export async function initCounting(client) {
           `Synchronisation abgeschlossen. ${totalRecovered} Nachrichten nachgeholt.`,
         );
       } else {
-        console.log("Alles aktuell. Keine verpassten Zahlen gefunden.");
+        console.log("Keine verpassten Zahlen gefunden.");
       }
     } catch (err) {
       console.error("Fehler bei der Synchronisation:", err);
@@ -3929,7 +4066,7 @@ export async function initCounting(client) {
         console.error("Fehler im Counting-Handler:", err);
       }
     });
-    console.log("Live-Zähler aktiv. System bereit!");
+    console.log("Live-Zähler aktiv.");
   };
 
   if (client.isReady()) {
@@ -4041,6 +4178,7 @@ export async function initGiveaway(client) {
   client.on("messageCreate", async function (msg) {
     if (!msg.content.startsWith("!giveaway") || msg.author.bot) return;
     if (!msg.member.roles.cache.has(TEAM_ROLE_ID))
+      console.log(`Reply ${msg.author.username}: Du hast keine Berechtigung diesen Befehl zu nutzen.`);
       return msg.reply("Du hast keine Berechtigung diesen Befehl zu nutzen.");
     const args =
       msg.content
@@ -4055,6 +4193,7 @@ export async function initGiveaway(client) {
       const giveawayId = args[1];
       const count = parseInt(args[2]) || 1;
       if (!giveawayId || count < 1)
+        console.log(`Reply ${msg.author.username}: Syntax: "!giveaway reroll <giveawayid> <anzahl>"`);
         return msg.reply("Syntax: `!giveaway reroll <giveawayid> <anzahl>`");
       return rerollGiveaway(client, msg, giveawayId, count, sendKekseLog);
     }
@@ -4075,6 +4214,7 @@ export async function initGiveaway(client) {
     }
 
     if (positional.length < 3)
+      console.log(`Reply ${msg.author.username}: Syntax: "!giveaway #channel 1h "Preis" "Text" winners=2 rooles=@Rolle1,@Rolle2"`);
       return msg.reply(
         'Syntax: `!giveaway #channel 1h "Preis" "Text" winners=2 roles=@Rolle1,@Rolle2`',
       );
@@ -4084,15 +4224,18 @@ export async function initGiveaway(client) {
     if (!channel) return msg.reply(":x: Kanal nicht gefunden.");
     const durationMs = parseDuration(positional[1]);
     if (durationMs <= 0)
+      console.log(`Reply ${msg.author.username}: Zeitformat ungültig (z.B. 1h, 30m, 1d).`);
       return msg.reply("Zeitformat ungültig (z.B. 1h, 30m, 1d).");
 
     if (rolesGiven && requiredRoles.length === 0)
-      return msg.reply(":x: Keine gültige Rolle bei `roles=` gefunden.");
+      console.log(`Reply ${msg.author.username}:Keine gültige Rolle bei "roles=" gefunden.`);
+      return msg.reply("Keine gültige Rolle bei `roles=` gefunden.");
     requiredRoles = [...new Set(requiredRoles)];
     for (const roleId of requiredRoles) {
       if (!msg.guild.roles.cache.has(roleId))
+        console.log(`Reply ${msg.author.username}: Rolle ${roleId} existiert nicht auf diesem Server.`);
         return msg.reply(
-          `:x: Rolle \`${roleId}\` existiert nicht auf diesem Server.`,
+          `Rolle \`${roleId}\` existiert nicht auf diesem Server.`,
         );
     }
 
@@ -4165,6 +4308,7 @@ export async function initGiveaway(client) {
     const giveaways = (await getGivData("activeGiveaways")) || {};
     const data = giveaways[interaction.message.id];
     if (!data) {
+      console.log(`Reply ${interaction.user.username}: Dieses Giveaway ist nicht mehr aktiv.`);
       return interaction.reply({
         content: "Dieses Giveaway ist nicht mehr aktiv.",
         flags: [MessageFlags.Ephemeral],
@@ -4181,6 +4325,7 @@ export async function initGiveaway(client) {
         }
       }
       if (!hasRequiredRole) {
+        console.log(`Reply ${interaction.user.username}: Du kannst nicht teilnehmen. Dafür brauchst du eine der folgenden Rollen: ${formatRoles(requiredRoles)}`);
         return interaction.reply({
           content: `Du kannst nicht teilnehmen. Dafür brauchst du eine der folgenden Rollen: ${formatRoles(requiredRoles)}`,
           flags: [MessageFlags.Ephemeral],
@@ -4189,6 +4334,7 @@ export async function initGiveaway(client) {
     }
 
     if (data.participants.includes(interaction.user.id)) {
+      console.log(`Reply ${interaction.user.username}: Du nimmst bereits an diesem Giveaway teil!`);
       return interaction.reply({
         content: "Du nimmst bereits an diesem Giveaway teil!",
         flags: [MessageFlags.Ephemeral],
@@ -4206,6 +4352,7 @@ export async function initGiveaway(client) {
         }
       }
       if (hasAltInGiveaway) {
+        console.log(`Reply ${interaction.user.username}: Du kannst nicht teilnehmen, da bereits ein registrierter Zweitaccount von dir im Giveaway ist.`);
         return interaction.reply({
           content:
             "Du kannst nicht teilnehmen, da bereits ein registrierter Zweitaccount von dir im Giveaway ist!",
@@ -4242,7 +4389,7 @@ export async function initGiveaway(client) {
         replyText +=
           " (Inklusive **4-facher Chance**, da du beide Rollen besitzt!)";
       }
-
+      sendKekseLog("Giveaway Teilnahme", interaction.user, `**Preis:** ${data.price}\n**Teilnehmer:** ${data.participants}`)
       return interaction
         .reply({ content: replyText, flags: [MessageFlags.Ephemeral] })
         .catch(function () {});
@@ -4264,7 +4411,8 @@ export async function initGiveaway(client) {
       replyText +=
         " (Inklusive **4-facher Chance**, da du beide Rollen besitzt!)";
     }
-
+    
+    console.log(`${interaction.user.username} hat das Giveaway betreten.`);
     return interaction
       .reply({ content: replyText, flags: [MessageFlags.Ephemeral] })
       .catch(function () {});
@@ -4394,8 +4542,8 @@ export async function rerollGiveaway(
   if (!data) {
     const active = (await getGivData("activeGiveaways")) || {};
     if (active[giveawayId])
-      return ":x: Dieses Giveaway läuft noch und kann nicht gerollt werden.";
-    return ":x: Kein beendetes Giveaway mit dieser ID gefunden.";
+      return "Dieses Giveaway läuft noch und kann nicht gerollt werden.";
+    return "Kein beendetes Giveaway mit dieser ID gefunden.";
   }
 
   const channel = await client.channels
@@ -4403,19 +4551,19 @@ export async function rerollGiveaway(
     .catch(function () {
       return null;
     });
-  if (!channel) return ":x: Der Kanal des Giveaways existiert nicht mehr.";
+  if (!channel) return "Der Kanal des Giveaways existiert nicht mehr.";
 
   const pool = await buildPool(guild, data.participants);
   const previousWinners = data.winners || [];
   const winners = pickWinners(pool, count, previousWinners);
 
   if (winners.length === 0)
-    return ":x: Es gibt keine weiteren Teilnehmer für einen Reroll.";
+    return "Es gibt keine weiteren Teilnehmer für einen Reroll.";
 
   const mentions = [];
   for (const id of winners) mentions.push(`<@${id}>`);
   const winnerMentions = mentions.join(", ");
-
+  console.log(`Giveaway neu ausgelost.`);
   await channel.send(
     `**Reroll _(${count})_:**:tada: Glückwunsch ${winnerMentions}! Du hast ${data.price} gewonnen.\nMelde dich im Support.`,
   );
