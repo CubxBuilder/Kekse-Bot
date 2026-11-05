@@ -10,8 +10,10 @@ import fs from "fs";
 import crypto from "crypto";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+import compression from "compression";
 const app = express();
-app.use(express.static("public"));
+app.use(compression());
+app.use(express.static("public", { maxAge: "1d" }));
 app.get("/permission", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "permission", "index.html"));
 });
@@ -74,7 +76,6 @@ const client = new Client({
     GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.GuildInvites,
-    GatewayIntentBits.GuildPresences,
     GatewayIntentBits.DirectMessages,
   ],
   partials: [
@@ -104,15 +105,15 @@ setInterval(async () => {
         const StorageModel = mongoose.model("BotStorage");
         await StorageModel.updateOne(
           { namespace: "system", key: "ping_history" },
-          { 
-            $push: { 
-              "value.history": { 
-                $each: [{ x: Date.now(), y: currentPing }], 
-                $slice: -2880 
-              } 
-            } 
+          {
+            $push: {
+              "value.history": {
+                $each: [{ x: Date.now(), y: currentPing }],
+                $slice: -2880,
+              },
+            },
           },
-          { upsert: true }
+          { upsert: true },
         );
       } catch (err) {
         originalError.apply(console, [err]);
@@ -411,7 +412,7 @@ async function logTransaction(userId, amount, type, description) {
     console.error(err);
   }
 }
-import { dbGet, dbSet } from "./database.js";
+import { dbGet, dbSet, dbConnection } from "./database.js";
 export async function getIData(key) {
   const data = await dbGet("invites", key);
   return data || {};
@@ -506,18 +507,11 @@ export async function getWageData(key) {
 export async function initEconomyGetKekse(client) {
   try {
     const StorageModel = mongoose.model("BotStorage");
-    const allEcoDocuments = await StorageModel.find({
-      namespace: "economy",
-    }).lean();
-
-    const existingKekse = allEcoDocuments.reduce((summe, doc) => {
-      const isNumericKey = /^\d+$/.test(doc.key);
-      if (isNumericKey && doc.value && typeof doc.value.balance === "number") {
-        return summe + doc.value.balance;
-      }
-      return summe;
-    }, 0);
-    return existingKekse;
+    const [r] = await StorageModel.aggregate([
+      { $match: { namespace: "economy", key: /^\d+$/ } },
+      { $group: { _id: null, sum: { $sum: "$value.balance" } } },
+    ]);
+    return r?.sum ?? 0;
   } catch (err) {
     console.error(err);
     return 0;
@@ -604,10 +598,10 @@ export async function initEconomySystem(client) {
       const StorageModel = mongoose.model("BotStorage");
       const allDocs = await StorageModel.find({ namespace: "economy" }).lean();
 
-      const sorted = allDocs
-        .filter((doc) => /^\d+$/.test(doc.key) && doc.value?.balance > 0)
-        .sort((a, b) => b.value.balance - a.value.balance)
-        .slice(0, 5);
+      const sorted = await StorageModel.find(
+        { namespace: "economy", key: /^\d+$/, "value.balance": { $gt: 0 } },
+        { key: 1, "value.balance": 1 },
+      ).sort({ "value.balance": -1 }).limit(5).lean();
 
       const embed = new EmbedBuilder()
         .setTitle(":trophy: Top 5 Balance")
@@ -1512,7 +1506,7 @@ export async function initEconomySystem(client) {
             return;
           }
 
-          multiplier = parseFloat((multiplier + 0.08).toFixed(2));
+          multiplier = parseFloat((multiplier + 0.2).toFixed(2));
 
           if (multiplier >= game.crashPoint) {
             clearInterval(intervalHandle);
@@ -1524,11 +1518,10 @@ export async function initEconomySystem(client) {
               .catch(() => {});
             return;
           }
-
           await gameMsg
             .edit({ embeds: [crashEmbed()], components: [cashoutRow()] })
             .catch(() => {});
-        }, 600);
+        }, 1500);
 
         collector.on("end", async (collected, reason) => {
           if (reason === "time") {
@@ -2337,7 +2330,7 @@ export async function initEconomySystem(client) {
         );
 
         if (interaction.user.id !== allowedUserId) {
-          console.log(`Reply ${msg.author.username}: Du kannst diesen Button nicht nutzen, da du den Befehl nicht eingegeben hast.`);
+          console.log(`Reply ${interaction.user.username}: Du kannst diesen Button nicht nutzen, da du den Befehl nicht eingegeben hast.`);
           return interaction.reply({
             content:
               "Du kannst diesen Button nicht nutzen, da du den Befehl nicht eingegeben hast.",
@@ -2347,7 +2340,7 @@ export async function initEconomySystem(client) {
 
         const hasEcoRole = interaction.member.roles.cache.has(ECO_ROLE_ID);
         if (hasEcoRole) {
-          console.log(`Reply ${msg.author.username}: Du besitzt bereits ein registriertes Bankkonto.`);
+          console.log(`Reply ${interaction.user.username}: Du besitzt bereits ein registriertes Bankkonto.`);
           return interaction.reply({
             content: "Du besitzt bereits ein registriertes Bankkonto.",
             flags: [MessageFlags.Ephemeral],
@@ -2659,10 +2652,10 @@ async function fuehreGehaltszahlungAus(now) {
         });
         const logchannel = client.channels.cache.get(LOG_CHANNEL_ID);
         logchannel.send(
-          `:white_check_mark: Überweisung an <@${userData.userId}> erfolgreich.\n**Beschreibung:** Monatlicher Lohn (Team)\n**Menge:** 10000 Kekse\n**Typ:** Gutschrift\n**Datum:** ${newFormatted}`,
+          `:white_check_mark: Überweisung an <@${userData.userId}> erfolgreich.\n**Beschreibung:** Monatlicher Lohn (Team)\n**Menge:** 10000 Kekse\n**Typ:** Gutschrift\n**Datum:** ${nowFormatted}`,
         );
         console.log(
-          `Überweisung an <@${userData.userId}> erfolgreich.\n**Beschreibung:** Monatlicher Lohn (Team)\n**Menge:** 10000 Kekse\n**Typ:** Gutschrift\n**Datum:** ${newFormatted}`,
+          `Überweisung an <@${userData.userId}> erfolgreich.\n**Beschreibung:** Monatlicher Lohn (Team)\n**Menge:** 10000 Kekse\n**Typ:** Gutschrift\n**Datum:** ${nowFormatted}`,
         );
       } catch (dmError) {
         console.error(
@@ -3635,7 +3628,7 @@ function initReminder(client) {
     const timeStr = args.shift();
     const reason = args.join(" ");
     if (!timeStr || !reason) {
-      console.log(`Reply ${msg.author.username}: Nutzung: "!remind <Zeit(m/h/d)> <Grund>"`);
+      console.log(`Reply ${message.author.username}: Nutzung: "!remind <Zeit(m/h/d)> <Grund>"`);
       return message
         .reply(
           "Nutzung: `!remind <Zeit(m/h/d)> <Grund>`",
@@ -3644,7 +3637,7 @@ function initReminder(client) {
     }
     const ms = parseTimeframe(timeStr);
     if (!ms || ms < 10000) {
-      console.log(`Reply ${msg.author.username}: Ungültige Zeitangabe. Mindestens 10 Sekunden (z.B. 10s, 5m, 1h, 2d).`);
+      console.log(`Reply ${message.author.username}: Ungültige Zeitangabe. Mindestens 10 Sekunden (z.B. 10s, 5m, 1h, 2d).`);
       return message
         .reply(
           "Ungültige Zeitangabe. Mindestens 10 Sekunden (z.B. 10s, 5m, 1h, 2d).",
@@ -3660,7 +3653,7 @@ function initReminder(client) {
     };
     reminderData.reminders.push(newReminder);
     await setRData("reminders", reminderData);
-    console.log(`Reply ${msg.author.username}: Ich werde dich in ${timeStr} erinnern.`);
+    console.log(`Reply ${message.author.username}: Ich werde dich in ${timeStr} erinnern.`);
     message.reply(`Ich werde dich in **${timeStr}** erinnern.`).catch(() => {});
   });
 }
@@ -3673,6 +3666,15 @@ let countingData = {
   systemPuffer: 0,
   lastPufferGranted: 0,
 };
+let kingId = null;
+let topScore = 0;
+function recalcKing() {
+  kingId = null;
+  topScore = 0;
+  for (const [id, s] of Object.entries(countingData.scoreboard || {})) {
+    if (s > topScore) { topScore = s; kingId = id; }
+  }
+}
 let countingLock = Promise.resolve();
 function withCountingLock(fn) {
   const run = countingLock.then(() => fn());
@@ -3687,6 +3689,7 @@ async function loadCounting() {
   } else {
     await saveCounting();
   }
+  recalcKing();
 }
 async function saveCounting() {
   await setCouData("counting", countingData);
@@ -3951,42 +3954,30 @@ export async function initCounting(client) {
       await checkMilestone(msg.author.id, msg.channel);
     }
     countingData.lastMessageId = msg.id;
+    if (!syncMode) msg.react("✅").catch(() => {});
     await saveCounting();
     const userData = (await getEcoData(msg.author.id)) || {};
     userData.balance = (userData.balance || 0) + 1;
     handleMessageXP(msg);
-    await logTransaction(msg.author.id, 1, "plus", "Counting");
+    logTransaction(msg.author.id, 1, "plus", "Counting").catch(() => {});
     await setEcoData(msg.author.id, userData);
-    if (!syncMode) await msg.react("✅").catch(() => {});
-    const sorted = Object.entries(countingData.scoreboard || {})
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10);
-    const prevTopCounter = msg.guild.members.cache.find((member) =>
-      member.roles.cache.has(COUNTING_KING_ROLE_ID),
-    );
-
-    if (sorted.length > 0) {
-      const topCounter = sorted[0][0];
-
-      if (topCounter !== prevTopCounter?.id) {
-        const newTopCounter = await msg.guild.members
-          .fetch(topCounter)
-          .catch(() => null);
-
-        if (newTopCounter) {
-          if (prevTopCounter) {
-            await prevTopCounter.roles.remove(COUNTING_KING_ROLE_ID).catch(console.error);
-          }
-          await newTopCounter.roles.add(COUNTING_KING_ROLE_ID).catch(console.error);
-
-          const countingChannel = client.channels.cache.get(COUNTING_CHANNEL_ID);
-          if (countingChannel) {
-            console.log(`<@${topCounter}> ist der neue King of Counting.`);
-            await countingChannel.send(
-              `<@${topCounter}> ist der neue **King of Counting**!`,
-            );
-          }
-        }
+    const myScore = countingData.scoreboard[msg.author.id] ?? 0;
+    if (myScore > topScore) {
+      topScore = myScore;
+      if (msg.author.id !== kingId) {
+        const oldKing = kingId;
+        kingId = msg.author.id;
+        const oldMember = oldKing
+          ? await msg.guild.members.fetch(oldKing).catch(() => null)
+          : null;
+        const newMember = await msg.guild.members.fetch(kingId).catch(() => null);
+        if (oldMember) await oldMember.roles.remove(COUNTING_KING_ROLE_ID).catch(() => {});
+        if (newMember) await newMember.roles.add(COUNTING_KING_ROLE_ID).catch(() => {});
+        console.log(`<@${kingId}> ist der neue King of Counting.`);
+        if (!syncMode)
+          await msg.channel
+            .send(`<@${kingId}> ist der neue **King of Counting**!`)
+            .catch(() => {});
       }
     }
   };
@@ -4084,20 +4075,19 @@ function shuffle(list) {
   }
   return result;
 }
-
 async function buildPool(guild, participants) {
+  const unique = [...new Set(participants || [])];
+  const members = await guild.members.fetch({ user: unique }).catch(() => null);
   const pool = [];
-  for (const userId of new Set(participants || [])) {
-    const member = await guild.members.fetch(userId).catch(function () {
-      return null;
-    });
+  if (!members) return pool;
+  for (const userId of unique) {
+    const member = members.get(userId);
     if (!member) continue;
     pool.push(userId);
     if (member.roles.cache.has(BOOSTER_ROLE_ID)) pool.push(userId);
   }
   return pool;
 }
-
 function pickWinners(pool, count, excluded) {
   const winners = [];
   const shuffled = shuffle(pool);
@@ -4124,46 +4114,18 @@ export async function initGiveaway(client) {
       .setTimestamp();
     await logChannel.send({ embeds: [logEmbed] }).catch(function () {});
   }
-
   async function checkGiveaways() {
     const giveaways = (await getGivData("activeGiveaways")) || {};
     const now = Date.now();
-    let changed = false;
     for (const [msgId, data] of Object.entries(giveaways)) {
-      const channel = await client.channels
-        .fetch(data.channelId)
-        .catch(function () {
-          return null;
-        });
-      if (!channel) continue;
-      const msg = await channel.messages.fetch(msgId).catch(function () {
-        return null;
-      });
-      if (!msg) {
-        delete giveaways[msgId];
-        changed = true;
-        continue;
-      }
-      if (now >= data.endTime) {
-        const giveawayData = data;
-        delete giveaways[msgId];
-        changed = true;
-        await setGivData("activeGiveaways", giveaways);
-        changed = false;
-        await endGiveaway(client, msg, giveawayData, sendKekseLog);
-      } else {
-        const embed = new EmbedBuilder()
-          .setTitle(`:gift: Giveaway: ${data.price}`)
-          .setDescription(
-            buildDescription(data, countUnique(data.participants)),
-          )
-          .setColor(EMBED_COLOR);
-        await msg.edit({ embeds: [embed] }).catch(function () {});
-      }
+      if (now < data.endTime) continue;
+      const channel = await client.channels.fetch(data.channelId).catch(() => null);
+      const msg = channel ? await channel.messages.fetch(msgId).catch(() => null) : null;
+      delete giveaways[msgId];
+      await setGivData("activeGiveaways", giveaways);
+      if (msg) await endGiveaway(client, msg, data, sendKekseLog);
     }
-    if (changed) await setGivData("activeGiveaways", giveaways);
   }
-
   setInterval(checkGiveaways, 10000);
 
   client.on("messageCreate", async function (msg) {
@@ -4259,7 +4221,7 @@ export async function initGiveaway(client) {
         .setStyle(ButtonStyle.Primary),
     );
     const giveawayMsg = await channel.send({
-      content: `<@&${GIVEAWAYS_ROLE_ID}}>`,
+      content: `<@&${GIVEAWAYS_ROLE_ID}>`,
       embeds: [embed],
       components: [row],
     });
@@ -4389,12 +4351,18 @@ export async function initGiveaway(client) {
     for (let i = 0; i < totalTickets; i++) {
       data.participants.push(interaction.user.id);
     }
-
     giveaways[interaction.message.id] = data;
     await setGivData("activeGiveaways", giveaways);
-
+    interaction.message
+      .edit({
+        embeds: [
+          EmbedBuilder.from(interaction.message.embeds[0]).setDescription(
+            buildDescription(data, countUnique(data.participants)),
+          ),
+        ],
+      })
+      .catch(() => {});
     addXP(interaction.user.id, 10, client);
-
     let replyText = "Du hast das Giveaway erfolgreich betreten!";
     if (totalTickets === 2) {
       replyText += " (Inklusive **doppelter Chance** durch deine Rolle!)";
@@ -4613,7 +4581,7 @@ export function registerMessageCommands(client) {
         await channel.send(text);
         await sendKekseLog("send", channel.toString(), text);
         globalBotStats.commandsRunned += 1;
-        console.log(`${user.username} hat die "send"-Funktion genutzt`);
+        console.log(`${msg.author.username} hat die "send"-Funktion genutzt.`);
       }
     }
 
@@ -4631,7 +4599,7 @@ export function registerMessageCommands(client) {
       await changelogChannel.send(messageFormat);
       await sendKekseLog("changelog", changelogChannel.toString(), updateList);
       globalBotStats.commandsRunned += 1;
-      console.log(`${msg.author} hat die "changelog"-Funktion genutzt`);
+      console.log(`${msg.author.username} hat die "changelog"-Funktion genutzt`);
     }
 
     if (cmd === "embed") {
@@ -4652,7 +4620,7 @@ export function registerMessageCommands(client) {
           `Titel: ${title}\nText: ${text}`,
         );
         globalBotStats.commandsRunned += 1;
-        console.log(`${user.username} hat die "embed"-Funktion genutzt`);
+        console.log(`${msg.author.username} hat die "embed"-Funktion genutzt`);
       }
     }
 
@@ -4665,7 +4633,7 @@ export function registerMessageCommands(client) {
         await user.send(text).catch(() => {});
         await sendKekseLog("dm", `${user.tag} (${userId})`, text);
         globalBotStats.commandsRunned += 1;
-        console.log(`${user.username} hat die "dm"-Funktion genutzt`);
+        console.log(`${msg.author.username} hat die "dm"-Funktion genutzt`);
       }
     }
 
@@ -4741,7 +4709,7 @@ export function registerMessageCommands(client) {
         .join(" ");
       if (!msgId || !text) return;
       globalBotStats.commandsRunned += 1;
-      console.log(`${user.username} hat die "news"-Funktion genutzt`);
+      console.log(`${msg.author.username} hat die "news"-Funktion genutzt`);
       try {
         const targetMsg = await channelMention.messages.fetch(msgId);
         targetMsg.system
@@ -4795,7 +4763,7 @@ export function initPing(client) {
       await logChannel.send({ embeds: [kekseLog] });
       console.log(`${msg.author.username} hat die "ping"-Funktion genutzt`);
     }
-    (() => {
+    setTimeout(() => {
       sentMsg.delete().catch(() => {});
       msg.delete().catch(() => {});
     }, 10000);
@@ -5083,7 +5051,7 @@ export function initTicketCategory(client) {
             : "Support will handle it.",
           components: [],
         });
-        (() => questionMsg.delete().catch(() => {}), 5000);
+        setTimeout(() => questionMsg.delete().catch(() => {}), 5000);
       }
       collector.stop();
     });
@@ -5611,7 +5579,7 @@ export async function initTickets(client) {
     }
     if (cmd === "delete" && msg.member.roles.cache.has(ADMIN_ROLE_ID)) {
       await msg.reply("Kanal wird gelöscht...");
-      (() => msg.channel.delete().catch(() => {}), 3000);
+      setTimeout(() => msg.channel.delete().catch(() => {}), 3000);
       globalBotStats.commandsRunned += 1;
     }
     if (cmd === "block" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
@@ -5710,11 +5678,11 @@ export function initVoiceChannels(client) {
           member.user,
           `**Kanal:** \`${channelName}\`\n**ID:** \`${tempChannel.id}\``,
         );
-        globalBotStats.voiceChannelCreated += 1;
+        globalBotStats.voiceChannelsCreated += 1;
       } catch (err) {
         console.error("[VOICE] Fehler beim Erstellen:", err);
       } finally {
-        (() => activeCreations.delete(member.id), 5000);
+        setTimeout(() => activeCreations.delete(member.id), 5000);
       }
     }
 
@@ -5736,7 +5704,7 @@ export function initVoiceChannels(client) {
             member.user,
             `**Kanal:** \`${channelName}\``,
           );
-          globalBotStats.voiceChannelDeleted += 1;
+          globalBotStats.voiceChannelsDeleted += 1;
         }
       } catch (err) {}
     }
@@ -5820,12 +5788,15 @@ export async function removeXP(userId, amount, client) {
   await setXpData(userId, { rang: tier, xp });
   if (changed) await applyTierRole(userId, tier, client);
 }
+const xpCooldown = new Map();
 export function handleMessageXP(message) {
   if (message.author.bot || !message.guild || message.guild.id !== GUILD_ID)
     return;
+  const now = Date.now();
+  if (now - (xpCooldown.get(message.author.id) || 0) < 10000) return;
+  xpCooldown.set(message.author.id, now);
   addXP(message.author.id, 1, message.client);
 }
-
 export function startVoiceXpTracker(client) {
   setInterval(async () => {
     try {
@@ -5956,20 +5927,9 @@ const getHelpData = {
     const isBlocked = ecoData.blocked ? "Gesperrt" : "Aktiv";
 
     const currentPoints = xpData.xp || 0;
-    let currentTierName = "Kein Rang";
-    let nextTierPoints = "Max";
-
-    for (let i = ROLES_TIERS.length - 1; i >= 0; i--) {
-      if (currentPoints >= ROLES_TIERS[i].needed) {
-        currentTierName = ROLES_TIERS[i + 1].name;
-        break;
-      }
-    }
-
-    const nextTier = ROLES_TIERS.find((t) => currentPoints < t.needed);
-    if (nextTier) {
-      nextTierPoints = nextTier.needed;
-    }
+    const tier = ROLES_TIERS[xpData.rang ?? 0];
+    const currentTierName = tier?.name ?? "Kein Rang";
+    const nextTierPoints = tier?.needed ?? "Max";
 
     let countedRight = 0;
     if (countData.scoreboard && typeof countData.scoreboard === "object") {
@@ -6367,8 +6327,9 @@ async function buildUserDatabase(guild) {
   }
   return { users, txLogs };
 }
-
+let statsCache = { time: 0, data: null };
 app.get("/api/stats", async (req, res) => {
+  if (statsCache.data && Date.now() - statsCache.time < 15000) return res.json(statsCache.data);
   try {
     const guild =
       client.guilds.cache.get(GUILD_ID) || client.guilds.cache.first();
@@ -6400,7 +6361,7 @@ app.get("/api/stats", async (req, res) => {
       m: `${l.message}`,
     }));
 
-    res.json({
+    const payload = {
       guild: {
         name: guild?.name || "Kekse Server",
         id: guild?.id || "-",
@@ -6421,7 +6382,9 @@ app.get("/api/stats", async (req, res) => {
       userDatabase: users,
       transactionLogs: txLogs,
       logs: mappedLogs,
-    });
+    };
+    statsCache = { time: Date.now(), data: payload };
+    res.json(payload);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -7417,10 +7380,10 @@ client.on("interactionCreate", async (interaction) => {
     const StorageModel = mongoose.model("BotStorage");
     const allDocs = await StorageModel.find({ namespace: "economy" }).lean();
 
-    const sorted = allDocs
-      .filter((doc) => /^\d+$/.test(doc.key) && doc.value?.balance > 0)
-      .sort((a, b) => b.value.balance - a.value.balance)
-      .slice(0, 5);
+    const sorted = await StorageModel.find(
+      { namespace: "economy", key: /^\d+$/, "value.balance": { $gt: 0 } },
+      { key: 1, "value.balance": 1 },
+    ).sort({ "value.balance": -1 }).limit(5).lean();
 
     const embed = new EmbedBuilder()
       .setTitle("🏆 Top 5 Balance")
@@ -7761,7 +7724,7 @@ client.on("interactionCreate", async (interaction) => {
               })
               .catch(() => {});
           }
-          await new Promise((r) => (r, 1200));
+          await new Promise((r) => setTimeout(r, 1200));
         }
       }
     } catch (clearError) {
@@ -10046,12 +10009,7 @@ app.get("/api/stats_internal", (req, res) => {
 client.setMaxListeners(50);
 client.on("error", console.error);
 client.on("warn", console.warn);
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(async () => {
-    console.log("MongoDB verbunden!");
-    await startStorages();
-    await deploySlashCommands();
-    client.login(process.env.BOT_TOKEN);
-  })
-  .catch((err) => console.error("MongoDB Fehler:", err));
+dbConnection.then(async () => {
+  await deploySlashCommands();
+  client.login(process.env.BOT_TOKEN);
+});
