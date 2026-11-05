@@ -366,7 +366,7 @@ const originalLog = console.log;
 const originalError = console.error;
 console.log = function (...args) {
   originalLog.apply(console, args);
-  captureLog(args);
+  captureLog("info", args);
 };
 
 console.error = function (...args) {
@@ -393,7 +393,6 @@ function captureLog(type, args) {
 
   const logEntry = {
     timestamp: Date.now(),
-    type: type,
     message: message,
   };
   logs.push(logEntry);
