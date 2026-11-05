@@ -3192,7 +3192,7 @@ export function initModeration(client) {
         )
         .setFooter({ text: "Kekse Clan | Moderation Logs" })
         .setTimestamp();
-      console.log(`Aktion: ${action}, Von: ${msg.author.username}, User: ${target.tag}, Grund: ${reason}${extra ? `Info: ${extra}`}`);
+      console.log(`Aktion: ${action}, Von: ${msg.author.username}, User: ${target.tag}, Grund: ${reason}${extra ? `Info: ${extra}` : ""}`);
       await logChannel.send({ embeds: [kekseEmbed] }).catch(() => {});
     };
     if (cmd === "timeout") {
