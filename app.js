@@ -7788,7 +7788,7 @@ client.on("interactionCreate", async (interaction) => {
       if (error) return interaction.editReply({ content: error });
       return interaction.editReply({ content: "✅ Reroll durchgeführt." });
     }
-
+    await interaction.deferReply("Giveaway wird erstellt...");
     const channel = options.getChannel("kanal");
     const durationStr = options.getString("dauer");
     const price = options.getString("preis");
@@ -7853,8 +7853,7 @@ client.on("interactionCreate", async (interaction) => {
     const giveaways = (await getGivData("activeGiveaways")) || {};
     giveaways[giveawayMsg.id] = giveawayData;
     await setGivData("activeGiveaways", giveaways);
-
-    await interaction.reply({
+    await interaction.editReply({
       content: `✅ Giveaway erfolgreich in ${channel} gestartet!\n**ID:** \`${giveawayMsg.id}\``,
       flags: [MessageFlags.Ephemeral],
     });
