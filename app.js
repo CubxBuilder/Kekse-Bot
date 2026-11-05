@@ -4342,7 +4342,6 @@ export async function initGiveaway(client) {
         replyText +=
           " (Inklusive **4-facher Chance**, da du beide Rollen besitzt!)";
       }
-      sendKekseLog("Giveaway Teilnahme", interaction.user, `**Preis:** ${data.price}\n**Teilnehmer:** ${data.participants}`)
       return interaction
         .reply({ content: replyText, flags: [MessageFlags.Ephemeral] })
         .catch(function () {});
@@ -4370,7 +4369,7 @@ export async function initGiveaway(client) {
       replyText +=
         " (Inklusive **4-facher Chance**, da du beide Rollen besitzt!)";
     }
-    
+    sendKekseLog("Giveaway Teilnahme", interaction.user, `**Preis:** ${data.price}\n**Teilnehmer:** ${data.participants}`);
     console.log(`${interaction.user.username} hat das Giveaway betreten.`);
     return interaction
       .reply({ content: replyText, flags: [MessageFlags.Ephemeral] })
