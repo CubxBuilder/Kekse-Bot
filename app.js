@@ -9831,7 +9831,6 @@ client.once("clientReady", async () => {
     initReactions(client);
     initHelp(client);
     initTicketCategory(client);
-    await initPoll(client);
     initVoiceChannels(client);
     initReminder(client);
     initModeration(client);
