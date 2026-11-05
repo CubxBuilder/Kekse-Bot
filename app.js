@@ -9838,7 +9838,6 @@ client.once("clientReady", async () => {
     initRules(client);
     initAuditLogs(client);
     clear(client);
-    initModSend(client);
     initMembers(client);
     await initDashboard(app, client, globalBotStats);
     await initTicketArchive(app, getTickData, setTickData);
