@@ -1435,7 +1435,7 @@ export async function initEconomySystem(client) {
             return new EmbedBuilder()
               .setTitle(":white_check_mark: Cash Out!")
               .setDescription(
-                `Ausgecasht bei **${cashedAt.toFixed(2)}x**!\n\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${userData.balance + win} Kekse**`,
+                `Ausgecasht bei **${cashedAt.toFixed(2)}x**!\n\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${userData.balance} Kekse**`,
               )
               .setColor(0x333333);
           }
