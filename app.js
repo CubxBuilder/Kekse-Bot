@@ -6539,7 +6539,7 @@ async function getBans(guild) {
 
 async function dashLog(level, action, userId, details) {
   console.log(
-    `[Dashboard] (${level}) ${action} -> ${userId}${details ? " | " + details : ""}`,
+    `[Dashboard] (${level}) ${action} -> <@${userId}>${details ? " | " + details : ""}`,
   );
   const ch = client.channels.cache.get(LOG_CHANNEL_ID);
   if (!ch) return;
