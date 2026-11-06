@@ -895,7 +895,7 @@
 					authLevel = (await r.json()).level || null;
 				} catch { authLevel = null; }
 				if (!token || !authLevel) {
-					window.location.href = "/err605";
+					window.location.href = "/401";
 					return;
 				}
 				set("auth-level", authLevel === "admin" ? "Admin-Token" : authLevel === "mod" ? "Team-Token" : "Nur Ansicht");
