@@ -358,6 +358,54 @@ function parseTimeframe(tf) {
       return 0;
   }
 }
+const LOG_DIR = path.join(__dirname, "logs");
+fs.mkdirSync(LOG_DIR, { recursive: true });
+let logStream = null;
+let logStreamDate = null;
+
+function logDateString(date = new Date()) {
+  return date
+    .toLocaleDateString("de-DE", {
+      timeZone: "Europe/Berlin",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })
+    .replace(/\./g, "-");
+}
+
+function writeLogLine(entry) {
+  const day = logDateString(new Date(entry.t));
+  if (day !== logStreamDate) {
+    if (logStream) logStream.end();
+    logStream = fs.createWriteStream(path.join(LOG_DIR, `${day}.log`), {
+      flags: "a",
+    });
+    logStream.on("error", () => {});
+    logStreamDate = day;
+  }
+  logStream.write(JSON.stringify(entry) + "\n");
+}
+
+async function readLogFile(day) {
+  try {
+    const raw = await fs.promises.readFile(
+      path.join(LOG_DIR, `${day}.log`),
+      "utf8",
+    );
+    const out = [];
+    for (const line of raw.split("\n")) {
+      if (!line) continue;
+      try {
+        const e = JSON.parse(line);
+        out.push({ t: e.t, m: e.m });
+      } catch {}
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
 const originalLog = console.log;
 const originalError = console.error;
 console.log = function (...args) {
@@ -387,10 +435,8 @@ function formatArgs(args) {
     })
     .join(" ");
 }
-
 function captureLog(type, args) {
-  logs.push({ timestamp: Date.now(), type: type, message: formatArgs(args) });
-  if (logs.length > 500) logs.shift();
+  writeLogLine({ t: Date.now(), type, m: formatArgs(args) });
 }
 async function logTransaction(userId, amount, type, description) {
   try {
@@ -517,6 +563,154 @@ export async function initEconomyGetKekse(client) {
     return 0;
   }
 }
+const stealBusy = new Set();
+
+async function performSteal(guild, thiefMember) {
+  const thiefId = thiefMember.id;
+  if (!thiefMember.roles.cache.has(ECO_ROLE_ID)) {
+    return {
+      ok: false,
+      text: "Du benötigst ein Bankkonto, um zu klauen. Nutze `!bank create`.",
+    };
+  }
+  if (stealBusy.has(thiefId)) {
+    return { ok: false, text: "Dein Diebstahl läuft bereits." };
+  }
+  stealBusy.add(thiefId);
+  try {
+    const today = new Date().toLocaleDateString("de-DE", {
+      timeZone: "Europe/Berlin",
+    });
+    const thiefCheck = await getEcoData(thiefId);
+    if (thiefCheck.blocked) {
+      return {
+        ok: false,
+        text: "Dein Konto ist gesperrt. Wende dich an den Support.",
+      };
+    }
+    if (thiefCheck.lastSteal === today) {
+      return {
+        ok: false,
+        text: "Du hast heute bereits geklaut. Versuche es nach 00:00 Uhr erneut.",
+      };
+    }
+    const candidates = shuffle(
+      guild.members.cache
+        .filter(
+          (m) =>
+            !m.user.bot && m.id !== thiefId && m.roles.cache.has(ECO_ROLE_ID),
+        )
+        .map((m) => m),
+    ).slice(0, 20);
+    const candidateData = await Promise.all(
+      candidates.map((m) => getEcoData(m.id)),
+    );
+    const index = candidateData.findIndex(
+      (d) => !d.blocked && (d.balance || 0) > 0,
+    );
+    if (index === -1) {
+      return {
+        ok: false,
+        text: "Aktuell gibt es niemanden, von dem du Kekse klauen kannst.",
+      };
+    }
+    const victimMember = candidates[index];
+    const [thiefData, victimData] = await Promise.all([
+      getEcoData(thiefId),
+      getEcoData(victimMember.id),
+    ]);
+    const amount = Math.min(
+      1 + Math.floor(Math.random() * 100),
+      victimData.balance || 0,
+    );
+    if (amount <= 0) {
+      return {
+        ok: false,
+        text: "Aktuell gibt es niemanden, von dem du Kekse klauen kannst.",
+      };
+    }
+    thiefData.balance = (thiefData.balance || 0) + amount;
+    thiefData.lastSteal = today;
+    victimData.balance = (victimData.balance || 0) - amount;
+    await Promise.all([
+      setEcoData(thiefId, thiefData),
+      setEcoData(victimMember.id, victimData),
+    ]);
+    logTransaction(
+      thiefId,
+      amount,
+      "plus",
+      `Diebstahl von ${victimMember.user.username}`,
+    );
+    logTransaction(
+      victimMember.id,
+      amount,
+      "minus",
+      `Diebstahl durch ${thiefMember.user.username}`,
+    );
+    console.log(
+      `${thiefMember.user.username} hat ${victimMember.user.username} ${amount} Kekse geklaut.`,
+    );
+    return {
+      ok: true,
+      text: `<@${thiefId}> hat <@${victimMember.id}> **${amount} Kekse** geklaut.`,
+    };
+  } finally {
+    stealBusy.delete(thiefId);
+  }
+}
+
+const SLOT_SYMBOLS = [
+  { emoji: "🍒", weight: 28, multiplier: 5 },
+  { emoji: "🍋", weight: 24, multiplier: 8 },
+  { emoji: "🍇", weight: 20, multiplier: 14 },
+  { emoji: "🔔", weight: 14, multiplier: 30 },
+  { emoji: "⭐", weight: 8, multiplier: 75 },
+  { emoji: "💎", weight: 4, multiplier: 100 },
+  { emoji: "7️⃣", weight: 2, multiplier: 250 },
+];
+
+function spinSlotReel() {
+  let r = Math.random() * 100;
+  for (const s of SLOT_SYMBOLS) {
+    r -= s.weight;
+    if (r < 0) return s;
+  }
+  return SLOT_SYMBOLS[0];
+}
+
+function playSlot(betAmount) {
+  const reels = [spinSlotReel(), spinSlotReel(), spinSlotReel()];
+  let returned = 0;
+  let label = "Keine Übereinstimmung";
+  if (reels[0] === reels[1] && reels[1] === reels[2]) {
+    returned = betAmount * reels[0].multiplier;
+    label = `Drei gleiche (${reels[0].multiplier}x)`;
+  } else if (
+    reels[0] === reels[1] ||
+    reels[1] === reels[2] ||
+    reels[0] === reels[2]
+  ) {
+    returned = betAmount;
+    label = "Zwei gleiche, Einsatz zurück";
+  }
+  return { reels, payout: returned - betAmount, label };
+}
+function buildSlotEmbed(result, betAmount, balance) {
+  const won = result.payout > 0;
+  const push = result.payout === 0;
+  return new EmbedBuilder()
+    .setTitle("🎰 Slotmaschine")
+    .setDescription(
+      `**${result.reels.map((r) => r.emoji).join("  |  ")}**\n\n${result.label}\nEinsatz: **${betAmount} Kekse**`,
+    )
+    .addFields({
+      name: won ? "Gewonnen!" : push ? "Einsatz zurück" : "Verloren!",
+      value: `${result.payout >= 0 ? "+" : ""}${result.payout} Kekse`,
+    })
+    .setColor(0x333333)
+    .setFooter({ text: `Neuer Kontostand: ${balance} Kekse` });
+}
 export async function initEconomySystem(client) {
   const crashGames = new Map();
   const hlGames = new Map();
@@ -619,6 +813,12 @@ export async function initEconomySystem(client) {
       console.log(`${msg.author.username} hat !leaderboard genutzt`);
       console.log(`Reply ${msg.author.username}: [leaderboard]`);
       return msg.reply({ embeds: [embed] });
+    }
+    if (command === "!steal") {
+      const result = await performSteal(msg.guild, msg.member);
+      console.log(`Reply ${msg.author.username}: ${result.text}`);
+      globalBotStats.commandsRunned += 1;
+      return msg.reply({ content: result.text });
     }
     if (command === "!daily_setup") {
       if (msg.author.id !== FABIAN_ID) return;
@@ -1811,6 +2011,39 @@ export async function initEconomySystem(client) {
 
         return;
       }
+      if (subCommand === "slot") {
+        const betAmount = parseInt(args[2]);
+        if (isNaN(betAmount) || betAmount <= 0) {
+          console.log(`Reply ${msg.author.username}: Nutzung: "!casino slot <Einsatz>"`);
+          return msg.reply({
+            content: "Nutzung: `!casino slot <Einsatz>`",
+            flags: [MessageFlags.Ephemeral],
+          });
+        }
+        if (betAmount > (userData.balance || 0)) {
+          console.log(`Reply ${msg.author.username}: Du hast nicht genug Kekse.`);
+          return msg.reply({
+            content: "Du hast nicht genug Kekse.",
+            flags: [MessageFlags.Ephemeral],
+          });
+        }
+        const result = playSlot(betAmount);
+        userData.balance = (userData.balance || 0) + result.payout;
+        if (result.payout !== 0) {
+          logTransaction(
+            msg.author.id,
+            Math.abs(result.payout),
+            result.payout > 0 ? "plus" : "minus",
+            "Casino Slot",
+          );
+        }
+        await setEcoData(msg.author.id, userData);
+        console.log(`${msg.author.username} hat die Slotmaschine gespielt (${result.payout} Kekse).`);
+        console.log(`Reply ${msg.author.username}: [slot]`);
+        return msg.reply({
+          embeds: [buildSlotEmbed(result, betAmount, userData.balance)],
+        });
+      }
       if (subCommand === "blackjack") {
         const betAmount = parseInt(args[2]);
         if (isNaN(betAmount) || betAmount <= 0) {
@@ -2034,10 +2267,10 @@ export async function initEconomySystem(client) {
         });
         return;
       }
-      console.log(`Reply ${msg.author.username}: Unbekanntes Spiel. Verfügbare Spiele: "roulette", "coinflip", "jackpot", "crash", "highlow", "blackjack"`);
+      console.log(`Reply ${msg.author.username}: Unbekanntes Spiel. Verfügbare Spiele: "roulette", "coinflip", "jackpot", "crash", "highlow", "blackjack", "slot"`);
       return msg.reply({
         content:
-          "Unbekanntes Spiel. Verfügbare Spiele: `roulette`, `coinflip`, `jackpot`, `crash`, `highlow`, `blackjack`",
+          "Unbekanntes Spiel. Verfügbare Spiele: `roulette`, `coinflip`, `jackpot`, `crash`, `highlow`, `blackjack`, `slot`",
       });
     }
     if (command === "!bank") {
@@ -5970,13 +6203,15 @@ const getHelpData = {
           "`!casino highlow x` (`/highlow`) - Starte ein Highlow-Kartenspiel\n" +
           "`!casino jackpot x` (`/jackpot`) - Kaufe Tickets für den Jackpot\n" +
           "`!casino roulette x` (`/roulette`) - Setze Kekse am Roulette-Tisch\n" +
+          "`!casino slot x` (`/slot`) - Drehe an der Slotmaschine\n" +
           "`!help` (`/help`) - Öffnet dieses Hilfemenü\n" +
           "`!leaderboard` (`/leaderboard`) - Zeigt die Top 5 der reichsten User\n" +
           "`!listpolls` (`/listpolls`) - Liste alle aktiven Umfragen auf\n" +
           "`!remind` (`/remind`) - Erstelle eine Erinnerung für dich\n" +
           "`!top` (`/top`) - Zeige serverweite Bestenliste im Counting\n" +
           "`!coinflip @User x` - Fordert einen Spieler zu Coinflip heraus\n" +
-          "`!ssp @User x` - Fordert einen Spieler zu Schere-Stein-Papier heraus",
+          "`!ssp @User x` - Fordert einen Spieler zu Schere-Stein-Papier heraus\n" +
+          "`!steal` (`/steal`) - Klaue einmal täglich 1-100 Kekse von einem zufälligen Mitglied",
       );
   },
 
@@ -6354,12 +6589,7 @@ app.get("/api/stats", async (req, res) => {
     const { users, txLogs } = guild
       ? await buildUserDatabase(guild)
       : { users: [], txLogs: {} };
-
-    const mappedLogs = logs.map((l) => ({
-      t: l.timestamp,
-      m: `${l.message}`,
-    }));
-
+    const mappedLogs = await readLogFile(logDateString());
     const payload = {
       guild: {
         name: guild?.name || "Kekse Server",
@@ -7321,6 +7551,23 @@ const commands = [
     .setDescription("Zeigt die Top 5 Nutzer mit den meisten Keksen")
     .setContexts(0)
     .setIntegrationTypes(0),
+    new SlashCommandBuilder()
+    .setName("steal")
+    .setDescription("Klaue einmal täglich 1-100 Kekse von einem zufälligen Mitglied")
+    .setContexts(0)
+    .setIntegrationTypes(0),
+
+  new SlashCommandBuilder()
+    .setName("slot")
+    .setDescription("Drehe an der Slotmaschine")
+    .addIntegerOption((opt) =>
+      opt
+        .setName("einsatz")
+        .setDescription("Einsatz in Keksen")
+        .setRequired(true),
+    )
+    .setContexts(0)
+    .setIntegrationTypes(0),
 ].map((cmd) => cmd.toJSON());
 
 export async function deploySlashCommands() {
@@ -7399,6 +7646,14 @@ client.on("interactionCreate", async (interaction) => {
       .setTimestamp();
 
     return interaction.reply({ embeds: [embed] });
+  }
+  if (commandName === "steal") {
+    const result = await performSteal(guild, member);
+    console.log(`Reply ${user.username}: ${result.text}`);
+    globalBotStats.commandsRunned += 1;
+    const payload = { content: result.text };
+    if (!result.ok) payload.flags = [MessageFlags.Ephemeral];
+    return interaction.reply(payload);
   }
   if (commandName === "send") {
     const targetChannel = options.getChannel("kanal");
@@ -8701,7 +8956,8 @@ client.on("interactionCreate", async (interaction) => {
           "**/jackpot** `<Einsatz>` - Tritt dem globalen Pott bei\n" +
           "**/crash** `<Einsatz>` - Cashing out bevor die Rakete explodiert\n" +
           "**/highlow** `<Einsatz>` - Errate die nächste Karte\n" +
-          "**/blackjack** `<Einsatz>` - Gewinne im Kartenspiel gegen den Dealer",
+          "**/blackjack** `<Einsatz>` - Gewinne im Kartenspiel gegen den Dealer\n" +
+          "**/slot** `<Einsatz>` - Drehe an der Slotmaschine",
       )
       .setColor("#ffffff");
 
@@ -8716,6 +8972,7 @@ client.on("interactionCreate", async (interaction) => {
       "crash",
       "highlow",
       "blackjack",
+      "slot",
     ].includes(commandName)
   ) {
     const hasEcoRole = member.roles.cache.has(ECO_ROLE_ID);
@@ -9288,7 +9545,23 @@ client.on("interactionCreate", async (interaction) => {
       });
       return;
     }
-
+    if (commandName === "slot") {
+      const result = playSlot(betAmount);
+      userData.balance = (userData.balance || 0) + result.payout;
+      if (result.payout !== 0) {
+        logTransaction(
+          user.id,
+          Math.abs(result.payout),
+          result.payout > 0 ? "plus" : "minus",
+          "Casino Slot",
+        );
+      }
+      await setEcoData(user.id, userData);
+      console.log(`${user.username} hat die Slotmaschine gespielt (${result.payout} Kekse).`);
+      return interaction.reply({
+        embeds: [buildSlotEmbed(result, betAmount, userData.balance)],
+      });
+    }
     if (commandName === "blackjack") {
       const suits = ["♠️", "♥️", "♦️", "♣️"];
       const values = [
