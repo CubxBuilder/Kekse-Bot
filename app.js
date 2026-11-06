@@ -653,7 +653,7 @@ async function performSteal(guild, thiefMember) {
     );
     return {
       ok: true,
-      text: `<@${thiefId}> hat <@${victimMember.id}> **${amount} Kekse** geklaut.`,
+      text: `xD<@${thiefId}> hat <@${victimMember.id}> **${amount} Kekse** geklaut.`,
     };
   } finally {
     stealBusy.delete(thiefId);
@@ -3767,7 +3767,7 @@ export function initRules(client) {
         .setColor("#ffffff")
         .setAuthor({ name: "Regelwerk" })
         .setDescription(
-          `# Allgemeine Regeln\n## Respekt und Freundlichkeit\n\n- Sei respektvoll gegenüber anderen. Beleidigungen, Mobbing oder Drohungen werden nicht toleriert.\n\n- Diskutiere sachlich und vermeide provokative Streitigkeiten.\n\n## Keine unangemessene Inhalte\n\n- Sende keine anstößigen, pornografischen, rassistischen oder gewalttätigen Inhalte.\n\n- Verbreite keine illegale Inhalte oder diskutiere über illegale Aktivitäten.\n\n## Spam, Werbung und Links\n\n- Unterlasse Spam jeglicher Art.\n\n- Werbung darf nur mit Zustimmung der Moderation und in den dafür vorgesehenen Channels gesendet werden.\n\n## Serverlücken\n\n- Die Ausnutzung von Serverlücken ist strengstens untersagt\n\n- Gefundene Lücken müssen per Ticket an die Moderation gemeldet werden.\n\n## Regelverstöße\n\n- Regelverstöße müssen an das Server-Team gemeldet werden.`,
+          `# Allgemeine Regeln\n## Respekt und Freundlichkeit\n\n- Sei respektvoll gegenüber anderen. Beleidigungen, Mobbing oder Drohungen werden nicht toleriert.\n\n- Diskutiere sachlich und vermeide provokative Streitigkeiten.\n\n## Keine unangemessene Inhalte\n\n- Sende keine anstößigen, pornografischen, rassistischen oder gewalttätigen Inhalte.\n\n- Verbreite keine illegale Inhalte oder diskutiere über illegale Aktivitäten.\n\n## Spam, Werbung und Links\n\n- Unterlasse Spam jeglicher Art.\n\n- Werbung darf nur in den dafür vorgesehenen Channels gesendet werden.\n\n## Serverlücken\n\n- Die Ausnutzung von Serverlücken ist strengstens untersagt\n\n- Gefundene Lücken müssen per Ticket an die Moderation gemeldet werden.\n\n## Regelverstöße\n\n- Regelverstöße müssen an das Server-Team gemeldet werden.`,
         );
       const privacyRule = new EmbedBuilder()
         .setColor("#ffffff")
@@ -3777,7 +3777,7 @@ export function initRules(client) {
       const useRule = new EmbedBuilder()
         .setColor("#ffffff")
         .setDescription(
-          `# Server Nutzung und Kommunikation\n## Richtige Kanäle\n\n- Poste wenn möglich in die dafür vorgesehenen Channels.\n\n- Bots dürfen nur in den dafür vorgesehenen Channels genutzt werden.\n\n## Sprache und Ausdruck\n\n- Kommuniziere freundlich, konstruktiv und versuche das Fluchen in Maßen zu halten.\n\n- Deutsch und Englisch sind die eizig erlaubten Sprachen auf diesem Server.\n\n## Verhalten in Voice Channels\n\n- Vermeide störgeräusche.\n\n- Das machen von Audio- und Videoaufnahmen von Voice-Chats ist nur mit der ausdrücklichen Erlaubnis aller Beteiligten erlaubt.`,
+          `# Server Nutzung und Kommunikation\n## Richtige Kanäle\n\n- Poste wenn möglich in die dafür vorgesehenen Channels.\n\n- Bots dürfen nur in den dafür vorgesehenen Channels genutzt werden.\n\n## Sprache und Ausdruck\n\n- Kommuniziere freundlich, konstruktiv und versuche das Fluchen in Maßen zu halten.\n\n- Deutsch und Englisch sind die eizig erlaubten Sprachen auf diesem Server.\n\n## Verhalten in Voice Channels\n\n- Vermeide störgeräusche.\n\n- Das machen von Audio- und Videoaufnahmen von Voice-Chats ist nur mit der ausdrücklichen Erlaubnis aller Beteiligten erlaubt.\n\n## Rangsystem & XP\n\n- Es zählen nur echte Einladungen/Personen um XP zu erhalten. Das Einladen von 2. Accounts oder Fake Accounts wird anerkannt und ist verboten. Das manipulieren von Einladungen führt zu einen Ausschluss des Einladungssystem.\n\n- Spamming um schneller XP zu erlangen ist verboten.`,
         );
       const channelRule = new EmbedBuilder()
         .setColor("#ffffff")
@@ -3787,7 +3787,7 @@ export function initRules(client) {
       const modRule = new EmbedBuilder()
         .setColor("#ffffff")
         .setDescription(
-          `# Moderation und Konsequenzen\n## Verhalten gegenüber Moderatoren\n\n- Entscheidungen der Moderation sind zu respektieren. Bei Problemen mit Entscheidungen ist ein Ticket zu erstellen.\n\n- Den Anweisungen der Moderation ist Folge zu leisten.\n\n## Discord Nutzerbedingungen\n\n- Die offiziellen Discord Richtlinien und Nutzerbedingungen müssen zu jeder Zeit eingehalten werden.\n\n- https://discord.com/terms\n\n## Konsequenzen bei Verstößen\n\n- Bei Verstößen können Verwarnungen, temporäre oder permanente Sperren verhangen werden.\n\n- Moderatoren dürfen jederzeit Inhalte entfernen, die gegen Regeln verstoßen.\n\n- Administratoren ist jederzeit das Recht vorbehalten, Nutzer auch ohne Angabe eines Grundes zu verwarnen, zu sperren oder anderweitig zu bestrafen.`,
+          `# Moderation und Konsequenzen\n## Verhalten gegenüber Moderatoren\n\n- Entscheidungen der Moderation sind zu respektieren. Bei Problemen mit Entscheidungen ist ein Ticket zu erstellen.\n\n- Den Anweisungen der Moderation ist Folge zu leisten.\n\n- Ein Administrator zu pingen, ist nur in Sonderfällen erlaubt. Kleinere Anliegen gehen an die Moderation.\n\n## Discord Nutzerbedingungen\n\n- Die offiziellen Discord Richtlinien und Nutzerbedingungen müssen zu jeder Zeit eingehalten werden.\n\n- https://discord.com/terms\n\n## Konsequenzen bei Verstößen\n\n- Bei Verstößen können Verwarnungen, temporäre oder permanente Sperren verhangen werden.\n\n- Moderatoren dürfen jederzeit Inhalte entfernen, die gegen Regeln verstoßen.\n\n- Administratoren ist jederzeit das Recht vorbehalten, Nutzer auch ohne Angabe eines Grundes zu verwarnen, zu sperren oder anderweitig zu bestrafen.`,
         );
       console.log(`Send: [Rules]`);
       msg.channel
