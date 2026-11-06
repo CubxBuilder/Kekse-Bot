@@ -6370,7 +6370,7 @@ app.get("/api/stats", async (req, res) => {
       users: userCount,
       bots: botCount,
       uptime: Math.floor(process.uptime()),
-      version: "2.1.0",
+      version: "2.27.5",
       lastRestart: Date.now() - process.uptime() * 1000,
       ping: {
         now: client.ws.ping || globalBotStats.pingNow || 0,
