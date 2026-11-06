@@ -1110,11 +1110,11 @@
 					if (!token) { window.location.href = "/permission"; return; }
 					loadAuthLevel(token);
 					const res = await fetch(`/api/tickets?token=${token}`);
-					if (!res.ok) { window.location.href = "/err605"; return; }
+					if (!res.ok) { window.location.href = "/401"; return; }
 					rawTicketsCache = await res.json();
 					processAndRenderTickets();
 					checkUrlHash();
-				} catch { window.location.href = "/err612"; }
+				} catch { window.location.href = "/400"; }
 			}
 			$("ticket-toggle").addEventListener("click", () => $("ticket-archive").classList.toggle("collapsed"));
 			fetchStats();
