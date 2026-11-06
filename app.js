@@ -653,7 +653,7 @@ async function performSteal(guild, thiefMember) {
     );
     return {
       ok: true,
-      text: `xD<@${thiefId}> hat <@${victimMember.id}> **${amount} Kekse** geklaut.`,
+      text: `<@${thiefId}> hat <@${victimMember.id}> **${amount} Kekse** geklaut.`,
     };
   } finally {
     stealBusy.delete(thiefId);
