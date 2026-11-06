@@ -681,13 +681,118 @@
 					font-size: 0.88rem;
 				}
 			}
+			#dashboard-shell {
+  display: none;
+  min-height: 100vh;
+  flex-direction: column;
+}
+#login-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: var(--bg-base);
+}
+#login-card {
+  width: 100%;
+  max-width: 390px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+#login-card h2 {
+  font-size: 1.3rem;
+}
+#login-card p {
+  color: var(--text-secondary);
+  font-size: .85rem;
+  line-height: 1.5;
+}
+#login-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: .8rem;
+  color: var(--text-secondary);
+}
+#login-card input:not([type="checkbox"]) {
+  width: 100%;
+  padding: 11px;
+  color: white;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+#login-card input:focus {
+  border-color: #888;
+}
+#login-card .login-check {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+#login-card button {
+  padding: 11px;
+  color: #111;
+  background: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+#login-card button:disabled {
+  opacity: .5;
+  cursor: wait;
+}
+#login-message {
+  color: #f87171 !important;
+  min-height: 18px;
+}
+#verify-code {
+  display: block;
+  padding: 14px;
+  text-align: center;
+  font-size: 1.6rem;
+  letter-spacing: .2em;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+#verify-command {
+  display: block;
+  padding: 10px;
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+}
+#logout-button {
+  margin-left: auto;
+  padding: 7px 12px;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
 		</style>
 	</head>
 	<body>
+		<div id="dashboard-shell">
 		<header>
 			<img src="../icon.png" class="icon">
 			<h1>Kekse Bot</h1>
 			<h1>Dashboard</h1>
+			<button id="logout-button">Abmelden</button>
 		</header>
 		<main>
 			<article id="server-statistics">
@@ -817,9 +922,178 @@
 				data: { datasets: [{ data: [], borderColor: "#4ade80", backgroundColor: "rgba(74,222,128,0.05)", borderWidth: 1.5, pointRadius: 0, fill: true, tension: 0.4 }] },
 				options: { animation: false, responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { type: "time", time: { tooltipFormat: "HH:mm:ss", displayFormats: { minute: "HH:mm" } }, ticks: { color: "#888", font: { size: 9 }, maxTicksLimit: 4 }, grid: { display: false } }, y: { beginAtZero: true, ticks: { color: "#888", font: { size: 10 }, callback: v => Math.round(v) + "ms" }, grid: { color: "#1a1a1a" } } } }
 			});
+			let authPollTimer = null;
+let statsTimer = null;
+let currentChallengeId = null;
+
+function showLogin(message = "") {
+  authLevel = null;
+  if (statsTimer) {
+    clearInterval(statsTimer);
+    statsTimer = null;
+  }
+  if (authPollTimer) {
+    clearInterval(authPollTimer);
+    authPollTimer = null;
+  }
+  $("dashboard-shell").style.display = "none";
+  $("login-screen").style.display = "flex";
+  $("login-form").hidden = false;
+  $("verify-step").hidden = true;
+  $("setup-step").hidden = true;
+  $("login-message").textContent = message;
+  $("login-password").value = "";
+  currentChallengeId = null;
+}
+
+async function showDashboard(level) {
+  authLevel = level;
+  $("login-screen").style.display = "none";
+  $("dashboard-shell").style.display = "flex";
+  set("auth-level", level === "admin" ? "Admin" : "Team");
+  if (location.search) {
+    window.history.replaceState({}, document.title, location.pathname + location.hash);
+  }
+  await fetchStats();
+  await fetchTickets();
+  if (!statsTimer) statsTimer = setInterval(fetchStats, 1000);
+}
+
+async function initDashboardAuth() {
+  try {
+    const res = await fetch("/api/auth/session", {
+      credentials: "same-origin"
+    });
+    if (!res.ok) {
+      showLogin();
+      return;
+    }
+    const data = await res.json();
+    await showDashboard(data.level);
+  } catch {
+    showLogin("Verbindung zum Server fehlgeschlagen.");
+  }
+}
+
+function startChallengePolling() {
+  if (authPollTimer) clearInterval(authPollTimer);
+  authPollTimer = setInterval(async () => {
+    try {
+      const res = await fetch("/api/auth/2fa-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ challengeId: currentChallengeId })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        clearInterval(authPollTimer);
+        authPollTimer = null;
+        showLogin(data.error || "Bestätigung abgelaufen.");
+        return;
+      }
+      if (data.setupRequired) {
+        clearInterval(authPollTimer);
+        authPollTimer = null;
+        $("verify-info").textContent = "Discord-Bestätigung erfolgreich.";
+        $("setup-step").hidden = false;
+        return;
+      }
+      if (data.authenticated) {
+        clearInterval(authPollTimer);
+        authPollTimer = null;
+        await showDashboard(data.level);
+      }
+    } catch {
+      $("verify-info").textContent = "Warte auf Verbindung zum Server...";
+    }
+  }, 2000);
+}
+
+$("login-card").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!$("setup-step").hidden) {
+    const password = $("setup-password").value;
+    const confirmation = $("setup-confirm").value;
+    if (password.length < 12 || password !== confirmation) {
+      $("login-message").textContent = "Die Passwörter müssen übereinstimmen und mindestens 12 Zeichen lang sein.";
+      return;
+    }
+    try {
+      const res = await fetch("/api/auth/complete-setup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          challengeId: currentChallengeId,
+          password,
+          confirmation,
+          disableTwoFactor: $("setup-disable-2fa").checked
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        $("login-message").textContent = data.error || "Passwort konnte nicht gespeichert werden.";
+        return;
+      }
+      await showDashboard(data.level);
+    } catch {
+      $("login-message").textContent = "Verbindung zum Server fehlgeschlagen.";
+    }
+    return;
+  }
+  $("login-message").textContent = "";
+  try {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({
+        username: $("login-username").value,
+        password: $("login-password").value,
+        rememberMe: $("login-remember").checked
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      $("login-message").textContent = data.error || "Anmeldung fehlgeschlagen.";
+      return;
+    }
+    if (data.status === "authenticated") {
+      await showDashboard(data.level);
+      return;
+    }
+    			if (data.status === "verify") {
+      			currentChallengeId = data.challengeId;
+      			$("login-form").hidden = true;
+      			$("verify-step").hidden = false;
+      			$("verify-code").textContent = data.code;
+      			$("verify-command").textContent = `/dashboard-verify code:${data.code}`;
+      			$("verify-info").textContent = data.firstLogin
+        			? "Bestätige deine erste Anmeldung auf Discord."
+        			: "Bestätige deine Anmeldung auf Discord.";
+     			 startChallengePolling();
+    			}
+ 			 } catch {
+    			$("login-message").textContent = "Verbindung zum Server fehlgeschlagen.";
+ 			 }
+			});
+
+			$("logout-button").addEventListener("click", async () => {
+  			await fetch("/api/auth/logout", {
+    			method: "POST",
+    			credentials: "same-origin"
+  			});
+  			showLogin();
+			});
+			initDashboardAuth();
 			async function fetchStats() {
 				try {
-					const res = await fetch("/api/stats");
+					const res = await fetch("/api/stats", { credentials: "same-origin" });
+					if (res.status === 401) {
+  						showLogin();
+ 						return;
+					}
 					if (!res.ok) return;
 					const d = await res.json();
 					if (d.guild) {
@@ -886,21 +1160,8 @@
 			let modalSig = "";
 			const ADMIN_UI = new Set(["promote-rang","demote-rang","add-xp","remove-xp","add-kekse","remove-kekse"]);
 			const rowCache = new Map();
-			const getToken = () => localStorage.getItem("admin_token") || new URLSearchParams(location.search).get("t");
 			const can = a => ADMIN_UI.has(a) ? authLevel === "admin" : !!authLevel;
 			const badge = (t, c) => `<span class="badge" style="color:${c}">${t}</span>`;
-			async function loadAuthLevel(token) {
-				try {
-					const r = await fetch("/api/auth/level", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }) });
-					authLevel = (await r.json()).level || null;
-				} catch { authLevel = null; }
-				if (!token || !authLevel) {
-					window.location.href = "/401";
-					return;
-				}
-				set("auth-level", authLevel === "admin" ? "Admin-Token" : authLevel === "mod" ? "Team-Token" : "Nur Ansicht");
-				if (openUserId) { modalSig = ""; renderUserModal(); }
-			}
 			function userRowHtml(u) {
 				const logs = (rawTxLogsCache[u.userId] || []).slice(0, 200);
 				const isOpen = openedLogUsers.has(u.userId);
@@ -1016,7 +1277,7 @@
 			async function userAction(action, extra = {}) {
 				const u = rawUsersCache.find(x => x.userId === openUserId);
 				if (!u) return;
-				const payload = { token: getToken(), userId: u.userId, action, ...extra };
+				const payload = { userId: u.userId, action, ...extra };
 				if (["add-xp", "remove-xp", "add-kekse", "remove-kekse"].includes(action)) {
 					const v = prompt("Menge eingeben:");
 					if (!v) return;
@@ -1036,7 +1297,16 @@
 				}
 				if (["kick", "ban", "clan-kick"].includes(action) && !confirm(`${action.toUpperCase()} für ${u.username} wirklich ausführen?`)) return;
 				try {
-					const res = await fetch("/api/users/action", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+					const res = await fetch("/api/users/action", {
+						method: "POST",
+ 						headers: { "Content-Type": "application/json" },
+  						credentials: "same-origin",
+ 						 body: JSON.stringify(payload)
+					});
+					if (res.status === 401) {
+  						showLogin();
+  						return;
+					}
 					const data = await res.json();
 					if (data.success) { await fetchStats(); modalSig = ""; renderUserModal(); }
 					else alert("Fehler: " + data.error);
@@ -1103,23 +1373,23 @@
 				}
 			}
 			async function fetchTickets() {
-				try {
-					const urlParams = new URLSearchParams(window.location.search);
-					let token = urlParams.get('t') || localStorage.getItem("admin_token");
-					if (urlParams.get('t')) { localStorage.setItem("admin_token", urlParams.get('t')); window.history.replaceState({}, document.title, window.location.pathname + window.location.hash); }
-					if (!token) { window.location.href = "/permission"; return; }
-					loadAuthLevel(token);
-					const res = await fetch(`/api/tickets?token=${token}`);
-					if (!res.ok) { window.location.href = "/401"; return; }
-					rawTicketsCache = await res.json();
-					processAndRenderTickets();
-					checkUrlHash();
-				} catch { window.location.href = "/400"; }
+ 				 try {
+    				const res = await fetch("/api/tickets", {
+      					credentials: "same-origin"
+    				});
+    				if (res.status === 401) {
+      					showLogin();
+      					return;
+    				}
+    				if (!res.ok) throw new Error("Tickets konnten nicht geladen werden.");
+    				rawTicketsCache = await res.json();
+    				processAndRenderTickets();
+    				checkUrlHash();
+  				} catch {
+    				set("ticket-list", "Tickets konnten nicht geladen werden.");
+  				}
 			}
 			$("ticket-toggle").addEventListener("click", () => $("ticket-archive").classList.toggle("collapsed"));
-			fetchStats();
-			fetchTickets();
-			setInterval(fetchStats, 1000);
 			if ('serviceWorker' in navigator) {
 				navigator.serviceWorker.register('sw.js');
 			}
@@ -1137,5 +1407,50 @@
 				}
 			};
 		</script>
+			</div>
+<div id="login-screen">
+  <form id="login-card">
+    <h2>Kekse Bot Dashboard</h2>
+    <p>Bitte melde dich mit deinen Dashboard-Zugangsdaten an.</p>
+    <div id="login-form">
+      <label>
+        Benutzername
+        <input id="login-username" type="text" autocomplete="username" required maxlength="64">
+      </label>
+      <label>
+        Passwort
+        <input id="login-password" type="password" autocomplete="current-password" required maxlength="128">
+      </label>
+      <label class="login-check">
+        <input id="login-remember" type="checkbox">
+        Angemeldet bleiben
+      </label>
+      <button type="submit">Anmelden</button>
+    </div>
+    <div id="verify-step" hidden>
+      <p>Öffne Discord und führe den folgenden Befehl aus:</p>
+      <code id="verify-code">--------</code>
+      <code id="verify-command">/dashboard-verify</code>
+      <p id="verify-info">Warte auf die Discord-Bestätigung...</p>
+      <div id="setup-step" hidden>
+        <p>Bestätigung erfolgreich. Lege jetzt dein eigenes Passwort fest.</p>
+        <label>
+          Neues Passwort
+          <input id="setup-password" type="password" autocomplete="new-password" minlength="12" maxlength="128">
+        </label>
+        <label>
+          Neues Passwort bestätigen
+          <input id="setup-confirm" type="password" autocomplete="new-password" minlength="12" maxlength="128">
+        </label>
+        <label class="login-check">
+          <input id="setup-disable-2fa" type="checkbox">
+          2FA für zukünftige Logins deaktivieren
+        </label>
+        <button type="submit" id="setup-submit">Passwort speichern</button>
+      </div>
+    </div>
+    <p id="login-message"></p>
+  </form>
+</div>
 	</body>
 </html>
