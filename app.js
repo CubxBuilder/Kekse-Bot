@@ -8,6 +8,7 @@ import util from "util";
 import { fileURLToPath } from "url";
 import fs from "fs";
 import crypto from "crypto";
+import { randomInt } from "node:crypto";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 import compression from "compression";
@@ -4302,27 +4303,55 @@ const EMBED_COLOR = 0xffffff;
 function countUnique(participants) {
   return new Set(participants || []).size;
 }
-
+function getLinkedAccounts(networks, userId) {
+  const linked = new Set();
+  const visited = new Set([userId]);
+  const queue = [userId];
+  while (queue.length > 0) {
+    const current = queue.shift();
+    for (const [accountId, accounts] of Object.entries(networks || {})) {
+      const accountList = Array.isArray(accounts) ? accounts : [];
+      if (accountId === current) {
+        for (const linkedId of accountList) {
+          if (!visited.has(linkedId)) {
+            visited.add(linkedId);
+            linked.add(linkedId);
+            queue.push(linkedId);
+          }
+        }
+      }
+      if (accountList.includes(current) && !visited.has(accountId)) {
+        visited.add(accountId);
+        linked.add(accountId);
+        queue.push(accountId);
+      }
+    }
+  }
+  linked.delete(userId);
+  return linked;
+}
 function shuffle(list) {
   const result = list.slice();
   for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    const temp = result[i];
-    result[i] = result[j];
-    result[j] = temp;
+    const j = randomInt(i + 1);
+    [result[i], result[j]] = [result[j], result[i]];
   }
   return result;
 }
 async function buildPool(guild, participants) {
-  const unique = [...new Set(participants || [])];
-  const members = await guild.members.fetch({ user: unique }).catch(() => null);
   const pool = [];
+  const unique = [...new Set(participants || [])];
+  const members = await guild.members.fetch({
+    user: unique
+  }).catch(() => null);
   if (!members) return pool;
   for (const userId of unique) {
     const member = members.get(userId);
     if (!member) continue;
-    pool.push(userId);
-    if (member.roles.cache.has(BOOSTER_ROLE_ID)) pool.push(userId);
+    const tickets = participants.filter(id => id === userId).length;
+    for (let i = 0; i < tickets; i++) {
+      pool.push(userId);
+    }
   }
   return pool;
 }
@@ -4531,27 +4560,21 @@ export async function initGiveaway(client) {
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     const networks = (await getSaData("alt_networks")) || {};
-    const linkedAccounts = networks[interaction.user.id] || [];
-    if (linkedAccounts.length > 0) {
-      let hasAltInGiveaway = false;
-      for (const altId of linkedAccounts) {
-        if (data.participants.includes(altId)) {
-          hasAltInGiveaway = true;
-          break;
-        }
-      }
-      if (hasAltInGiveaway) {
-        console.log(`Reply ${interaction.user.username}: Du kannst nicht teilnehmen, da bereits ein registrierter Zweitaccount von dir im Giveaway ist.`);
-        return interaction.reply({
-          content:
-            "Du kannst nicht teilnehmen, da bereits ein registrierter Zweitaccount von dir im Giveaway ist!",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
+    const linkedAccounts = getLinkedAccounts(networks, interaction.user.id);
+    const participantConflict = [...linkedAccounts].find(function (id) {
+      return data.participants.includes(id);
+    });
+    if (participantConflict) {
+      console.log(
+        `Reply ${interaction.user.username}: Du kannst nicht teilnehmen, da bereits ein registrierter Zweitaccount von dir im Giveaway ist.`
+      );
+      return interaction.reply({
+        content:
+          "Du kannst nicht teilnehmen, da bereits ein registrierter Zweitaccount von dir im Giveaway ist!",
+        flags: [MessageFlags.Ephemeral],
+      });
     }
-
     const bonusRoles = [BOOSTER_ROLE_ID, GIVEAWAY_DOUBLE_ROLE_ID];
     const activeBonusCount = interaction.member.roles.cache.filter(
       function (role) {
