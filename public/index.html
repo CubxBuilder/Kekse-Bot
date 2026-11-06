@@ -1028,6 +1028,77 @@
         <span class="sep">|</span>
         Ping: <span id="ping-foot">—</span>
       </footer>
+	  </div>
+    <div id="login-screen">
+      <form id="login-card">
+        <h2>Kekse Bot Dashboard</h2>
+        <p>Bitte melde dich mit deinen Dashboard-Zugangsdaten an.</p>
+        <div id="login-form">
+          <label>
+            Benutzername
+            <input
+              id="login-username"
+              type="text"
+              autocomplete="username"
+              required
+              maxlength="64"
+            />
+          </label>
+          <label>
+            Passwort
+            <input
+              id="login-password"
+              type="password"
+              autocomplete="current-password"
+              required
+              maxlength="128"
+            />
+          </label>
+          <label class="login-check">
+            <input id="login-remember" type="checkbox" />
+            Angemeldet bleiben
+          </label>
+          <button type="submit">Anmelden</button>
+        </div>
+        <div id="verify-step" hidden>
+          <p>Öffne Discord und führe den folgenden Befehl aus:</p>
+          <code id="verify-code">--------</code>
+          <code id="verify-command">/dashboard-verify</code>
+          <p id="verify-info">Warte auf die Discord-Bestätigung...</p>
+          <div id="setup-step" hidden>
+            <p>
+              Bestätigung erfolgreich. Lege jetzt dein eigenes Passwort fest.
+            </p>
+            <label>
+              Neues Passwort
+              <input
+                id="setup-password"
+                type="password"
+                autocomplete="new-password"
+                minlength="12"
+                maxlength="128"
+              />
+            </label>
+            <label>
+              Neues Passwort bestätigen
+              <input
+                id="setup-confirm"
+                type="password"
+                autocomplete="new-password"
+                minlength="12"
+                maxlength="128"
+              />
+            </label>
+            <label class="login-check">
+              <input id="setup-disable-2fa" type="checkbox" />
+              2FA für zukünftige Logins deaktivieren
+            </label>
+            <button type="submit" id="setup-submit">Passwort speichern</button>
+          </div>
+        </div>
+        <p id="login-message"></p>
+      </form>
+    </div>
       <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
       <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
       <script>
@@ -1759,76 +1830,5 @@
           }
         };
       </script>
-    </div>
-    <div id="login-screen">
-      <form id="login-card">
-        <h2>Kekse Bot Dashboard</h2>
-        <p>Bitte melde dich mit deinen Dashboard-Zugangsdaten an.</p>
-        <div id="login-form">
-          <label>
-            Benutzername
-            <input
-              id="login-username"
-              type="text"
-              autocomplete="username"
-              required
-              maxlength="64"
-            />
-          </label>
-          <label>
-            Passwort
-            <input
-              id="login-password"
-              type="password"
-              autocomplete="current-password"
-              required
-              maxlength="128"
-            />
-          </label>
-          <label class="login-check">
-            <input id="login-remember" type="checkbox" />
-            Angemeldet bleiben
-          </label>
-          <button type="submit">Anmelden</button>
-        </div>
-        <div id="verify-step" hidden>
-          <p>Öffne Discord und führe den folgenden Befehl aus:</p>
-          <code id="verify-code">--------</code>
-          <code id="verify-command">/dashboard-verify</code>
-          <p id="verify-info">Warte auf die Discord-Bestätigung...</p>
-          <div id="setup-step" hidden>
-            <p>
-              Bestätigung erfolgreich. Lege jetzt dein eigenes Passwort fest.
-            </p>
-            <label>
-              Neues Passwort
-              <input
-                id="setup-password"
-                type="password"
-                autocomplete="new-password"
-                minlength="12"
-                maxlength="128"
-              />
-            </label>
-            <label>
-              Neues Passwort bestätigen
-              <input
-                id="setup-confirm"
-                type="password"
-                autocomplete="new-password"
-                minlength="12"
-                maxlength="128"
-              />
-            </label>
-            <label class="login-check">
-              <input id="setup-disable-2fa" type="checkbox" />
-              2FA für zukünftige Logins deaktivieren
-            </label>
-            <button type="submit" id="setup-submit">Passwort speichern</button>
-          </div>
-        </div>
-        <p id="login-message"></p>
-      </form>
-    </div>
   </body>
 </html>
