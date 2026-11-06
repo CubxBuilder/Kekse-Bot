@@ -702,9 +702,14 @@ function buildSlotEmbed(result, betAmount, balance) {
   return new EmbedBuilder()
     .setTitle("🎰 Slotmaschine")
     .setDescription(
-      `**${result.reels.map((r) => r.emoji).join("  |  ")}**\n\n${result.label}\nEinsatz: **${betAmount} Kekse**`,
+      `Dein Einsatz: **${betAmount} Kekse**`,
     )
-    .addFields({
+    .addFields(
+      {
+        name: `**${result.reels.map((r) => r.emoji).join("  |  ")}**`,
+        value: `${result.label}`,
+      },
+      {
       name: won ? "Gewonnen!" : push ? "Einsatz zurück" : "Verloren!",
       value: `${result.payout >= 0 ? "+" : ""}${result.payout} Kekse`,
     })
