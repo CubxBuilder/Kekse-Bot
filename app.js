@@ -6085,11 +6085,23 @@ export async function handleGuildMemberAdd(member) {
     const inviteUsed = newInvites.find(
       (i) => oldInvites && i.uses > (oldInvites.get(i.code) || 0),
     );
-
-    if (inviteUsed && inviteUsed.inviter) {
-      await addXP(inviteUsed.inviter.id, 50, member.client);
+    if (
+      inviteUsed &&
+      inviteUsed.inviter &&
+      inviteUsed.inviter.id !== member.id
+    ) {
+      const previous = await getIData(`joined_${member.id}`);
+      if (!previous.awarded) {
+        await addXP(inviteUsed.inviter.id, 50, member.client);
+        await setIData(`joined_${member.id}`, {
+          inviterId: inviteUsed.inviter.id,
+          joinedAt: Date.now(),
+          xp: 50,
+          awarded: true,
+          penalized: false,
+        });
+      }
     }
-
     invitesTracker.set(
       member.guild.id,
       new Map(newInvites.map((invite) => [invite.code, invite.uses])),
@@ -6098,7 +6110,6 @@ export async function handleGuildMemberAdd(member) {
     console.error(err);
   }
 }
-
 export function handleInviteCreate(invite) {
   if (invite.guild.id !== GUILD_ID) return;
   const currentInvites = invitesTracker.get(invite.guild.id) || new Map();
@@ -6133,15 +6144,57 @@ client.on("messageCreate", async (message) => {
   if (message.channelId == COUNTING_CHANNEL_ID) return;
   handleMessageXP(message);
 });
-
 client.on("guildMemberAdd", async (member) => {
   await handleGuildMemberAdd(member);
 });
-
 client.on("inviteCreate", async (invite) => {
   handleInviteCreate(invite);
 });
-
+async function handleInviteLeave(member) {
+  if (member.guild.id !== GUILD_ID || member.user.bot) return;
+  const record = await getIData(`joined_${member.id}`);
+  if (!record.awarded || record.penalized || !record.inviterId) return;
+  if (Date.now() - record.joinedAt >= 24 * 60 * 60 * 1000) return;
+  record.penalized = true;
+  await setIData(`joined_${member.id}`, record);
+  const before = await getXpData(record.inviterId);
+  const tierBefore = before.rang !== undefined ? before.rang : 0;
+  await removeXP(record.inviterId, record.xp, member.client);
+  const after = await getXpData(record.inviterId);
+  const tierAfter = after.rang !== undefined ? after.rang : 0;
+  const xpAfter = after.xp !== undefined ? after.xp : 0;
+  const reason = "Eingeladener User hat den Server verlassen";
+  let text;
+  if (tierAfter < tierBefore) {
+    text = `Dein Rang wurde auf \`${ROLES_TIERS[tierAfter].name}\` zurückgesetzt. Grund: \`${reason}\``;
+  } else {
+    text = `Deine XP wurden auf \`${xpAfter}/${ROLES_TIERS[tierAfter].needed}\` zurückgesetzt. Grund: \`${reason}\``;
+  }
+  const modData = await getMData("moderation");
+  if (!modData.warns) modData.warns = {};
+  if (!modData.warns[record.inviterId]) modData.warns[record.inviterId] = [];
+  modData.warns[record.inviterId].push({
+    reason: `Invite-Missbrauch: ${reason}`,
+    by: member.client.user.id,
+    date: Date.now(),
+    via: "invite",
+  });
+  await setMData("moderation", modData);
+  const inviter = await member.client.users
+    .fetch(record.inviterId)
+    .catch(function () {
+      return null;
+    });
+  if (inviter) {
+    await inviter
+      .send(text)
+      .catch(function () {});
+  }
+  console.log(
+    `${member.user.username} hat den Server innerhalb von 24h verlassen. Einlader <@${record.inviterId}> wurden ${record.xp} XP abgezogen und eine Warnung erteilt.`,
+  );
+}
+client.on("guildMemberRemove", handleInviteLeave);
 const getHelpData = {
   getMainEmbed: () => {
     return new EmbedBuilder()
