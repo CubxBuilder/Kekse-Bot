@@ -14,14 +14,17 @@ import compression from "compression";
 const app = express();
 app.use(compression());
 app.use(express.static("public", { maxAge: "1d" }));
+app.use((req, res) => {
+    res.status(404).sendFile(path.join(__dirname, 'public', '404.html')); 
+});
 app.get("/permission", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "permission", "index.html"));
 });
-app.get("/err605", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "err605", "index.html"));
+app.get("/401", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "401", "index.html"));
 });
-app.get("/err612", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "err612", "index.html"));
+app.get("/400", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "400", "index.html"));
 });
 const options = {
   key: fs.readFileSync("/etc/letsencrypt/live/kekse-bot.dedyn.io/privkey.pem"),
