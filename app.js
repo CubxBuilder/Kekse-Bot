@@ -14,9 +14,6 @@ import compression from "compression";
 const app = express();
 app.use(compression());
 app.use(express.static("public", { maxAge: "1d" }));
-app.use((req, res) => {
-    res.status(404).sendFile(path.join(__dirname, 'public', '404.html')); 
-});
 app.get("/permission", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "permission", "index.html"));
 });
@@ -189,11 +186,24 @@ export async function initTicketArchive(app, getTickData, setTickData) {
   } catch (e) {
     console.log("Fehler beim Laden der archivierten Tickets: " + e.message);
   }
-  app.get("/admin/login", (req, res) => {
-    res.sendFile(
-      path.join(__dirname, "public", "admin", "login", "index.html"),
-    );
-  });
+  app.get("/api/tickets", requireDashboardAuth, async (req, res) => {
+  try {
+    const StorageModel = mongoose.model("BotStorage");
+    const archiveDoc = await StorageModel.findOne({
+      namespace: "tickets",
+      key: "archive_list"
+    }).lean();
+    if (!archiveDoc || !archiveDoc.value) return res.json([]);
+    const archive = Array.isArray(archiveDoc.value.archive)
+      ? archiveDoc.value.archive
+      : Array.isArray(archiveDoc.value)
+        ? archiveDoc.value
+        : [];
+    res.json(archive.map(({ token, ...ticket }) => ticket));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
   app.get("/api/tickets", async (req, res) => {
     try {
       const StorageModel = mongoose.model("BotStorage");
@@ -267,7 +277,6 @@ export async function archiveTicket(
       match && match[0]
         ? match[0]
         : name.replace(/[^0-9]/g, "").slice(-4) || "0000";
-    const sessionToken = crypto.randomBytes(8).toString("hex");
     archives.unshift({
       id: ticketIdNum,
       name,
@@ -277,7 +286,6 @@ export async function archiveTicket(
       closedAt: new Date().toISOString(),
       messageCount: messages.length,
       messages,
-      token: sessionToken,
     });
     if (archives.length > 100) archives.pop();
     await setTickData("archive_list", { archive: archives });
@@ -287,7 +295,7 @@ export async function archiveTicket(
     const sendKekseLog = async (ticketName, ticketMessages) => {
       const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
       if (!logChannel) return;
-      const ticketUrl = `https://kekse-bot.dedyn.io:5000/?t=${sessionToken}#ticket-${ticketIdNum}`;
+      const ticketUrl = `https://kekse-bot.dedyn.io:5000/#ticket-${ticketIdNum}`;
       const logEmbed = new EmbedBuilder()
         .setColor("#ffffff")
         .setAuthor({
@@ -6481,48 +6489,126 @@ export async function initDashboard(app, client, globalBotStats) {
     logs.push({ t: Date.now(), m: message });
   };
 }
-const ADMIN_TOKEN_HASH =
-  "98b597cf0dab8d66c56c7368241dcb52db0c68eb6db44a6d762f7d45fb2db07c";
+const dashboardScrypt = util.promisify(crypto.scrypt);
+const DASHBOARD_COOKIE = "__Host-kekse_dashboard";
+const dashboardLoginAttempts = new Map();
 
-const RANK_LADDER = [
-  { name: "User", roleId: null },
-  { name: "Test Member", roleId: "1436073052638285959" },
-  { name: "Member", roleId: "1423428139790499983" },
-  { name: "Moderator", roleId: "1457906448234319922" },
-  { name: "Admin", roleId: "1423427747103113307" },
-  { name: "Owner", roleId: null },
-];
-
-const ADMIN_ACTIONS = new Set([
-  "promote-rang",
-  "demote-rang",
-  "add-xp",
-  "remove-xp",
-  "add-kekse",
-  "remove-kekse",
-]);
-const MOD_ACTIONS = new Set([
-  "promote-user",
-  "demote-user",
-  "clan-kick",
-  "toggle-block",
-  "timeout",
-  "untimeout",
-  "kick",
-  "ban",
-  "unban",
-  "warn",
-  "unwarn",
-]);
-
-function getTokenLevel(token) {
-  if (!token || typeof token !== "string") return null;
-  const hash = crypto.createHash("sha256").update(token).digest("hex");
-  if (hash === ADMIN_TOKEN_HASH) return "admin";
-  if (archives.some((a) => a.token === token)) return "mod";
-  return null;
+function getDashboardAccounts() {
+  const accounts = JSON.parse(process.env.DASHBOARD_ACCOUNTS || "[]");
+  if (!Array.isArray(accounts)) throw new Error("DASHBOARD_ACCOUNTS muss ein Array sein.");
+  return accounts;
 }
 
+function getDashboardConfig(username) {
+  return getDashboardAccounts().find(
+    a => a.username?.toLowerCase() === String(username || "").toLowerCase()
+  );
+}
+
+function dashboardHash(value) {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+async function hashDashboardPassword(password) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = await dashboardScrypt(password, salt, 64);
+  return `${salt}:${hash.toString("hex")}`;
+}
+
+async function verifyDashboardPassword(password, stored) {
+  if (!stored || typeof stored !== "string") return false;
+  const [salt, hash] = stored.split(":");
+  if (!salt || !hash) return false;
+  const derived = await dashboardScrypt(password, salt, 64);
+  const expected = Buffer.from(hash, "hex");
+  return expected.length === derived.length && crypto.timingSafeEqual(expected, derived);
+}
+
+function getDashboardCookie(req) {
+  const prefix = `${DASHBOARD_COOKIE}=`;
+  const entry = (req.headers.cookie || "").split(";").map(v => v.trim()).find(v => v.startsWith(prefix));
+  return entry ? decodeURIComponent(entry.slice(prefix.length)) : null;
+}
+
+async function createDashboardSession(res, username, level, rememberMe) {
+  const token = crypto.randomBytes(32).toString("base64url");
+  const hash = dashboardHash(token);
+  const lifetime = rememberMe ? 30 * 86400000 : 12 * 3600000;
+  const sessions = (await dbGet("dashboard", "sessions")) || {};
+  sessions[hash] = {
+    username,
+    level,
+    expiresAt: Date.now() + lifetime
+  };
+  await dbSet("dashboard", "sessions", sessions);
+  const cookie = `${DASHBOARD_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Strict${rememberMe ? `; Max-Age=${Math.floor(lifetime / 1000)}` : ""}`;
+  res.setHeader("Set-Cookie", cookie);
+}
+
+const requireDashboardAuth = async (req, res, next) => {
+  try {
+    const token = getDashboardCookie(req);
+    if (!token) return res.status(401).json({ error: "Anmeldung erforderlich" });
+    const hash = dashboardHash(token);
+    const sessions = (await dbGet("dashboard", "sessions")) || {};
+    const session = sessions[hash];
+    if (!session || session.expiresAt <= Date.now()) {
+      delete sessions[hash];
+      await dbSet("dashboard", "sessions", sessions);
+      return res.status(401).json({ error: "Session abgelaufen" });
+    }
+    const config = getDashboardConfig(session.username);
+    if (!config || !["admin", "mod"].includes(config.level)) {
+      delete sessions[hash];
+      await dbSet("dashboard", "sessions", sessions);
+      return res.status(401).json({ error: "Konto nicht mehr freigeschaltet" });
+    }
+    req.dashboardUser = {
+      username: session.username,
+      level: config.level
+    };
+    next();
+  } catch (error) {
+    console.error("[Dashboard Auth]", error);
+    res.status(500).json({ error: "Authentifizierungsfehler" });
+  }
+};
+
+async function createDashboardChallenge(username, level, discordId, rememberMe, firstLogin) {
+  const pending = (await dbGet("dashboard", "pending")) || {};
+  for (const [id, item] of Object.entries(pending)) {
+    if (item.username.toLowerCase() === username.toLowerCase()) delete pending[id];
+  }
+  const id = crypto.randomBytes(24).toString("hex");
+  const code = String(crypto.randomInt(10000000, 99999999));
+  pending[id] = {
+    username,
+    level,
+    discordId,
+    codeHash: dashboardHash(code),
+    rememberMe,
+    firstLogin,
+    verified: false,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + 5 * 60 * 1000
+  };
+  await dbSet("dashboard", "pending", pending);
+  return { id, code };
+}
+
+function dashboardLoginBlocked(ip) {
+  const entry = dashboardLoginAttempts.get(ip);
+  return !!entry && entry.count >= 5 && entry.until > Date.now();
+}
+
+function dashboardLoginFailed(ip) {
+  const entry = dashboardLoginAttempts.get(ip);
+  if (!entry || entry.until <= Date.now()) {
+    dashboardLoginAttempts.set(ip, { count: 1, until: Date.now() + 15 * 60 * 1000 });
+  } else {
+    entry.count++;
+  }
+}
 function getRankIndex(guild, userId, member) {
   if (guild.ownerId === userId) return 5;
   if (!member) return 0;
@@ -6701,18 +6787,158 @@ app.get("/api/stats", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-app.post("/api/auth/level", express.json(), (req, res) => {
-  res.json({ level: getTokenLevel(req.body?.token) });
-});
-
-app.post("/api/users/action", express.json(), async (req, res) => {
+app.post("/api/auth/login", express.json({ limit: "10kb" }), async (req, res) => {
   try {
-    const { token, userId, action, amount, reason, duration, index } =
-      req.body || {};
-    const level = getTokenLevel(token);
+    const ip = req.ip || req.socket.remoteAddress || "unknown";
+    if (dashboardLoginBlocked(ip)) {
+      return res.status(429).json({ error: "Zu viele Loginversuche. Bitte später erneut versuchen." });
+    }
+    const username = String(req.body?.username || "").trim();
+    const password = String(req.body?.password || "");
+    const rememberMe = req.body?.rememberMe === true;
+    if (!username || !password || username.length > 64 || password.length > 128) {
+      dashboardLoginFailed(ip);
+      return res.status(401).json({ error: "Ungültige Zugangsdaten." });
+    }
+    const config = getDashboardConfig(username);
+    if (!config || !["admin", "mod"].includes(config.level) || !/^\d{17,20}$/.test(String(config.discordId || ""))) {
+      dashboardLoginFailed(ip);
+      return res.status(401).json({ error: "Ungültige Zugangsdaten." });
+    }
+    const accounts = (await dbGet("dashboard", "accounts")) || {};
+    const key = config.username.toLowerCase();
+    const account = accounts[key];
+    let firstLogin = false;
+    if (account?.passwordHash) {
+      if (!(await verifyDashboardPassword(password, account.passwordHash))) {
+        dashboardLoginFailed(ip);
+        return res.status(401).json({ error: "Ungültige Zugangsdaten." });
+      }
+    } else {
+      if (!config.startPassword || password !== config.startPassword) {
+        dashboardLoginFailed(ip);
+        return res.status(401).json({ error: "Ungültige Zugangsdaten." });
+      }
+      firstLogin = true;
+    }
+    dashboardLoginAttempts.delete(ip);
+    if (!firstLogin && account.twoFactorEnabled === false) {
+      await createDashboardSession(res, config.username, config.level, rememberMe);
+      return res.json({ status: "authenticated", level: config.level });
+    }
+    const challenge = await createDashboardChallenge(
+      config.username,
+      config.level,
+      config.discordId,
+      rememberMe,
+      firstLogin
+    );
+    res.json({
+      status: "verify",
+      challengeId: challenge.id,
+      code: challenge.code,
+      firstLogin
+    });
+  } catch (error) {
+    console.error("[Dashboard Login]", error);
+    res.status(500).json({ error: "Login fehlgeschlagen." });
+  }
+});
+app.post("/api/auth/2fa-status", express.json({ limit: "10kb" }), async (req, res) => {
+  try {
+    const id = String(req.body?.challengeId || "");
+    const pending = (await dbGet("dashboard", "pending")) || {};
+    const challenge = pending[id];
+    if (!challenge || challenge.expiresAt <= Date.now()) {
+      delete pending[id];
+      await dbSet("dashboard", "pending", pending);
+      return res.status(401).json({ error: "Bestätigung abgelaufen." });
+    }
+    if (!challenge.verified) return res.json({ verified: false });
+    if (challenge.firstLogin) {
+      return res.json({ verified: true, setupRequired: true });
+    }
+    await createDashboardSession(
+      res,
+      challenge.username,
+      challenge.level,
+      challenge.rememberMe
+    );
+    delete pending[id];
+    await dbSet("dashboard", "pending", pending);
+    return res.json({ authenticated: true, level: challenge.level });
+  } catch (error) {
+    console.error("[Dashboard 2FA]", error);
+    res.status(500).json({ error: "Verifizierung fehlgeschlagen." });
+  }
+});
+app.post("/api/auth/complete-setup", express.json({ limit: "10kb" }), async (req, res) => {
+  try {
+    const id = String(req.body?.challengeId || "");
+    const password = String(req.body?.password || "");
+    const confirmation = String(req.body?.confirmation || "");
+    const disableTwoFactor = req.body?.disableTwoFactor === true;
+    if (password.length < 12 || password.length > 128 || password !== confirmation) {
+      return res.status(400).json({ error: "Passwörter müssen übereinstimmen und mindestens 12 Zeichen lang sein." });
+    }
+    const pending = (await dbGet("dashboard", "pending")) || {};
+    const challenge = pending[id];
+    if (!challenge || !challenge.firstLogin || !challenge.verified || challenge.expiresAt <= Date.now()) {
+      return res.status(401).json({ error: "Erstanmeldung nicht bestätigt oder abgelaufen." });
+    }
+    const config = getDashboardConfig(challenge.username);
+    if (!config || config.discordId !== challenge.discordId) {
+      return res.status(401).json({ error: "Konto nicht mehr freigeschaltet." });
+    }
+    const accounts = (await dbGet("dashboard", "accounts")) || {};
+    accounts[config.username.toLowerCase()] = {
+      username: config.username,
+      passwordHash: await hashDashboardPassword(password),
+      discordId: config.discordId,
+      twoFactorEnabled: !disableTwoFactor,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+    await dbSet("dashboard", "accounts", accounts);
+    await createDashboardSession(
+      res,
+      config.username,
+      config.level,
+      challenge.rememberMe
+    );
+    delete pending[id];
+    await dbSet("dashboard", "pending", pending);
+    res.json({ status: "authenticated", level: config.level });
+  } catch (error) {
+    console.error("[Dashboard Setup]", error);
+    res.status(500).json({ error: "Passwort konnte nicht gespeichert werden." });
+  }
+});
+app.get("/api/auth/session", requireDashboardAuth, (req, res) => {
+  res.json({
+    authenticated: true,
+    username: req.dashboardUser.username,
+    level: req.dashboardUser.level
+  });
+});
+app.post("/api/auth/logout", requireDashboardAuth, async (req, res) => {
+  try {
+    const token = getDashboardCookie(req);
+    const hash = dashboardHash(token);
+    const sessions = (await dbGet("dashboard", "sessions")) || {};
+    delete sessions[hash];
+    await dbSet("dashboard", "sessions", sessions);
+    res.setHeader("Set-Cookie", `${DASHBOARD_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`);
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Logout fehlgeschlagen." });
+  }
+});
+app.post("/api/users/action", requireDashboardAuth, express.json(), async (req, res) => {
+  try {
+    const { userId, action, amount, reason, duration, index } = req.body || {};
+    const level = req.dashboardUser.level;
     if (!level) return res.status(401).json({ error: "Ungültiger Token" });
-
     const isAdminAction = ADMIN_ACTIONS.has(action);
     if (!isAdminAction && !MOD_ACTIONS.has(action))
       return res.status(400).json({ error: "Unbekannte Aktion" });
@@ -7634,7 +7860,7 @@ const commands = [
     .setDescription("Zeigt die Top 5 Nutzer mit den meisten Keksen")
     .setContexts(0)
     .setIntegrationTypes(0),
-    new SlashCommandBuilder()
+  new SlashCommandBuilder()
     .setName("steal")
     .setDescription("Klaue einmal täglich 1-100 Kekse von einem zufälligen Mitglied")
     .setContexts(0)
@@ -7648,6 +7874,19 @@ const commands = [
         .setName("einsatz")
         .setDescription("Einsatz in Keksen")
         .setRequired(true),
+    )
+    .setContexts(0)
+    .setIntegrationTypes(0),
+  new SlashCommandBuilder()
+    .setName("dashboard-verify")
+    .setDescription("Bestätigt eine Dashboard-Anmeldung")
+    .addStringOption(opt =>
+      opt
+        .setName("code")
+        .setDescription("Der achtstellige Bestätigungscode")
+        .setMinLength(8)
+        .setMaxLength(8)
+        .setRequired(true)
     )
     .setContexts(0)
     .setIntegrationTypes(0),
@@ -7685,10 +7924,41 @@ client.on("interactionCreate", async (interaction) => {
     channelId,
     channel: currentChannel,
   } = interaction;
-  const logChannelId = "1423413348220796991";
-  const TEAM_ROLE = "1457906448234319922";
+    if (commandName === "dashboard-verify") {
+    if (!member?.roles?.cache?.has(TEAM_ROLE)) {
+      return interaction.reply({
+        content: "Du benötigst die Team-Rolle.",
+        flags: [MessageFlags.Ephemeral]
+      });
+    }
+    const code = options.getString("code", true);
+    const codeHash = dashboardHash(code);
+    const pending = (await dbGet("dashboard", "pending")) || {};
+    const entry = Object.entries(pending).find(
+      ([, p]) =>
+        p.codeHash === codeHash &&
+        p.expiresAt > Date.now() &&
+        !p.verified &&
+        p.discordId === user.id
+    );
+    if (!entry) {
+      return interaction.reply({
+        content: "Der Code ist ungültig, abgelaufen oder gehört nicht zu deinem Discord-Konto.",
+        flags: [MessageFlags.Ephemeral]
+      });
+    }
+    const [challengeId, challenge] = entry;
+    challenge.verified = true;
+    challenge.verifiedAt = Date.now();
+    pending[challengeId] = challenge;
+    await dbSet("dashboard", "pending", pending);
+    return interaction.reply({
+      content: "Dashboard-Anmeldung erfolgreich bestätigt.",
+      flags: [MessageFlags.Ephemeral]
+    });
+  }
   const sendKekseLog = async (cmdName, target, content) => {
-    const logChannel = client.channels.cache.get(logChannelId);
+    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
     if (logChannel) {
       const kekseEmbed = new EmbedBuilder()
         .setColor("#ffffff")
@@ -7954,7 +8224,7 @@ client.on("interactionCreate", async (interaction) => {
       })
       .catch(() => {});
 
-    const logChannel = client.channels.cache.get(logChannelId);
+    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
     console.log(
       `${user.username} hat eine Pingabfrage gestartet. Antwort: API-Latenz:${roundtrip}ms , WebSocket:${wsPing}ms`,
     );
@@ -8081,7 +8351,7 @@ client.on("interactionCreate", async (interaction) => {
     console.log(
       `${user.username} hat die "clear"-Funktion genutzt: ${deletedCount} innerhalb von ${duration}s in ${targetChannel} gelöscht`,
     );
-    const logChannel = client.channels.cache.get(logChannelId);
+    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
     if (logChannel) {
       const userList = targetUser ? `<@${targetUser.id}>` : "Alle User";
       const logEmbed = new EmbedBuilder()
@@ -8543,7 +8813,7 @@ client.on("interactionCreate", async (interaction) => {
 
   const sendModLog = async (action, target, reason, extra = null) => {
     const logChannel = await client.channels
-      .fetch(logChannelId)
+      .fetch(LOG_CHANNEL_ID)
       .catch(() => null);
     if (!logChannel) return;
 
@@ -8872,7 +9142,7 @@ client.on("interactionCreate", async (interaction) => {
     countingData.direction = newNum < 0 ? -1 : 1;
     await saveCounting();
 
-    const logChannel = client.channels.cache.get(logChannelId);
+    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
     if (logChannel) {
       const logEmbed = new EmbedBuilder()
         .setColor("#ffffff")
@@ -10134,7 +10404,7 @@ client.on("interactionCreate", async (interaction) => {
       ephemeral: false,
     });
 
-    const logChannel = client.channels.cache.get(logChannelId);
+    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
     if (logChannel) {
       const logEmbed = new EmbedBuilder()
         .setColor("#ffffff")
@@ -10202,7 +10472,7 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
 
-      const logChannel = client.channels.cache.get(logChannelId);
+      const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
       if (logChannel) {
         const logEmbed = new EmbedBuilder()
           .setColor("#ffffff")
@@ -10257,7 +10527,7 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
 
-      const logChannel = client.channels.cache.get(logChannelId);
+      const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
       if (logChannel) {
         const logEmbed = new EmbedBuilder()
           .setColor("#ffffff")
@@ -10346,8 +10616,11 @@ client.once("clientReady", async () => {
   } catch (error) {
     console.error(error);
   }
+    app.use((req, res) => {
+      res.status(404).sendFile(path.join(__dirname, "public", "404.html"));
+    });
 });
-app.get("/api/stats_internal", (req, res) => {
+app.get("/api/stats", requireDashboardAuth, async (req, res) => {
   const totalSeconds = client.uptime / 1000;
   const days = Math.floor(totalSeconds / 86400);
   const hours = Math.floor(totalSeconds / 3600) % 24;
