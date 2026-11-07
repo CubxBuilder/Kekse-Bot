@@ -2996,20 +2996,25 @@ export function initAuditLogs(client) {
       oldMsg.channel.id,
     );
   });
-
-  client.on(Events.GuildMemberAdd, async (member) => {
+client.on(Events.GuildMemberAdd, async (member) => {
+  try {
     await sendLog(
       "User Join",
       member.user,
       `<@${member.id}> (${member.user.tag}) hat den Server betreten.\nAccount erstellt: <t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`,
       "#ffffff",
-      member.user.displayAvatarURL(),
+      member.user.displayAvatarURL({ forceStatic: false }),
     );
-    console.log(
-      `<@${member.id}> (${member.user.tag}) hat den Server betreten.\nAccount erstellt: <t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`,
-    );
-  });
-
+    console.log(`${member.user.tag} (${member.id}) hat den Server betreten.`);
+    const account = await getEcoData(member.id);
+    if (account) {
+      await member.roles.add(ECO_ROLE_ID);
+      console.log(`${member.user.username} wurde die Economy-Rolle zugewiesen.`)
+    }
+  } catch (error) {
+    console.error("Fehler im GuildMemberAdd Event:", error);
+  }
+});
   client.on(Events.GuildMemberRemove, async (member) => {
     await sendLog(
       "User Leave",
