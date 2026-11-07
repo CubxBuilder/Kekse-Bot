@@ -4745,6 +4745,10 @@ export function registerMessageCommands(client) {
           },
           {
             name: `Schritt 4`,
+            value: `Setze dein eigenes Passwort.`,
+          },
+          {
+            name: `Schritt 5`,
             value: 'Nutze `/dashboard-verify` und gebe den erhaltenen Verifizierungs-Code ein.',
           },
         )
