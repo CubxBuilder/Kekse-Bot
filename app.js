@@ -6639,6 +6639,11 @@ async function dashLog(level, action, userId, details) {
 }
 
 async function buildUserDatabase(guild) {
+  try {
+    await guild.members.fetch();
+  } catch (error) {
+    console.error("Mitglieder konnten nicht geladen werden:", error);
+  }
   const Storage = mongoose.model("BotStorage");
   const [ecoDocs, xpDocs] = await Promise.all([
     Storage.find({ namespace: "economy" }).lean(),
