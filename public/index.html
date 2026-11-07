@@ -1402,7 +1402,7 @@
       $("login-screen").style.display = "none";
       $("dashboard-shell").style.display = "flex";
       set("auth-level", level === "admin" ? "Admin" : "Team");
-      $("accounts-admin").style.display = level === "admin" ? "block" : "none";
+      $("accounts-admin").style.display = level === "admin" ? "flex" : "none";
       if (location.search) {
         window.history.replaceState(
           {},
