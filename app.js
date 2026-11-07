@@ -1037,7 +1037,7 @@ export async function initEconomySystem(client) {
 
         winnerData.balance = (winnerData.balance || 0) + betAmount;
         loserData.balance = (loserData.balance || 0) - betAmount;
-        console.log(`${winnerData.username} hat ${loseData.username} in einem Coinflip um ${betAmount} besiegt.`);
+        console.log(`${winner.username} hat ${loser.username} in einem Coinflip um ${betAmount} besiegt.`);
         await logTransaction(
           winner.id,
           betAmount,
@@ -2277,12 +2277,7 @@ export async function initEconomySystem(client) {
         let targetId = msg.author.id;
 
         if (subCommand === "see") {
-          if (!targetUser)
-            console.log(`Reply ${msg.author.username}: user is missing`);
-            return msg.reply({
-              content: "user is missing",
-              flags: [MessageFlags.Ephemeral],
-            });
+          if (!targetUser) return denyReply(msg, "user is missing");
           const data = await getEcoData(targetUser.id);
           const dmEmbed = new EmbedBuilder()
             .setTitle(`Konto-Details von ${targetUser.username}`)
@@ -2589,7 +2584,7 @@ export async function initEconomySystem(client) {
       if (interaction.customId.startsWith("daily_claim_")) {
         const hasEcoRole = interaction.member.roles.cache.has(ECO_ROLE_ID);
         if (!hasEcoRole) {
-          console.log(`Reply ${msg.author.username}: Du benötigst zuerst ein registriertes Bankkonto ("!bank create")`);
+          console.log(`Reply ${interaction.user.username}: Du benötigst zuerst ein registriertes Bankkonto ("!bank create")`);
           return interaction.reply({
             content:
               "Du benötigst zuerst ein registriertes Bankkonto (`!bank create`).",
@@ -2668,12 +2663,13 @@ export async function initEconomySystem(client) {
         };
 
         const item = SHOP_ITEMS[itemType];
-        if (!item)
+        if (!item) {
           console.log(`Reply ${interaction.user.username}: Dieses Item existiert nicht.`);
           return interaction.reply({
             content: "Dieses Item existiert nicht!",
             flags: MessageFlags.Ephemeral,
           });
+        }
 
         if (member.roles.cache.has(item.roleId)) {
           console.log(`Reply ${interaction.user.username}: Du besitzt das Item ${item.name} bereits.`);
@@ -2838,7 +2834,7 @@ async function fuehreGehaltszahlungAus(now) {
       client.guilds.cache.first() ||
       (await client.guilds.fetch(GUILD_ID));
     const role =
-      guild.roles.cache.get(_ID) ||
+      guild.roles.cache.get(TEAM_ROLE_ID) ||
       (await guild.roles.fetch(TEAM_ROLE_ID));
     const team = Array.from(role.members.values());
 
@@ -3236,7 +3232,7 @@ export async function clear(client) {
     if (!message.content.startsWith("!clear") || message.author.bot) return;
     if (!message.member.roles.cache.has(TEAM_ROLE_ID)) {
       await message.delete().catch(() => {});
-      const warnMsg = await message.channel.send(":x: Keine Berechtigung!");
+      const warnMsg = await message.channel.send("Keine Berechtigung!");
       return setTimeout(() => warnMsg.delete().catch(() => {}), 5000);
     }
     const args = message.content.split(/\s+/).slice(1);
@@ -3362,6 +3358,10 @@ export async function clear(client) {
     setTimeout(() => finishMsg.delete().catch(() => {}), 15000);
   });
 }
+function denyReply(msg, text) {
+  console.log(`Reply ${msg.author.username}: ${text}`);
+  return msg.reply(text);
+}
 function hasPerm(member) {
   return member.permissions.has(PermissionsBitField.Flags.ModerateMembers);
 }
@@ -3411,26 +3411,11 @@ export function initModeration(client) {
       const user = await getUser(args[0]);
       const durationStr = args[1];
       const reason = args.slice(2).join(" ") || "Kein Grund";
-      if (!user || !durationStr)
-        console.log(`Reply ${msg.author.username}:Syntax: "!timeout @user 10m Grund"`);
-        return msg.reply({
-          content: " Syntax: `!timeout @user 10m Grund`.",
-          flags: [MessageFlags.Ephemeral],
-        });
+      if (!user || !durationStr) return denyReply(msg, "Syntax: `!timeout @user 10m Grund`.");
       const match = durationStr.match(/^(\d+)([smhd])$/);
-      if (!match)
-        console.log(`Reply ${msg.author.username}: Format: 10s, 5m, 2h, 1d`);
-        return msg.reply({
-          content: " Format: 10s, 5m, 2h, 1d",
-          flags: [MessageFlags.Ephemeral],
-        });
+      if (!match) return denyReply(msg, "Format: 10s, 5m, 2h, 1d");
       const durationMs = parseTimeframe(durationStr);
-      if (durationMs === 0)
-        console.log(`Reply ${msg.author.username}: Ungültige Zeitangabe.`);
-        return msg.reply({
-          content: " Ungültige Zeitangabe.",
-          flags: [MessageFlags.Ephemeral],
-        });
+      if (durationMs === 0) return denyReply(msg, "Ungültige Zeitangabe.");
       try {
         const member = await msg.guild.members.fetch(user.id);
         await member.timeout(durationMs, reason);
@@ -3452,12 +3437,7 @@ export function initModeration(client) {
     if (cmd === "untimeout") {
       const user = await getUser(args[0]);
       const reason = args.slice(1).join(" ") || "Kein Grund";
-      if (!user)
-        console.log(`Reply ${msg.author.username}: User nicht gefunden.`);
-        return msg.reply({
-          content: "User nicht gefunden.",
-          flags: [MessageFlags.Ephemeral],
-        });
+      if (!user) return denyReply(msg, "User nicht gefunden.");
 
       try {
         const member = await msg.guild.members.fetch(user.id);
@@ -3481,13 +3461,7 @@ export function initModeration(client) {
     if (cmd === "kick") {
       const user = await getUser(args[0]);
       const reason = args.slice(1).join(" ") || "Kein Grund";
-      if (!user)
-        console.log(`Reply ${msg.author.username}: User niciht gefunden.`);
-        return msg.reply({
-          content: "User nicht gefunden.",
-          flags: [MessageFlags.Ephemeral],
-        });
-
+      if (!user) return denyReply(msg, "User nicht gefunden.");
       try {
         await msg.guild.members.kick(user.id, reason);
         await sendModLog("Kick", user, reason);
@@ -3509,13 +3483,7 @@ export function initModeration(client) {
     if (cmd === "ban") {
       const idInput = args[0]?.replace(/[<@!>]/g, "");
       const reason = args.slice(1).join(" ") || "Kein Grund";
-      if (!idInput || !/^\d{17,20}$/.test(idInput))
-        console.log(`Reply ${msg.author.username}: enter valid user_id`);
-        return msg.reply({
-          content: "enter valid user_id",
-          flags: [MessageFlags.Ephemeral],
-        });
-
+      if (!idInput || !/^\d{17,20}$/.test(idInput)) return denyReply(msg, "enter valid user_id");
       try {
         const user = await client.users
           .fetch(idInput)
@@ -3540,13 +3508,7 @@ export function initModeration(client) {
     if (cmd === "unban") {
       const idInput = args[0]?.replace(/[<@!>]/g, "");
       const reason = args.slice(1).join(" ") || "Kein Grund";
-      if (!idInput)
-        console.log(`Reply ${msg.author.username}: user_id is missing`);
-        return msg.reply({
-          content: "user_id is missing",
-          flags: [MessageFlags.Ephemeral],
-        });
-
+      if (!idInput) return denyReply(msg, "user_id is missing");
       try {
         const user = await client.users
           .fetch(idInput)
@@ -3571,13 +3533,7 @@ export function initModeration(client) {
     if (cmd === "warn") {
       const user = await getUser(args[0]);
       const reason = args.slice(1).join(" ") || "Kein Grund";
-      if (!user)
-        console.log(`Reply ${msg.author.username}: user not found`);
-        return msg.reply({
-          content: "user not found",
-          flags: [MessageFlags.Ephemeral],
-        });
-
+      if (!user) return denyReply(msg, "user not found");
       data.warns[user.id] ??= [];
       data.warns[user.id].push({ reason, by: msg.author.id, date: Date.now() });
       await setMData("moderation", data);
@@ -3597,19 +3553,9 @@ export function initModeration(client) {
     }
     if (cmd === "warns") {
       const user = await getUser(args[0]);
-      if (!user)
-        console.log(`Reply ${msg.author.username}: user not found`);
-        return msg.reply({
-          content: "user not found",
-          flags: [MessageFlags.Ephemeral],
-        });
+      if (!user) return denyReply(msg, "user not found");
       const userWarns = data.warns[user.id] || [];
-      if (userWarns.length === 0)
-        console.log(`Reply ${msg.author.username}: Keine Warnungen.`);
-        return msg.reply({
-          content: "Keine Warnungen.",
-          flags: [MessageFlags.Ephemeral],
-        });
+      if (userWarns.length === 0) return denyReply(msg, "Keine Warnungen.");
       const embed = new EmbedBuilder()
         .setTitle(`Warnungen: ${user.username}`)
         .setColor("#ffffff")
@@ -3626,12 +3572,7 @@ export function initModeration(client) {
     if (cmd === "warn_remove") {
       const user = await getUser(args[0]);
       const index = parseInt(args[1]) - 1;
-      if (!user || isNaN(index) || !data.warns[user.id]?.[index])
-        console.log(`Reply ${msg.author.username}: not a valid index`);
-        return msg.reply({
-          content: "not a valid index",
-          flags: [MessageFlags.Ephemeral],
-        });
+      if (!user || isNaN(index) || !data.warns[user.id]?.[index]) return denyReply(msg, "not a valid index");
       const removed = data.warns[user.id].splice(index, 1);
       await setMData("moderation", data);
       await sendModLog(
@@ -4317,7 +4258,7 @@ function getLinkedAccounts(networks, userId) {
 function shuffle(list) {
   const result = list.slice();
   for (let i = result.length - 1; i > 0; i--) {
-    const j = randomInt(i + 1);
+    const j = crypto.randomInt(i + 1);
     [result[i], result[j]] = [result[j], result[i]];
   }
   return result;
@@ -4381,9 +4322,7 @@ export async function initGiveaway(client) {
 
   client.on("messageCreate", async function (msg) {
     if (!msg.content.startsWith("!giveaway") || msg.author.bot) return;
-    if (!msg.member.roles.cache.has(TEAM_ROLE_ID))
-      console.log(`Reply ${msg.author.username}: Du hast keine Berechtigung diesen Befehl zu nutzen.`);
-      return msg.reply("Du hast keine Berechtigung diesen Befehl zu nutzen.");
+    if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) return denyReply(msg, "Du hast keine Berechtigung diesen Befehl zu nutzen.");
     const args =
       msg.content
         .slice(1)
@@ -4392,16 +4331,14 @@ export async function initGiveaway(client) {
           return a.replace(/"/g, "");
         }) || [];
     args.shift();
-
     if (args[0] && args[0].toLowerCase() === "reroll") {
       const giveawayId = args[1];
       const count = parseInt(args[2]) || 1;
-      if (!giveawayId || count < 1)
-        console.log(`Reply ${msg.author.username}: Syntax: "!giveaway reroll <giveawayid> <anzahl>"`);
-        return msg.reply("Syntax: `!giveaway reroll <giveawayid> <anzahl>`");
-      return rerollGiveaway(client, msg, giveawayId, count, sendKekseLog);
+      if (!giveawayId || count < 1) return denyReply(msg, "Syntax: `!giveaway reroll <giveawayid> <anzahl>`");
+      const error = await rerollGiveaway(client, msg.guild, giveawayId, count, msg.author, sendKekseLog);
+      if (error) return msg.reply(error);
+      return msg.delete().catch(function () {});
     }
-
     let winnerCount = 1;
     let requiredRoles = [];
     let rolesGiven = false;
@@ -4416,33 +4353,18 @@ export async function initGiveaway(client) {
         positional.push(arg);
       }
     }
-
-    if (positional.length < 3)
-      console.log(`Reply ${msg.author.username}: Syntax: "!giveaway #channel 1h "Preis" "Text" winners=2 rooles=@Rolle1,@Rolle2"`);
-      return msg.reply(
-        'Syntax: `!giveaway #channel 1h "Preis" "Text" winners=2 roles=@Rolle1,@Rolle2`',
-      );
+    if (positional.length < 3) return denyReply(msg, 'Syntax: `!giveaway #channel 1h "Preis" "Text" winners=2 roles=@Rolle1,@Rolle2`');
     const channel =
       msg.mentions.channels.first() ||
       msg.guild.channels.cache.get(positional[0]);
-    if (!channel) return msg.reply(":x: Kanal nicht gefunden.");
+    if (!channel) return msg.reply("Kanal nicht gefunden.");
     const durationMs = parseDuration(positional[1]);
-    if (durationMs <= 0)
-      console.log(`Reply ${msg.author.username}: Zeitformat ungültig (z.B. 1h, 30m, 1d).`);
-      return msg.reply("Zeitformat ungültig (z.B. 1h, 30m, 1d).");
-
-    if (rolesGiven && requiredRoles.length === 0)
-      console.log(`Reply ${msg.author.username}:Keine gültige Rolle bei "roles=" gefunden.`);
-      return msg.reply("Keine gültige Rolle bei `roles=` gefunden.");
+    if (durationMs <= 0) return denyReply(msg, "Zeitformat ungültig (z.B. 1h, 30m, 1d).");
+    if (rolesGiven && requiredRoles.length === 0) return denyReply(msg, "Keine gültige Rolle bei `roles=` gefunden.");
     requiredRoles = [...new Set(requiredRoles)];
     for (const roleId of requiredRoles) {
-      if (!msg.guild.roles.cache.has(roleId))
-        console.log(`Reply ${msg.author.username}: Rolle ${roleId} existiert nicht auf diesem Server.`);
-        return msg.reply(
-          `Rolle \`${roleId}\` existiert nicht auf diesem Server.`,
-        );
+      if (!msg.guild.roles.cache.has(roleId)) return denyReply(msg, `Rolle \`${roleId}\` existiert nicht auf diesem Server.`);
     }
-
     const price = positional[2];
     const messageText = positional[3] || "Viel Glück 🍀";
     const startTime = Date.now();
