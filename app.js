@@ -4709,7 +4709,6 @@ export function registerMessageCommands(client) {
     if (msg.author.bot || !msg.content.startsWith("!")) return;
     if (msg.content.startsWith("!setup_dashboardInfo")) {
       if (!msg.author.id === FABIAN_ID) return;
-      await deleteCmd();
       const infoEmbed = new EmbedBuilder()
         .setColor("#ffffff")
         .setTitle(`Dashboard Login`)
