@@ -9861,7 +9861,7 @@ client.on("interactionCreate", async (interaction) => {
             const pct = ((e.betAmount / jackpotState.totalPool) * 100).toFixed(
               1,
             );
-            return `<@${e.userId}> — **${e.betAmount} Kekse** (${pct}%)`;
+            return `<@${e.userId}> - **${e.betAmount} Kekse** (${pct}%)`;
           })
           .join("\n");
 
@@ -9944,7 +9944,7 @@ client.on("interactionCreate", async (interaction) => {
           return new EmbedBuilder()
             .setTitle("💥 CRASH!")
             .setDescription(
-              `Gecrasht bei **${crashPoint.toFixed(2)}x**!\n\nEinsatz: **${betAmount} Kekse** — **Verloren!**\nNeuer Kontostand: **${userData.balance} Kekse**`,
+              `Gecrasht bei **${crashPoint.toFixed(2)}x**!\n\nEinsatz: **${betAmount} Kekse** - **Verloren!**\nNeuer Kontostand: **${userData.balance} Kekse**`,
             )
             .setColor(0x333333);
         if (cashedAt !== null) {
@@ -9959,7 +9959,7 @@ client.on("interactionCreate", async (interaction) => {
         return new EmbedBuilder()
           .setTitle("Crash")
           .setDescription(
-            `**${multiplier.toFixed(2)}x** — Steigt noch…\n\nEinsatz: **${betAmount} Kekse**\nMöglicher Gewinn: **${Math.floor(betAmount * multiplier)} Kekse**\n\nDrücke **Cash Out** bevor die Rakete crasht!`,
+            `**${multiplier.toFixed(2)}x** - Steigt noch…\n\nEinsatz: **${betAmount} Kekse**\nMöglicher Gewinn: **${Math.floor(betAmount * multiplier)} Kekse**\n\nDrücke **Cash Out** bevor die Rakete crasht!`,
           )
           .setColor(0xffffff);
       };
@@ -9989,7 +9989,7 @@ client.on("interactionCreate", async (interaction) => {
         if (!game || game.cashedOut) {
           await i
             .reply({
-              content: "Zu spät — das Spiel ist bereits beendet!",
+              content: "Zu spät - das Spiel ist bereits beendet!",
               flags: [MessageFlags.Ephemeral],
             })
             .catch(() => {});
