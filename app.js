@@ -3840,6 +3840,8 @@ function recalcKing() {
   }
 }
 let countingLock = Promise.resolve();
+let liveListenerRegistered = false;
+const processedMessageIds = new Set();
 function withCountingLock(fn) {
   const run = countingLock.then(() => fn());
   countingLock = run.catch(() => {});
@@ -4145,9 +4147,16 @@ export async function initCounting(client) {
       }
     }
   };
-  const handleCounting = (msg, syncMode = false) =>
-    withCountingLock(() => handleCountingInner(msg, syncMode));
-
+    function handleCounting(msg, syncMode = false) {
+    return withCountingLock(function () {
+      if (processedMessageIds.has(msg.id)) return;
+      processedMessageIds.add(msg.id);
+      if (processedMessageIds.size > 500) {
+        processedMessageIds.delete(processedMessageIds.values().next().value);
+      }
+      return handleCountingInner(msg, syncMode);
+    });
+  }
   const runSync = async () => {
     console.log("Starte Counting-Synchronisation...");
     await loadCounting();
@@ -4203,9 +4212,10 @@ export async function initCounting(client) {
       registerLiveListener();
     }
   };
-
-  const registerLiveListener = () => {
-    client.on(Events.MessageCreate, async (msg) => {
+  function registerLiveListener() {
+    if (liveListenerRegistered) return;
+    liveListenerRegistered = true;
+    client.on(Events.MessageCreate, async function (msg) {
       try {
         await handleCounting(msg, false);
       } catch (err) {
@@ -4213,8 +4223,7 @@ export async function initCounting(client) {
       }
     });
     console.log("Live-Zähler aktiv.");
-  };
-
+  }
   if (client.isReady()) {
     runSync();
   } else {
