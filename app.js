@@ -6442,13 +6442,161 @@ function getDashboardAccounts() {
   if (!Array.isArray(accounts)) throw new Error("DASHBOARD_ACCOUNTS muss ein Array sein.");
   return accounts;
 }
+const DASHBOARD_LEVELS = ["admin", "mod"];
+const DASHBOARD_LEVEL_NAMES = { admin: "Admin", mod: "Team" };
+const DASHBOARD_USERNAME_PATTERN = /^[A-Za-z0-9_.-]{3,32}$/;
+const DASHBOARD_URL = "https://kekse-bot.dedyn.io:5000";
 
-function getDashboardConfig(username) {
-  return getDashboardAccounts().find(
-    a => a.username?.toLowerCase() === String(username || "").toLowerCase()
-  );
+function dashboardKey(username) {
+  return String(username || "").trim().toLowerCase();
 }
 
+async function getDashboardUsers() {
+  const stored = await dbGet("dashboard", "users");
+  if (stored) return stored;
+  const users = {};
+  const accounts = (await dbGet("dashboard", "accounts")) || {};
+  for (const entry of getDashboardAccounts()) {
+    if (!entry.username) continue;
+    const key = dashboardKey(entry.username);
+    users[key] = {
+      username: entry.username,
+      discordId: String(entry.discordId || ""),
+      level: entry.level,
+      createdAt: Date.now(),
+      createdBy: "env"
+    };
+    const account = accounts[key] || {};
+    if (!account.passwordHash && !account.startPasswordHash && entry.startPassword) {
+      account.startPasswordHash = await hashDashboardPassword(entry.startPassword);
+      account.startExpiresAt = null;
+      accounts[key] = account;
+    }
+  }
+  await dbSet("dashboard", "users", users);
+  await dbSet("dashboard", "accounts", accounts);
+  return users;
+}
+
+async function getDashboardUser(username) {
+  const users = await getDashboardUsers();
+  return users[dashboardKey(username)] || null;
+}
+
+function requireDashboardAdmin(req, res, next) {
+  if (req.dashboardUser?.level !== "admin") {
+    return res.status(403).json({ error: "Nur für Admins." });
+  }
+  next();
+}
+
+async function dashboardRevokeUser(username) {
+  const key = dashboardKey(username);
+  const sessions = (await dbGet("dashboard", "sessions")) || {};
+  for (const [hash, session] of Object.entries(sessions)) {
+    if (dashboardKey(session.username) === key) delete sessions[hash];
+  }
+  await dbSet("dashboard", "sessions", sessions);
+  const pending = (await dbGet("dashboard", "pending")) || {};
+  for (const [id, item] of Object.entries(pending)) {
+    if (dashboardKey(item.username) === key) delete pending[id];
+  }
+  await dbSet("dashboard", "pending", pending);
+}
+
+async function sendDashboardDm(userId, content) {
+  try {
+    const user = await client.users.fetch(userId);
+    await user.send(content);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function validateAccountFields(username, discordId, level) {
+  if (!DASHBOARD_USERNAME_PATTERN.test(username)) {
+    throw new Error("Benutzername: 3-32 Zeichen, nur Buchstaben, Zahlen, _ . -");
+  }
+  if (!/^\d{17,20}$/.test(discordId)) throw new Error("Ungültige Discord-ID.");
+  if (!DASHBOARD_LEVELS.includes(level)) throw new Error("Ungültige Berechtigung.");
+}
+
+async function prepareAccountAction(action, input, actor) {
+  const users = await getDashboardUsers();
+  if (action === "create") {
+    const username = String(input?.username || "").trim();
+    const discordId = String(input?.discordId || "").trim();
+    const level = String(input?.level || "");
+    validateAccountFields(username, discordId, level);
+    if (users[dashboardKey(username)]) throw new Error("Benutzername ist bereits vergeben.");
+    const owner = Object.values(users).find(function (other) {
+      return other.discordId === discordId;
+    });
+    if (owner) throw new Error(`Diese Discord-ID gehört bereits zu ${owner.username}.`);
+    return { username, discordId, level };
+  }
+  if (action === "delete") {
+    const target = users[dashboardKey(input?.username)];
+    if (!target) throw new Error("Account nicht gefunden.");
+    if (dashboardKey(target.username) === dashboardKey(actor.username)) {
+      throw new Error("Den eigenen Account kannst du nicht löschen.");
+    }
+    return { username: target.username };
+  }
+  throw new Error("Unbekannte Aktion.");
+}
+
+async function executeAccountAction(action, data, actor) {
+  const users = await getDashboardUsers();
+  const accounts = (await dbGet("dashboard", "accounts")) || {};
+  const key = dashboardKey(data.username);
+  if (action === "create") {
+    const password = crypto.randomBytes(12).toString("base64url");
+    const expires = Date.now() + 7 * 86400000;
+    const text =
+      "**Dashboard-Account erstellt**\n" +
+      `Benutzername: \`${data.username}\`\n` +
+      `Berechtigung: ${DASHBOARD_LEVEL_NAMES[data.level]}\n` +
+      `Discord: <@${data.discordId}> (\`${data.discordId}\`)\n` +
+      `Startpasswort: \`${password}\`\n` +
+      `Gültig bis: <t:${Math.floor(expires / 1000)}:f>\n\n` +
+      `Dashboard: ${DASHBOARD_URL}\n` +
+      "Bei der ersten Anmeldung legt die Person ihr eigenes Passwort fest.";
+    if (!(await sendDashboardDm(FABIAN_ID, text))) {
+      throw new Error("Das Startpasswort konnte dir nicht per DM zugestellt werden. Es wurde kein Account erstellt.");
+    }
+    users[key] = {
+      username: data.username,
+      discordId: data.discordId,
+      level: data.level,
+      createdAt: Date.now(),
+      createdBy: actor.username
+    };
+    accounts[key] = {
+      username: data.username,
+      discordId: data.discordId,
+      startPasswordHash: await hashDashboardPassword(password),
+      startExpiresAt: expires,
+      createdAt: Date.now()
+    };
+    await dbSet("dashboard", "users", users);
+    await dbSet("dashboard", "accounts", accounts);
+    await dashLog(actor.level, "account-create", data.discordId, `${data.username} (${data.level})`);
+    return `Account ${data.username} erstellt. Das Startpasswort wurde dir per DM geschickt.`;
+  }
+  if (action === "delete") {
+    const target = users[key];
+    delete users[key];
+    delete accounts[key];
+    await dbSet("dashboard", "users", users);
+    await dbSet("dashboard", "accounts", accounts);
+    await dashboardRevokeUser(data.username);
+    await dashLog(actor.level, "account-delete", target.discordId, data.username);
+    return `Account ${data.username} gelöscht.`;
+  }
+  throw new Error("Unbekannte Aktion.");
+}
 function dashboardHash(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
@@ -6501,8 +6649,8 @@ const requireDashboardAuth = async (req, res, next) => {
       await dbSet("dashboard", "sessions", sessions);
       return res.status(401).json({ error: "Session abgelaufen" });
     }
-    const config = getDashboardConfig(session.username);
-    if (!config || !["admin", "mod"].includes(config.level)) {
+        const config = await getDashboardUser(session.username);
+    if (!config || !DASHBOARD_LEVELS.includes(config.level)) {
       delete sessions[hash];
       await dbSet("dashboard", "sessions", sessions);
       return res.status(401).json({ error: "Konto nicht mehr freigeschaltet" });
@@ -6780,7 +6928,7 @@ app.get("/api/stats", requireDashboardAuth, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-app.post("/api/auth/login", express.json({ limit: "10kb" }), async (req, res) => {
+app.post("/api/auth/login", express.json({ limit: "10kb" }), async function (req, res) {
   try {
     const ip = req.ip || req.socket.remoteAddress || "unknown";
     if (dashboardLoginBlocked(ip)) {
@@ -6791,31 +6939,34 @@ app.post("/api/auth/login", express.json({ limit: "10kb" }), async (req, res) =>
     const rememberMe = req.body?.rememberMe === true;
     if (!username || !password || username.length > 64 || password.length > 128) {
       dashboardLoginFailed(ip);
-      limitHit(dashboardLimits, "acc:" + accountKey, 15 * 60 * 1000);
       return res.status(401).json({ error: "Ungültige Zugangsdaten." });
     }
-    const config = getDashboardConfig(username);
-    if (!config || !["admin", "mod"].includes(config.level) || !/^\d{17,20}$/.test(String(config.discordId || ""))) {
+    const config = await getDashboardUser(username);
+    if (!config || !DASHBOARD_LEVELS.includes(config.level) || !/^\d{17,20}$/.test(String(config.discordId || ""))) {
       dashboardLoginFailed(ip);
-      limitHit(dashboardLimits, "acc:" + accountKey, 15 * 60 * 1000);
       return res.status(401).json({ error: "Ungültige Zugangsdaten." });
     }
-    const accountKey = config.username.toLowerCase();
+    const accountKey = dashboardKey(config.username);
     if (limitBlocked(dashboardLimits, "acc:" + accountKey, 10)) {
       return res.status(429).json({ error: "Zu viele Versuche für dieses Konto. Bitte später erneut versuchen." });
     }
     const accounts = (await dbGet("dashboard", "accounts")) || {};
-    const key = config.username.toLowerCase();
-    const account = accounts[key];
+    const account = accounts[accountKey];
     let firstLogin = false;
     if (account?.passwordHash) {
       if (!(await verifyDashboardPassword(password, account.passwordHash))) {
         dashboardLoginFailed(ip);
+        limitHit(dashboardLimits, "acc:" + accountKey, 15 * 60 * 1000);
         return res.status(401).json({ error: "Ungültige Zugangsdaten." });
       }
     } else {
-      if (!config.startPassword || password !== config.startPassword) {
+      const startValid =
+        !!account?.startPasswordHash &&
+        (!account.startExpiresAt || account.startExpiresAt > Date.now()) &&
+        (await verifyDashboardPassword(password, account.startPasswordHash));
+      if (!startValid) {
         dashboardLoginFailed(ip);
+        limitHit(dashboardLimits, "acc:" + accountKey, 15 * 60 * 1000);
         return res.status(401).json({ error: "Ungültige Zugangsdaten." });
       }
       firstLogin = true;
@@ -6852,7 +7003,7 @@ app.post("/api/auth/2fa-status", express.json({ limit: "10kb" }), async (req, re
     const id = String(req.body?.challengeId || "");
     const pending = (await dbGet("dashboard", "pending")) || {};
     const challenge = pending[id];
-    if (!challenge || challenge.expiresAt <= Date.now()) {
+    if (!challenge || challenge.purpose === "stepup" || challenge.expiresAt <= Date.now()) {
       delete pending[id];
       await dbSet("dashboard", "pending", pending);
       return res.status(401).json({ error: "Bestätigung abgelaufen." });
@@ -6889,7 +7040,7 @@ app.post("/api/auth/complete-setup", express.json({ limit: "10kb" }), async (req
     if (!challenge || !challenge.firstLogin || !challenge.verified || challenge.expiresAt <= Date.now()) {
       return res.status(401).json({ error: "Erstanmeldung nicht bestätigt oder abgelaufen." });
     }
-    const config = getDashboardConfig(challenge.username);
+    const config = await getDashboardUser(challenge.username);
     if (!config || config.discordId !== challenge.discordId) {
       return res.status(401).json({ error: "Konto nicht mehr freigeschaltet." });
     }
@@ -6936,6 +7087,213 @@ app.post("/api/auth/logout", requireDashboardAuth, async (req, res) => {
     res.json({ success: true });
   } catch {
     res.status(500).json({ error: "Logout fehlgeschlagen." });
+  }
+});
+app.get("/api/admin/accounts", requireDashboardAuth, requireDashboardAdmin, async function (req, res) {
+  try {
+    const users = await getDashboardUsers();
+    const accounts = (await dbGet("dashboard", "accounts")) || {};
+    const guild = client.guilds.cache.get(GUILD_ID);
+    const ownKey = dashboardKey(req.dashboardUser.username);
+    const list = Object.entries(users).map(function ([key, user]) {
+      const account = accounts[key] || {};
+      const member = guild?.members.cache.get(user.discordId);
+      return {
+        username: user.username,
+        discordId: user.discordId,
+        discordName: member ? member.displayName : null,
+        level: user.level,
+        passwordSet: !!account.passwordHash,
+        setupPending: !account.passwordHash && !!account.startPasswordHash,
+        startExpiresAt: account.startExpiresAt || null,
+        twoFactorEnabled: account.passwordHash ? account.twoFactorEnabled !== false : null,
+        createdAt: user.createdAt || null,
+        self: key === ownKey
+      };
+    });
+    list.sort(function (a, b) {
+      return a.username.localeCompare(b.username);
+    });
+    res.json(list);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/admin/accounts/update", requireDashboardAuth, requireDashboardAdmin, express.json({ limit: "10kb" }), async function (req, res) {
+  try {
+    const users = await getDashboardUsers();
+    const key = dashboardKey(req.body?.username);
+    const target = users[key];
+    if (!target) throw new Error("Account nicht gefunden.");
+    if (key === dashboardKey(req.dashboardUser.username)) {
+      throw new Error("Den eigenen Account kannst du hier nicht ändern.");
+    }
+    const newUsername = String(req.body?.newUsername ?? target.username).trim();
+    const discordId = String(req.body?.discordId ?? target.discordId).trim();
+    const level = String(req.body?.level ?? target.level);
+    validateAccountFields(newUsername, discordId, level);
+    const newKey = dashboardKey(newUsername);
+    if (newKey !== key && users[newKey]) throw new Error("Benutzername ist bereits vergeben.");
+    const idOwner = Object.entries(users).find(function ([otherKey, other]) {
+      return otherKey !== key && other.discordId === discordId;
+    });
+    if (idOwner) throw new Error(`Diese Discord-ID gehört bereits zu ${idOwner[1].username}.`);
+    const changes = [];
+    if (newUsername !== target.username) changes.push(`Benutzername ${target.username} -> ${newUsername}`);
+    if (discordId !== target.discordId) changes.push(`Discord-ID ${target.discordId} -> ${discordId}`);
+    if (level !== target.level) changes.push(`Berechtigung ${DASHBOARD_LEVEL_NAMES[target.level]} -> ${DASHBOARD_LEVEL_NAMES[level]}`);
+    if (!changes.length) throw new Error("Es gibt keine Änderungen.");
+    const accounts = (await dbGet("dashboard", "accounts")) || {};
+    if (newKey !== key || discordId !== target.discordId) {
+      await dashboardRevokeUser(target.username);
+    }
+    const account = accounts[key];
+    delete users[key];
+    delete accounts[key];
+    users[newKey] = { ...target, username: newUsername, discordId, level, updatedAt: Date.now() };
+    if (account) accounts[newKey] = { ...account, username: newUsername, discordId };
+    await dbSet("dashboard", "users", users);
+    await dbSet("dashboard", "accounts", accounts);
+    await dashLog(req.dashboardUser.level, "account-update", discordId, `${target.username}: ${changes.join(", ")}`);
+    res.json({ success: true, message: `Gespeichert: ${changes.join(", ")}` });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post("/api/admin/accounts/reset", requireDashboardAuth, requireDashboardAdmin, express.json({ limit: "10kb" }), async function (req, res) {
+  try {
+    const users = await getDashboardUsers();
+    const key = dashboardKey(req.body?.username);
+    const target = users[key];
+    if (!target) throw new Error("Account nicht gefunden.");
+    if (key === dashboardKey(req.dashboardUser.username)) {
+      throw new Error("Dein eigenes Passwort kannst du hier nicht zurücksetzen.");
+    }
+    const password = crypto.randomBytes(12).toString("base64url");
+    const expires = Date.now() + 24 * 3600000;
+    const until = `<t:${Math.floor(expires / 1000)}:f>`;
+    const personText =
+      "**Dein Dashboard-Passwort wurde zurückgesetzt**\n" +
+      `Benutzername: \`${target.username}\`\n` +
+      `Einmalpasswort: \`${password}\`\n` +
+      `Gültig bis: ${until}\n\n` +
+      `Melde dich unter ${DASHBOARD_URL} an, bestätige die Anmeldung in Discord und lege danach ein neues Passwort fest.`;
+    const adminText =
+      "**Dashboard-Passwort zurückgesetzt**\n" +
+      `Die DM an <@${target.discordId}> war nicht möglich.\n` +
+      `Benutzername: \`${target.username}\`\n` +
+      `Einmalpasswort: \`${password}\`\n` +
+      `Gültig bis: ${until}`;
+    let sentTo = "user";
+    if (!(await sendDashboardDm(target.discordId, personText))) {
+      sentTo = "admin";
+      if (!(await sendDashboardDm(FABIAN_ID, adminText))) {
+        throw new Error("Das Einmalpasswort konnte per DM nicht zugestellt werden. Es wurde nichts geändert.");
+      }
+    }
+    const accounts = (await dbGet("dashboard", "accounts")) || {};
+    accounts[key] = {
+      username: target.username,
+      discordId: target.discordId,
+      startPasswordHash: await hashDashboardPassword(password),
+      startExpiresAt: expires,
+      resetAt: Date.now()
+    };
+    await dbSet("dashboard", "accounts", accounts);
+    await dashboardRevokeUser(target.username);
+    await dashLog(req.dashboardUser.level, "account-reset", target.discordId, target.username);
+    res.json({
+      success: true,
+      sentTo,
+      message:
+        sentTo === "user"
+          ? "Das Einmalpasswort wurde der Person per DM geschickt."
+          : "Die DM an die Person war nicht möglich. Das Einmalpasswort wurde dir per DM geschickt."
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post("/api/admin/accounts/stepup", requireDashboardAuth, requireDashboardAdmin, express.json({ limit: "10kb" }), async function (req, res) {
+  try {
+    const actor = req.dashboardUser;
+    const actorKey = dashboardKey(actor.username);
+    const action = String(req.body?.action || "");
+    if (limitBlocked(dashboardLimits, "step:" + actorKey, 5)) {
+      return res.status(429).json({ error: "Zu viele Bestätigungen. Bitte in ein paar Minuten erneut versuchen." });
+    }
+    const data = await prepareAccountAction(action, req.body?.data, actor);
+    limitHit(dashboardLimits, "step:" + actorKey, 10 * 60 * 1000);
+    const user = await getDashboardUser(actor.username);
+    const pending = (await dbGet("dashboard", "pending")) || {};
+    for (const [id, item] of Object.entries(pending)) {
+      const sameStepup = item.purpose === "stepup" && dashboardKey(item.username) === actorKey;
+      if (sameStepup || item.expiresAt <= Date.now()) delete pending[id];
+    }
+    const challengeId = crypto.randomBytes(24).toString("hex");
+    const code = String(crypto.randomInt(10000000, 99999999));
+    pending[challengeId] = {
+      purpose: "stepup",
+      username: actor.username,
+      level: actor.level,
+      discordId: user.discordId,
+      codeHash: dashboardCodeHash(code),
+      verified: false,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 5 * 60 * 1000,
+      action,
+      data
+    };
+    await dbSet("dashboard", "pending", pending);
+    res.json({ challengeId, code });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post("/api/admin/accounts/stepup-status", requireDashboardAuth, requireDashboardAdmin, express.json({ limit: "10kb" }), async function (req, res) {
+  try {
+    const id = String(req.body?.challengeId || "");
+    const pending = (await dbGet("dashboard", "pending")) || {};
+    const challenge = pending[id];
+    if (
+      !challenge ||
+      challenge.purpose !== "stepup" ||
+      dashboardKey(challenge.username) !== dashboardKey(req.dashboardUser.username) ||
+      challenge.expiresAt <= Date.now()
+    ) {
+      return res.status(410).json({ error: "Die Bestätigung ist abgelaufen." });
+    }
+    res.json({ verified: !!challenge.verified });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/admin/accounts/execute", requireDashboardAuth, requireDashboardAdmin, express.json({ limit: "10kb" }), async function (req, res) {
+  try {
+    const id = String(req.body?.challengeId || "");
+    const pending = (await dbGet("dashboard", "pending")) || {};
+    const challenge = pending[id];
+    if (
+      !challenge ||
+      challenge.purpose !== "stepup" ||
+      !challenge.verified ||
+      dashboardKey(challenge.username) !== dashboardKey(req.dashboardUser.username) ||
+      challenge.expiresAt <= Date.now()
+    ) {
+      return res.status(410).json({ error: "Die Bestätigung fehlt oder ist abgelaufen." });
+    }
+    delete pending[id];
+    await dbSet("dashboard", "pending", pending);
+    const data = await prepareAccountAction(challenge.action, challenge.data, req.dashboardUser);
+    const message = await executeAccountAction(challenge.action, data, req.dashboardUser);
+    res.json({ success: true, message });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 });
 app.post("/api/users/action", requireDashboardAuth, express.json(), async (req, res) => {
