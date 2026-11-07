@@ -4731,7 +4731,7 @@ export function registerMessageCommands(client) {
             value: 'Nutze `/dashboard-verify` und gebe den erhaltenen Verifizierungs-Code ein.',
           },
         )
-        .setFooter(`Kekse Bot Dashboard`)
+        .setFooter({ text: `Kekse Bot Dashboard` })
       await msg.channel.send({embeds: [infoEmbed]});
     }
     if (
