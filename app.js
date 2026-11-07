@@ -6584,6 +6584,36 @@ function dashboardLoginFailed(ip) {
     entry.count++;
   }
 }
+const RANK_LADDER = [
+  { name: "User", roleId: null },
+  { name: "Test Member", roleId: CLAN.TEST },
+  { name: "Member", roleId: CLAN.MEMBER },
+  { name: "Team", roleId: TEAM_ROLE_ID },
+  { name: "Admin", roleId: ADMIN_ROLE_ID },
+];
+
+const ADMIN_ACTIONS = new Set([
+  "promote-rang",
+  "demote-rang",
+  "add-xp",
+  "remove-xp",
+  "add-kekse",
+  "remove-kekse",
+]);
+
+const MOD_ACTIONS = new Set([
+  "promote-user",
+  "demote-user",
+  "clan-kick",
+  "toggle-block",
+  "timeout",
+  "untimeout",
+  "kick",
+  "ban",
+  "unban",
+  "warn",
+  "unwarn",
+]);
 function getRankIndex(guild, userId, member) {
   if (guild.ownerId === userId) return 5;
   if (!member) return 0;
