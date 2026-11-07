@@ -10549,8 +10549,17 @@ client.once("clientReady", async () => {
     startVoiceXpTracker(client);
     await wage(client);
     const guild = client.guilds.cache.get("1423413347168157718");
-    console.log(`Server-Sync gestartet...`);
-    console.log(`Bot online: ${client.user.tag}`);
+if (guild) {
+  try {
+    await guild.members.fetch();
+    console.log(`[Dashboard] ${guild.members.cache.size} Mitglieder geladen.`);
+  } catch (error) {
+    console.error("[Dashboard] Mitglieder konnten nicht geladen werden:", error);
+  }
+}
+
+console.log(`Server-Sync gestartet...`);
+console.log(`Bot online: ${client.user.tag}`);
     await startStorages();
   } catch (err) {
     console.error("[Ready] Kritischer Fehler beim Initialisieren:", err);
