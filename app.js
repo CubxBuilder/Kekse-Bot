@@ -2722,7 +2722,7 @@ export async function initEconomySystem(client) {
               },
               {
                 name: "Neuer Kontostand",
-                value: `${finalData.balance.toLocaleString("de-DE")}`,
+                value: `${finalData.balance.toLocaleString("de-DE")} Kekse`,
                 inline: false,
               },
             ],
