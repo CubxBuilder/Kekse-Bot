@@ -6775,7 +6775,7 @@ app.get("/api/stats", requireDashboardAuth, async (req, res) => {
       bots: botCount,
       uptime: Math.floor(process.uptime()),
       version: "2.27.6",
-      lastRestart: Date.now() - process.uptime() * 1000,
+      lastRestart: Math.round(Date.now() - process.uptime() * 1000),
       ping: {
         now: client.ws.ping || globalBotStats.pingNow || 0,
         avg: globalBotStats.pingAverage || client.ws.ping || 0,
@@ -10554,6 +10554,10 @@ client.on("interactionCreate", async (interaction) => {
 client.once("clientReady", async () => {
   setBotPresence();
   try {
+    const mainGuild = await client.guilds.fetch(GUILD_ID);
+    await mainGuild.members.fetch();
+    await initCounting(client);
+    registerMessageCommands(client);
     await initCounting(client);
     registerMessageCommands(client);
     await initTickets(client);
