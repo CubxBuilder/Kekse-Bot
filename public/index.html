@@ -789,6 +789,49 @@
         border-radius: var(--radius-sm);
         cursor: pointer;
       }
+		.form-grid {
+  display: grid;
+  gap: 12px;
+}
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.form-grid input,
+.form-grid select {
+  padding: 10px;
+  color: white;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  font-size: 16px;
+}
+.code-box {
+  display: block;
+  padding: 14px;
+  text-align: center;
+  font-size: 1.6rem;
+  letter-spacing: 0.2em;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.code-line {
+  display: block;
+  padding: 10px;
+  overflow-wrap: anywhere;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+}
+.hint {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
     </style>
   </head>
   <body>
@@ -1014,12 +1057,49 @@
             style="color: var(--text-muted); font-size: 0.75rem"
           ></div>
         </article>
+		  <article
+  id="accounts-admin"
+  style="grid-column: 1 / -1; flex-direction: column; display: none"
+>
+  <h3>Dashboard Accounts</h3>
+  <div
+    style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap"
+  >
+    <span class="hint">Nur für Admins. Änderungen wirken sofort.</span>
+    <button class="act-btn" onclick="openAccountDialog('create')">
+      + Account erstellen
+    </button>
+  </div>
+  <div style="overflow-x: auto; width: 100%">
+    <table
+      style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem"
+    >
+      <thead>
+        <tr style="border-bottom: 1px solid var(--border); color: var(--text-secondary)">
+          <th style="padding: 8px">Benutzer</th>
+          <th style="padding: 8px">Discord</th>
+          <th style="padding: 8px">Status</th>
+          <th style="padding: 8px">Aktionen</th>
+        </tr>
+      </thead>
+      <tbody id="admin-accounts-list"></tbody>
+    </table>
+  </div>
+  <div id="admin-accounts-note" class="hint"></div>
+</article>
       </main>
       <div
         class="modal"
         id="user-modal"
         onclick="if (event.target === this) closeUserModal();"
       >
+		  <div
+  class="modal"
+  id="acc-modal"
+  onclick="if (event.target === this) closeAccountDialog();"
+>
+  <div class="modal-box" id="acc-modal-box" style="max-width: 460px"></div>
+</div>
         <div class="modal-box" id="user-modal-box"></div>
       </div>
       <footer>
@@ -1190,6 +1270,8 @@
           $("setup-step").hidden = true;
           $("login-message").textContent = message;
           $("login-password").value = "";
+		  $("accounts-admin").style.display = "none";
+          closeAccountDialog();
           currentChallengeId = null;
         }
 
@@ -1198,6 +1280,7 @@
           $("login-screen").style.display = "none";
           $("dashboard-shell").style.display = "flex";
           set("auth-level", level === "admin" ? "Admin" : "Team");
+		  $("accounts-admin").style.display = level === "admin" ? "flex" : "none";
           if (location.search) {
             window.history.replaceState(
               {},
@@ -1207,9 +1290,238 @@
           }
           await fetchStats();
           await fetchTickets();
+		  await loadAdminAccounts();
           if (!statsTimer) statsTimer = setInterval(fetchStats, 1000);
         }
+		  let adminAccounts = [];
+let accountFlow = null;
+let stepupTimer = null;
+let stepupBusy = false;
 
+async function adminRequest(path, body) {
+  const res = await fetch(path, {
+    method: body === undefined ? "GET" : "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (res.status === 401) {
+    showLogin();
+    throw new Error("Sitzung abgelaufen.");
+  }
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Anfrage fehlgeschlagen.");
+  return data;
+}
+
+async function loadAdminAccounts() {
+  if (authLevel !== "admin") return;
+  try {
+    adminAccounts = await adminRequest("/api/admin/accounts");
+    set("admin-accounts-note", "");
+    renderAdminAccounts();
+  } catch (error) {
+    set("admin-accounts-note", error.message);
+  }
+}
+
+function renderAdminAccounts() {
+  $("admin-accounts-list").innerHTML = adminAccounts
+    .map(function (a, i) {
+      const badges = [
+        badge(a.level === "admin" ? "Admin" : "Team", a.level === "admin" ? "#fbbf24" : "#888"),
+      ];
+      if (a.passwordSet) badges.push(badge("Passwort gesetzt", "#4ade80"));
+      if (a.setupPending) {
+        const expired = a.startExpiresAt && a.startExpiresAt < Date.now();
+        badges.push(
+          expired
+            ? badge("Startpasswort abgelaufen", "#f87171")
+            : badge("Einrichtung offen", "#fbbf24"),
+        );
+      }
+      if (a.twoFactorEnabled === false) badges.push(badge("2FA aus", "#888"));
+      const actions = a.self
+        ? "—"
+        : `<div class="act-row">
+            <button class="act-btn" onclick="openAccountDialog('edit', ${i})">Bearbeiten</button>
+            <button class="act-btn" onclick="resetAccountPassword(${i})">Passwort zurücksetzen</button>
+            <button class="act-btn danger" onclick="deleteAccount(${i})">Löschen</button>
+          </div>`;
+      return `<tr style="border-bottom: 1px solid var(--border);">
+        <td data-label="Nutzer" style="padding:8px;"><strong>${escapeHTML(a.username)}</strong>${a.self ? ' <span style="color:var(--text-muted);">(du)</span>' : ""}</td>
+        <td data-label="Discord" style="padding:8px;">${escapeHTML(a.discordName || "—")}<br><span style="font-size:0.68rem; color:var(--text-muted);">${escapeHTML(a.discordId)}</span></td>
+        <td data-label="Status" style="padding:8px;">${badges.join("")}</td>
+        <td data-label="Aktionen" style="padding:8px;">${actions}</td>
+      </tr>`;
+    })
+    .join("");
+}
+
+function openAccountDialog(mode, index) {
+  const account = mode === "edit" ? adminAccounts[index] : null;
+  accountFlow = { mode, original: account ? account.username : null };
+  $("acc-modal-box").innerHTML = `
+    <div class="modal-head"><h3 style="border:none; padding:0;">${mode === "edit" ? "Account bearbeiten" : "Account erstellen"}</h3><button class="act-btn" onclick="closeAccountDialog()">✕</button></div>
+    <div class="form-grid">
+      <label>Benutzername<input id="acc-form-username" maxlength="32" autocomplete="off" /></label>
+      <label>Discord-ID<input id="acc-form-id" maxlength="20" inputmode="numeric" autocomplete="off" /></label>
+      <label>Berechtigung<select id="acc-form-level"><option value="mod">Team</option><option value="admin">Admin</option></select></label>
+    </div>
+    <p id="acc-form-note" class="hint" style="color:#f87171;"></p>
+    <div class="act-row">
+      <button class="act-btn" onclick="submitAccountDialog()">${mode === "edit" ? "Speichern" : "Erstellen"}</button>
+      <button class="act-btn" onclick="closeAccountDialog()">Abbrechen</button>
+    </div>`;
+  if (account) {
+    $("acc-form-username").value = account.username;
+    $("acc-form-id").value = account.discordId;
+    $("acc-form-level").value = account.level;
+  }
+  $("acc-modal").classList.add("open");
+}
+
+function stopStepupPolling() {
+  if (stepupTimer) {
+    clearInterval(stepupTimer);
+    stepupTimer = null;
+  }
+  stepupBusy = false;
+}
+
+function closeAccountDialog() {
+  stopStepupPolling();
+  accountFlow = null;
+  const modal = $("acc-modal");
+  if (modal) modal.classList.remove("open");
+}
+
+async function submitAccountDialog() {
+  const username = $("acc-form-username").value.trim();
+  const discordId = $("acc-form-id").value.trim();
+  const level = $("acc-form-level").value;
+  const levelName = level === "admin" ? "Admin" : "Team";
+  const note = $("acc-form-note");
+  note.textContent = "";
+  try {
+    if (accountFlow.mode === "edit") {
+      const original = adminAccounts.find(function (a) {
+        return a.username === accountFlow.original;
+      });
+      const changes = [];
+      if (username !== original.username) changes.push(`Benutzername: ${original.username} → ${username}`);
+      if (discordId !== original.discordId) changes.push(`Discord-ID: ${original.discordId} → ${discordId}`);
+      if (level !== original.level) changes.push(`Berechtigung: ${original.level === "admin" ? "Admin" : "Team"} → ${levelName}`);
+      if (!changes.length) {
+        note.textContent = "Es gibt keine Änderungen.";
+        return;
+      }
+      if (!confirm("Änderungen speichern?\n\n" + changes.join("\n"))) return;
+      const data = await adminRequest("/api/admin/accounts/update", {
+        username: original.username,
+        newUsername: username,
+        discordId,
+        level,
+      });
+      closeAccountDialog();
+      await loadAdminAccounts();
+      alert(data.message);
+      return;
+    }
+    if (
+      !confirm(
+        `Account erstellen?\n\nBenutzername: ${username}\nDiscord-ID: ${discordId}\nBerechtigung: ${levelName}\n\nDas Startpasswort geht per DM an dich. Zur Bestätigung ist ein Discord-Code nötig.`,
+      )
+    )
+      return;
+    const challenge = await adminRequest("/api/admin/accounts/stepup", {
+      action: "create",
+      data: { username, discordId, level },
+    });
+    showStepup(challenge, `Account ${username} erstellen`);
+  } catch (error) {
+    note.textContent = error.message;
+  }
+}
+
+function showStepup(challenge, title) {
+  stopStepupPolling();
+  $("acc-modal-box").innerHTML = `
+    <div class="modal-head"><h3 style="border:none; padding:0;">${escapeHTML(title)}</h3><button class="act-btn" onclick="closeAccountDialog()">✕</button></div>
+    <p class="hint">Bestätige die Aktion in Discord mit diesem Befehl:</p>
+    <code class="code-box">${challenge.code}</code>
+    <code class="code-line">/dashboard-verify code:${challenge.code}</code>
+    <p id="step-info" class="hint">Warte auf die Discord-Bestätigung...</p>`;
+  $("acc-modal").classList.add("open");
+  stepupTimer = setInterval(function () {
+    pollStepup(challenge.challengeId);
+  }, 2000);
+}
+
+async function pollStepup(challengeId) {
+  if (stepupBusy) return;
+  stepupBusy = true;
+  try {
+    const status = await adminRequest("/api/admin/accounts/stepup-status", { challengeId });
+    if (!status.verified) {
+      stepupBusy = false;
+      return;
+    }
+    clearInterval(stepupTimer);
+    stepupTimer = null;
+    set("step-info", "Bestätigt. Aktion wird ausgeführt...");
+    const result = await adminRequest("/api/admin/accounts/execute", { challengeId });
+    closeAccountDialog();
+    await loadAdminAccounts();
+    alert(result.message);
+  } catch (error) {
+    stopStepupPolling();
+    set("step-info", error.message);
+  }
+}
+
+async function deleteAccount(index) {
+  const account = adminAccounts[index];
+  if (!account) return;
+  if (
+    !confirm(
+      `Account "${account.username}" wirklich löschen?\n\nAccount und Sitzungen werden entfernt. Zur Bestätigung ist ein Discord-Code nötig.`,
+    )
+  )
+    return;
+  try {
+    const challenge = await adminRequest("/api/admin/accounts/stepup", {
+      action: "delete",
+      data: { username: account.username },
+    });
+    accountFlow = { mode: "delete" };
+    showStepup(challenge, `Account ${account.username} löschen`);
+  } catch (error) {
+    alert("Fehler: " + error.message);
+  }
+}
+
+async function resetAccountPassword(index) {
+  const account = adminAccounts[index];
+  if (!account) return;
+  if (
+    !confirm(
+      `Passwort von "${account.username}" zurücksetzen?\n\nDas alte Passwort und alle Sitzungen werden sofort ungültig. Ein Einmalpasswort (24 Stunden gültig) geht per DM an die Person.`,
+    )
+  )
+    return;
+  try {
+    const data = await adminRequest("/api/admin/accounts/reset", { username: account.username });
+    await loadAdminAccounts();
+    alert(data.message);
+  } catch (error) {
+    alert("Fehler: " + error.message);
+  }
+}
+
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape") closeAccountDialog();
+});
         async function initDashboardAuth() {
           try {
             const res = await fetch("/api/auth/session", {
