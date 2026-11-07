@@ -200,10 +200,11 @@ export async function initTicketArchive(app, getTickData, setTickData) {
         ? archiveDoc.value
         : [];
     res.json(archive.map(({ token, ...ticket }) => ticket));
-  } catch (error) {
+    } catch (error) {
     res.status(500).json({ error: error.message });
   }
-});
+  });
+}
 export async function archiveTicket(
   { name, closedBy, creator, channel },
   setTickData,
