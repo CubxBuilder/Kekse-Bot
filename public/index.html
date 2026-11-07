@@ -1,1024 +1,1151 @@
 <!doctype html>
 <html lang="de">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dashboard</title>
-    <link rel="icon" href="icon.png" type="image/png" />
-    <link rel="apple-touch-icon" href="icon.png" />
-    <link rel="manifest" href="dashboard-manifest.json" />
-    <meta name="theme-color" content="#111111" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-    <meta name="apple-mobile-web-app-title" content="Kekse Bot" />
-    <style>
-      :root {
-        --bg-base: #0a0a0a;
-        --bg-surface: #111111;
-        --bg-elevated: #1a1a1a;
-        --bg-input: #0d0d0d;
-        --border: #2a2a2a;
-        --accent: #ffffff;
-        --text-primary: #ffffff;
-        --text-secondary: #888888;
-        --text-muted: #444444;
-        --dot-online: #4ade80;
-        --radius: 12px;
-        --radius-sm: 6px;
-        --gap: 16px;
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard</title>
+  <link rel="icon" href="icon.png" type="image/png" />
+  <link rel="apple-touch-icon" href="icon.png" />
+  <meta name="theme-color" content="#111111" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="Kekse Bot" />
+  <style>
+    :root {
+      --bg-base: #0a0a0a;
+      --bg-surface: #111111;
+      --bg-elevated: #1a1a1a;
+      --bg-input: #0d0d0d;
+      --border: #2a2a2a;
+      --accent: #ffffff;
+      --text-primary: #ffffff;
+      --text-secondary: #888888;
+      --text-muted: #444444;
+      --dot-online: #4ade80;
+      --radius: 12px;
+      --radius-sm: 6px;
+      --gap: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      color: var(--text-primary);
+      font-family: "Segoe UI", system-ui, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 24px;
+      height: 56px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    header h1 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    header h1:last-child {
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+
+    header .icon {
+      width: 45px;
+      height: 45px;
+    }
+
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: var(--gap);
+      padding: var(--gap);
+      overflow: hidden;
+    }
+
+    article {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--gap);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    article h3 {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+      flex-shrink: 0;
+    }
+
+    article ol {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    article ol li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      padding: 6px 10px;
+      background: var(--bg-elevated);
+      border-radius: var(--radius-sm);
+    }
+
+    article ol li p {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 0.85rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      flex: 1;
+    }
+
+    #server-stats,
+    #bot-stats {
+      flex-direction: column;
+    }
+
+    #ping-statistic {
+      flex-direction: column;
+    }
+
+    #ping-statistic .chart-wrap {
+      flex: 1;
+      position: relative;
+      min-height: 0;
+      width: 100%;
+    }
+
+    #ping-statistic canvas {
+      position: absolute;
+      inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+      border-radius: var(--radius-sm);
+    }
+
+    #logs {
+      flex-direction: column;
+    }
+
+    #console {
+      flex: 1;
+      background: var(--bg-input);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      font-family: "Courier New", monospace;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      max-height: 300px;
+      overflow-x: hidden;
+    }
+
+    #functions-used {
+      grid-column: 1 / -1;
+      flex-direction: column;
+    }
+
+    #functions-used .stats-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    #ticket-archive {
+      grid-column: 1 / -1;
+      flex-direction: column;
+      max-height: 420px;
+    }
+
+    .ticket-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .ticket-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      text-align: left;
+      gap: 10px;
+    }
+
+    .ticket-btn:hover {
+      background: #222;
+    }
+
+    .ticket-btn .ticket-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .ticket-btn .ticket-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ticket-btn .ticket-info {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .ticket-btn .ticket-count {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .ticket-btn .chevron {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+
+    .ticket-entry.open .chevron {
+      transform: rotate(180deg);
+    }
+
+    .ticket-body {
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 4px;
+      padding: 10px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .ticket-entry.open .ticket-body {
+      display: flex;
+    }
+
+    .msg-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      padding: 4px 0;
+      border-bottom: 1px solid #1a1a1a;
+    }
+
+    .msg-row:last-child {
+      border-bottom: none;
+    }
+
+    .msg-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      object-fit: cover;
+      background: var(--bg-elevated);
+    }
+
+    .msg-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .msg-header {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+
+    .msg-author {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .msg-time {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+    }
+
+    .msg-content {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    .msg-attachments {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .msg-attachments img {
+      max-width: 180px;
+      max-height: 120px;
+      border-radius: 4px;
+      object-fit: cover;
+      border: 1px solid var(--border);
+      cursor: pointer;
+    }
+
+    .msg-attachments a {
+      font-size: 0.75rem;
+      color: #6a9fd8;
+      text-decoration: none;
+      padding: 3px 6px;
+      background: var(--bg-elevated);
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    .msg-stickers img {
+      width: 48px;
+      height: 48px;
+      margin-top: 4px;
+      image-rendering: pixelated;
+    }
+
+    .no-tickets {
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    footer {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 0 24px;
+      height: 44px;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    footer span {
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    footer .sep {
+      color: var(--border);
+    }
+
+    .tx-container {
+      max-height: 90px;
+      overflow-y: auto;
+      min-width: 220px;
+      border: 1px solid #1a1a22;
+      border-radius: var(--radius-sm);
+      padding: 4px;
+      background: #0d0d11;
+      display: none;
+    }
+
+    .tx-container.open {
+      display: block;
+    }
+
+    .log-toggle-btn {
+      padding: 4px 8px;
+      background: #22222a;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+
+    .log-toggle-btn:hover {
+      background: #2a2a35;
+      color: white;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #2a2a35;
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3a3a4a;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal.open {
+      display: flex;
+    }
+
+    .modal-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 780px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .info-grid>div {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 6px 10px;
+      background: var(--bg-elevated);
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .info-grid>div b {
+      color: var(--text-primary);
+      text-align: right;
+      word-break: break-all;
+    }
+
+    .act-group h4 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .act-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .act-btn {
+      padding: 5px 10px;
+      background: #22222a;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+
+    .act-btn:hover:not(:disabled) {
+      background: #2e2e38;
+    }
+
+    .act-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .act-btn.danger {
+      background: #7f1d1d;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 6px;
+      border-radius: 4px;
+      font-size: 0.68rem;
+      border: 1px solid currentColor;
+      margin: 2px 5px 2px 0;
+    }
+
+    .warn-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 8px;
+      background: var(--bg-input);
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 600px) {
+      .info-grid {
+        grid-template-columns: 1fr;
       }
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-        color: var(--text-primary);
-        font-family: "Segoe UI", system-ui, sans-serif;
+
+      .table-scroll {
+        max-height: none;
+        overflow: visible;
       }
-      body {
-        background-color: var(--bg-base);
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-      }
-      header {
+
+      #accounts-database h3 {
         display: flex;
         align-items: center;
         gap: 10px;
-        padding: 0 24px;
-        height: 56px;
-        background: var(--bg-surface);
-        border-bottom: 1px solid var(--border);
-        flex-shrink: 0;
-      }
-      header h1 {
-        font-size: 1.2rem;
-        font-weight: 700;
-        letter-spacing: 0.05em;
-      }
-      header h1:last-child {
-        color: var(--text-secondary);
-        font-weight: 400;
-      }
-      header .icon {
-        width: 45px;
-        height: 45px;
-      }
-      main {
-        flex: 1;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr 1fr;
-        gap: var(--gap);
-        padding: var(--gap);
-        overflow: hidden;
-      }
-      article {
-        background: var(--bg-surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: var(--gap);
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        overflow: hidden;
-      }
-      article h3 {
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: var(--text-secondary);
-        border-bottom: 1px solid var(--border);
-        padding-bottom: 8px;
-        flex-shrink: 0;
-      }
-      article ol {
-        list-style: none;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        flex: 1;
-        overflow: hidden;
-      }
-      article ol li {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 0.82rem;
-        color: var(--text-secondary);
-        padding: 6px 10px;
-        background: var(--bg-elevated);
-        border-radius: var(--radius-sm);
-      }
-      article ol li p {
-        font-weight: 600;
-        color: var(--text-primary);
-        font-size: 0.85rem;
-      }
-      .stats-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        flex: 1;
-      }
-      #server-stats,
-      #bot-stats {
-        flex-direction: column;
-      }
-      #ping-statistic {
-        flex-direction: column;
-      }
-      #ping-statistic .chart-wrap {
-        flex: 1;
-        position: relative;
-        min-height: 0;
-        width: 100%;
-      }
-      #ping-statistic canvas {
-        position: absolute;
-        inset: 0;
-        width: 100% !important;
-        height: 100% !important;
-        border-radius: var(--radius-sm);
-      }
-      #logs {
-        flex-direction: column;
-      }
-      #console {
-        flex: 1;
-        background: var(--bg-input);
-        border-radius: var(--radius-sm);
-        padding: 10px;
-        font-family: "Courier New", monospace;
-        font-size: 0.78rem;
-        color: var(--text-secondary);
-        overflow-y: auto;
-        border: 1px solid var(--border);
-        max-height: 300px;
-		overflow-x: hidden;
-      }
-      #functions-used {
-        grid-column: 1 / -1;
-        flex-direction: column;
-      }
-      #functions-used .stats-grid {
-        grid-template-columns: repeat(3, 1fr);
-      }
-      #ticket-archive {
-        grid-column: 1 / -1;
-        flex-direction: column;
-        max-height: 420px;
-      }
-      .ticket-list {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        overflow-y: auto;
-        flex: 1;
-      }
-      .ticket-btn {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 8px 12px;
-        background: var(--bg-elevated);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
         cursor: pointer;
-        text-align: left;
-        gap: 10px;
+        user-select: none;
       }
-      .ticket-btn:hover {
-        background: #222;
+
+      #accounts-database h3 #auth-level {
+        margin-left: auto;
       }
-      .ticket-btn .ticket-meta {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        flex: 1;
-        overflow: hidden;
-      }
-      .ticket-btn .ticket-name {
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .ticket-btn .ticket-info {
-        font-size: 0.72rem;
-        color: var(--text-muted);
-      }
-      .ticket-btn .ticket-count {
-        font-size: 0.72rem;
-        color: var(--text-muted);
-        white-space: nowrap;
-      }
-      .ticket-btn .chevron {
+
+      #accounts-database h3::after {
+        content: "▼";
         font-size: 0.7rem;
-        color: var(--text-muted);
         transition: transform 0.2s;
-        flex-shrink: 0;
       }
-      .ticket-entry.open .chevron {
+
+      #accounts-database:not(.collapsed) h3::after {
         transform: rotate(180deg);
       }
-      .ticket-body {
+
+      #accounts-database.collapsed h3 {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+
+      #accounts-database.collapsed .archive-body {
         display: none;
-        flex-direction: column;
-        gap: 4px;
-        margin-top: 4px;
-        padding: 10px;
-        background: var(--bg-input);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        max-height: 300px;
-        overflow-y: auto;
       }
-      .ticket-entry.open .ticket-body {
-        display: flex;
+    }
+
+    .archive-body {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+        grid-template-rows: none;
+        overflow: auto;
       }
-      .msg-row {
-        display: flex;
+
+      #functions-used,
+      #ticket-archive {
+        grid-column: 1;
+      }
+
+      #functions-used .stats-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      #ping-statistic .chart-wrap {
+        min-height: 180px;
+        position: relative;
+      }
+
+      #ping-statistic canvas {
+        position: absolute;
+      }
+    }
+
+    @media (max-width: 600px) {
+      header {
+        padding: 0 14px;
+        height: 50px;
         gap: 8px;
-        align-items: flex-start;
-        padding: 4px 0;
-        border-bottom: 1px solid #1a1a1a;
       }
-      .msg-row:last-child {
+
+      header h1 {
+        font-size: 1rem;
+      }
+
+      main {
+        padding: 10px;
+        gap: 10px;
+      }
+
+      article {
+        padding: 12px;
+        gap: 8px;
+      }
+
+      article h3 {
+        font-size: 0.7rem;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      #functions-used .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      article ol li {
+        font-size: 0.78rem;
+      }
+
+      #ticket-archive {
+        max-height: none;
+      }
+
+      footer {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 8px 14px;
+        gap: 6px;
+        font-size: 0.72rem;
+      }
+
+      footer .sep {
+        display: none;
+      }
+
+      main {
+        grid-template-columns: 1fr;
+        gap: 15px;
+      }
+
+      #accounts-database input,
+      #accounts-database select,
+      #ticket-archive input,
+      #ticket-archive select {
+        flex: 1 1 100% !important;
+        width: 100%;
+        min-width: 0 !important;
+        font-size: 16px;
+      }
+
+      #accounts-database>div[style*="overflow-x"] {
+        overflow-x: visible !important;
+      }
+
+      table,
+      tbody {
+        display: block;
+        width: 100%;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tr {
+        display: block;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border) !important;
+        border-radius: var(--radius-sm);
+        padding: 8px 12px;
+        margin-bottom: 10px;
+      }
+
+      td {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 4px 10px;
+        padding: 6px 0 !important;
+        border: none;
+        border-bottom: 1px solid #222;
+        font-size: 0.8rem;
+      }
+
+      td:last-child {
         border-bottom: none;
       }
-      .msg-avatar {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        flex-shrink: 0;
-        object-fit: cover;
-        background: var(--bg-elevated);
-      }
-      .msg-body {
-        flex: 1;
-        min-width: 0;
-      }
-      .msg-header {
-        display: flex;
-        align-items: baseline;
-        gap: 6px;
-        margin-bottom: 2px;
-      }
-      .msg-author {
-        font-size: 0.78rem;
+
+      td::before {
+        content: attr(data-label);
         font-weight: 600;
-        color: var(--text-primary);
-      }
-      .msg-time {
-        font-size: 0.68rem;
-        color: var(--text-muted);
-      }
-      .msg-content {
-        font-size: 0.78rem;
+        font-size: 0.72rem;
         color: var(--text-secondary);
-        word-break: break-word;
-        white-space: pre-wrap;
+        margin-right: 10px;
       }
-      .msg-attachments {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-top: 4px;
+
+      td[data-label="Nutzer"] {
+        display: block;
+        padding-bottom: 8px !important;
       }
-      .msg-attachments img {
-        max-width: 180px;
-        max-height: 120px;
-        border-radius: 4px;
-        object-fit: cover;
-        border: 1px solid var(--border);
-        cursor: pointer;
+
+      td[data-label="Nutzer"]::before {
+        display: none;
       }
-      .msg-attachments a {
-        font-size: 0.75rem;
-        color: #6a9fd8;
-        text-decoration: none;
-        padding: 3px 6px;
-        background: var(--bg-elevated);
-        border-radius: 4px;
-        border: 1px solid var(--border);
+
+      td[data-label="Status"] {
+        justify-content: flex-end;
       }
-      .msg-stickers img {
-        width: 48px;
-        height: 48px;
-        margin-top: 4px;
-        image-rendering: pixelated;
+
+      td[data-label="Status"]::before {
+        margin-right: auto;
       }
-      .no-tickets {
-        color: var(--text-muted);
-        font-size: 0.82rem;
-        text-align: center;
-        padding: 20px 0;
-      }
-      footer {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-        padding: 0 24px;
-        height: 44px;
-        background: var(--bg-surface);
-        border-top: 1px solid var(--border);
-        font-size: 0.78rem;
-        color: var(--text-muted);
-        flex-shrink: 0;
-      }
-      footer span {
-        color: var(--text-secondary);
-        font-weight: 600;
-      }
-      footer .sep {
-        color: var(--border);
-      }
+
       .tx-container {
-        max-height: 90px;
-        overflow-y: auto;
-        min-width: 220px;
-        border: 1px solid #1a1a22;
-        border-radius: var(--radius-sm);
-        padding: 4px;
-        background: #0d0d11;
-        display: none;
-      }
-      .tx-container.open {
-        display: block;
-      }
-      .log-toggle-btn {
-        padding: 4px 8px;
-        background: #22222a;
-        color: var(--text-secondary);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        font-size: 0.75rem;
-        cursor: pointer;
-      }
-      .log-toggle-btn:hover {
-        background: #2a2a35;
-        color: white;
-      }
-      ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #2a2a35;
-        border-radius: 10px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #3a3a4a;
-      }
-      .modal {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.75);
-        z-index: 100;
-        align-items: center;
-        justify-content: center;
-        padding: 16px;
-      }
-      .modal.open {
-        display: flex;
-      }
-      .modal-box {
-        background: var(--bg-surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
+        flex-basis: 100%;
         width: 100%;
-        max-width: 780px;
-        max-height: 90vh;
-        overflow-y: auto;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
+        min-width: 0;
+        max-height: 160px;
       }
-      .modal-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+
+      .tx-container div {
+        white-space: normal !important;
       }
-      .info-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 6px;
-      }
-      .info-grid > div {
-        display: flex;
-        justify-content: space-between;
-        gap: 10px;
-        padding: 6px 10px;
-        background: var(--bg-elevated);
-        border-radius: var(--radius-sm);
-        font-size: 0.8rem;
-        color: var(--text-secondary);
-      }
-      .info-grid > div b {
-        color: var(--text-primary);
-        text-align: right;
-        word-break: break-all;
-      }
-      .act-group h4 {
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: var(--text-secondary);
-        margin-bottom: 6px;
-      }
-      .act-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-      }
-      .act-btn {
-        padding: 5px 10px;
-        background: #22222a;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        font-size: 0.78rem;
-        cursor: pointer;
-      }
-      .act-btn:hover:not(:disabled) {
-        background: #2e2e38;
-      }
-      .act-btn:disabled {
-        opacity: 0.3;
-        cursor: not-allowed;
-      }
-      .act-btn.danger {
-        background: #7f1d1d;
-      }
-      .badge {
-        display: inline-block;
-        padding: 4px 6px;
-        border-radius: 4px;
-        font-size: 0.68rem;
-        border: 1px solid currentColor;
-        margin: 2px 5px 2px 0;
-      }
-      .warn-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 8px;
-        padding: 4px 8px;
-        background: var(--bg-input);
-        border-radius: var(--radius-sm);
-        font-size: 0.78rem;
-        margin-top: 4px;
-      }
-      @media (max-width: 600px) {
-        .info-grid {
-          grid-template-columns: 1fr;
-        }
-		  .table-scroll {
-  max-height: none;
-  overflow: visible;
-}
-#accounts-database h3 {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  user-select: none;
-}
-#accounts-database h3 #auth-level {
-  margin-left: auto;
-}
-#accounts-database h3::after {
-  content: "▼";
-  font-size: 0.7rem;
-  transition: transform 0.2s;
-}
-#accounts-database:not(.collapsed) h3::after {
-  transform: rotate(180deg);
-}
-#accounts-database.collapsed h3 {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-#accounts-database.collapsed .archive-body {
-  display: none;
-}
-      }
-      .archive-body {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-        min-height: 0;
-      }
-      @media (max-width: 900px) {
-        main {
-          grid-template-columns: 1fr;
-          grid-template-rows: none;
-          overflow: auto;
-        }
-        #functions-used,
-        #ticket-archive {
-          grid-column: 1;
-        }
-        #functions-used .stats-grid {
-          grid-template-columns: 1fr 1fr;
-        }
-        #ping-statistic .chart-wrap {
-          min-height: 180px;
-          position: relative;
-        }
-        #ping-statistic canvas {
-          position: absolute;
-        }
-      }
-      @media (max-width: 600px) {
-        header {
-          padding: 0 14px;
-          height: 50px;
-          gap: 8px;
-        }
-        header h1 {
-          font-size: 1rem;
-        }
-        main {
-          padding: 10px;
-          gap: 10px;
-        }
-        article {
-          padding: 12px;
-          gap: 8px;
-        }
-        article h3 {
-          font-size: 0.7rem;
-        }
-        .stats-grid {
-          grid-template-columns: 1fr;
-        }
-        #functions-used .stats-grid {
-          grid-template-columns: 1fr;
-        }
-        article ol li {
-          font-size: 0.78rem;
-        }
-        #ticket-archive {
-          max-height: none;
-        }
-        footer {
-          flex-wrap: wrap;
-          height: auto;
-          padding: 8px 14px;
-          gap: 6px;
-          font-size: 0.72rem;
-        }
-        footer .sep {
-          display: none;
-        }
-        main {
-          grid-template-columns: 1fr;
-          gap: 15px;
-        }
-        #accounts-database input,
-        #accounts-database select,
-        #ticket-archive input,
-        #ticket-archive select {
-          flex: 1 1 100% !important;
-          width: 100%;
-          min-width: 0 !important;
-          font-size: 16px;
-        }
-        #accounts-database > div[style*="overflow-x"] {
-          overflow-x: visible !important;
-        }
-        table,
-        tbody {
-          display: block;
-          width: 100%;
-        }
-        thead {
-          display: none;
-        }
-        tr {
-          display: block;
-          background: var(--bg-elevated);
-          border: 1px solid var(--border) !important;
-          border-radius: var(--radius-sm);
-          padding: 8px 12px;
-          margin-bottom: 10px;
-        }
-        td {
-          display: flex;
-          flex-wrap: wrap;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 4px 10px;
-          padding: 6px 0 !important;
-          border: none;
-          border-bottom: 1px solid #222;
-          font-size: 0.8rem;
-        }
-        td:last-child {
-          border-bottom: none;
-        }
-        td::before {
-          content: attr(data-label);
-          font-weight: 600;
-          font-size: 0.72rem;
-          color: var(--text-secondary);
-          margin-right: 10px;
-        }
-        td[data-label="Nutzer"] {
-          display: block;
-          padding-bottom: 8px !important;
-        }
-        td[data-label="Nutzer"]::before {
-          display: none;
-        }
-        td[data-label="Status"] {
-          justify-content: flex-end;
-        }
-        td[data-label="Status"]::before {
-          margin-right: auto;
-        }
-        .tx-container {
-          flex-basis: 100%;
-          width: 100%;
-          min-width: 0;
-          max-height: 160px;
-        }
-        .tx-container div {
-          white-space: normal !important;
-        }
-        td[data-label="Aktionen"] .act-btn {
-          width: 100%;
-          padding: 10px;
-        }
-        #ticket-archive h3 {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          cursor: pointer;
-          user-select: none;
-        }
-        #ticket-archive h3::after {
-          content: "▼";
-          font-size: 0.7rem;
-          transition: transform 0.2s;
-        }
-        #ticket-archive:not(.collapsed) h3::after {
-          transform: rotate(180deg);
-        }
-        #ticket-archive.collapsed h3 {
-          border-bottom: none;
-          padding-bottom: 0;
-        }
-        #ticket-archive.collapsed .archive-body {
-          display: none;
-        }
-        .ticket-btn {
-          flex-wrap: wrap;
-        }
-        .msg-attachments img {
-          max-width: 100%;
-        }
-        .modal {
-          padding: 8px;
-          align-items: flex-end;
-        }
-        .modal-box {
-          max-height: 92vh;
-          padding: 14px;
-        }
-        .act-btn {
-          padding: 8px 12px;
-        }
-      }
-      @media (min-width: 1400px) {
-        main {
-          max-width: 1600px;
-          margin: 0 auto;
-          width: 100%;
-        }
-        article h3 {
-          font-size: 0.8rem;
-        }
-        article ol li {
-          font-size: 0.88rem;
-        }
-      }
-      #dashboard-shell {
-        display: none;
-        min-height: 100vh;
-        flex-direction: column;
-      }
-      #login-screen {
-        position: fixed;
-        inset: 0;
-        z-index: 1000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        background: var(--bg-base);
-      }
-      #login-card {
+
+      td[data-label="Aktionen"] .act-btn {
         width: 100%;
-        max-width: 390px;
-        padding: 28px;
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        background: var(--bg-surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-      }
-      #login-card h2 {
-        font-size: 1.3rem;
-      }
-      #login-card p {
-        color: var(--text-secondary);
-        font-size: 0.85rem;
-        line-height: 1.5;
-      }
-      #login-card label {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        font-size: 0.8rem;
-        color: var(--text-secondary);
-		margin-top: 15px;
-      }
-      #login-card input:not([type="checkbox"]) {
-        width: 100%;
-        padding: 11px;
-        color: white;
-        background: var(--bg-input);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        outline: none;
-      }
-      #login-card input:focus {
-        border-color: #888;
-      }
-      #login-card .login-check {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        gap: 8px;
-      }
-      #login-card button {
-        padding: 11px;
-        color: #111;
-        background: white;
-        border: none;
-        border-radius: var(--radius-sm);
-        font-weight: 700;
-        cursor: pointer;
-		margin-top: 15px;
-      }
-      #login-card button:disabled {
-        opacity: 0.5;
-        cursor: wait;
-      }
-      #login-message {
-        color: #f87171 !important;
-        min-height: 18px;
-      }
-      #verify-code {
-        display: block;
-        padding: 14px;
-        text-align: center;
-        font-size: 1.6rem;
-        letter-spacing: 0.2em;
-        background: var(--bg-input);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-      }
-      #verify-command {
-        display: block;
         padding: 10px;
-        overflow-wrap: anywhere;
-        color: var(--text-primary);
-        background: var(--bg-input);
-        border-radius: var(--radius-sm);
       }
-      #logout-button {
-        margin-left: auto;
-        padding: 7px 12px;
-        color: var(--text-secondary);
-        background: var(--bg-elevated);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
+
+      #ticket-archive h3 {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         cursor: pointer;
+        user-select: none;
       }
-		.form-grid {
-  display: grid;
-  gap: 12px;
-}
-.form-grid label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-}
-.form-grid input,
-.form-grid select {
-  padding: 10px;
-  color: white;
-  background: var(--bg-input);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  outline: none;
-  font-size: 16px;
-}
-.code-box {
-  display: block;
-  padding: 14px;
-  text-align: center;
-  font-size: 1.6rem;
-  letter-spacing: 0.2em;
-  background: var(--bg-input);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-}
-.code-line {
-  display: block;
-  padding: 10px;
-  overflow-wrap: anywhere;
-  background: var(--bg-input);
-  border-radius: var(--radius-sm);
-}
-.hint {
-  color: var(--text-secondary);
-  font-size: 0.82rem;
-  line-height: 1.5;
-}
-		.table-scroll {
-  overflow: auto;
-  width: 100%;
-  max-height: 520px;
-}
-.table-scroll thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--bg-surface);
-}
-    </style>
-  </head>
-  <body>
-    <div id="dashboard-shell">
-      <header>
-        <img src="../icon.png" class="icon" />
-        <h1>Kekse Bot</h1>
-        <h1>Dashboard</h1>
-        <button id="logout-button">Abmelden</button>
-      </header>
-      <main>
-        <article id="server-statistics">
-          <h3>Server Statistiken</h3>
-          <div class="stats-grid">
-            <ol>
-              <li>
-                Server Name
-                <p id="server">—</p>
-              </li>
-              <li>
-                Server ID
-                <p id="server-id">—</p>
-              </li>
-              <li>
-                Inhaber
-                <p id="owner">—</p>
-              </li>
-            </ol>
-            <ol>
-              <li>
-                Kanäle
-                <p id="channels">—</p>
-              </li>
-              <li>
-                Mitglieder
-                <p id="users">—</p>
-              </li>
-              <li>
-                Bots
-                <p id="bots">—</p>
-              </li>
-            </ol>
-          </div>
-        </article>
-        <article id="server-status">
-          <h3>Bot Statistiken</h3>
-          <div class="stats-grid">
-            <ol>
-              <li>
-                Ping
-                <p id="ping">—</p>
-              </li>
-              <li>
-                Durchschnitt
-                <p id="avg-ping">—</p>
-              </li>
-              <li>
-                Maximum
-                <p id="max-ping">—</p>
-              </li>
-            </ol>
-            <ol>
-              <li>
-                Uptime
-                <p id="uptime">—</p>
-              </li>
-              <li>
-                Version
-                <p id="version">—</p>
-              </li>
-              <li>
-                Letzter Start
-                <p id="last-restart">—</p>
-              </li>
-            </ol>
-          </div>
-        </article>
-        <article>
-          <h3>Console</h3>
-          <div class="console" id="console">
-            <div class="no-logs">Warte auf Logs...</div>
-          </div>
-        </article>
-        <article>
-          <h3>Ping Statistik</h3>
-          <div style="position: relative; height: 160px; width: 100%">
-            <canvas id="ping-chart"></canvas>
-          </div>
-        </article>
-        <article
-          id="ticket-archive"
-          class="collapsed"
-          style="grid-column: 1 / -1"
-        >
-          <h3 id="ticket-toggle">Ticket Archiv</h3>
-          <div class="archive-body">
-            <div
-              style="
+
+      #ticket-archive h3::after {
+        content: "▼";
+        font-size: 0.7rem;
+        transition: transform 0.2s;
+      }
+
+      #ticket-archive:not(.collapsed) h3::after {
+        transform: rotate(180deg);
+      }
+
+      #ticket-archive.collapsed h3 {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+
+      #ticket-archive.collapsed .archive-body {
+        display: none;
+      }
+
+      .ticket-btn {
+        flex-wrap: wrap;
+      }
+
+      .msg-attachments img {
+        max-width: 100%;
+      }
+
+      .modal {
+        padding: 8px;
+        align-items: flex-end;
+      }
+
+      .modal-box {
+        max-height: 92vh;
+        padding: 14px;
+      }
+
+      .act-btn {
+        padding: 8px 12px;
+      }
+    }
+
+    @media (min-width: 1400px) {
+      main {
+        max-width: 1600px;
+        margin: 0 auto;
+        width: 100%;
+      }
+
+      article h3 {
+        font-size: 0.8rem;
+      }
+
+      article ol li {
+        font-size: 0.88rem;
+      }
+    }
+
+    #dashboard-shell {
+      display: none;
+      min-height: 100vh;
+      flex-direction: column;
+    }
+
+    #login-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: var(--bg-base);
+    }
+
+    #login-card {
+      width: 100%;
+      max-width: 390px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    #login-card h2 {
+      font-size: 1.3rem;
+    }
+
+    #login-card p {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    #login-card label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 15px;
+    }
+
+    #login-card input:not([type="checkbox"]) {
+      width: 100%;
+      padding: 11px;
+      color: white;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      outline: none;
+    }
+
+    #login-card input:focus {
+      border-color: #888;
+    }
+
+    #login-card .login-check {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #login-card button {
+      padding: 11px;
+      color: #111;
+      background: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+
+    #login-card button:disabled {
+      opacity: 0.5;
+      cursor: wait;
+    }
+
+    #login-message {
+      color: #f87171 !important;
+      min-height: 18px;
+    }
+
+    #verify-code {
+      display: block;
+      padding: 14px;
+      text-align: center;
+      font-size: 1.6rem;
+      letter-spacing: 0.2em;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+
+    #verify-command {
+      display: block;
+      padding: 10px;
+      overflow-wrap: anywhere;
+      color: var(--text-primary);
+      background: var(--bg-input);
+      border-radius: var(--radius-sm);
+    }
+
+    #logout-button {
+      margin-left: auto;
+      padding: 7px 12px;
+      color: var(--text-secondary);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .form-grid label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .form-grid input,
+    .form-grid select {
+      padding: 10px;
+      color: white;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      outline: none;
+      font-size: 16px;
+    }
+
+    .code-box {
+      display: block;
+      padding: 14px;
+      text-align: center;
+      font-size: 1.6rem;
+      letter-spacing: 0.2em;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+
+    .code-line {
+      display: block;
+      padding: 10px;
+      overflow-wrap: anywhere;
+      background: var(--bg-input);
+      border-radius: var(--radius-sm);
+    }
+
+    .hint {
+      color: var(--text-secondary);
+      font-size: 0.82rem;
+      line-height: 1.5;
+    }
+
+    .table-scroll {
+      overflow: auto;
+      width: 100%;
+      max-height: 520px;
+    }
+
+    .table-scroll thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: var(--bg-surface);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="dashboard-shell">
+    <header>
+      <img src="../icon.png" class="icon" />
+      <h1>Kekse Bot</h1>
+      <h1>Dashboard</h1>
+      <button id="logout-button">Abmelden</button>
+    </header>
+    <main>
+      <article id="server-statistics">
+        <h3>Server Statistiken</h3>
+        <div class="stats-grid">
+          <ol>
+            <li>
+              Server Name
+              <p id="server">—</p>
+            </li>
+            <li>
+              Server ID
+              <p id="server-id">—</p>
+            </li>
+            <li>
+              Inhaber
+              <p id="owner">—</p>
+            </li>
+          </ol>
+          <ol>
+            <li>
+              Kanäle
+              <p id="channels">—</p>
+            </li>
+            <li>
+              Mitglieder
+              <p id="users">—</p>
+            </li>
+            <li>
+              Bots
+              <p id="bots">—</p>
+            </li>
+          </ol>
+        </div>
+      </article>
+      <article id="server-status">
+        <h3>Bot Statistiken</h3>
+        <div class="stats-grid">
+          <ol>
+            <li>
+              Ping
+              <p id="ping">—</p>
+            </li>
+            <li>
+              Durchschnitt
+              <p id="avg-ping">—</p>
+            </li>
+            <li>
+              Maximum
+              <p id="max-ping">—</p>
+            </li>
+          </ol>
+          <ol>
+            <li>
+              Uptime
+              <p id="uptime">—</p>
+            </li>
+            <li>
+              Version
+              <p id="version">—</p>
+            </li>
+            <li>
+              Letzter Start
+              <p id="last-restart">—</p>
+            </li>
+          </ol>
+        </div>
+      </article>
+      <article>
+        <h3>Console</h3>
+        <div class="console" id="console">
+          <div class="no-logs">Warte auf Logs...</div>
+        </div>
+      </article>
+      <article>
+        <h3>Ping Statistik</h3>
+        <div style="position: relative; height: 160px; width: 100%">
+          <canvas id="ping-chart"></canvas>
+        </div>
+      </article>
+      <article id="ticket-archive" class="collapsed" style="grid-column: 1 / -1">
+        <h3 id="ticket-toggle">Ticket Archiv</h3>
+        <div class="archive-body">
+          <div style="
                 display: flex;
                 gap: 10px;
                 margin-bottom: 10px;
                 flex-wrap: wrap;
-              "
-            >
-              <input
-                type="text"
-                id="ticket-search"
-                placeholder="Nach Kanal oder User suchen..."
-                style="
+              ">
+            <input type="text" id="ticket-search" placeholder="Nach Kanal oder User suchen..." style="
                   flex: 1;
                   padding: 6px 12px;
                   background: var(--bg-input);
                   border: 1px solid var(--border);
                   border-radius: var(--radius-sm);
                   color: white;
-                "
-              />
-            </div>
-            <div class="ticket-list" id="ticket-list">
-              <div class="no-tickets">Warte auf Tickets...</div>
-            </div>
+                " />
           </div>
-        </article>
-        <article
-          id="accounts-database"
-          style="grid-column: 1 / -1; flex-direction: column"
-		  class="collapsed"
-        >
-          <h3 id="accounts-toggle">
-            User Datenbank
-            <span id="auth-level" style="float: right; color: var(--text-muted)"
-              >…</span
-            >
-          </h3>
-			<div class="archive-body">
-          <div
-            style="
+          <div class="ticket-list" id="ticket-list">
+            <div class="no-tickets">Warte auf Tickets...</div>
+          </div>
+        </div>
+      </article>
+      <article id="accounts-database" style="grid-column: 1 / -1; flex-direction: column" class="collapsed">
+        <h3 id="accounts-toggle">
+          User Datenbank
+          <span id="auth-level" style="float: right; color: var(--text-muted)">…</span>
+        </h3>
+        <div class="archive-body">
+          <div style="
               display: flex;
               gap: 10px;
               margin-bottom: 10px;
               flex-wrap: wrap;
-            "
-          >
-            <input
-              type="text"
-              id="acc-search"
-              placeholder="Nach ID, Name, Anzeigename oder Minecraft Name suchen..."
+            ">
+            <input type="text" id="acc-search" placeholder="Nach ID, Name, Anzeigename oder Minecraft Name suchen..."
               style="
                 flex: 1;
                 min-width: 200px;
@@ -1027,18 +1154,14 @@
                 border: 1px solid var(--border);
                 border-radius: var(--radius-sm);
                 color: white;
-              "
-            />
-            <select
-              id="acc-filter"
-              style="
+              " />
+            <select id="acc-filter" style="
                 padding: 6px 12px;
                 background: var(--bg-elevated);
                 border: 1px solid var(--border);
                 border-radius: var(--radius-sm);
                 color: white;
-              "
-            >
+              ">
               <option value="all">Alle User</option>
               <option value="account">Mit Konto</option>
               <option value="noaccount">Ohne Konto</option>
@@ -1047,16 +1170,13 @@
               <option value="timeout">Im Timeout</option>
               <option value="left">Nicht auf Server</option>
             </select>
-            <select
-              id="acc-sort"
-              style="
+            <select id="acc-sort" style="
                 padding: 6px 12px;
                 background: var(--bg-elevated);
                 border: 1px solid var(--border);
                 border-radius: var(--radius-sm);
                 color: white;
-              "
-            >
+              ">
               <option value="balance-desc">Höchster Kontostand</option>
               <option value="balance-asc">Niedrigster Kontostand</option>
               <option value="name">Name A-Z</option>
@@ -1065,21 +1185,17 @@
             </select>
           </div>
           <div class="table-scroll">
-            <table
-              style="
+            <table style="
                 width: 100%;
                 border-collapse: collapse;
                 text-align: left;
                 font-size: 0.85rem;
-              "
-            >
+              ">
               <thead>
-                <tr
-                  style="
+                <tr style="
                     border-bottom: 1px solid var(--border);
                     color: var(--text-secondary);
-                  "
-                >
+                  ">
                   <th style="padding: 8px">Discord Nutzer</th>
                   <th style="padding: 8px">Minecraft</th>
                   <th style="padding: 8px">Server-Rang</th>
@@ -1094,317 +1210,278 @@
               <tbody id="accounts-list"></tbody>
             </table>
           </div>
-                    <div
-            id="acc-limit-note"
-            style="color: var(--text-muted); font-size: 0.75rem"
-          ></div>
+          <div id="acc-limit-note" style="color: var(--text-muted); font-size: 0.75rem"></div>
         </div>
       </article>
-        </div>
-      </article>
-        </article>
-		  <article
-  id="accounts-admin"
-  style="grid-column: 1 / -1; flex-direction: column; display: none"
->
-  <h3>Dashboard Accounts</h3>
-  <div style="display: flex; justify-content: flex-end">
-  <button class="act-btn" onclick="openAccountDialog('create')">
-    + Account erstellen
-  </button>
   </div>
-  <div style="overflow-x: auto; width: 100%">
-    <table
-      style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem"
-    >
-      <thead>
-        <tr style="border-bottom: 1px solid var(--border); color: var(--text-secondary)">
-          <th style="padding: 8px">Benutzer</th>
-          <th style="padding: 8px">Discord</th>
-          <th style="padding: 8px">Status</th>
-          <th style="padding: 8px">Aktionen</th>
-        </tr>
-      </thead>
-      <tbody id="admin-accounts-list"></tbody>
-    </table>
+  </article>
+  </article>
+  <article id="accounts-admin" style="grid-column: 1 / -1; flex-direction: column; display: none">
+    <h3>Dashboard Accounts</h3>
+    <div style="display: flex; justify-content: flex-end">
+      <button class="act-btn" onclick="openAccountDialog('create')">
+        + Account erstellen
+      </button>
+    </div>
+    <div style="overflow-x: auto; width: 100%">
+      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border); color: var(--text-secondary)">
+            <th style="padding: 8px">Benutzer</th>
+            <th style="padding: 8px">Discord</th>
+            <th style="padding: 8px">Status</th>
+            <th style="padding: 8px">Aktionen</th>
+          </tr>
+        </thead>
+        <tbody id="admin-accounts-list"></tbody>
+      </table>
+    </div>
+    <div id="admin-accounts-note" class="hint"></div>
+  </article>
+  </main>
+  <div class="modal" id="user-modal" onclick="if (event.target === this) closeUserModal();">
+    <div class="modal-box" id="user-modal-box"></div>
   </div>
-  <div id="admin-accounts-note" class="hint"></div>
-</article>
-      </main>
-      <div
-        class="modal"
-        id="user-modal"
-        onclick="if (event.target === this) closeUserModal();"
-      >
-        <div class="modal-box" id="user-modal-box"></div>
+  <div class="modal" id="acc-modal" onclick="if (event.target === this) closeAccountDialog();">
+    <div class="modal-box" id="acc-modal-box" style="max-width: 460px"></div>
+  </div>
+  <footer>
+    <span>Kekse Bot Dashboard</span>
+    <span class="sep">|</span>
+    Version: <span id="Version">—</span>
+    <span class="sep">|</span>
+    Uptime: <span id="uptime-foot">—</span>
+    <span class="sep">|</span>
+    Ping: <span id="ping-foot">—</span>
+  </footer>
+  </div>
+  <div id="login-screen">
+    <form id="login-card">
+      <h2>Kekse Bot Dashboard</h2>
+      <p>Bitte melde dich mit deinen Dashboard-Zugangsdaten an.</p>
+      <div id="login-form">
+        <label>
+          Benutzername
+          <input id="login-username" type="text" autocomplete="username" required maxlength="64" />
+        </label>
+        <label>
+          Passwort
+          <input id="login-password" type="password" autocomplete="current-password" required maxlength="128" />
+        </label>
+        <label class="login-check">
+          <input id="login-remember" type="checkbox" />
+          Angemeldet bleiben
+        </label>
+        <button type="submit">Anmelden</button>
       </div>
-		<div
-  class="modal"
-  id="acc-modal"
-  onclick="if (event.target === this) closeAccountDialog();"
->
-  <div class="modal-box" id="acc-modal-box" style="max-width: 460px"></div>
-</div>
-      <footer>
-        <span>Kekse Bot Dashboard</span>
-        <span class="sep">|</span>
-        Version: <span id="Version">—</span>
-        <span class="sep">|</span>
-        Uptime: <span id="uptime-foot">—</span>
-        <span class="sep">|</span>
-        Ping: <span id="ping-foot">—</span>
-      </footer>
-	  </div>
-    <div id="login-screen">
-      <form id="login-card">
-        <h2>Kekse Bot Dashboard</h2>
-        <p>Bitte melde dich mit deinen Dashboard-Zugangsdaten an.</p>
-        <div id="login-form">
+      <div id="verify-step" hidden>
+        <p>Öffne Discord und führe den folgenden Befehl aus:</p>
+        <code id="verify-code">--------</code>
+        <code id="verify-command">/dashboard-verify</code>
+        <p id="verify-info">Warte auf die Discord-Bestätigung...</p>
+        <div id="setup-step" hidden>
+          <p>
+            Bestätigung erfolgreich. Lege jetzt dein eigenes Passwort fest.
+          </p>
           <label>
-            Benutzername
-            <input
-              id="login-username"
-              type="text"
-              autocomplete="username"
-              required
-              maxlength="64"
-            />
+            Neues Passwort
+            <input id="setup-password" type="password" autocomplete="new-password" minlength="12" maxlength="128" />
           </label>
           <label>
-            Passwort
-            <input
-              id="login-password"
-              type="password"
-              autocomplete="current-password"
-              required
-              maxlength="128"
-            />
+            Neues Passwort bestätigen
+            <input id="setup-confirm" type="password" autocomplete="new-password" minlength="12" maxlength="128" />
           </label>
           <label class="login-check">
-            <input id="login-remember" type="checkbox" />
-            Angemeldet bleiben
+            <input id="setup-disable-2fa" type="checkbox" />
+            2FA für zukünftige Logins deaktivieren
           </label>
-          <button type="submit">Anmelden</button>
+          <button type="submit" id="setup-submit">Passwort speichern</button>
         </div>
-        <div id="verify-step" hidden>
-          <p>Öffne Discord und führe den folgenden Befehl aus:</p>
-          <code id="verify-code">--------</code>
-          <code id="verify-command">/dashboard-verify</code>
-          <p id="verify-info">Warte auf die Discord-Bestätigung...</p>
-          <div id="setup-step" hidden>
-            <p>
-              Bestätigung erfolgreich. Lege jetzt dein eigenes Passwort fest.
-            </p>
-            <label>
-              Neues Passwort
-              <input
-                id="setup-password"
-                type="password"
-                autocomplete="new-password"
-                minlength="12"
-                maxlength="128"
-              />
-            </label>
-            <label>
-              Neues Passwort bestätigen
-              <input
-                id="setup-confirm"
-                type="password"
-                autocomplete="new-password"
-                minlength="12"
-                maxlength="128"
-              />
-            </label>
-            <label class="login-check">
-              <input id="setup-disable-2fa" type="checkbox" />
-              2FA für zukünftige Logins deaktivieren
-            </label>
-            <button type="submit" id="setup-submit">Passwort speichern</button>
-          </div>
-        </div>
-        <p id="login-message"></p>
-      </form>
-    </div>
-      <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-      <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-      <script>
-		let authLevel = null;
-        let openedLogUsers = new Set();
-        const $ = (id) => document.getElementById(id);
-        const set = (id, v) => {
-          const el = $(id);
-          if (el) el.textContent = v ?? "—";
-        };
-        const fmtUptime = (s) => {
-          const d = Math.floor(s / 86400),
-            h = Math.floor((s % 86400) / 3600),
-            m = Math.floor((s % 3600) / 60);
-          return d ? `${d}d ${h}h ${m}m` : h ? `${h}h ${m}m` : `${m}m`;
-        };
-        const fmtDate = (iso) =>
-          new Date(iso).toLocaleString("de-DE", {
-            dateStyle: "short",
-            timeStyle: "short",
-          });
-        const fmtPing = (ms) => (ms == null || ms < 0 ? "—" : `${ms}ms`);
-        let rawTicketsCache = [];
-        let rawTxLogsCache = {};
-        let rawUsersCache = [];
-        const chart = new Chart($("ping-chart"), {
-          type: "line",
-          data: {
-            datasets: [
-              {
-                data: [],
-                borderColor: "#4ade80",
-                backgroundColor: "rgba(74,222,128,0.05)",
-                borderWidth: 1.5,
-                pointRadius: 0,
-                fill: true,
-                tension: 0.4,
-              },
-            ],
+      </div>
+      <p id="login-message"></p>
+    </form>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script>
+    let authLevel = null;
+    let openedLogUsers = new Set();
+    const $ = (id) => document.getElementById(id);
+    const set = (id, v) => {
+      const el = $(id);
+      if (el) el.textContent = v ?? "—";
+    };
+    const fmtUptime = (s) => {
+      const d = Math.floor(s / 86400),
+        h = Math.floor((s % 86400) / 3600),
+        m = Math.floor((s % 3600) / 60);
+      return d ? `${d}d ${h}h ${m}m` : h ? `${h}h ${m}m` : `${m}m`;
+    };
+    const fmtDate = (iso) =>
+      new Date(iso).toLocaleString("de-DE", {
+        dateStyle: "short",
+        timeStyle: "short",
+      });
+    const fmtPing = (ms) => (ms == null || ms < 0 ? "—" : `${ms}ms`);
+    let rawTicketsCache = [];
+    let rawTxLogsCache = {};
+    let rawUsersCache = [];
+    const chart = new Chart($("ping-chart"), {
+      type: "line",
+      data: {
+        datasets: [
+          {
+            data: [],
+            borderColor: "#4ade80",
+            backgroundColor: "rgba(74,222,128,0.05)",
+            borderWidth: 1.5,
+            pointRadius: 0,
+            fill: true,
+            tension: 0.4,
           },
-          options: {
-            animation: false,
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-              x: {
-                type: "time",
-                time: {
-                  tooltipFormat: "HH:mm:ss",
-                  displayFormats: { minute: "HH:mm" },
-                },
-                ticks: { color: "#888", font: { size: 9 }, maxTicksLimit: 4 },
-                grid: { display: false },
-              },
-              y: {
-                beginAtZero: true,
-                ticks: {
-                  color: "#888",
-                  font: { size: 10 },
-                  callback: (v) => Math.round(v) + "ms",
-                },
-                grid: { color: "#1a1a1a" },
-              },
+        ],
+      },
+      options: {
+        animation: false,
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            type: "time",
+            time: {
+              tooltipFormat: "HH:mm:ss",
+              displayFormats: { minute: "HH:mm" },
             },
+            ticks: { color: "#888", font: { size: 9 }, maxTicksLimit: 4 },
+            grid: { display: false },
           },
-        });
-        let authPollTimer = null;
-        let statsTimer = null;
-        let currentChallengeId = null;
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: "#888",
+              font: { size: 10 },
+              callback: (v) => Math.round(v) + "ms",
+            },
+            grid: { color: "#1a1a1a" },
+          },
+        },
+      },
+    });
+    let authPollTimer = null;
+    let statsTimer = null;
+    let currentChallengeId = null;
 
-        function showLogin(message = "") {
-          authLevel = null;
-          if (statsTimer) {
-            clearInterval(statsTimer);
-            statsTimer = null;
-          }
-          if (authPollTimer) {
-            clearInterval(authPollTimer);
-            authPollTimer = null;
-          }
-          $("dashboard-shell").style.display = "none";
-          $("login-screen").style.display = "flex";
-          $("login-form").hidden = false;
-          $("verify-step").hidden = true;
-          $("setup-step").hidden = true;
-          $("login-message").textContent = message;
-          $("login-password").value = "";
-		  $("accounts-admin").style.display = "none";
-          closeAccountDialog();
-          currentChallengeId = null;
-        }
+    function showLogin(message = "") {
+      authLevel = null;
+      if (statsTimer) {
+        clearInterval(statsTimer);
+        statsTimer = null;
+      }
+      if (authPollTimer) {
+        clearInterval(authPollTimer);
+        authPollTimer = null;
+      }
+      $("dashboard-shell").style.display = "none";
+      $("login-screen").style.display = "flex";
+      $("login-form").hidden = false;
+      $("verify-step").hidden = true;
+      $("setup-step").hidden = true;
+      $("login-message").textContent = message;
+      $("login-password").value = "";
+      $("accounts-admin").style.display = "none";
+      closeAccountDialog();
+      currentChallengeId = null;
+    }
 
-        async function showDashboard(level) {
-          authLevel = level;
-          $("login-screen").style.display = "none";
-          $("dashboard-shell").style.display = "flex";
-          set("auth-level", level === "admin" ? "Admin" : "Team");
-		  $("accounts-admin").style.display = level === "admin" ? "flex" : "none";
-          if (location.search) {
-            window.history.replaceState(
-              {},
-              document.title,
-              location.pathname + location.hash,
-            );
-          }
-          await fetchStats();
-          await fetchTickets();
-		  await loadAdminAccounts();
-          if (!statsTimer) statsTimer = setInterval(fetchStats, 1000);
-        }
-		  let adminAccounts = [];
-let accountFlow = null;
-let stepupTimer = null;
-let stepupBusy = false;
-
-async function adminRequest(path, body) {
-  const res = await fetch(path, {
-    method: body === undefined ? "GET" : "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "same-origin",
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  if (res.status === 401) {
-    showLogin();
-    throw new Error("Sitzung abgelaufen.");
-  }
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Anfrage fehlgeschlagen.");
-  return data;
-}
-
-async function loadAdminAccounts() {
-  if (authLevel !== "admin") return;
-  try {
-    adminAccounts = await adminRequest("/api/admin/accounts");
-    set("admin-accounts-note", "");
-    renderAdminAccounts();
-  } catch (error) {
-    set("admin-accounts-note", error.message);
-  }
-}
-
-function renderAdminAccounts() {
-  $("admin-accounts-list").innerHTML = adminAccounts
-    .map(function (a, i) {
-      const badges = [
-        a.level === "admin" ? badge("Admin", "#992d22") : badge("Team", "#9b59b6"),
-      ];
-      if (a.passwordSet) badges.push(badge("Passwort gesetzt", "#4ade80"));
-      if (a.setupPending) {
-        const expired = a.startExpiresAt && a.startExpiresAt < Date.now();
-        badges.push(
-          expired
-            ? badge("Startpasswort abgelaufen", "#f87171")
-            : badge("Einrichtung offen", "#fbbf24"),
+    async function showDashboard(level) {
+      authLevel = level;
+      $("login-screen").style.display = "none";
+      $("dashboard-shell").style.display = "flex";
+      set("auth-level", level === "admin" ? "Admin" : "Team");
+      $("accounts-admin").style.display = level === "admin" ? "flex" : "none";
+      if (location.search) {
+        window.history.replaceState(
+          {},
+          document.title,
+          location.pathname + location.hash,
         );
       }
-      if (a.twoFactorEnabled === false) badges.push(badge("2FA aus", "#888"));
-      const actions = a.self
-        ? "—"
-        : `<div class="act-row">
+      await fetchStats();
+      await fetchTickets();
+      await loadAdminAccounts();
+      if (!statsTimer) statsTimer = setInterval(fetchStats, 1000);
+    }
+    let adminAccounts = [];
+    let accountFlow = null;
+    let stepupTimer = null;
+    let stepupBusy = false;
+
+    async function adminRequest(path, body) {
+      const res = await fetch(path, {
+        method: body === undefined ? "GET" : "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+      if (res.status === 401) {
+        showLogin();
+        throw new Error("Sitzung abgelaufen.");
+      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Anfrage fehlgeschlagen.");
+      return data;
+    }
+
+    async function loadAdminAccounts() {
+      if (authLevel !== "admin") return;
+      try {
+        adminAccounts = await adminRequest("/api/admin/accounts");
+        set("admin-accounts-note", "");
+        renderAdminAccounts();
+      } catch (error) {
+        set("admin-accounts-note", error.message);
+      }
+    }
+
+    function renderAdminAccounts() {
+      $("admin-accounts-list").innerHTML = adminAccounts
+        .map(function (a, i) {
+          const badges = [
+            a.level === "admin" ? badge("Admin", "#992d22") : badge("Team", "#9b59b6"),
+          ];
+          if (a.passwordSet) badges.push(badge("Passwort gesetzt", "#4ade80"));
+          if (a.setupPending) {
+            const expired = a.startExpiresAt && a.startExpiresAt < Date.now();
+            badges.push(
+              expired
+                ? badge("Startpasswort abgelaufen", "#f87171")
+                : badge("Einrichtung offen", "#fbbf24"),
+            );
+          }
+          if (a.twoFactorEnabled === false) badges.push(badge("2FA aus", "#888"));
+          const actions = a.self
+            ? "—"
+            : `<div class="act-row">
             <button class="act-btn" onclick="openAccountDialog('edit', ${i})">Bearbeiten</button>
             <button class="act-btn" onclick="resetAccountPassword(${i})">Passwort zurücksetzen</button>
             <button class="act-btn danger" onclick="deleteAccount(${i})">Löschen</button>
           </div>`;
-      return `<tr style="border-bottom: 1px solid var(--border);">
+          return `<tr style="border-bottom: 1px solid var(--border);">
         <td data-label="Nutzer" style="padding:8px;"><strong>${escapeHTML(a.username)}</strong>${a.self ? ' <span style="color:var(--text-muted);">(du)</span>' : ""}</td>
         <td data-label="Discord" style="padding:8px;">${escapeHTML(a.discordName || "—")}<br><span style="font-size:0.68rem; color:var(--text-muted);">${escapeHTML(a.discordId)}</span></td>
         <td data-label="Status" style="padding:8px;">${badges.join("")}</td>
         <td data-label="Aktionen" style="padding:8px;">${actions}</td>
       </tr>`;
-    })
-    .join("");
-}
+        })
+        .join("");
+    }
 
-function openAccountDialog(mode, index) {
-  const account = mode === "edit" ? adminAccounts[index] : null;
-  accountFlow = { mode, original: account ? account.username : null };
-  $("acc-modal-box").innerHTML = `
+    function openAccountDialog(mode, index) {
+      const account = mode === "edit" ? adminAccounts[index] : null;
+      accountFlow = { mode, original: account ? account.username : null };
+      $("acc-modal-box").innerHTML = `
     <div class="modal-head"><h3 style="border:none; padding:0;">${mode === "edit" ? "Account bearbeiten" : "Account erstellen"}</h3><button class="act-btn" onclick="closeAccountDialog()">✕</button></div>
     <div class="form-grid">
       <label>Benutzername<input id="acc-form-username" maxlength="32" autocomplete="off" /></label>
@@ -1416,432 +1493,432 @@ function openAccountDialog(mode, index) {
       <button class="act-btn" onclick="submitAccountDialog()">${mode === "edit" ? "Speichern" : "Erstellen"}</button>
       <button class="act-btn" onclick="closeAccountDialog()">Abbrechen</button>
     </div>`;
-  if (account) {
-    $("acc-form-username").value = account.username;
-    $("acc-form-id").value = account.discordId;
-    $("acc-form-level").value = account.level;
-  }
-  $("acc-modal").classList.add("open");
-}
-
-function stopStepupPolling() {
-  if (stepupTimer) {
-    clearInterval(stepupTimer);
-    stepupTimer = null;
-  }
-  stepupBusy = false;
-}
-
-function closeAccountDialog() {
-  stopStepupPolling();
-  accountFlow = null;
-  const modal = $("acc-modal");
-  if (modal) modal.classList.remove("open");
-}
-
-async function submitAccountDialog() {
-  const username = $("acc-form-username").value.trim();
-  const discordId = $("acc-form-id").value.trim();
-  const level = $("acc-form-level").value;
-  const levelName = level === "admin" ? "Admin" : "Team";
-  const note = $("acc-form-note");
-  note.textContent = "";
-  try {
-    if (accountFlow.mode === "edit") {
-      const original = adminAccounts.find(function (a) {
-        return a.username === accountFlow.original;
-      });
-      const changes = [];
-      if (username !== original.username) changes.push(`Benutzername: ${original.username} → ${username}`);
-      if (discordId !== original.discordId) changes.push(`Discord-ID: ${original.discordId} → ${discordId}`);
-      if (level !== original.level) changes.push(`Berechtigung: ${original.level === "admin" ? "Admin" : "Team"} → ${levelName}`);
-      if (!changes.length) {
-        note.textContent = "Es gibt keine Änderungen.";
-        return;
+      if (account) {
+        $("acc-form-username").value = account.username;
+        $("acc-form-id").value = account.discordId;
+        $("acc-form-level").value = account.level;
       }
-      if (!confirm("Änderungen speichern?\n\n" + changes.join("\n"))) return;
-      const data = await adminRequest("/api/admin/accounts/update", {
-        username: original.username,
-        newUsername: username,
-        discordId,
-        level,
-      });
-      closeAccountDialog();
-      await loadAdminAccounts();
-      alert(data.message);
-      return;
+      $("acc-modal").classList.add("open");
     }
-    if (
-      !confirm(
-        `Account erstellen?\n\nBenutzername: ${username}\nDiscord-ID: ${discordId}\nBerechtigung: ${levelName}\n\nDas Startpasswort geht per DM an dich. Zur Bestätigung ist ein Discord-Code nötig.`,
-      )
-    )
-      return;
-    const challenge = await adminRequest("/api/admin/accounts/stepup", {
-      action: "create",
-      data: { username, discordId, level },
-    });
-    showStepup(challenge, `Account ${username} erstellen`);
-  } catch (error) {
-    note.textContent = error.message;
-  }
-}
 
-function showStepup(challenge, title) {
-  stopStepupPolling();
-  $("acc-modal-box").innerHTML = `
+    function stopStepupPolling() {
+      if (stepupTimer) {
+        clearInterval(stepupTimer);
+        stepupTimer = null;
+      }
+      stepupBusy = false;
+    }
+
+    function closeAccountDialog() {
+      stopStepupPolling();
+      accountFlow = null;
+      const modal = $("acc-modal");
+      if (modal) modal.classList.remove("open");
+    }
+
+    async function submitAccountDialog() {
+      const username = $("acc-form-username").value.trim();
+      const discordId = $("acc-form-id").value.trim();
+      const level = $("acc-form-level").value;
+      const levelName = level === "admin" ? "Admin" : "Team";
+      const note = $("acc-form-note");
+      note.textContent = "";
+      try {
+        if (accountFlow.mode === "edit") {
+          const original = adminAccounts.find(function (a) {
+            return a.username === accountFlow.original;
+          });
+          const changes = [];
+          if (username !== original.username) changes.push(`Benutzername: ${original.username} → ${username}`);
+          if (discordId !== original.discordId) changes.push(`Discord-ID: ${original.discordId} → ${discordId}`);
+          if (level !== original.level) changes.push(`Berechtigung: ${original.level === "admin" ? "Admin" : "Team"} → ${levelName}`);
+          if (!changes.length) {
+            note.textContent = "Es gibt keine Änderungen.";
+            return;
+          }
+          if (!confirm("Änderungen speichern?\n\n" + changes.join("\n"))) return;
+          const data = await adminRequest("/api/admin/accounts/update", {
+            username: original.username,
+            newUsername: username,
+            discordId,
+            level,
+          });
+          closeAccountDialog();
+          await loadAdminAccounts();
+          alert(data.message);
+          return;
+        }
+        if (
+          !confirm(
+            `Account erstellen?\n\nBenutzername: ${username}\nDiscord-ID: ${discordId}\nBerechtigung: ${levelName}\n\nDas Startpasswort geht per DM an dich. Zur Bestätigung ist ein Discord-Code nötig.`,
+          )
+        )
+          return;
+        const challenge = await adminRequest("/api/admin/accounts/stepup", {
+          action: "create",
+          data: { username, discordId, level },
+        });
+        showStepup(challenge, `Account ${username} erstellen`);
+      } catch (error) {
+        note.textContent = error.message;
+      }
+    }
+
+    function showStepup(challenge, title) {
+      stopStepupPolling();
+      $("acc-modal-box").innerHTML = `
     <div class="modal-head"><h3 style="border:none; padding:0;">${escapeHTML(title)}</h3><button class="act-btn" onclick="closeAccountDialog()">✕</button></div>
     <p class="hint">Bestätige die Aktion in Discord mit diesem Befehl:</p>
     <code class="code-box">${challenge.code}</code>
     <code class="code-line">/dashboard-verify code:${challenge.code}</code>
     <p id="step-info" class="hint">Warte auf die Discord-Bestätigung...</p>`;
-  $("acc-modal").classList.add("open");
-  stepupTimer = setInterval(function () {
-    pollStepup(challenge.challengeId);
-  }, 2000);
-}
-
-async function pollStepup(challengeId) {
-  if (stepupBusy) return;
-  stepupBusy = true;
-  try {
-    const status = await adminRequest("/api/admin/accounts/stepup-status", { challengeId });
-    if (!status.verified) {
-      stepupBusy = false;
-      return;
+      $("acc-modal").classList.add("open");
+      stepupTimer = setInterval(function () {
+        pollStepup(challenge.challengeId);
+      }, 2000);
     }
-    clearInterval(stepupTimer);
-    stepupTimer = null;
-    set("step-info", "Bestätigt. Aktion wird ausgeführt...");
-    const result = await adminRequest("/api/admin/accounts/execute", { challengeId });
-    closeAccountDialog();
-    await loadAdminAccounts();
-    alert(result.message);
-  } catch (error) {
-    stopStepupPolling();
-    set("step-info", error.message);
-  }
-}
 
-async function deleteAccount(index) {
-  const account = adminAccounts[index];
-  if (!account) return;
-  if (
-    !confirm(
-      `Account "${account.username}" wirklich löschen?\n\nAccount und Sitzungen werden entfernt. Zur Bestätigung ist ein Discord-Code nötig.`,
-    )
-  )
-    return;
-  try {
-    const challenge = await adminRequest("/api/admin/accounts/stepup", {
-      action: "delete",
-      data: { username: account.username },
+    async function pollStepup(challengeId) {
+      if (stepupBusy) return;
+      stepupBusy = true;
+      try {
+        const status = await adminRequest("/api/admin/accounts/stepup-status", { challengeId });
+        if (!status.verified) {
+          stepupBusy = false;
+          return;
+        }
+        clearInterval(stepupTimer);
+        stepupTimer = null;
+        set("step-info", "Bestätigt. Aktion wird ausgeführt...");
+        const result = await adminRequest("/api/admin/accounts/execute", { challengeId });
+        closeAccountDialog();
+        await loadAdminAccounts();
+        alert(result.message);
+      } catch (error) {
+        stopStepupPolling();
+        set("step-info", error.message);
+      }
+    }
+
+    async function deleteAccount(index) {
+      const account = adminAccounts[index];
+      if (!account) return;
+      if (
+        !confirm(
+          `Account "${account.username}" wirklich löschen?\n\nAccount und Sitzungen werden entfernt. Zur Bestätigung ist ein Discord-Code nötig.`,
+        )
+      )
+        return;
+      try {
+        const challenge = await adminRequest("/api/admin/accounts/stepup", {
+          action: "delete",
+          data: { username: account.username },
+        });
+        accountFlow = { mode: "delete" };
+        showStepup(challenge, `Account ${account.username} löschen`);
+      } catch (error) {
+        alert("Fehler: " + error.message);
+      }
+    }
+
+    async function resetAccountPassword(index) {
+      const account = adminAccounts[index];
+      if (!account) return;
+      if (
+        !confirm(
+          `Passwort von "${account.username}" zurücksetzen?\n\nDas alte Passwort und alle Sitzungen werden sofort ungültig. Ein Einmalpasswort (24 Stunden gültig) geht per DM an die Person.`,
+        )
+      )
+        return;
+      try {
+        const data = await adminRequest("/api/admin/accounts/reset", { username: account.username });
+        await loadAdminAccounts();
+        alert(data.message);
+      } catch (error) {
+        alert("Fehler: " + error.message);
+      }
+    }
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeAccountDialog();
     });
-    accountFlow = { mode: "delete" };
-    showStepup(challenge, `Account ${account.username} löschen`);
-  } catch (error) {
-    alert("Fehler: " + error.message);
-  }
-}
-
-async function resetAccountPassword(index) {
-  const account = adminAccounts[index];
-  if (!account) return;
-  if (
-    !confirm(
-      `Passwort von "${account.username}" zurücksetzen?\n\nDas alte Passwort und alle Sitzungen werden sofort ungültig. Ein Einmalpasswort (24 Stunden gültig) geht per DM an die Person.`,
-    )
-  )
-    return;
-  try {
-    const data = await adminRequest("/api/admin/accounts/reset", { username: account.username });
-    await loadAdminAccounts();
-    alert(data.message);
-  } catch (error) {
-    alert("Fehler: " + error.message);
-  }
-}
-
-document.addEventListener("keydown", function (e) {
-  if (e.key === "Escape") closeAccountDialog();
-});
-        async function initDashboardAuth() {
-          try {
-            const res = await fetch("/api/auth/session", {
-              credentials: "same-origin",
-            });
-            if (!res.ok) {
-              showLogin();
-              return;
-            }
-            const data = await res.json();
-            await showDashboard(data.level);
-          } catch {
-            showLogin("Verbindung zum Server fehlgeschlagen.");
-          }
+    async function initDashboardAuth() {
+      try {
+        const res = await fetch("/api/auth/session", {
+          credentials: "same-origin",
+        });
+        if (!res.ok) {
+          showLogin();
+          return;
         }
+        const data = await res.json();
+        await showDashboard(data.level);
+      } catch {
+        showLogin("Verbindung zum Server fehlgeschlagen.");
+      }
+    }
 
-        function startChallengePolling() {
-          if (authPollTimer) clearInterval(authPollTimer);
-          authPollTimer = setInterval(async () => {
-            try {
-              const res = await fetch("/api/auth/2fa-status", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "same-origin",
-                body: JSON.stringify({ challengeId: currentChallengeId }),
-              });
-              const data = await res.json();
-              if (!res.ok) {
-                clearInterval(authPollTimer);
-                authPollTimer = null;
-                showLogin(data.error || "Bestätigung abgelaufen.");
-                return;
-              }
-              if (data.setupRequired) {
-                clearInterval(authPollTimer);
-                authPollTimer = null;
-                $("verify-info").textContent =
-                  "Discord-Bestätigung erfolgreich.";
-                $("setup-step").hidden = false;
-                return;
-              }
-              if (data.authenticated) {
-                clearInterval(authPollTimer);
-                authPollTimer = null;
-                await showDashboard(data.level);
-              }
-            } catch {
-              $("verify-info").textContent =
-                "Warte auf Verbindung zum Server...";
-            }
-          }, 2000);
-        }
-
-        $("login-card").addEventListener("submit", async (e) => {
-          e.preventDefault();
-          if (!$("setup-step").hidden) {
-            const password = $("setup-password").value;
-            const confirmation = $("setup-confirm").value;
-            if (password.length < 12 || password !== confirmation) {
-              $("login-message").textContent =
-                "Die Passwörter müssen übereinstimmen und mindestens 12 Zeichen lang sein.";
-              return;
-            }
-            try {
-              const res = await fetch("/api/auth/complete-setup", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "same-origin",
-                body: JSON.stringify({
-                  challengeId: currentChallengeId,
-                  password,
-                  confirmation,
-                  disableTwoFactor: $("setup-disable-2fa").checked,
-                }),
-              });
-              const data = await res.json();
-              if (!res.ok) {
-                $("login-message").textContent =
-                  data.error || "Passwort konnte nicht gespeichert werden.";
-                return;
-              }
-              await showDashboard(data.level);
-            } catch {
-              $("login-message").textContent =
-                "Verbindung zum Server fehlgeschlagen.";
-            }
+    function startChallengePolling() {
+      if (authPollTimer) clearInterval(authPollTimer);
+      authPollTimer = setInterval(async () => {
+        try {
+          const res = await fetch("/api/auth/2fa-status", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify({ challengeId: currentChallengeId }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            clearInterval(authPollTimer);
+            authPollTimer = null;
+            showLogin(data.error || "Bestätigung abgelaufen.");
             return;
           }
-          $("login-message").textContent = "";
-          try {
-            const res = await fetch("/api/auth/login", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              credentials: "same-origin",
-              body: JSON.stringify({
-                username: $("login-username").value,
-                password: $("login-password").value,
-                rememberMe: $("login-remember").checked,
-              }),
-            });
-            const data = await res.json();
-            if (!res.ok) {
-              $("login-message").textContent =
-                data.error || "Anmeldung fehlgeschlagen.";
-              return;
-            }
-            if (data.status === "authenticated") {
-              await showDashboard(data.level);
-              return;
-            }
-            if (data.status === "verify") {
-              currentChallengeId = data.challengeId;
-              $("login-form").hidden = true;
-              $("verify-step").hidden = false;
-              $("verify-code").textContent = data.code;
-              $("verify-command").textContent =
-                `/dashboard-verify code:${data.code}`;
-              $("verify-info").textContent = data.firstLogin
-                ? "Bestätige deine erste Anmeldung auf Discord."
-                : "Bestätige deine Anmeldung auf Discord.";
-              startChallengePolling();
-            }
-          } catch {
-            $("login-message").textContent =
-              "Verbindung zum Server fehlgeschlagen.";
+          if (data.setupRequired) {
+            clearInterval(authPollTimer);
+            authPollTimer = null;
+            $("verify-info").textContent =
+              "Discord-Bestätigung erfolgreich.";
+            $("setup-step").hidden = false;
+            return;
           }
-        });
+          if (data.authenticated) {
+            clearInterval(authPollTimer);
+            authPollTimer = null;
+            await showDashboard(data.level);
+          }
+        } catch {
+          $("verify-info").textContent =
+            "Warte auf Verbindung zum Server...";
+        }
+      }, 2000);
+    }
 
-        $("logout-button").addEventListener("click", async () => {
-          await fetch("/api/auth/logout", {
+    $("login-card").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!$("setup-step").hidden) {
+        const password = $("setup-password").value;
+        const confirmation = $("setup-confirm").value;
+        if (password.length < 12 || password !== confirmation) {
+          $("login-message").textContent =
+            "Die Passwörter müssen übereinstimmen und mindestens 12 Zeichen lang sein.";
+          return;
+        }
+        try {
+          const res = await fetch("/api/auth/complete-setup", {
             method: "POST",
+            headers: { "Content-Type": "application/json" },
             credentials: "same-origin",
+            body: JSON.stringify({
+              challengeId: currentChallengeId,
+              password,
+              confirmation,
+              disableTwoFactor: $("setup-disable-2fa").checked,
+            }),
           });
-          showLogin();
+          const data = await res.json();
+          if (!res.ok) {
+            $("login-message").textContent =
+              data.error || "Passwort konnte nicht gespeichert werden.";
+            return;
+          }
+          await showDashboard(data.level);
+        } catch {
+          $("login-message").textContent =
+            "Verbindung zum Server fehlgeschlagen.";
+        }
+        return;
+      }
+      $("login-message").textContent = "";
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({
+            username: $("login-username").value,
+            password: $("login-password").value,
+            rememberMe: $("login-remember").checked,
+          }),
         });
-		  document.body.appendChild($("acc-modal"));
-        initDashboardAuth();
-		function breakPaths(text) {
-			  return escapeHTML(text).replace(/([\/\\])/g, "$1<wbr>");
-		}
-        async function fetchStats() {
-          try {
-            const res = await fetch("/api/stats", {
-              credentials: "same-origin",
-            });
-            if (res.status === 401) {
-              showLogin();
-              return;
-            }
-            if (!res.ok) return;
-            const d = await res.json();
-            if (d.guild) {
-              set("server", d.guild.name);
-              set("server-id", d.guild.id);
-              set("owner", d.guild.owner);
-              set("channels", d.guild.channels);
-            }
-            set("users", d.users);
-            set("bots", d.bots);
-            set("ping", fmtPing(d.ping?.now));
-            set("avg-ping", fmtPing(d.ping?.avg));
-            set("max-ping", fmtPing(d.ping?.max));
-            set("uptime", fmtUptime(d.uptime));
-            set("version", d.version);
-            set("last-restart", fmtDate(d.lastRestart));
-            set("tickets-created", d.stats?.tickets);
-            set("polls-created", d.stats?.polls);
-            set("giveaways-created", d.stats?.giveaways);
-            set("commands-used", d.stats?.commands);
-            set("scams-prevented", d.stats?.scams);
-            set("messages-deleted", d.stats?.deleted);
-            set("Version", d.version);
-            set("uptime-foot", fmtUptime(d.uptime));
-            set("ping-foot", fmtPing(d.ping?.now));
-            if (d.userDatabase) {
-              rawUsersCache = d.userDatabase;
-              rawTxLogsCache = d.transactionLogs || {};
-              processAndRenderAccounts();
-              if (openUserId) renderUserModal();
-            }
-            if (d.ping?.history && d.ping.history.length > 0) {
-              chart.data.datasets[0].data = d.ping.history;
-              chart.update("none");
-            }
-            if (d.logs && d.logs.length) {
-              const con = $("console");
-              const currentScrollTop = con.scrollTop;
-              const currentScrollHeight = con.scrollHeight;
-              const isAtBottom =
-                currentScrollHeight - con.clientHeight <= currentScrollTop + 15;
-              con.innerHTML = d.logs
-                .map((l) => {
-                  const dateObj = new Date(l.t);
-                  const dateStr = dateObj.toLocaleDateString("de-DE", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                  });
-                  const timeStr = dateObj.toLocaleTimeString("de-DE", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                  });
-                  const logText = l.m || "";
-                  let logColor = "var(--text-primary)";
-                  if (/warning|fehler|error|fail|crit/i.test(logText)) {
-                    logColor = "#f87171";
-                  } else if (
-                    /economy|storage|transfer|mcrolesync/i.test(logText)
-                  ) {
-                    logColor = "#ffffff";
-                  }
-                  return `<div style="color:${logColor}; border-bottom: 1px solid #161616; padding: 4px 0; font-family: monospace; font-size: 13px; overflow-wrap: anywhere;"><span style="color:var(--text-muted); margin-right: 8px;">[${dateStr} ${timeStr}]</span> ${breakPaths(logText)}</div>`;
-                })
-                .join("");
-              if (isAtBottom) {
-                con.scrollTop = con.scrollHeight;
-              } else {
-                con.scrollTop = currentScrollTop;
+        const data = await res.json();
+        if (!res.ok) {
+          $("login-message").textContent =
+            data.error || "Anmeldung fehlgeschlagen.";
+          return;
+        }
+        if (data.status === "authenticated") {
+          await showDashboard(data.level);
+          return;
+        }
+        if (data.status === "verify") {
+          currentChallengeId = data.challengeId;
+          $("login-form").hidden = true;
+          $("verify-step").hidden = false;
+          $("verify-code").textContent = data.code;
+          $("verify-command").textContent =
+            `/dashboard-verify code:${data.code}`;
+          $("verify-info").textContent = data.firstLogin
+            ? "Bestätige deine erste Anmeldung auf Discord."
+            : "Bestätige deine Anmeldung auf Discord.";
+          startChallengePolling();
+        }
+      } catch {
+        $("login-message").textContent =
+          "Verbindung zum Server fehlgeschlagen.";
+      }
+    });
+
+    $("logout-button").addEventListener("click", async () => {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "same-origin",
+      });
+      showLogin();
+    });
+    document.body.appendChild($("acc-modal"));
+    initDashboardAuth();
+    function breakPaths(text) {
+      return escapeHTML(text).replace(/([\/\\])/g, "$1<wbr>");
+    }
+    async function fetchStats() {
+      try {
+        const res = await fetch("/api/stats", {
+          credentials: "same-origin",
+        });
+        if (res.status === 401) {
+          showLogin();
+          return;
+        }
+        if (!res.ok) return;
+        const d = await res.json();
+        if (d.guild) {
+          set("server", d.guild.name);
+          set("server-id", d.guild.id);
+          set("owner", d.guild.owner);
+          set("channels", d.guild.channels);
+        }
+        set("users", d.users);
+        set("bots", d.bots);
+        set("ping", fmtPing(d.ping?.now));
+        set("avg-ping", fmtPing(d.ping?.avg));
+        set("max-ping", fmtPing(d.ping?.max));
+        set("uptime", fmtUptime(d.uptime));
+        set("version", d.version);
+        set("last-restart", fmtDate(d.lastRestart));
+        set("tickets-created", d.stats?.tickets);
+        set("polls-created", d.stats?.polls);
+        set("giveaways-created", d.stats?.giveaways);
+        set("commands-used", d.stats?.commands);
+        set("scams-prevented", d.stats?.scams);
+        set("messages-deleted", d.stats?.deleted);
+        set("Version", d.version);
+        set("uptime-foot", fmtUptime(d.uptime));
+        set("ping-foot", fmtPing(d.ping?.now));
+        if (d.userDatabase) {
+          rawUsersCache = d.userDatabase;
+          rawTxLogsCache = d.transactionLogs || {};
+          processAndRenderAccounts();
+          if (openUserId) renderUserModal();
+        }
+        if (d.ping?.history && d.ping.history.length > 0) {
+          chart.data.datasets[0].data = d.ping.history;
+          chart.update("none");
+        }
+        if (d.logs && d.logs.length) {
+          const con = $("console");
+          const currentScrollTop = con.scrollTop;
+          const currentScrollHeight = con.scrollHeight;
+          const isAtBottom =
+            currentScrollHeight - con.clientHeight <= currentScrollTop + 15;
+          con.innerHTML = d.logs
+            .map((l) => {
+              const dateObj = new Date(l.t);
+              const dateStr = dateObj.toLocaleDateString("de-DE", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              });
+              const timeStr = dateObj.toLocaleTimeString("de-DE", {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              });
+              const logText = l.m || "";
+              let logColor = "var(--text-primary)";
+              if (/warning|fehler|error|fail|crit/i.test(logText)) {
+                logColor = "#f87171";
+              } else if (
+                /economy|storage|transfer|mcrolesync/i.test(logText)
+              ) {
+                logColor = "#ffffff";
               }
-            }
-          } catch (e) {
-            console.error(e);
+              return `<div style="color:${logColor}; border-bottom: 1px solid #161616; padding: 4px 0; font-family: monospace; font-size: 13px; overflow-wrap: anywhere;"><span style="color:var(--text-muted); margin-right: 8px;">[${dateStr} ${timeStr}]</span> ${breakPaths(logText)}</div>`;
+            })
+            .join("");
+          if (isAtBottom) {
+            con.scrollTop = con.scrollHeight;
+          } else {
+            con.scrollTop = currentScrollTop;
           }
         }
-        let openUserId = null;
-        let modalSig = "";
-        const ADMIN_UI = new Set([
-          "promote-rang",
-          "demote-rang",
-          "add-xp",
-          "remove-xp",
-          "add-kekse",
-          "remove-kekse",
-        ]);
-        const rowCache = new Map();
-        const can = (a) =>
-          ADMIN_UI.has(a) ? authLevel === "admin" : !!authLevel;
-        const badge = (t, c) =>
-          `<span class="badge" style="color:${c}">${t}</span>`;
-        function userRowHtml(u) {
-          const logs = (rawTxLogsCache[u.userId] || []).slice(0, 200);
-          const isOpen = openedLogUsers.has(u.userId);
-          const logHtml = logs.length
-            ? logs
-                .map((l) => {
-                  const color =
-                    l.type === "plus"
-                      ? "#4ade80"
-                      : l.type === "minus"
-                        ? "#f87171"
-                        : "#888888";
-                  const prefix =
-                    l.type === "plus" ? "+" : l.type === "minus" ? "-" : "";
-                  return `<div style="font-size:0.75rem; border-bottom:1px solid #1a1a1a; padding:2px 0; white-space:nowrap;">
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    let openUserId = null;
+    let modalSig = "";
+    const ADMIN_UI = new Set([
+      "promote-rang",
+      "demote-rang",
+      "add-xp",
+      "remove-xp",
+      "add-kekse",
+      "remove-kekse",
+    ]);
+    const rowCache = new Map();
+    const can = (a) =>
+      ADMIN_UI.has(a) ? authLevel === "admin" : !!authLevel;
+    const badge = (t, c) =>
+      `<span class="badge" style="color:${c}">${t}</span>`;
+    function userRowHtml(u) {
+      const logs = (rawTxLogsCache[u.userId] || []).slice(0, 200);
+      const isOpen = openedLogUsers.has(u.userId);
+      const logHtml = logs.length
+        ? logs
+          .map((l) => {
+            const color =
+              l.type === "plus"
+                ? "#4ade80"
+                : l.type === "minus"
+                  ? "#f87171"
+                  : "#888888";
+            const prefix =
+              l.type === "plus" ? "+" : l.type === "minus" ? "-" : "";
+            return `<div style="font-size:0.75rem; border-bottom:1px solid #1a1a1a; padding:2px 0; white-space:nowrap;">
 						<span style="color:${color}; font-weight:bold;">${prefix}${l.amount}</span>
 						<span style="color:var(--text-secondary); margin-left:5px;">${escapeHTML(l.description)}</span>
 						<span style="color:var(--text-muted); float:right; margin-left:10px;">${new Date(l.timestamp).toLocaleString("de-DE")}</span>
 					</div>`;
-                })
-                .join("")
-            : `<div style="color:var(--text-muted); font-size:0.75rem;">Keine Transaktionen</div>`;
-          const b = [];
-          b.push(
-            !u.hasAccount
-              ? badge("Kein Konto", "#888")
-              : u.accountActive
-                ? badge("Konto aktiv", "#4ade80")
-                : badge("Konto gesperrt", "#f87171"),
-          );
-          if (!u.inGuild) b.push(badge("Nicht auf Server", "#888"));
-          if (u.banned) b.push(badge("Gebannt", "#f87171"));
-          if (u.timeoutUntil && u.timeoutUntil > Date.now())
-            b.push(badge("Timeout", "#fbbf24"));
-          if (u.warns.length)
-            b.push(badge(`${u.warns.length} Warn(s)`, "#fbbf24"));
-          return `
+          })
+          .join("")
+        : `<div style="color:var(--text-muted); font-size:0.75rem;">Keine Transaktionen</div>`;
+      const b = [];
+      b.push(
+        !u.hasAccount
+          ? badge("Kein Konto", "#888")
+          : u.accountActive
+            ? badge("Konto aktiv", "#4ade80")
+            : badge("Konto gesperrt", "#f87171"),
+      );
+      if (!u.inGuild) b.push(badge("Nicht auf Server", "#888"));
+      if (u.banned) b.push(badge("Gebannt", "#f87171"));
+      if (u.timeoutUntil && u.timeoutUntil > Date.now())
+        b.push(badge("Timeout", "#fbbf24"));
+      if (u.warns.length)
+        b.push(badge(`${u.warns.length} Warn(s)`, "#fbbf24"));
+      return `
 				<td data-label="Nutzer" style="padding:8px;"><strong>${escapeHTML(u.displayName)}</strong><br><span style="font-size:0.72rem; color:var(--text-secondary);">@${escapeHTML(u.username)}</span><br><span style="font-size:0.68rem; color:var(--text-muted);">${u.userId}</span></td>
 				<td data-label="Minecraft" style="padding:8px;">${escapeHTML(u.mcUsername || "—")}</td>
 				<td data-label="Server-Rang" style="padding:8px;">${escapeHTML(u.rank)}</td>
@@ -1854,147 +1931,147 @@ document.addEventListener("keydown", function (e) {
 					<div id="logs-container-${u.userId}" class="tx-container ${isOpen ? "open" : ""}" style="margin-top:5px;">${logHtml}</div>
 				</td>
 				<td data-label="Aktionen" style="padding:8px;"><button class="act-btn" onclick="openUserModal('${u.userId}')">Verwalten</button></td>`;
+    }
+    function syncRows(users) {
+      const tbody = $("accounts-list");
+      tbody.querySelectorAll(".empty-row").forEach((e) => e.remove());
+      const wanted = new Set(users.map((u) => u.userId));
+      for (const [id, r] of rowCache)
+        if (!wanted.has(id)) {
+          r.el.remove();
+          rowCache.delete(id);
         }
-        function syncRows(users) {
-          const tbody = $("accounts-list");
-          tbody.querySelectorAll(".empty-row").forEach((e) => e.remove());
-          const wanted = new Set(users.map((u) => u.userId));
-          for (const [id, r] of rowCache)
-            if (!wanted.has(id)) {
-              r.el.remove();
-              rowCache.delete(id);
-            }
-          users.forEach((u, i) => {
-            const html = userRowHtml(u);
-            let r = rowCache.get(u.userId);
-            if (!r) {
-              r = { sig: "", el: document.createElement("tr") };
-              r.el.style.borderBottom = "1px solid var(--border)";
-              rowCache.set(u.userId, r);
-            }
-            if (r.sig !== html) {
-              const box = r.el.querySelector(".tx-container");
-              const top = box ? box.scrollTop : 0,
-                oldH = box ? box.scrollHeight : 0;
-              r.el.innerHTML = html;
-              r.sig = html;
-              const nb = r.el.querySelector(".tx-container");
-              if (nb && top > 0) nb.scrollTop = top + (nb.scrollHeight - oldH);
-            }
-            if (tbody.children[i] !== r.el) {
-              const box = r.el.querySelector(".tx-container");
-              const top = box ? box.scrollTop : 0;
-              tbody.insertBefore(r.el, tbody.children[i] || null);
-              if (box) box.scrollTop = top;
-            }
-          });
-          if (!users.length)
-            tbody.innerHTML = `<tr class="empty-row"><td colspan="9" style="text-align:center; padding:15px; color:var(--text-muted);">Keine User gefunden</td></tr>`;
+      users.forEach((u, i) => {
+        const html = userRowHtml(u);
+        let r = rowCache.get(u.userId);
+        if (!r) {
+          r = { sig: "", el: document.createElement("tr") };
+          r.el.style.borderBottom = "1px solid var(--border)";
+          rowCache.set(u.userId, r);
         }
-        function processAndRenderAccounts() {
-          const q = $("acc-search").value.toLowerCase().trim();
-          const sortBy = $("acc-sort").value,
-            flt = $("acc-filter").value;
-          let list = rawUsersCache.filter((u) => {
-            if (
-              q &&
-              !(
-                u.userId.includes(q) ||
-                u.username.toLowerCase().includes(q) ||
-                (u.displayName || "").toLowerCase().includes(q) ||
-                (u.mcUsername || "").toLowerCase().includes(q)
-              )
-            )
-              return false;
-            if (flt === "account") return u.hasAccount;
-            if (flt === "noaccount") return !u.hasAccount;
-            if (flt === "blocked") return u.hasAccount && !u.accountActive;
-            if (flt === "banned") return u.banned;
-            if (flt === "timeout")
-              return u.timeoutUntil && u.timeoutUntil > Date.now();
-            if (flt === "left") return !u.inGuild;
-            return true;
-          });
-          if (sortBy === "balance-desc")
-            list.sort((a, b) => b.balance - a.balance);
-          if (sortBy === "balance-asc")
-            list.sort((a, b) => a.balance - b.balance);
-          if (sortBy === "name")
-            list.sort((a, b) => a.username.localeCompare(b.username));
-          if (sortBy === "rang")
-            list.sort((a, b) => b.tier - a.tier || b.xp - a.xp);
-          if (sortBy === "rank") list.sort((a, b) => b.rankIndex - a.rankIndex);
-          const total = list.length;
-          list = list.slice(0, 100);
-          set(
-            "acc-limit-note",
-            total > 100
-              ? `Zeige 100 von ${total} Usern - Suche oder Filter nutzen.`
-              : "",
-          );
-          syncRows(list);
+        if (r.sig !== html) {
+          const box = r.el.querySelector(".tx-container");
+          const top = box ? box.scrollTop : 0,
+            oldH = box ? box.scrollHeight : 0;
+          r.el.innerHTML = html;
+          r.sig = html;
+          const nb = r.el.querySelector(".tx-container");
+          if (nb && top > 0) nb.scrollTop = top + (nb.scrollHeight - oldH);
         }
-        $("acc-filter").addEventListener("change", processAndRenderAccounts);
-        function openUserModal(id) {
-          openUserId = id;
-          modalSig = "";
-          renderUserModal();
-          $("user-modal").classList.add("open");
+        if (tbody.children[i] !== r.el) {
+          const box = r.el.querySelector(".tx-container");
+          const top = box ? box.scrollTop : 0;
+          tbody.insertBefore(r.el, tbody.children[i] || null);
+          if (box) box.scrollTop = top;
         }
-        function closeUserModal() {
-          openUserId = null;
-          $("user-modal").classList.remove("open");
-        }
-        document.addEventListener("keydown", (e) => {
-          if (e.key === "Escape") closeUserModal();
-        });
-        function renderUserModal() {
-          const u = rawUsersCache.find((x) => x.userId === openUserId);
-          if (!u) return;
-          const sig = JSON.stringify(u) + authLevel;
-          if (sig === modalSig) return;
-          modalSig = sig;
-          const btn = (a, label, cls = "") =>
-            `<button class="act-btn ${cls}" ${can(a) ? "" : "disabled"} onclick="userAction('${a}')">${label}</button>`;
-          const info = [
-            ["Discord ID", u.userId],
-            ["Username", u.username],
-            ["Anzeigename", u.displayName],
-            ["Account vorhanden", u.hasAccount ? "Ja" : "Nein"],
-            ["Minecraft", u.mcUsername || "—"],
-            ["Server-Rang", u.rank],
-            ["Rang-System", u.tierName],
-            ["XP", `${u.xp}/${u.xpNeeded}`],
-            ["Kontostand", u.hasAccount ? u.balance + " Kekse" : "—"],
-            [
-              "Konto aktiv",
-              u.hasAccount ? (u.accountActive ? "Ja" : "Nein (gesperrt)") : "—",
-            ],
-            ["Auf Server", u.inGuild ? "Ja" : "Nein"],
-            [
-              "Gebannt",
-              u.banned
-                ? "Ja" + (u.banReason ? ` (${u.banReason})` : "")
-                : "Nein",
-            ],
-            [
-              "Timeout bis",
-              u.timeoutUntil && u.timeoutUntil > Date.now()
-                ? fmtTs(u.timeoutUntil)
-                : "—",
-            ],
-          ]
-            .map(([k, v]) => `<div>${k}<b>${escapeHTML(v)}</b></div>`)
-            .join("");
-          const warns = u.warns.length
-            ? u.warns
-                .map(
-                  (w, i) =>
-                    `<div class="warn-item"><span>${i + 1}. ${escapeHTML(w.reason)} · ${fmtTs(w.date)}</span><button class="act-btn" ${can("unwarn") ? "" : "disabled"} onclick="userAction('unwarn',{index:${i + 1}})">×</button></div>`,
-                )
-                .join("")
-            : `<div style="color:var(--text-muted); font-size:.78rem;">Keine Warnungen</div>`;
-          $("user-modal-box").innerHTML = `
+      });
+      if (!users.length)
+        tbody.innerHTML = `<tr class="empty-row"><td colspan="9" style="text-align:center; padding:15px; color:var(--text-muted);">Keine User gefunden</td></tr>`;
+    }
+    function processAndRenderAccounts() {
+      const q = $("acc-search").value.toLowerCase().trim();
+      const sortBy = $("acc-sort").value,
+        flt = $("acc-filter").value;
+      let list = rawUsersCache.filter((u) => {
+        if (
+          q &&
+          !(
+            u.userId.includes(q) ||
+            u.username.toLowerCase().includes(q) ||
+            (u.displayName || "").toLowerCase().includes(q) ||
+            (u.mcUsername || "").toLowerCase().includes(q)
+          )
+        )
+          return false;
+        if (flt === "account") return u.hasAccount;
+        if (flt === "noaccount") return !u.hasAccount;
+        if (flt === "blocked") return u.hasAccount && !u.accountActive;
+        if (flt === "banned") return u.banned;
+        if (flt === "timeout")
+          return u.timeoutUntil && u.timeoutUntil > Date.now();
+        if (flt === "left") return !u.inGuild;
+        return true;
+      });
+      if (sortBy === "balance-desc")
+        list.sort((a, b) => b.balance - a.balance);
+      if (sortBy === "balance-asc")
+        list.sort((a, b) => a.balance - b.balance);
+      if (sortBy === "name")
+        list.sort((a, b) => a.username.localeCompare(b.username));
+      if (sortBy === "rang")
+        list.sort((a, b) => b.tier - a.tier || b.xp - a.xp);
+      if (sortBy === "rank") list.sort((a, b) => b.rankIndex - a.rankIndex);
+      const total = list.length;
+      list = list.slice(0, 100);
+      set(
+        "acc-limit-note",
+        total > 100
+          ? `Zeige 100 von ${total} Usern - Suche oder Filter nutzen.`
+          : "",
+      );
+      syncRows(list);
+    }
+    $("acc-filter").addEventListener("change", processAndRenderAccounts);
+    function openUserModal(id) {
+      openUserId = id;
+      modalSig = "";
+      renderUserModal();
+      $("user-modal").classList.add("open");
+    }
+    function closeUserModal() {
+      openUserId = null;
+      $("user-modal").classList.remove("open");
+    }
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeUserModal();
+    });
+    function renderUserModal() {
+      const u = rawUsersCache.find((x) => x.userId === openUserId);
+      if (!u) return;
+      const sig = JSON.stringify(u) + authLevel;
+      if (sig === modalSig) return;
+      modalSig = sig;
+      const btn = (a, label, cls = "") =>
+        `<button class="act-btn ${cls}" ${can(a) ? "" : "disabled"} onclick="userAction('${a}')">${label}</button>`;
+      const info = [
+        ["Discord ID", u.userId],
+        ["Username", u.username],
+        ["Anzeigename", u.displayName],
+        ["Account vorhanden", u.hasAccount ? "Ja" : "Nein"],
+        ["Minecraft", u.mcUsername || "—"],
+        ["Server-Rang", u.rank],
+        ["Rang-System", u.tierName],
+        ["XP", `${u.xp}/${u.xpNeeded}`],
+        ["Kontostand", u.hasAccount ? u.balance + " Kekse" : "—"],
+        [
+          "Konto aktiv",
+          u.hasAccount ? (u.accountActive ? "Ja" : "Nein (gesperrt)") : "—",
+        ],
+        ["Auf Server", u.inGuild ? "Ja" : "Nein"],
+        [
+          "Gebannt",
+          u.banned
+            ? "Ja" + (u.banReason ? ` (${u.banReason})` : "")
+            : "Nein",
+        ],
+        [
+          "Timeout bis",
+          u.timeoutUntil && u.timeoutUntil > Date.now()
+            ? fmtTs(u.timeoutUntil)
+            : "—",
+        ],
+      ]
+        .map(([k, v]) => `<div>${k}<b>${escapeHTML(v)}</b></div>`)
+        .join("");
+      const warns = u.warns.length
+        ? u.warns
+          .map(
+            (w, i) =>
+              `<div class="warn-item"><span>${i + 1}. ${escapeHTML(w.reason)} · ${fmtTs(w.date)}</span><button class="act-btn" ${can("unwarn") ? "" : "disabled"} onclick="userAction('unwarn',{index:${i + 1}})">×</button></div>`,
+          )
+          .join("")
+        : `<div style="color:var(--text-muted); font-size:.78rem;">Keine Warnungen</div>`;
+      $("user-modal-box").innerHTML = `
 					<div class="modal-head"><h3 style="border:none; padding:0;">${escapeHTML(u.displayName)} <span style="color:var(--text-muted);">@${escapeHTML(u.username)}</span></h3><button class="act-btn" onclick="closeUserModal()">✕</button></div>
 					${authLevel ? "" : `<div style="color:#fbbf24; font-size:.78rem;">Kein gültiger Token – nur Ansicht.</div>`}
 					<div class="info-grid">${info}</div>
@@ -2003,102 +2080,102 @@ document.addEventListener("keydown", function (e) {
 					<div class="act-group"><h4>Rang-System &amp; XP (Admin)</h4><div class="act-row">${btn("promote-rang", "Promote Rang")}${btn("demote-rang", "Demote Rang")}${btn("add-xp", "+ XP")}${btn("remove-xp", "− XP")}</div></div>
 					<div class="act-group"><h4>Konto</h4><div class="act-row">${btn("add-kekse", "+ Kekse")}${btn("remove-kekse", "− Kekse")}${btn("toggle-block", u.accountActive ? "Konto sperren" : "Konto entsperren")}</div></div>
 					<div class="act-group"><h4>Moderation</h4><div class="act-row">${btn("warn", "Warn")}${btn("timeout", "Timeout")}${btn("untimeout", "Untimeout")}${btn("kick", "Kick", "danger")}${btn("ban", "Ban", "danger")}${btn("unban", "Unban")}</div></div>`;
+    }
+    async function userAction(action, extra = {}) {
+      const u = rawUsersCache.find((x) => x.userId === openUserId);
+      if (!u) return;
+      const payload = { userId: u.userId, action, ...extra };
+      if (
+        ["add-xp", "remove-xp", "add-kekse", "remove-kekse"].includes(
+          action,
+        )
+      ) {
+        const v = prompt("Menge eingeben:");
+        if (!v) return;
+        const n = parseInt(v);
+        if (isNaN(n) || n <= 0) return alert("Ungültiger Betrag");
+        payload.amount = n;
+      }
+      if (action === "timeout") {
+        const d = prompt("Dauer (z.B. 10m, 2h, 1d):");
+        if (!d) return;
+        payload.duration = d;
+      }
+      if (
+        ["timeout", "kick", "ban", "warn", "unban", "untimeout"].includes(
+          action,
+        )
+      ) {
+        const r = prompt("Grund (optional):");
+        if (r === null) return;
+        payload.reason = r;
+      }
+      if (
+        ["kick", "ban", "clan-kick"].includes(action) &&
+        !confirm(
+          `${action.toUpperCase()} für ${u.username} wirklich ausführen?`,
+        )
+      )
+        return;
+      try {
+        const res = await fetch("/api/users/action", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify(payload),
+        });
+        if (res.status === 401) {
+          showLogin();
+          return;
         }
-        async function userAction(action, extra = {}) {
-          const u = rawUsersCache.find((x) => x.userId === openUserId);
-          if (!u) return;
-          const payload = { userId: u.userId, action, ...extra };
-          if (
-            ["add-xp", "remove-xp", "add-kekse", "remove-kekse"].includes(
-              action,
-            )
-          ) {
-            const v = prompt("Menge eingeben:");
-            if (!v) return;
-            const n = parseInt(v);
-            if (isNaN(n) || n <= 0) return alert("Ungültiger Betrag");
-            payload.amount = n;
-          }
-          if (action === "timeout") {
-            const d = prompt("Dauer (z.B. 10m, 2h, 1d):");
-            if (!d) return;
-            payload.duration = d;
-          }
-          if (
-            ["timeout", "kick", "ban", "warn", "unban", "untimeout"].includes(
-              action,
-            )
-          ) {
-            const r = prompt("Grund (optional):");
-            if (r === null) return;
-            payload.reason = r;
-          }
-          if (
-            ["kick", "ban", "clan-kick"].includes(action) &&
-            !confirm(
-              `${action.toUpperCase()} für ${u.username} wirklich ausführen?`,
-            )
-          )
-            return;
-          try {
-            const res = await fetch("/api/users/action", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              credentials: "same-origin",
-              body: JSON.stringify(payload),
-            });
-            if (res.status === 401) {
-              showLogin();
-              return;
-            }
-            const data = await res.json();
-            if (data.success) {
-              await fetchStats();
-              modalSig = "";
-              renderUserModal();
-            } else alert("Fehler: " + data.error);
-          } catch {
-            alert("Fehler bei der Kommunikation mit dem Server");
-          }
-        }
-        $("acc-search").addEventListener("input", processAndRenderAccounts);
-        $("acc-sort").addEventListener("change", processAndRenderAccounts);
-        function processAndRenderTickets() {
-          let filtered = [...rawTicketsCache];
-          const query = $("ticket-search").value.toLowerCase();
-          if (query) {
-            filtered = filtered.filter(
-              (t) =>
-                (t.name || "").toLowerCase().includes(query) ||
-				(t.closedBy || "").toLowerCase().includes(query) ||
-				(t.createdBy || "").toLowerCase().includes(query)
-            );
-          }
-          renderTickets(filtered);
-        }
-        $("ticket-search").addEventListener("input", processAndRenderTickets);
-        const escapeHTML = (str) =>
-          str
-            ? str
-                .toString()
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-            : "";
-        const isImg = (url) => /\.(png|jpe?g|gif|webp|svg)/i.test(url);
-        const fmtTs = (ms) =>
-          new Date(ms).toLocaleString("de-DE", {
-            dateStyle: "short",
-            timeStyle: "short",
-          });
-        function renderMsg(msg) {
-          const attachHtml = msg.attachments?.length
-            ? `<div class="msg-attachments">${msg.attachments.map((a) => (isImg(a.url) ? `<img src="${encodeURI(a.url)}" onclick="window.open('${encodeURI(a.url)}')">` : `<a href="${encodeURI(a.url)}" target="_blank">${escapeHTML(a.name)}</a>`)).join("")}</div>`
-            : "";
-          const stickerHtml = msg.stickers?.length
-            ? `<div class="msg-stickers">${msg.stickers.map((s) => `<img src="${encodeURI(s.url)}">`).join("")}</div>`
-            : "";
-          return `<div class="msg-row">
+        const data = await res.json();
+        if (data.success) {
+          await fetchStats();
+          modalSig = "";
+          renderUserModal();
+        } else alert("Fehler: " + data.error);
+      } catch {
+        alert("Fehler bei der Kommunikation mit dem Server");
+      }
+    }
+    $("acc-search").addEventListener("input", processAndRenderAccounts);
+    $("acc-sort").addEventListener("change", processAndRenderAccounts);
+    function processAndRenderTickets() {
+      let filtered = [...rawTicketsCache];
+      const query = $("ticket-search").value.toLowerCase();
+      if (query) {
+        filtered = filtered.filter(
+          (t) =>
+            (t.name || "").toLowerCase().includes(query) ||
+            (t.closedBy || "").toLowerCase().includes(query) ||
+            (t.createdBy || "").toLowerCase().includes(query)
+        );
+      }
+      renderTickets(filtered);
+    }
+    $("ticket-search").addEventListener("input", processAndRenderTickets);
+    const escapeHTML = (str) =>
+      str
+        ? str
+          .toString()
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+        : "";
+    const isImg = (url) => /\.(png|jpe?g|gif|webp|svg)/i.test(url);
+    const fmtTs = (ms) =>
+      new Date(ms).toLocaleString("de-DE", {
+        dateStyle: "short",
+        timeStyle: "short",
+      });
+    function renderMsg(msg) {
+      const attachHtml = msg.attachments?.length
+        ? `<div class="msg-attachments">${msg.attachments.map((a) => (isImg(a.url) ? `<img src="${encodeURI(a.url)}" onclick="window.open('${encodeURI(a.url)}')">` : `<a href="${encodeURI(a.url)}" target="_blank">${escapeHTML(a.name)}</a>`)).join("")}</div>`
+        : "";
+      const stickerHtml = msg.stickers?.length
+        ? `<div class="msg-stickers">${msg.stickers.map((s) => `<img src="${encodeURI(s.url)}">`).join("")}</div>`
+        : "";
+      return `<div class="msg-row">
 					<img class="msg-avatar" src="${encodeURI(msg.author.avatar)}" onerror="this.style.display='none'">
 					<div class="msg-body">
 						<div class="msg-header"><span class="msg-author">${escapeHTML(msg.author.name)}</span><span class="msg-time">${fmtTs(msg.timestamp)}</span></div>
@@ -2106,16 +2183,16 @@ document.addEventListener("keydown", function (e) {
 						${attachHtml}${stickerHtml}
 					</div>
 				</div>`;
-        }
-        function renderTickets(tickets) {
-          const list = $("ticket-list");
-          if (!tickets.length) {
-            list.innerHTML = `<div class="no-tickets">Keine archivierten Tickets.</div>`;
-            return;
-          }
-          list.innerHTML = tickets
-            .map(
-              (t) => `
+    }
+    function renderTickets(tickets) {
+      const list = $("ticket-list");
+      if (!tickets.length) {
+        list.innerHTML = `<div class="no-tickets">Keine archivierten Tickets.</div>`;
+        return;
+      }
+      list.innerHTML = tickets
+        .map(
+          (t) => `
 					<div class="ticket-entry" data-id="${t.id}" id="ticket-${t.id}">
 						<button class="ticket-btn" onclick="toggleTicket('${t.id}')">
 							<div class="ticket-meta">
@@ -2129,68 +2206,68 @@ document.addEventListener("keydown", function (e) {
 							${t.messages.map(renderMsg).join("") || `<div class="no-tickets">Keine Nachrichten.</div>`}
 						</div>
 					</div>`,
-            )
-            .join("");
-        }
-        window.toggleTicket = (id) => {
-          const entry = document.getElementById(`ticket-${id}`);
-          if (entry) entry.classList.toggle("open");
-        };
-        function checkUrlHash() {
-          const hash = window.location.hash;
-          if (!hash || !hash.startsWith("#ticket-")) return;
-          const targetElement = document.querySelector(hash);
-          $("ticket-archive").classList.remove("collapsed");
-          if (targetElement) {
-            if (!targetElement.classList.contains("open"))
-              targetElement.classList.add("open");
-            setTimeout(
-              () =>
-                targetElement.scrollIntoView({
-                  behavior: "smooth",
-                  block: "center",
-                }),
-              300,
-            );
-          }
-        }
-        async function fetchTickets() {
-          try {
-            const res = await fetch("/api/tickets", {
-              credentials: "same-origin",
-            });
-            if (res.status === 401) {
-              showLogin();
-              return;
-            }
-            if (!res.ok)
-              throw new Error("Tickets konnten nicht geladen werden.");
-            rawTicketsCache = await res.json();
-            processAndRenderTickets();
-            checkUrlHash();
-          } catch {
-            set("ticket-list", "Tickets konnten nicht geladen werden.");
-          }
-        }
-        $("ticket-toggle").addEventListener("click", () =>
-          $("ticket-archive").classList.toggle("collapsed"),
+        )
+        .join("");
+    }
+    window.toggleTicket = (id) => {
+      const entry = document.getElementById(`ticket-${id}`);
+      if (entry) entry.classList.toggle("open");
+    };
+    function checkUrlHash() {
+      const hash = window.location.hash;
+      if (!hash || !hash.startsWith("#ticket-")) return;
+      const targetElement = document.querySelector(hash);
+      $("ticket-archive").classList.remove("collapsed");
+      if (targetElement) {
+        if (!targetElement.classList.contains("open"))
+          targetElement.classList.add("open");
+        setTimeout(
+          () =>
+            targetElement.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            }),
+          300,
         );
-		  $("accounts-toggle").addEventListener("click", function () {
-  $("accounts-database").classList.toggle("collapsed");
-});
-        window.toggleUserLogs = (userId, btn) => {
-          const container = document.getElementById(`logs-container-${userId}`);
-          if (container) {
-            container.classList.toggle("open");
-            if (container.classList.contains("open")) {
-              openedLogUsers.add(userId);
-              btn.textContent = "Hide";
-            } else {
-              openedLogUsers.delete(userId);
-              btn.textContent = "Show";
-            }
-          }
-        };
-      </script>
-  </body>
+      }
+    }
+    async function fetchTickets() {
+      try {
+        const res = await fetch("/api/tickets", {
+          credentials: "same-origin",
+        });
+        if (res.status === 401) {
+          showLogin();
+          return;
+        }
+        if (!res.ok)
+          throw new Error("Tickets konnten nicht geladen werden.");
+        rawTicketsCache = await res.json();
+        processAndRenderTickets();
+        checkUrlHash();
+      } catch {
+        set("ticket-list", "Tickets konnten nicht geladen werden.");
+      }
+    }
+    $("ticket-toggle").addEventListener("click", () =>
+      $("ticket-archive").classList.toggle("collapsed"),
+    );
+    $("accounts-toggle").addEventListener("click", function () {
+      $("accounts-database").classList.toggle("collapsed");
+    });
+    window.toggleUserLogs = (userId, btn) => {
+      const container = document.getElementById(`logs-container-${userId}`);
+      if (container) {
+        container.classList.toggle("open");
+        if (container.classList.contains("open")) {
+          openedLogUsers.add(userId);
+          btn.textContent = "Hide";
+        } else {
+          openedLogUsers.delete(userId);
+          btn.textContent = "Show";
+        }
+      }
+    };
+  </script>
+</body>
 </html>
