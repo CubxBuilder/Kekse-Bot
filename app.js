@@ -6909,6 +6909,7 @@ app.post("/api/auth/complete-setup", express.json({ limit: "10kb" }), async (req
       config.level,
       challenge.rememberMe
     );
+    console.log(`${config.username}, Herzlich Willkommen!`)
     delete pending[id];
     await dbSet("dashboard", "pending", pending);
     res.json({ status: "authenticated", level: config.level });
