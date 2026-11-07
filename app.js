@@ -6127,7 +6127,8 @@ export function handleInviteCreate(invite) {
 export async function syncExistingUsers(client) {
   try {
     const guild = await client.guilds.fetch(GUILD_ID);
-    const members = await guild.members.fetch();
+    if (!guild) return;
+    const members = guild.members.cache;
     for (const [memberId, member] of members) {
       if (member.user.bot) continue;
 
@@ -10548,18 +10549,8 @@ client.once("clientReady", async () => {
     await setupVoiceModToggle(client);
     startVoiceXpTracker(client);
     await wage(client);
-    const guild = client.guilds.cache.get("1423413347168157718");
-if (guild) {
-  try {
-    await guild.members.fetch();
-    console.log(`[Dashboard] ${guild.members.cache.size} Mitglieder geladen.`);
-  } catch (error) {
-    console.error("[Dashboard] Mitglieder konnten nicht geladen werden:", error);
-  }
-}
-
-console.log(`Server-Sync gestartet...`);
-console.log(`Bot online: ${client.user.tag}`);
+    console.log(`Server-Sync gestartet...`);
+    console.log(`Bot online: ${client.user.tag}`);
     await startStorages();
   } catch (err) {
     console.error("[Ready] Kritischer Fehler beim Initialisieren:", err);
