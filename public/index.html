@@ -156,6 +156,7 @@
         overflow-y: auto;
         border: 1px solid var(--border);
         max-height: 300px;
+		overflow-x: hidden;
       }
       #functions-used {
         grid-column: 1 / -1;
@@ -1345,6 +1346,9 @@
           showLogin();
         });
         initDashboardAuth();
+		function breakPaths(text) {
+			  return escapeHTML(text).replace(/([\/\\])/g, "$1<wbr>");
+		}
         async function fetchStats() {
           try {
             const res = await fetch("/api/stats", {
@@ -1417,7 +1421,7 @@
                   ) {
                     logColor = "#ffffff";
                   }
-                  return `<div style="color:${logColor}; border-bottom: 1px solid #161616; padding: 4px 0; font-family: monospace; font-size: 13px;"><span style="color:var(--text-muted); margin-right: 8px;">[${dateStr} ${timeStr}]</span> ${escapeHTML(logText)}</div>`;
+                  return `<div style="color:${logColor}; border-bottom: 1px solid #161616; padding: 4px 0; font-family: monospace; font-size: 13px; overflow-wrap: anywhere;"><span style="color:var(--text-muted); margin-right: 8px;">[${dateStr} ${timeStr}]</span> ${breakPaths(logText)}</div>`;
                 })
                 .join("");
               if (isAtBottom) {
