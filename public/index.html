@@ -482,6 +482,35 @@
         .info-grid {
           grid-template-columns: 1fr;
         }
+		  .table-scroll {
+  max-height: none;
+  overflow: visible;
+}
+#accounts-database h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+#accounts-database h3 #auth-level {
+  margin-left: auto;
+}
+#accounts-database h3::after {
+  content: "▼";
+  font-size: 0.7rem;
+  transition: transform 0.2s;
+}
+#accounts-database:not(.collapsed) h3::after {
+  transform: rotate(180deg);
+}
+#accounts-database.collapsed h3 {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+#accounts-database.collapsed .archive-body {
+  display: none;
+}
       }
       .archive-body {
         display: flex;
@@ -832,6 +861,17 @@
   font-size: 0.82rem;
   line-height: 1.5;
 }
+		.table-scroll {
+  overflow: auto;
+  width: 100%;
+  max-height: 520px;
+}
+.table-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-surface);
+}
     </style>
   </head>
   <body>
@@ -958,13 +998,15 @@
         <article
           id="accounts-database"
           style="grid-column: 1 / -1; flex-direction: column"
+		  class="collapsed"
         >
-          <h3>
+          <h3 id="accounts-toggle">
             User Datenbank
             <span id="auth-level" style="float: right; color: var(--text-muted)"
               >…</span
             >
           </h3>
+			<div class="archive-body">
           <div
             style="
               display: flex;
@@ -1022,7 +1064,7 @@
               <option value="rank">Server-Rang</option>
             </select>
           </div>
-          <div style="overflow-x: auto; width: 100%">
+          <div class="table-scroll">
             <table
               style="
                 width: 100%;
@@ -1052,23 +1094,24 @@
               <tbody id="accounts-list"></tbody>
             </table>
           </div>
-          <div
+                    <div
             id="acc-limit-note"
             style="color: var(--text-muted); font-size: 0.75rem"
           ></div>
+        </div>
+      </article>
+        </div>
+      </article>
         </article>
 		  <article
   id="accounts-admin"
   style="grid-column: 1 / -1; flex-direction: column; display: none"
 >
   <h3>Dashboard Accounts</h3>
-  <div
-    style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap"
-  >
-    <span class="hint">Nur für Admins. Änderungen wirken sofort.</span>
-    <button class="act-btn" onclick="openAccountDialog('create')">
-      + Account erstellen
-    </button>
+  <div style="display: flex; justify-content: flex-end">
+  <button class="act-btn" onclick="openAccountDialog('create')">
+    + Account erstellen
+  </button>
   </div>
   <div style="overflow-x: auto; width: 100%">
     <table
@@ -1093,15 +1136,15 @@
         id="user-modal"
         onclick="if (event.target === this) closeUserModal();"
       >
-		  <div
+        <div class="modal-box" id="user-modal-box"></div>
+      </div>
+		<div
   class="modal"
   id="acc-modal"
   onclick="if (event.target === this) closeAccountDialog();"
 >
   <div class="modal-box" id="acc-modal-box" style="max-width: 460px"></div>
 </div>
-        <div class="modal-box" id="user-modal-box"></div>
-      </div>
       <footer>
         <span>Kekse Bot Dashboard</span>
         <span class="sep">|</span>
@@ -1329,7 +1372,7 @@ function renderAdminAccounts() {
   $("admin-accounts-list").innerHTML = adminAccounts
     .map(function (a, i) {
       const badges = [
-        badge(a.level === "admin" ? "Admin" : "Team", a.level === "admin" ? "#fbbf24" : "#888"),
+        a.level === "admin" ? badge("Admin", "#992d22") : badge("Team", "#9b59b6"),
       ];
       if (a.passwordSet) badges.push(badge("Passwort gesetzt", "#4ade80"));
       if (a.setupPending) {
@@ -1657,6 +1700,7 @@ document.addEventListener("keydown", function (e) {
           });
           showLogin();
         });
+		  document.body.appendChild($("acc-modal"));
         initDashboardAuth();
 		function breakPaths(text) {
 			  return escapeHTML(text).replace(/([\/\\])/g, "$1<wbr>");
@@ -2131,6 +2175,9 @@ document.addEventListener("keydown", function (e) {
         $("ticket-toggle").addEventListener("click", () =>
           $("ticket-archive").classList.toggle("collapsed"),
         );
+		  $("accounts-toggle").addEventListener("click", function () {
+  $("accounts-database").classList.toggle("collapsed");
+});
         window.toggleUserLogs = (userId, btn) => {
           const container = document.getElementById(`logs-container-${userId}`);
           if (container) {
