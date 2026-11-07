@@ -4707,6 +4707,34 @@ export async function rerollGiveaway(
 export function registerMessageCommands(client) {
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot || !msg.content.startsWith("!")) return;
+    if (msg.content.startsWith("!setup_dashboardInfo")) {
+      if (!msg.author.id === FABIAN_ID) return;
+      await deleteCmd();
+      const infoEmbed = new EmbedBuilder()
+        .setColor("#ffffff")
+        .setTitle(`Dashboard Login`)
+        .setDescription(`So meldest du dich im Dashboard an:`)
+        .addFields(
+          {
+            name: `Schritt 1`,
+            value: `Lass dir deine Zugangsdaten von einem Administrator geben.`,
+          },
+          {
+            name: `Schritt 2`,
+            value: `Öffne das [Dashboard](https://kekse-bot.de)`,
+          },
+          {
+            name: `Schritt 3`,
+            value: `Melde dich mit deinen Zugangsdaten an.`,
+          },
+          {
+            name: `Schritt 4`,
+            value: 'Nutze `/dashboard-verify` und gebe den erhaltenen Verifizierungs-Code ein.',
+          },
+        )
+        .setFooter(`Kekse Bot Dashboard`)
+      await msg.channel.send({embeds: [infoEmbed]});
+    }
     if (
       !msg.member.roles.cache.has(TEAM_ROLE_ID) &&
       !msg.member.permissions.has(PermissionsBitField.Flags.ManageMessages)
@@ -4749,34 +4777,6 @@ export function registerMessageCommands(client) {
         globalBotStats.commandsRunned += 1;
         console.log(`${msg.author.username} hat die "send"-Funktion genutzt.`);
       }
-    }
-    if (cmd === "setup_dashboardInfo") {
-      if (!msg.author.id === FABIAN_ID) return;
-      await deleteCmd();
-      const infoEmbed = new EmbedBuilder()
-        .setColor("#ffffff")
-        .setTitle(`Dashboard Login`)
-        .setDescription(`So meldest du dich im Dashboard an:`)
-        .addFields(
-          {
-            name: `Schritt 1`,
-            value: `Lass dir deine Zugangsdaten von einem Administrator geben.`,
-          },
-          {
-            name: `Schritt 2`,
-            value: `Öffne das [Dashboard](https://kekse-bot.de)`,
-          },
-          {
-            name: `Schritt 3`,
-            value: `Melde dich mit deinen Zugangsdaten an.`,
-          },
-          {
-            name: `Schritt 4`,
-            value: 'Nutze `/dashboard-verify` und gebe den erhaltenen Verifizierungs-Code ein.',
-          },
-        )
-        .setFooter(`Kekse Bot Dashboard`)
-      await msg.channel.send({embeds: [infoEmbed]});
     }
     if (cmd === "changelog") {
       await deleteCmd();
