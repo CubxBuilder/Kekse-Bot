@@ -1813,9 +1813,6 @@
         $("ticket-toggle").addEventListener("click", () =>
           $("ticket-archive").classList.toggle("collapsed"),
         );
-        if ("serviceWorker" in navigator) {
-          navigator.serviceWorker.register("sw.js");
-        }
         window.toggleUserLogs = (userId, btn) => {
           const container = document.getElementById(`logs-container-${userId}`);
           if (container) {
