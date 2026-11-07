@@ -10594,19 +10594,6 @@ client.once("clientReady", async () => {
       res.status(404).sendFile(path.join(__dirname, "public", "404.html"));
     });
 });
-app.get("/api/stats", requireDashboardAuth, async (req, res) => {
-  const totalSeconds = client.uptime / 1000;
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor(totalSeconds / 3600) % 24;
-  const minutes = Math.floor(totalSeconds / 60) % 60;
-  const seconds = Math.floor(totalSeconds % 60);
-  res.json({
-    uptime: days + "d " + hours + "h " + minutes + "m " + seconds + "s",
-    ping: Math.round(client.ws.ping),
-    guilds: client.guilds.cache.size,
-    members: client.guilds.cache.reduce((a, g) => a + g.memberCount, 0),
-  });
-});
 client.setMaxListeners(50);
 client.on("error", console.error);
 client.on("warn", console.warn);
