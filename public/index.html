@@ -1216,37 +1216,36 @@
         </div>
       </article>
   </div>
-  </article>
-  </article>
-  <article id="accounts-admin" style="grid-column: 1 / -1; flex-direction: column; display: none">
-    <h3>Dashboard Accounts</h3>
-    <div style="display: flex; justify-content: flex-end">
-      <button class="act-btn" onclick="openAccountDialog('create')">
-        + Account erstellen
-      </button>
-    </div>
-    <div style="overflow-x: auto; width: 100%">
-      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem">
-        <thead>
-          <tr style="border-bottom: 1px solid var(--border); color: var(--text-secondary)">
-            <th style="padding: 8px">Benutzer</th>
-            <th style="padding: 8px">Discord</th>
-            <th style="padding: 8px">Status</th>
-            <th style="padding: 8px">Aktionen</th>
-          </tr>
-        </thead>
-        <tbody id="admin-accounts-list"></tbody>
-      </table>
-    </div>
-    <div id="admin-accounts-note" class="hint"></div>
-  </article>
+      </article>
+      <article id="accounts-admin" style="grid-column: 1 / -1; flex-direction: column; display: none">
+        <h3>Dashboard Accounts</h3>
+        <div style="display: flex; justify-content: flex-end">
+          <button class="act-btn" onclick="openAccountDialog('create')">
+            + Account erstellen
+          </button>
+        </div>
+        <div style="overflow-x: auto; width: 100%">
+          <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border); color: var(--text-secondary)">
+                <th style="padding: 8px">Benutzer</th>
+                <th style="padding: 8px">Discord</th>
+                <th style="padding: 8px">Status</th>
+                <th style="padding: 8px">Aktionen</th>
+              </tr>
+            </thead>
+            <tbody id="admin-accounts-list"></tbody>
+          </table>
+        </div>
+        <div id="admin-accounts-note" class="hint"></div>
+      </article>
+    </main>
   <div class="modal" id="user-modal" onclick="if (event.target === this) closeUserModal();">
     <div class="modal-box" id="user-modal-box"></div>
   </div>
   <div class="modal" id="acc-modal" onclick="if (event.target === this) closeAccountDialog();">
     <div class="modal-box" id="acc-modal-box" style="max-width: 460px"></div>
   </div>
-	</main>
   <footer>
     <span>Kekse Bot Dashboard</span>
     <span class="sep">|</span>
