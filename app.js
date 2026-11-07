@@ -39,7 +39,7 @@ const GUILD_ID = "1423413347168157718";
 
 // Roles / Users
 const FABIAN_ID = "1151971830983311441";
-const TEAM_ROLE_ID = "1457906448234319922";
+const _ID = "1457906448234319922";
 const ECO_ROLE_ID = "1506732560837771284";
 const GIVEAWAY_DOUBLE_ROLE_ID = "1506164984202264656";
 const COUNTING_PUFFER_ROLE_ID = "1508050024355856494";
@@ -2838,7 +2838,7 @@ async function fuehreGehaltszahlungAus(now) {
       client.guilds.cache.first() ||
       (await client.guilds.fetch(GUILD_ID));
     const role =
-      guild.roles.cache.get(TEAM_ROLE_ID) ||
+      guild.roles.cache.get(_ID) ||
       (await guild.roles.fetch(TEAM_ROLE_ID));
     const team = Array.from(role.members.values());
 
@@ -7899,7 +7899,7 @@ client.on("interactionCreate", async (interaction) => {
     channel: currentChannel,
   } = interaction;
     if (commandName === "dashboard-verify") {
-    if (!member?.roles?.cache?.has(TEAM_ROLE)) {
+    if (!member?.roles?.cache?.has(TEAM_ROLE_ID)) {
       return interaction.reply({
         content: "Du benötigst die Team-Rolle.",
         flags: [MessageFlags.Ephemeral]
