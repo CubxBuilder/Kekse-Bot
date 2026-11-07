@@ -6590,8 +6590,8 @@ const RANK_LADDER = [
   { name: "Member", roleId: CLAN.MEMBER },
   { name: "Team", roleId: TEAM_ROLE_ID },
   { name: "Admin", roleId: ADMIN_ROLE_ID },
+  { name: "Owner", roleId: null },
 ];
-
 const ADMIN_ACTIONS = new Set([
   "promote-rang",
   "demote-rang",
@@ -6722,7 +6722,7 @@ async function buildUserDatabase(guild) {
       timeoutUntil: member?.communicationDisabledUntilTimestamp || null,
       hasAccount,
       mcUsername: eco.mcUsername || null,
-      rank: RANK_LADDER[rankIdx].name,
+      rank: (RANK_LADDER[rankIdx] || RANK_LADDER[0]).name,
       rankIndex: rankIdx,
       tier: tierIdx,
       tierName: ROLES_TIERS[tierIdx].name,
