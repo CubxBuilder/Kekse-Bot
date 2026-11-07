@@ -204,33 +204,6 @@ export async function initTicketArchive(app, getTickData, setTickData) {
     res.status(500).json({ error: error.message });
   }
 });
-  app.get("/api/tickets", async (req, res) => {
-    try {
-      const StorageModel = mongoose.model("BotStorage");
-
-      const archiveDoc = await StorageModel.findOne({
-        namespace: "tickets",
-        key: "archive_list",
-      }).lean();
-
-      if (!archiveDoc || !archiveDoc.value) {
-        return res.json([]);
-      }
-
-      if (Array.isArray(archiveDoc.value.archive)) {
-        return res.json(archiveDoc.value.archive);
-      }
-
-      if (Array.isArray(archiveDoc.value)) {
-        return res.json(archiveDoc.value);
-      }
-
-      res.json([]);
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-}
 export async function archiveTicket(
   { name, closedBy, creator, channel },
   setTickData,
@@ -6731,7 +6704,7 @@ async function buildUserDatabase(guild) {
   return { users, txLogs };
 }
 let statsCache = { time: 0, data: null };
-app.get("/api/stats", async (req, res) => {
+app.get("/api/stats", requireDashboardAuth, async (req, res) => {
   if (statsCache.data && Date.now() - statsCache.time < 15000) return res.json(statsCache.data);
   try {
     const guild =
