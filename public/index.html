@@ -1,11 +1,13 @@
 <!doctype html>
 <html lang="de">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard</title>
   <link rel="icon" href="icon.png" type="image/png" />
   <link rel="apple-touch-icon" href="icon.png" />
+  <link rel="manifest" href="dashboard-manifest.json" />
   <meta name="theme-color" content="#111111" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -1038,29 +1040,29 @@
           <ol>
             <li>
               Server Name
-              <p id="server">-</p>
+              <p id="server">—</p>
             </li>
             <li>
               Server ID
-              <p id="server-id">-</p>
+              <p id="server-id">—</p>
             </li>
             <li>
               Inhaber
-              <p id="owner">-</p>
+              <p id="owner">—</p>
             </li>
           </ol>
           <ol>
             <li>
               Kanäle
-              <p id="channels">-</p>
+              <p id="channels">—</p>
             </li>
             <li>
               Mitglieder
-              <p id="users">-</p>
+              <p id="users">—</p>
             </li>
             <li>
               Bots
-              <p id="bots">-</p>
+              <p id="bots">—</p>
             </li>
           </ol>
         </div>
@@ -1071,29 +1073,29 @@
           <ol>
             <li>
               Ping
-              <p id="ping">-</p>
+              <p id="ping">—</p>
             </li>
             <li>
               Durchschnitt
-              <p id="avg-ping">-</p>
+              <p id="avg-ping">—</p>
             </li>
             <li>
               Maximum
-              <p id="max-ping">-</p>
+              <p id="max-ping">—</p>
             </li>
           </ol>
           <ol>
             <li>
               Uptime
-              <p id="uptime">-</p>
+              <p id="uptime">—</p>
             </li>
             <li>
               Version
-              <p id="version">-</p>
+              <p id="version">—</p>
             </li>
             <li>
               Letzter Start
-              <p id="last-restart">-</p>
+              <p id="last-restart">—</p>
             </li>
           </ol>
         </div>
@@ -1248,11 +1250,11 @@
   <footer>
     <span>Kekse Bot Dashboard</span>
     <span class="sep">|</span>
-    Version: <span id="Version">-</span>
+    Version: <span id="Version">—</span>
     <span class="sep">|</span>
-    Uptime: <span id="uptime-foot">-</span>
+    Uptime: <span id="uptime-foot">—</span>
     <span class="sep">|</span>
-    Ping: <span id="ping-foot">-</span>
+    Ping: <span id="ping-foot">—</span>
   </footer>
   </div>
   <div id="login-screen">
@@ -1310,7 +1312,7 @@
     const $ = (id) => document.getElementById(id);
     const set = (id, v) => {
       const el = $(id);
-      if (el) el.textContent = v ?? "-";
+      if (el) el.textContent = v ?? "—";
     };
     const fmtUptime = (s) => {
       const d = Math.floor(s / 86400),
@@ -1323,7 +1325,7 @@
         dateStyle: "short",
         timeStyle: "short",
       });
-    const fmtPing = (ms) => (ms == null || ms < 0 ? "-" : `${ms}ms`);
+    const fmtPing = (ms) => (ms == null || ms < 0 ? "—" : `${ms}ms`);
     let rawTicketsCache = [];
     let rawTxLogsCache = {};
     let rawUsersCache = [];
@@ -1462,7 +1464,7 @@
           }
           if (a.twoFactorEnabled === false) badges.push(badge("2FA aus", "#888"));
           const actions = a.self
-            ? "-"
+            ? "—"
             : `<div class="act-row">
             <button class="act-btn" onclick="openAccountDialog('edit', ${i})">Bearbeiten</button>
             <button class="act-btn" onclick="resetAccountPassword(${i})">Passwort zurücksetzen</button>
@@ -1470,7 +1472,7 @@
           </div>`;
           return `<tr style="border-bottom: 1px solid var(--border);">
         <td data-label="Nutzer" style="padding:8px;"><strong>${escapeHTML(a.username)}</strong>${a.self ? ' <span style="color:var(--text-muted);">(du)</span>' : ""}</td>
-        <td data-label="Discord" style="padding:8px;">${escapeHTML(a.discordName || "-")}<br><span style="font-size:0.68rem; color:var(--text-muted);">${escapeHTML(a.discordId)}</span></td>
+        <td data-label="Discord" style="padding:8px;">${escapeHTML(a.discordName || "—")}<br><span style="font-size:0.68rem; color:var(--text-muted);">${escapeHTML(a.discordId)}</span></td>
         <td data-label="Status" style="padding:8px;">${badges.join("")}</td>
         <td data-label="Aktionen" style="padding:8px;">${actions}</td>
       </tr>`;
@@ -1920,11 +1922,11 @@
         b.push(badge(`${u.warns.length} Warn(s)`, "#fbbf24"));
       return `
 				<td data-label="Nutzer" style="padding:8px;"><strong>${escapeHTML(u.displayName)}</strong><br><span style="font-size:0.72rem; color:var(--text-secondary);">@${escapeHTML(u.username)}</span><br><span style="font-size:0.68rem; color:var(--text-muted);">${u.userId}</span></td>
-				<td data-label="Minecraft" style="padding:8px;">${escapeHTML(u.mcUsername || "-")}</td>
+				<td data-label="Minecraft" style="padding:8px;">${escapeHTML(u.mcUsername || "—")}</td>
 				<td data-label="Server-Rang" style="padding:8px;">${escapeHTML(u.rank)}</td>
 				<td data-label="Rang-System" style="padding:8px;">${escapeHTML(u.tierName)}</td>
 				<td data-label="XP" style="padding:8px;">${u.xp}/${u.xpNeeded}</td>
-				<td data-label="Kontostand" style="padding:8px; color:#4ade80; font-weight:bold;">${u.hasAccount ? u.balance + " Kekse" : "-"}</td>
+				<td data-label="Kontostand" style="padding:8px; color:#4ade80; font-weight:bold;">${u.hasAccount ? u.balance + " Kekse" : "—"}</td>
 				<td data-label="Status" style="padding:8px;">${b.join("")}</td>
 				<td data-label="Logs" style="padding:8px;">
 					<button class="log-toggle-btn" onclick="toggleUserLogs('${u.userId}', this)">${isOpen ? "Hide" : "Show"}</button>
@@ -2038,14 +2040,14 @@
         ["Username", u.username],
         ["Anzeigename", u.displayName],
         ["Account vorhanden", u.hasAccount ? "Ja" : "Nein"],
-        ["Minecraft", u.mcUsername || "-"],
+        ["Minecraft", u.mcUsername || "—"],
         ["Server-Rang", u.rank],
         ["Rang-System", u.tierName],
         ["XP", `${u.xp}/${u.xpNeeded}`],
-        ["Kontostand", u.hasAccount ? u.balance + " Kekse" : "-"],
+        ["Kontostand", u.hasAccount ? u.balance + " Kekse" : "—"],
         [
           "Konto aktiv",
-          u.hasAccount ? (u.accountActive ? "Ja" : "Nein (gesperrt)") : "-",
+          u.hasAccount ? (u.accountActive ? "Ja" : "Nein (gesperrt)") : "—",
         ],
         ["Auf Server", u.inGuild ? "Ja" : "Nein"],
         [
@@ -2058,7 +2060,7 @@
           "Timeout bis",
           u.timeoutUntil && u.timeoutUntil > Date.now()
             ? fmtTs(u.timeoutUntil)
-            : "-",
+            : "—",
         ],
       ]
         .map(([k, v]) => `<div>${k}<b>${escapeHTML(v)}</b></div>`)
