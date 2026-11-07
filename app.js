@@ -1,6 +1,9 @@
 import {Client, ModalBuilder, REST, Routes, SlashCommandBuilder, GatewayIntentBits, Partials, ChannelType, PermissionFlagsBits, EmbedBuilder, Events, AuditLogEvent, MessageFlags, MessageType, PermissionsBitField, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, TextInputBuilder, TextInputStyle, ComponentType, StringSelectMenuBuilder, StringSelectMenuOptionBuilder} from "discord.js";
 import https from "https";
 import "dotenv/config";
+if (!process.env.DASHBOARD_CODE_SECRET) {
+  throw new Error("DASHBOARD_CODE_SECRET fehlt in der .env");
+}
 import path from "path";
 import mongoose from "mongoose";
 import express from "express";
@@ -4722,7 +4725,7 @@ export function registerMessageCommands(client) {
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot || !msg.content.startsWith("!")) return;
     if (msg.content.startsWith("!setup_dashboardInfo")) {
-      if (!msg.author.id === FABIAN_ID) return;
+      if (msg.author.id !== FABIAN_ID) return;
       const infoEmbed = new EmbedBuilder()
         .setColor("#ffffff")
         .setTitle(`Dashboard Login`)
@@ -6522,7 +6525,7 @@ async function createDashboardChallenge(username, level, discordId, rememberMe, 
     username,
     level,
     discordId,
-    codeHash: dashboardHash(code),
+    codeHash: dashboardCodeHash(code),
     rememberMe,
     firstLogin,
     verified: false,
@@ -6532,7 +6535,26 @@ async function createDashboardChallenge(username, level, discordId, rememberMe, 
   await dbSet("dashboard", "pending", pending);
   return { id, code };
 }
-
+const dashboardLimits = new Map();
+const dashboardVerifyFailures = new Map();
+function limitBlocked(store, key, max) {
+  const entry = store.get(key);
+  return !!entry && entry.count >= max && entry.until > Date.now();
+}
+function limitHit(store, key, windowMs) {
+  const entry = store.get(key);
+  if (!entry || entry.until <= Date.now()) {
+    store.set(key, { count: 1, until: Date.now() + windowMs });
+  } else {
+    entry.count++;
+  }
+}
+function dashboardCodeHash(code) {
+  return crypto
+    .createHmac("sha256", process.env.DASHBOARD_CODE_SECRET)
+    .update(String(code))
+    .digest("hex");
+}
 function dashboardLoginBlocked(ip) {
   const entry = dashboardLoginAttempts.get(ip);
   return !!entry && entry.count >= 5 && entry.until > Date.now();
@@ -6765,12 +6787,18 @@ app.post("/api/auth/login", express.json({ limit: "10kb" }), async (req, res) =>
     const rememberMe = req.body?.rememberMe === true;
     if (!username || !password || username.length > 64 || password.length > 128) {
       dashboardLoginFailed(ip);
+      limitHit(dashboardLimits, "acc:" + accountKey, 15 * 60 * 1000);
       return res.status(401).json({ error: "Ungültige Zugangsdaten." });
     }
     const config = getDashboardConfig(username);
     if (!config || !["admin", "mod"].includes(config.level) || !/^\d{17,20}$/.test(String(config.discordId || ""))) {
       dashboardLoginFailed(ip);
+      limitHit(dashboardLimits, "acc:" + accountKey, 15 * 60 * 1000);
       return res.status(401).json({ error: "Ungültige Zugangsdaten." });
+    }
+    const accountKey = config.username.toLowerCase();
+    if (limitBlocked(dashboardLimits, "acc:" + accountKey, 10)) {
+      return res.status(429).json({ error: "Zu viele Versuche für dieses Konto. Bitte später erneut versuchen." });
     }
     const accounts = (await dbGet("dashboard", "accounts")) || {};
     const key = config.username.toLowerCase();
@@ -6793,6 +6821,10 @@ app.post("/api/auth/login", express.json({ limit: "10kb" }), async (req, res) =>
       await createDashboardSession(res, config.username, config.level, rememberMe);
       return res.json({ status: "authenticated", level: config.level });
     }
+    if (limitBlocked(dashboardLimits, "chal:" + accountKey, 5)) {
+      return res.status(429).json({ error: "Zu viele Anmeldeversuche. Bitte in ein paar Minuten erneut versuchen." });
+    }
+    limitHit(dashboardLimits, "chal:" + accountKey, 10 * 60 * 1000);
     const challenge = await createDashboardChallenge(
       config.username,
       config.level,
@@ -7891,7 +7923,7 @@ client.on("interactionCreate", async (interaction) => {
     channelId,
     channel: currentChannel,
   } = interaction;
-    if (commandName === "dashboard-verify") {
+  if (commandName === "dashboard-verify") {
     if (!member?.roles?.cache?.has(TEAM_ROLE_ID)) {
       return interaction.reply({
         content: "Du benötigst die Team-Rolle.",
@@ -7899,7 +7931,13 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
     const code = options.getString("code", true);
-    const codeHash = dashboardHash(code);
+    if (limitBlocked(dashboardVerifyFailures, user.id, 5)) {
+      return interaction.reply({
+        content: "Zu viele Fehlversuche. Bitte warte 15 Minuten.",
+        flags: [MessageFlags.Ephemeral]
+      });
+    }
+    const codeHash = dashboardCodeHash(code);
     const pending = (await dbGet("dashboard", "pending")) || {};
     const entry = Object.entries(pending).find(
       ([, p]) =>
@@ -7909,6 +7947,7 @@ client.on("interactionCreate", async (interaction) => {
         p.discordId === user.id
     );
     if (!entry) {
+      limitHit(dashboardVerifyFailures, user.id, 15 * 60 * 1000);
       return interaction.reply({
         content: "Der Code ist ungültig, abgelaufen oder gehört nicht zu deinem Discord-Konto.",
         flags: [MessageFlags.Ephemeral]
@@ -10518,8 +10557,6 @@ client.once("clientReady", async () => {
   try {
     const mainGuild = await client.guilds.fetch(GUILD_ID);
     await mainGuild.members.fetch();
-    await initCounting(client);
-    registerMessageCommands(client);
     await initCounting(client);
     registerMessageCommands(client);
     await initTickets(client);
