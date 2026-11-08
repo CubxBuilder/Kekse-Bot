@@ -2408,8 +2408,7 @@ export async function initEconomySystem(client) {
         const targetUserId = targetArg?.replace(/[<@!&>#]/g, "");
         const amount = parseInt(amountArg);
         const userData = await getEcoData(msg.author.id);
-
-        if (!targetData || !targetData.username || targetData.blocked) {
+        if (!targetUserId || isNaN(amount) || amount <= 0) {
           console.log(`Reply ${msg.author.username}: Nutzung: "!bank pay @User <Betrag>"`);
           return msg.reply({
             content: "Nutzung: `!bank pay @User <Betrag>`",
@@ -2434,7 +2433,7 @@ export async function initEconomySystem(client) {
         }
 
         const targetData = await getEcoData(targetUserId);
-        if (!targetData || targetData.blocked) {
+        if (!targetData || !targetData.username || targetData.blocked) {
           console.log(`Reply ${msg.author.username}: Der Zielnutzer hat kein aktives Konto oder ist gesperrt.`);
           return msg.reply({
             content: "Der Zielnutzer hat kein aktives Konto oder ist gesperrt.",
@@ -2498,6 +2497,53 @@ export async function initEconomySystem(client) {
             `Konnte keine DM an ${targetUserId} senden: ${error.message}`,
           );
         }
+        return;
+      }
+           if (subCommand === "payall") {
+        if (msg.author.id !== FABIAN_ID) return denyReply(msg, "Du hast nicht die Berechtigung diese Funktion zu nutzen.");
+        const amount = parseInt(args[2]);
+        if (isNaN(amount) || amount <= 0) return denyReply(msg, "Nutzung: `!bank payall <Betrag>`");
+        const recipients = msg.guild.members.cache.filter(function (member) {
+          return !member.user.bot && member.roles.cache.has(ECO_ROLE_ID);
+        });
+        const confirmRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId("payall_confirm").setLabel("Bestätigen").setStyle(ButtonStyle.Success),
+          new ButtonBuilder().setCustomId("payall_cancel").setLabel("Abbrechen").setStyle(ButtonStyle.Danger),
+        );
+        const confirmMsg = await msg.reply({
+          content: `**${amount} Kekse** an **${recipients.size} Konten** auszahlen (insgesamt ${amount * recipients.size} Kekse, neu erzeugt)? Gesperrte Konten werden übersprungen.`,
+          components: [confirmRow],
+        });
+        const collector = confirmMsg.createMessageComponentCollector({
+          filter: function (i) {
+            return i.user.id === msg.author.id;
+          },
+          componentType: ComponentType.Button,
+          time: 30000,
+          max: 1,
+        });
+        collector.on("collect", async function (interaction) {
+          if (interaction.customId === "payall_cancel") {
+            return interaction.update({ content: "Abgebrochen.", components: [] });
+          }
+          await interaction.update({ content: "Zahlung läuft...", components: [] });
+          let paid = 0;
+          for (const member of recipients.values()) {
+            const data = await getEcoData(member.id);
+            if (!data.username || data.blocked) continue;
+            data.balance = (data.balance || 0) + amount;
+            await setEcoData(member.id, data);
+            await logTransaction(member.id, amount, "plus", "Bank Payall");
+            paid++;
+          }
+          console.log(`${msg.author.username} hat per !bank payall ${amount} Kekse an ${paid} Konten ausgezahlt.`);
+          await confirmMsg.edit({ content: `**${amount} Kekse** an **${paid} Konten** ausgezahlt.` }).catch(function () {});
+        });
+        collector.on("end", function (collected, reason) {
+          if (reason === "time") {
+            confirmMsg.edit({ content: "Die Anfrage ist abgelaufen.", components: [] }).catch(function () {});
+          }
+        });
         return;
       }
       if (subCommand === "get") {
@@ -11075,53 +11121,6 @@ client.on("interactionCreate", async (interaction) => {
         `${user.username} hat den Kontostand von ${targetUser.username} eingesehen`,
       );
     }
-      if (subCommand === "payall") {
-        if (msg.author.id !== FABIAN_ID) return denyReply(msg, "Du hast nicht die Berechtigung diese Funktion zu nutzen.");
-        const amount = parseInt(args[2]);
-        if (isNaN(amount) || amount <= 0) return denyReply(msg, "Nutzung: `!bank payall <Betrag>`");
-        const recipients = msg.guild.members.cache.filter(function (member) {
-          return !member.user.bot && member.roles.cache.has(ECO_ROLE_ID);
-        });
-        const confirmRow = new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setCustomId("payall_confirm").setLabel("Bestätigen").setStyle(ButtonStyle.Success),
-          new ButtonBuilder().setCustomId("payall_cancel").setLabel("Abbrechen").setStyle(ButtonStyle.Danger),
-        );
-        const confirmMsg = await msg.reply({
-          content: `**${amount} Kekse** an **${recipients.size} Konten** auszahlen (insgesamt ${amount * recipients.size} Kekse, neu erzeugt)? Gesperrte Konten werden übersprungen.`,
-          components: [confirmRow],
-        });
-        const collector = confirmMsg.createMessageComponentCollector({
-          filter: function (i) {
-            return i.user.id === msg.author.id;
-          },
-          componentType: ComponentType.Button,
-          time: 30000,
-          max: 1,
-        });
-        collector.on("collect", async function (interaction) {
-          if (interaction.customId === "payall_cancel") {
-            return interaction.update({ content: "Abgebrochen.", components: [] });
-          }
-          await interaction.update({ content: "Zahlung läuft...", components: [] });
-          let paid = 0;
-          for (const member of recipients.values()) {
-            const data = await getEcoData(member.id);
-            if (!data.username || data.blocked) continue;
-            data.balance = (data.balance || 0) + amount;
-            await setEcoData(member.id, data);
-            await logTransaction(member.id, amount, "plus", "Bank Payall");
-            paid++;
-          }
-          console.log(`${msg.author.username} hat per !bank payall ${amount} Kekse an ${paid} Konten ausgezahlt.`);
-          await confirmMsg.edit({ content: `**${amount} Kekse** an **${paid} Konten** ausgezahlt.` }).catch(function () {});
-        });
-        collector.on("end", function (collected, reason) {
-          if (reason === "time") {
-            confirmMsg.edit({ content: "Die Anfrage ist abgelaufen.", components: [] }).catch(function () {});
-          }
-        });
-        return;
-      }
     if (subCommand === "get") {
       const existingKekse = await initEconomyGetKekse(client);
       return interaction.reply({
