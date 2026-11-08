@@ -26,6 +26,9 @@ app.get("/401", (req, res) => {
 app.get("/400", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "400", "index.html"));
 });
+app.get(["/Datenschutzerklärung", "/datenschutz"], (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "datenschutz", "index.html"));
+});
 const options = {
   key: fs.readFileSync("/etc/letsencrypt/live/kekse-bot.dedyn.io/privkey.pem"),
   cert: fs.readFileSync(
