@@ -6735,6 +6735,7 @@ const ADMIN_ACTIONS = new Set([
   "remove-xp",
   "add-kekse",
   "remove-kekse",
+  "purge-data",
 ]);
 
 const MOD_ACTIONS = new Set([
@@ -7387,7 +7388,11 @@ app.post("/api/users/action", requireDashboardAuth, express.json(), async (req, 
         info = `${action === "add-kekse" ? "+" : "-"}${val} Kekse`;
         break;
       }
-
+      case "purge-data":
+        if (getRankIndex(guild, userId, member) >= 4) fail("Admins und der Owner können nicht zurückgesetzt werden.");
+        info = await purgeUserData(userId, { guild, member });
+        statsCache.time = 0;
+        break;
       case "toggle-block": {
         const d = await needAccount();
         d.blocked = !d.blocked;
@@ -7466,6 +7471,290 @@ app.post("/api/users/action", requireDashboardAuth, express.json(), async (req, 
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
+});
+const RETENTION_MS = 365 * 86400000;
+const PURGE_ROLE_IDS = [
+  ECO_ROLE_ID,
+  GIVEAWAY_DOUBLE_ROLE_ID,
+  COUNTING_PUFFER_ROLE_ID,
+  COUNTING_XP30_ROLE_ID,
+  COUNTING_XP60_ROLE_ID,
+  VIP_ROLE_ID,
+  COUNTING_KING_ROLE_ID,
+];
+
+let leftQueue = Promise.resolve();
+
+function storageModel() {
+  return mongoose.model("BotStorage");
+}
+
+async function deleteStorageKeys(namespace, keys) {
+  const result = await storageModel().deleteMany({ namespace, key: { $in: keys } });
+  return result.deletedCount || 0;
+}
+
+function updateLeftUsers(mutator) {
+  const run = leftQueue.then(async function () {
+    const left = (await dbGet("retention", "left_users")) || {};
+    mutator(left);
+    await dbSet("retention", "left_users", left);
+  });
+  leftQueue = run.catch(function () {});
+  return run;
+}
+
+function purgeCountingData(userId, guild) {
+  return withCountingLock(async function () {
+    const board = countingData.scoreboard || {};
+    const claimed = countingData.milestonesClaimed || {};
+    let changed = false;
+    if (userId in board) {
+      delete board[userId];
+      changed = true;
+    }
+    for (const key of Object.keys(claimed)) {
+      if (key.startsWith(userId + "_")) {
+        delete claimed[key];
+        changed = true;
+      }
+    }
+    if (!changed) return false;
+    const wasKing = kingId === userId;
+    recalcKing();
+    await saveCounting();
+    if (wasKing && kingId && guild) {
+      const newKing = await guild.members.fetch(kingId).catch(function () {
+        return null;
+      });
+      if (newKing) await newKing.roles.add(COUNTING_KING_ROLE_ID).catch(function () {});
+    }
+    return true;
+  });
+}
+
+async function purgeReminders(userId) {
+  const data = (await getRData("reminders")) || { reminders: [] };
+  const list = Array.isArray(data.reminders) ? data.reminders : [];
+  const kept = list.filter(function (reminder) {
+    return reminder.userId !== userId;
+  });
+  if (kept.length === list.length) return false;
+  data.reminders = kept;
+  await setRData("reminders", data);
+  return true;
+}
+
+async function purgeGiveawayEntries(userId) {
+  let changed = false;
+  for (const key of ["activeGiveaways", "endedGiveaways"]) {
+    const store = (await getGivData(key)) || {};
+    let storeChanged = false;
+    for (const giveaway of Object.values(store)) {
+      const participants = Array.isArray(giveaway.participants) ? giveaway.participants : [];
+      const winners = Array.isArray(giveaway.winners) ? giveaway.winners : [];
+      if (participants.includes(userId)) {
+        giveaway.participants = participants.filter(function (id) {
+          return id !== userId;
+        });
+        storeChanged = true;
+      }
+      if (winners.includes(userId)) {
+        giveaway.winners = winners.filter(function (id) {
+          return id !== userId;
+        });
+        storeChanged = true;
+      }
+    }
+    if (storeChanged) {
+      await setGivData(key, store);
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+async function purgeUserData(userId, options) {
+  const guild = options.guild;
+  const member = options.member || null;
+  if (member) {
+    await member.roles.add(UNVERIFIED_ROLE_ID).catch(function () {
+      throw new Error("Die Unverified-Rolle konnte nicht vergeben werden (Rollen-Reihenfolge prüfen). Es wurde nichts gelöscht.");
+    });
+  }
+  const parts = [];
+  if (await deleteStorageKeys("economy", [userId, "tx_" + userId])) parts.push("Konto und Transaktionen");
+  if (await deleteStorageKeys("xp", [userId])) parts.push("XP und Rang");
+  if (await deleteStorageKeys("invites", ["joined_" + userId])) parts.push("Einladungsdaten");
+  if (await purgeCountingData(userId, guild)) parts.push("Counting-Stand");
+  if (await purgeReminders(userId)) parts.push("Erinnerungen");
+  if (await purgeGiveawayEntries(userId)) parts.push("Giveaway-Teilnahmen");
+  if (member) {
+    const roleIds = PURGE_ROLE_IDS.concat(
+      ROLES_TIERS.map(function (tier) {
+        return tier.id;
+      }),
+    );
+    await member.roles.remove(roleIds).catch(function (error) {
+      console.error("[Purge] Rollen konnten nicht entfernt werden:", error);
+    });
+    parts.push("Rollen zurückgesetzt, Unverified-Rolle vergeben");
+  }
+  return parts.length ? parts.join(", ") : "Keine gespeicherten Daten gefunden";
+}
+
+async function cleanupLogFiles() {
+  const cutoff = Date.now() - RETENTION_MS;
+  const files = await fs.promises.readdir(LOG_DIR).catch(function () {
+    return [];
+  });
+  let removed = 0;
+  for (const file of files) {
+    const match = file.match(/^(\d{2})-(\d{2})-(\d{4})\.log$/);
+    if (!match) continue;
+    const fileTime = new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1])).getTime();
+    if (fileTime >= cutoff) continue;
+    await fs.promises
+      .unlink(path.join(LOG_DIR, file))
+      .then(function () {
+        removed++;
+      })
+      .catch(function () {});
+  }
+  return removed;
+}
+
+async function cleanupTicketArchive() {
+  const cutoff = Date.now() - RETENTION_MS;
+  const before = archives.length;
+  archives = archives.filter(function (ticket) {
+    const closed = new Date(ticket.closedAt).getTime();
+    return !closed || closed >= cutoff;
+  });
+  const removed = before - archives.length;
+  if (removed > 0) await setTickData("archive_list", { archive: archives });
+  return removed;
+}
+
+async function cleanupWarnings() {
+  const cutoff = Date.now() - RETENTION_MS;
+  const data = await getMData("moderation");
+  const warns = data.warns || {};
+  let removed = 0;
+  let changed = false;
+  for (const [userId, list] of Object.entries(warns)) {
+    const current = Array.isArray(list) ? list : [];
+    const kept = current.filter(function (warn) {
+      return !warn.date || warn.date >= cutoff;
+    });
+    removed += current.length - kept.length;
+    if (kept.length !== current.length || !kept.length) changed = true;
+    if (kept.length) warns[userId] = kept;
+    else delete warns[userId];
+  }
+  if (changed) {
+    data.warns = warns;
+    await setMData("moderation", data);
+  }
+  return removed;
+}
+
+async function cleanupEndedGiveaways() {
+  const cutoff = Date.now() - RETENTION_MS;
+  const ended = (await getGivData("endedGiveaways")) || {};
+  let removed = 0;
+  for (const [id, giveaway] of Object.entries(ended)) {
+    if (giveaway.endTime && giveaway.endTime < cutoff) {
+      delete ended[id];
+      removed++;
+    }
+  }
+  if (removed > 0) await setGivData("endedGiveaways", ended);
+  return removed;
+}
+
+async function cleanupDepartedUsers() {
+  const guild = await client.guilds.fetch(GUILD_ID).catch(function () {
+    return null;
+  });
+  if (!guild || guild.members.cache.size < guild.memberCount * 0.9) return 0;
+  const model = storageModel();
+  const [economyDocs, xpDocs, inviteDocs] = await Promise.all([
+    model.find({ namespace: "economy", key: /^(tx_)?\d+$/ }, { key: 1 }).lean(),
+    model.find({ namespace: "xp", key: /^\d+$/ }, { key: 1 }).lean(),
+    model.find({ namespace: "invites", key: /^joined_\d+$/ }, { key: 1 }).lean(),
+  ]);
+  const known = new Set(Object.keys(countingData.scoreboard || {}));
+  for (const doc of economyDocs.concat(xpDocs, inviteDocs)) {
+    known.add(doc.key.replace(/^(tx_|joined_)/, ""));
+  }
+  const now = Date.now();
+  const expired = [];
+  await updateLeftUsers(function (left) {
+    for (const id of known) {
+      if (guild.members.cache.has(id)) {
+        delete left[id];
+      } else if (!left[id]) {
+        left[id] = now;
+      } else if (now - left[id] >= RETENTION_MS) {
+        expired.push(id);
+      }
+    }
+    for (const id of Object.keys(left)) {
+      if (guild.members.cache.has(id)) delete left[id];
+      else if (!known.has(id) && now - left[id] >= RETENTION_MS) delete left[id];
+    }
+  });
+  for (const id of expired) {
+    await purgeUserData(id, { guild, member: null });
+  }
+  if (expired.length) {
+    await updateLeftUsers(function (left) {
+      for (const id of expired) delete left[id];
+    });
+  }
+  return expired.length;
+}
+
+async function runRetentionCleanup() {
+  const tasks = [
+    ["Logs", cleanupLogFiles],
+    ["Ticket-Transkripte", cleanupTicketArchive],
+    ["Warnungen", cleanupWarnings],
+    ["Giveaways", cleanupEndedGiveaways],
+    ["Ehemalige Nutzer", cleanupDepartedUsers],
+  ];
+  const results = [];
+  for (const [label, task] of tasks) {
+    try {
+      const count = await task();
+      if (count > 0) results.push(`${label}: ${count}`);
+    } catch (error) {
+      console.error(`[Retention] ${label} fehlgeschlagen:`, error);
+    }
+  }
+  if (results.length) console.log(`[Retention] Gelöscht: ${results.join(", ")}`);
+}
+
+function startRetentionCleanup() {
+  setTimeout(runRetentionCleanup, 60 * 1000);
+  setInterval(runRetentionCleanup, 24 * 60 * 60 * 1000);
+}
+
+client.on("guildMemberRemove", async function (member) {
+  if (member.guild.id !== GUILD_ID || member.user.bot) return;
+  await updateLeftUsers(function (left) {
+    left[member.id] = Date.now();
+  }).catch(function (error) {
+    console.error("[Retention] Austritt konnte nicht gespeichert werden:", error);
+  });
+});
+
+client.on("guildMemberAdd", async function (member) {
+  if (member.guild.id !== GUILD_ID) return;
+  await updateLeftUsers(function (left) {
+    delete left[member.id];
+  }).catch(function () {});
 });
 process.on("unhandledRejection", (reason, promise) => {
   console.error("Unhandled Rejection:", reason);
@@ -10938,6 +11227,7 @@ client.once("clientReady", async () => {
     initMembers(client);
     await initDashboard(app, client, globalBotStats);
     await initTicketArchive(app, getTickData, setTickData);
+    startRetentionCleanup();
     await initEconomySystem(client);
     initAdminFun(client);
     await syncExistingUsers(client);
