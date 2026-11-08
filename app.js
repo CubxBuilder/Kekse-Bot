@@ -783,8 +783,6 @@ export async function initEconomySystem(client) {
     const subCommand = args[1]?.toLowerCase();
     if (command === "!leaderboard") {
       const StorageModel = mongoose.model("BotStorage");
-      const allDocs = await StorageModel.find({ namespace: "economy" }).lean();
-
       const sorted = await StorageModel.find(
         { namespace: "economy", key: /^\d+$/, "value.balance": { $gt: 0 } },
         { key: 1, "value.balance": 1 },
@@ -1600,7 +1598,7 @@ export async function initEconomySystem(client) {
         await setEcoData(msg.author.id, userData);
 
         const crashPoint = parseFloat(
-          Math.max(1.01, 0.5 / (1 - Math.random())).toFixed(2),
+          Math.max(1.01, 0.97 / (1 - Math.random())).toFixed(2),
         );
         let multiplier = 1.0;
         let intervalHandle = null;
@@ -6495,15 +6493,6 @@ export async function setupVoiceModToggle(client) {
     }
   });
 }
-export async function initDashboard(app, client, globalBotStats) {
-  const logs = [];
-  const _log = console.log.bind(console);
-  console.log = (...a) => {
-    const message = a.join(" ");
-    _log(message);
-    logs.push({ t: Date.now(), m: message });
-  };
-}
 const dashboardScrypt = util.promisify(crypto.scrypt);
 const DASHBOARD_COOKIE = "__Host-kekse_dashboard";
 const dashboardLoginAttempts = new Map();
@@ -8731,8 +8720,6 @@ client.on("interactionCreate", async (interaction) => {
   };
   if (commandName === "leaderboard") {
     const StorageModel = mongoose.model("BotStorage");
-    const allDocs = await StorageModel.find({ namespace: "economy" }).lean();
-
     const sorted = await StorageModel.find(
       { namespace: "economy", key: /^\d+$/, "value.balance": { $gt: 0 } },
       { key: 1, "value.balance": 1 },
@@ -9149,7 +9136,6 @@ client.on("interactionCreate", async (interaction) => {
       if (error) return interaction.editReply({ content: error });
       return interaction.editReply({ content: "✅ Reroll durchgeführt." });
     }
-    await interaction.deferReply("Giveaway wird erstellt...");
     const channel = options.getChannel("kanal");
     const durationStr = options.getString("dauer");
     const price = options.getString("preis");
@@ -9170,7 +9156,7 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
     }
-
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
     const requiredRoles = [];
     for (const optionName of ["rolle1", "rolle2", "rolle3"]) {
       const role = options.getRole(optionName);
@@ -9468,8 +9454,19 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.reply({
       content: "⏳ Sende Ticket-Panel...",
       flags: [MessageFlags.Ephemeral],
-    });
-    await sendTicketPanel(currentChannel);
+    });    
+    const panelEmbed = new EmbedBuilder()
+      .setTitle("Willkommen im Support")
+      .setDescription(
+        `Wähle eins der Themen um ein Ticket zu erstellen. Ein Team-Mitglied wird sich schnellstmöglich um dein Anliegen kümmern.\n\n⚙️ **Support** → Allgemeine Support-Anliegen\n🎉 **Abholung** → Abholung von Giveaways und Events\n✉️ **Bewerbung** → Clan-Bewerbungen`,
+      )
+      .setColor("#ffffff");
+    const panelRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId("t_Support").setLabel("⚙️ Support").setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId("t_Abholung").setLabel("🎉 Abholung").setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId("t_Bewerbung").setLabel("✉️ Bewerbung").setStyle(ButtonStyle.Secondary),
+    );
+    await currentChannel.send({ embeds: [panelEmbed], components: [panelRow] });
     console.log(`${user.username} hat ein neues Ticket-Panel erstellt`);
     globalBotStats.commandsRunned += 1;
   }
@@ -10407,7 +10404,7 @@ client.on("interactionCreate", async (interaction) => {
           return;
         }
 
-        multiplier = parseFloat((multiplier + 0.08).toFixed(2));
+        multiplier = parseFloat((multiplier + 0.2).toFixed(2));
 
         if (multiplier >= game.crashPoint) {
           clearInterval(intervalHandle);
@@ -10422,7 +10419,7 @@ client.on("interactionCreate", async (interaction) => {
         await gameMsg
           .edit({ embeds: [crashEmbed()], components: [cashoutRow()] })
           .catch(() => {});
-      }, 600);
+        }, 1500);
 
       collector.on("end", async (collected, reason) => {
         if (reason === "time") {
@@ -11320,7 +11317,6 @@ client.once("clientReady", async () => {
     initAuditLogs(client);
     clear(client);
     initMembers(client);
-    await initDashboard(app, client, globalBotStats);
     await initTicketArchive(app, getTickData, setTickData);
     startRetentionCleanup();
     await initEconomySystem(client);
@@ -11329,7 +11325,8 @@ client.once("clientReady", async () => {
     await initInviteTracker(client);
     await setupVoiceModToggle(client);
     startVoiceXpTracker(client);
-    await wage(client);
+    wage().catch(console.error);
+    setInterval(() => wage().catch(console.error), 60 * 1000);
     console.log(`Server-Sync gestartet...`);
     console.log(`Bot online: ${client.user.tag}`);
     await startStorages();
