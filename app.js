@@ -7596,7 +7596,7 @@ async function purgeUserData(userId, options) {
       }),
     );
     await member.roles.remove(roleIds).catch(function (error) {
-      console.error("[Purge] Rollen konnten nicht entfernt werden:", error);
+      console.error("Rollen konnten nicht entfernt werden:", error);
     });
     parts.push("Rollen zurückgesetzt, Unverified-Rolle vergeben");
   }
