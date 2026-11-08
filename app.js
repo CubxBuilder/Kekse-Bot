@@ -7380,6 +7380,28 @@ app.post("/api/admin/accounts/execute", requireDashboardAuth, requireDashboardAd
     res.status(400).json({ error: error.message });
   }
 });
+app.post("/api/tickets/delete", requireDashboardAuth, requireDashboardAdmin, express.json({ limit: "10kb" }), async (req, res) => {
+  try {
+    const id = String(req.body?.id || "");
+    const closedAt = String(req.body?.closedAt || "");
+    const index = archives.findIndex(function (t) {
+      return t.id === id && t.closedAt === closedAt;
+    });
+    if (index === -1) return res.status(404).json({ error: "Ticket nicht gefunden." });
+    const removed = archives.splice(index, 1)[0];
+    await setTickData("archive_list", { archive: archives });
+    const actor = await getDashboardUser(req.dashboardUser.username);
+    await dashLog(
+      req.dashboardUser.level,
+      "ticket-delete",
+      removed.createdById || actor?.discordId || FABIAN_ID,
+      `${removed.name} (${removed.messageCount} Nachrichten) gelöscht von ${req.dashboardUser.username}`,
+    );
+    res.json({ success: true, message: `Ticket ${removed.name} gelöscht.` });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
 app.post("/api/users/action", requireDashboardAuth, express.json(), async (req, res) => {
   try {
     const { userId, action, amount, reason, duration, index } = req.body || {};
@@ -7598,6 +7620,11 @@ function purgeCountingData(userId, guild) {
         changed = true;
       }
     }
+    if (countingData.highscoreBy === userId) {
+      countingData.highscoreBy = null;
+      countingData.highscoreAt = null;
+      changed = true;
+    }
     if (!changed) return false;
     const wasKing = kingId === userId;
     recalcKing();
@@ -7652,7 +7679,25 @@ async function purgeGiveawayEntries(userId) {
   }
   return changed;
 }
-
+async function purgeAltLinks(userId) {
+  const networks = (await getSaData("alt_networks")) || {};
+  let changed = false;
+  if (networks[userId]) {
+    delete networks[userId];
+    changed = true;
+  }
+  for (const [id, list] of Object.entries(networks)) {
+    if (!Array.isArray(list) || !list.includes(userId)) continue;
+    const kept = list.filter(function (uid) {
+      return uid !== userId;
+    });
+    if (kept.length) networks[id] = kept;
+    else delete networks[id];
+    changed = true;
+  }
+  if (changed) await setSaData("alt_networks", networks);
+  return changed;
+}
 async function purgeUserData(userId, options) {
   const guild = options.guild;
   const member = options.member || null;
@@ -7667,7 +7712,8 @@ async function purgeUserData(userId, options) {
   if (await deleteStorageKeys("invites", ["joined_" + userId])) parts.push("Einladungsdaten");
   if (await purgeCountingData(userId, guild)) parts.push("Counting-Stand");
   if (await purgeReminders(userId)) parts.push("Erinnerungen");
-  if (await purgeGiveawayEntries(userId)) parts.push("Giveaway-Teilnahmen");
+  if (await purgeGiveawayEntries(userId)) parts.push("Giveaway-Teilnahmen");  if (await purgeGiveawayEntries(userId)) parts.push("Giveaway-Teilnahmen");
+  if (await purgeAltLinks(userId)) parts.push("Zweitaccount-Verknüpfung");
   if (member) {
     const roleIds = PURGE_ROLE_IDS.concat(
       ROLES_TIERS.map(function (tier) {
@@ -7764,6 +7810,8 @@ async function cleanupDepartedUsers() {
     model.find({ namespace: "invites", key: /^joined_\d+$/ }, { key: 1 }).lean(),
   ]);
   const known = new Set(Object.keys(countingData.scoreboard || {}));
+  const altNetworks = (await getSaData("alt_networks")) || {};
+  for (const id of Object.keys(altNetworks)) known.add(id);
   for (const doc of economyDocs.concat(xpDocs, inviteDocs)) {
     known.add(doc.key.replace(/^(tx_|joined_)/, ""));
   }
@@ -7794,7 +7842,42 @@ async function cleanupDepartedUsers() {
   }
   return expired.length;
 }
-
+async function cleanupLogChannel() {
+  const cutoff = Date.now() - RETENTION_MS;
+  const channel = await client.channels.fetch(LOG_CHANNEL_ID).catch(function () {
+    return null;
+  });
+  if (!channel || !channel.isTextBased()) return 0;
+  let removed = 0;
+  while (removed < 1500) {
+    const batch = await channel.messages.fetch({ limit: 100, after: "0" });
+    const sorted = [...batch.values()].sort(function (a, b) {
+      return a.createdTimestamp - b.createdTimestamp;
+    });
+    const expired = sorted.filter(function (m) {
+      return m.createdTimestamp < cutoff;
+    });
+    if (!expired.length) break;
+    let deleted = 0;
+    for (const message of expired) {
+      const ok = await message
+        .delete()
+        .then(function () {
+          return true;
+        })
+        .catch(function () {
+          return false;
+        });
+      if (ok) deleted++;
+      await new Promise(function (r) {
+        setTimeout(r, 1200);
+      });
+    }
+    removed += deleted;
+    if (!deleted || expired.length < sorted.length) break;
+  }
+  return removed;
+}
 async function runRetentionCleanup() {
   const tasks = [
     ["Logs", cleanupLogFiles],
@@ -7802,6 +7885,7 @@ async function runRetentionCleanup() {
     ["Warnungen", cleanupWarnings],
     ["Giveaways", cleanupEndedGiveaways],
     ["Ehemalige Nutzer", cleanupDepartedUsers],
+    ["Log-Kanal", cleanupLogChannel],
   ];
   const results = [];
   for (const [label, task] of tasks) {
