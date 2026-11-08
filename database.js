@@ -31,6 +31,7 @@ const StorageModel = mongoose.model("BotStorage", storageSchema);
 const CACHED_NS = new Set([
   "economy", "xp", "counting", "giveaways",
   "reminders", "sa", "polls", "wage", "moderation",
+  "dashboard", "invites", "retention",
 ]);
 const cache = new Map();
 const dirty = new Map();
