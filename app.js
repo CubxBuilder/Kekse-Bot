@@ -3847,6 +3847,13 @@ function recalcKing() {
     if (s > topScore) { topScore = s; kingId = id; }
   }
 }
+function recordHighscore(num, msg) {
+  const reached = Math.abs(num);
+  if (reached <= (countingData.highscore || 0)) return;
+  countingData.highscore = reached;
+  countingData.highscoreBy = msg.author.id;
+  countingData.highscoreAt = msg.createdTimestamp;
+}
 let countingLock = Promise.resolve();
 let liveListenerRegistered = false;
 const processedMessageIds = new Set();
@@ -3938,6 +3945,22 @@ export async function initCounting(client) {
       await msg.reply({ embeds: [embed] }).catch(() => {});
       return;
     }
+    if (!syncMode && msg.content === "!highscore") {
+      const current = Math.max(Math.abs(countingData.currentNumber) - 1, 0);
+      const record = Math.max(countingData.highscore || 0, current);
+      const holder =
+        countingData.highscore === record && countingData.highscoreBy
+          ? `\nErreicht von <@${countingData.highscoreBy}> am <t:${Math.floor(countingData.highscoreAt / 1000)}:D>`
+          : "";
+      const embed = new EmbedBuilder()
+        .setTitle(":trophy: Counting-Highscore")
+        .setDescription(`Der Highscore liegt bei **${record}**.${holder}\n\nAktueller Stand: **${current}**`)
+        .setColor("#ffffff")
+        .setFooter({ text: "Kekse Clan" });
+      console.log(`Reply ${msg.author.username}: [highscore]`);
+      await msg.reply({ embeds: [embed] }).catch(function () {});
+      return;
+    }
     const match = msg.content.trim().match(/^-?\d+/);
     if (!match && !syncMode && msg.content.startsWith("!set_number")) {
       if (msg.author.id !== FABIAN_ID) return;
@@ -4003,6 +4026,7 @@ export async function initCounting(client) {
         countingData.lastUserId = msg.author.id;
         countingData.lastCountingTime = msg.createdTimestamp;
         countingData.lastMessageId = msg.id;
+        recordHighscore(num, msg);
         await saveCounting();
         if (!syncMode) await msg.react("✅").catch(() => {});
         return;
@@ -4103,6 +4127,7 @@ export async function initCounting(client) {
     }
 
     countingData.currentNumber = num + (countingData.direction || 1);
+    recordHighscore(num, msg);
     const currentHundred = Math.floor(
       Math.abs(countingData.currentNumber) / 100,
     );
@@ -6442,8 +6467,10 @@ function getDashboardAccounts() {
   if (!Array.isArray(accounts)) throw new Error("DASHBOARD_ACCOUNTS muss ein Array sein.");
   return accounts;
 }
-const DASHBOARD_LEVELS = ["admin", "mod"];
-const DASHBOARD_LEVEL_NAMES = { admin: "Admin", mod: "Team" };
+const DASHBOARD_LEVELS = ["mod", "admin", "super"];
+const DASHBOARD_ASSIGNABLE = ["mod", "admin"];
+const DASHBOARD_RANKS = { mod: 1, admin: 2, super: 3 };
+const DASHBOARD_LEVEL_NAMES = { mod: "Team", admin: "Admin", super: "Admin*" };
 const DASHBOARD_USERNAME_PATTERN = /^[A-Za-z0-9_.-]{3,32}$/;
 const DASHBOARD_URL = "https://kekse-bot.dedyn.io:5000";
 
@@ -6453,7 +6480,7 @@ function dashboardKey(username) {
 
 async function getDashboardUsers() {
   const stored = await dbGet("dashboard", "users");
-  if (stored) return stored;
+  if (stored) return promoteSuperAdmin(stored);
   const users = {};
   const accounts = (await dbGet("dashboard", "accounts")) || {};
   for (const entry of getDashboardAccounts()) {
@@ -6475,21 +6502,37 @@ async function getDashboardUsers() {
   }
   await dbSet("dashboard", "users", users);
   await dbSet("dashboard", "accounts", accounts);
-  return users;
+  return promoteSuperAdmin(users);
 }
 
 async function getDashboardUser(username) {
   const users = await getDashboardUsers();
   return users[dashboardKey(username)] || null;
 }
-
 function requireDashboardAdmin(req, res, next) {
-  if (req.dashboardUser?.level !== "admin") {
-    return res.status(403).json({ error: "Nur für Admins." });
+  if ((DASHBOARD_RANKS[req.dashboardUser?.level] || 0) < DASHBOARD_RANKS.admin) {
+    return res.status(403).json({ error: "Dafür fehlt dir die Berechtigung." });
   }
   next();
 }
-
+async function promoteSuperAdmin(users) {
+  let changed = false;
+  for (const user of Object.values(users)) {
+    if (user.discordId === FABIAN_ID && user.level !== "super") {
+      user.level = "super";
+      changed = true;
+    }
+  }
+  if (changed) await dbSet("dashboard", "users", users);
+  return users;
+}
+async function dashboardLevelOfDiscordId(discordId) {
+  const users = await getDashboardUsers();
+  const match = Object.values(users).find(function (user) {
+    return user.discordId === discordId;
+  });
+  return match ? DASHBOARD_RANKS[match.level] || 0 : 0;
+}
 async function dashboardRevokeUser(username) {
   const key = dashboardKey(username);
   const sessions = (await dbGet("dashboard", "sessions")) || {};
@@ -6503,7 +6546,6 @@ async function dashboardRevokeUser(username) {
   }
   await dbSet("dashboard", "pending", pending);
 }
-
 async function sendDashboardDm(userId, content) {
   try {
     const user = await client.users.fetch(userId);
@@ -6519,12 +6561,13 @@ function validateAccountFields(username, discordId, level) {
     throw new Error("Benutzername: 3-32 Zeichen, nur Buchstaben, Zahlen, _ . -");
   }
   if (!/^\d{17,20}$/.test(discordId)) throw new Error("Ungültige Discord-ID.");
-  if (!DASHBOARD_LEVELS.includes(level)) throw new Error("Ungültige Berechtigung.");
+  if (!DASHBOARD_ASSIGNABLE.includes(level)) throw new Error("Ungültige Berechtigung.");
 }
 
 async function prepareAccountAction(action, input, actor) {
   const users = await getDashboardUsers();
   if (action === "create") {
+    if (actor.level !== "super") throw new Error("Nur Admin* darf Accounts erstellen.");
     const username = String(input?.username || "").trim();
     const discordId = String(input?.discordId || "").trim();
     const level = String(input?.level || "");
@@ -6541,6 +6584,9 @@ async function prepareAccountAction(action, input, actor) {
     if (!target) throw new Error("Account nicht gefunden.");
     if (dashboardKey(target.username) === dashboardKey(actor.username)) {
       throw new Error("Den eigenen Account kannst du nicht löschen.");
+    }
+    if ((DASHBOARD_RANKS[target.level] || 0) >= (DASHBOARD_RANKS[actor.level] || 0)) {
+      throw new Error("Du kannst nur Accounts mit niedrigerer Berechtigung löschen.");
     }
     return { username: target.username };
   }
@@ -6728,29 +6774,26 @@ const RANK_LADDER = [
   { name: "Admin", roleId: ADMIN_ROLE_ID },
   { name: "Owner", roleId: null },
 ];
-const ADMIN_ACTIONS = new Set([
-  "promote-rang",
-  "demote-rang",
-  "add-xp",
-  "remove-xp",
-  "add-kekse",
-  "remove-kekse",
-  "purge-data",
-]);
-
-const MOD_ACTIONS = new Set([
-  "promote-user",
-  "demote-user",
-  "clan-kick",
-  "toggle-block",
-  "timeout",
-  "untimeout",
-  "kick",
-  "ban",
-  "unban",
-  "warn",
-  "unwarn",
-]);
+const ACTION_MIN_LEVEL = {
+  "toggle-block": 1,
+  warn: 1,
+  unwarn: 1,
+  timeout: 1,
+  untimeout: 1,
+  kick: 1,
+  ban: 1,
+  unban: 1,
+  "promote-user": 2,
+  "demote-user": 2,
+  "clan-kick": 2,
+  "purge-data": 2,
+  "promote-rang": 3,
+  "demote-rang": 3,
+  "add-xp": 3,
+  "remove-xp": 3,
+  "add-kekse": 3,
+  "remove-kekse": 3,
+};
 function getRankIndex(guild, userId, member) {
   if (guild.ownerId === userId) return 5;
   if (!member) return 0;
@@ -6799,7 +6842,7 @@ async function dashLog(level, action, userId, details) {
   const embed = new EmbedBuilder()
     .setColor("#ffffff")
     .setDescription(
-      `**Aktion:** \`Dashboard: ${action}\`\n**Ziel:** <@${userId}> (\`${userId}\`)\n**Token:** ${level === "admin" ? "Admin" : "Team"}${details ? `\n**Info:** ${details}` : ""}`,
+      `**Aktion:** \`Dashboard: ${action}\`\n**Ziel:** <@${userId}> (\`${userId}\`)\n**Token:** ${DASHBOARD_LEVEL_NAMES[level] || level}${details ? `\n**Info:** ${details}` : ""}`,
     )
     .setFooter({ text: "Kekse Clan | Dashboard" })
     .setTimestamp();
@@ -7096,6 +7139,7 @@ app.get("/api/admin/accounts", requireDashboardAuth, requireDashboardAdmin, asyn
     const accounts = (await dbGet("dashboard", "accounts")) || {};
     const guild = client.guilds.cache.get(GUILD_ID);
     const ownKey = dashboardKey(req.dashboardUser.username);
+    const actorRank = DASHBOARD_RANKS[req.dashboardUser.level] || 0;
     const list = Object.entries(users).map(function ([key, user]) {
       const account = accounts[key] || {};
       const member = guild?.members.cache.get(user.discordId);
@@ -7109,7 +7153,8 @@ app.get("/api/admin/accounts", requireDashboardAuth, requireDashboardAdmin, asyn
         startExpiresAt: account.startExpiresAt || null,
         twoFactorEnabled: account.passwordHash ? account.twoFactorEnabled !== false : null,
         createdAt: user.createdAt || null,
-        self: key === ownKey
+        self: key === ownKey,
+        manageable: key !== ownKey && (DASHBOARD_RANKS[user.level] || 0) < actorRank
       };
     });
     list.sort(function (a, b) {
@@ -7130,9 +7175,15 @@ app.post("/api/admin/accounts/update", requireDashboardAuth, requireDashboardAdm
     if (key === dashboardKey(req.dashboardUser.username)) {
       throw new Error("Den eigenen Account kannst du hier nicht ändern.");
     }
+    if ((DASHBOARD_RANKS[target.level] || 0) >= (DASHBOARD_RANKS[req.dashboardUser.level] || 0)) {
+      throw new Error("Du kannst nur Accounts mit niedrigerer Berechtigung ändern.");
+    }
     const newUsername = String(req.body?.newUsername ?? target.username).trim();
     const discordId = String(req.body?.discordId ?? target.discordId).trim();
     const level = String(req.body?.level ?? target.level);
+    if (level !== target.level && req.dashboardUser.level !== "super") {
+      throw new Error("Die Berechtigung darf nur Admin* ändern.");
+    }
     validateAccountFields(newUsername, discordId, level);
     const newKey = dashboardKey(newUsername);
     if (newKey !== key && users[newKey]) throw new Error("Benutzername ist bereits vergeben.");
@@ -7171,6 +7222,9 @@ app.post("/api/admin/accounts/reset", requireDashboardAuth, requireDashboardAdmi
     if (!target) throw new Error("Account nicht gefunden.");
     if (key === dashboardKey(req.dashboardUser.username)) {
       throw new Error("Dein eigenes Passwort kannst du hier nicht zurücksetzen.");
+    }
+    if ((DASHBOARD_RANKS[target.level] || 0) >= (DASHBOARD_RANKS[req.dashboardUser.level] || 0)) {
+      throw new Error("Du kannst nur bei Accounts mit niedrigerer Berechtigung das Passwort zurücksetzen.");
     }
     const password = crypto.randomBytes(12).toString("base64url");
     const expires = Date.now() + 24 * 3600000;
@@ -7302,16 +7356,12 @@ app.post("/api/users/action", requireDashboardAuth, express.json(), async (req, 
     const { userId, action, amount, reason, duration, index } = req.body || {};
     const level = req.dashboardUser.level;
     if (!level) return res.status(401).json({ error: "Ungültiger Token" });
-    const isAdminAction = ADMIN_ACTIONS.has(action);
-    if (!isAdminAction && !MOD_ACTIONS.has(action))
-      return res.status(400).json({ error: "Unbekannte Aktion" });
-    if (isAdminAction && level !== "admin")
-      return res
-        .status(403)
-        .json({ error: "Diese Aktion erfordert einen Admin-Token" });
+    const neededRank = ACTION_MIN_LEVEL[action];
+    if (!neededRank) return res.status(400).json({ error: "Unbekannte Aktion" });
+    if ((DASHBOARD_RANKS[level] || 0) < neededRank)
+      return res.status(403).json({ error: "Dafür fehlt dir die Berechtigung." });
     if (!/^\d{17,20}$/.test(String(userId)))
       return res.status(400).json({ error: "Ungültige User-ID" });
-
     const guild = client.guilds.cache.get(GUILD_ID);
     if (!guild)
       return res.status(503).json({ error: "Server nicht verfügbar" });
@@ -7330,12 +7380,15 @@ app.post("/api/users/action", requireDashboardAuth, express.json(), async (req, 
     const note =
       (reason && String(reason).trim().slice(0, 200)) || "Kein Grund";
     let info = "";
-
-    if (level !== "admin" && ["timeout", "kick", "ban"].includes(action)) {
-      if (getRankIndex(guild, userId, member) >= 3)
-        fail("Team-Mitglieder können nur mit Admin-Token bestraft werden.");
+    if (["timeout", "kick", "ban"].includes(action)) {
+      const actorRank = DASHBOARD_RANKS[level] || 0;
+      if (actorRank < DASHBOARD_RANKS.super && (await dashboardLevelOfDiscordId(userId)) >= actorRank) {
+        fail("Nutzer mit gleicher oder höherer Dashboard-Berechtigung können nicht bestraft werden.");
+      }
+      if (level === "mod" && getRankIndex(guild, userId, member) >= 3) {
+        fail("Team-Mitglieder können nur von Admins bestraft werden.");
+      }
     }
-
     switch (action) {
       case "promote-user":
         info = await clanChange(client, needMember(), "promote");
@@ -11022,7 +11075,53 @@ client.on("interactionCreate", async (interaction) => {
         `${user.username} hat den Kontostand von ${targetUser.username} eingesehen`,
       );
     }
-
+      if (subCommand === "payall") {
+        if (msg.author.id !== FABIAN_ID) return denyReply(msg, "Du hast nicht die Berechtigung diese Funktion zu nutzen.");
+        const amount = parseInt(args[2]);
+        if (isNaN(amount) || amount <= 0) return denyReply(msg, "Nutzung: `!bank payall <Betrag>`");
+        const recipients = msg.guild.members.cache.filter(function (member) {
+          return !member.user.bot && member.roles.cache.has(ECO_ROLE_ID);
+        });
+        const confirmRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId("payall_confirm").setLabel("Bestätigen").setStyle(ButtonStyle.Success),
+          new ButtonBuilder().setCustomId("payall_cancel").setLabel("Abbrechen").setStyle(ButtonStyle.Danger),
+        );
+        const confirmMsg = await msg.reply({
+          content: `**${amount} Kekse** an **${recipients.size} Konten** auszahlen (insgesamt ${amount * recipients.size} Kekse, neu erzeugt)? Gesperrte Konten werden übersprungen.`,
+          components: [confirmRow],
+        });
+        const collector = confirmMsg.createMessageComponentCollector({
+          filter: function (i) {
+            return i.user.id === msg.author.id;
+          },
+          componentType: ComponentType.Button,
+          time: 30000,
+          max: 1,
+        });
+        collector.on("collect", async function (interaction) {
+          if (interaction.customId === "payall_cancel") {
+            return interaction.update({ content: "Abgebrochen.", components: [] });
+          }
+          await interaction.update({ content: "Zahlung läuft...", components: [] });
+          let paid = 0;
+          for (const member of recipients.values()) {
+            const data = await getEcoData(member.id);
+            if (!data.username || data.blocked) continue;
+            data.balance = (data.balance || 0) + amount;
+            await setEcoData(member.id, data);
+            await logTransaction(member.id, amount, "plus", "Bank Payall");
+            paid++;
+          }
+          console.log(`${msg.author.username} hat per !bank payall ${amount} Kekse an ${paid} Konten ausgezahlt.`);
+          await confirmMsg.edit({ content: `**${amount} Kekse** an **${paid} Konten** ausgezahlt.` }).catch(function () {});
+        });
+        collector.on("end", function (collected, reason) {
+          if (reason === "time") {
+            confirmMsg.edit({ content: "Die Anfrage ist abgelaufen.", components: [] }).catch(function () {});
+          }
+        });
+        return;
+      }
     if (subCommand === "get") {
       const existingKekse = await initEconomyGetKekse(client);
       return interaction.reply({
