@@ -303,7 +303,6 @@ export let globalBotStats = {
   commandsRunned: 0,
   ticketsCreated: 0,
   giveawaysCreated: 0,
-  pollsCreated: 0,
   remindersCreated: 0,
   voiceChannelsCreated: 0,
   voiceChannelsDeleted: 0,
@@ -495,13 +494,6 @@ export async function getGivData(key) {
 }
 export async function setGivData(key, value) {
   await dbSet("giveaways", key, value);
-}
-export async function getPollData(key) {
-  const data = await dbGet("polls", key);
-  return data || {};
-}
-export async function setPollData(key, value) {
-  await dbSet("polls", key, value);
 }
 export async function setScammData(key, value) {
   await dbSet("scamm", key, value);
@@ -6310,7 +6302,6 @@ const getHelpData = {
           "`!casino slot x` (`/slot`) - Drehe an der Slotmaschine\n" +
           "`!help` (`/help`) - Öffnet dieses Hilfemenü\n" +
           "`!leaderboard` (`/leaderboard`) - Zeigt die Top 5 der reichsten User\n" +
-          "`!listpolls` (`/listpolls`) - Liste alle aktiven Umfragen auf\n" +
           "`!remind` (`/remind`) - Erstelle eine Erinnerung für dich\n" +
           "`!top` (`/top`) - Zeige serverweite Bestenliste im Counting\n" +
           "`!coinflip @User x` - Fordert einen Spieler zu Coinflip heraus\n" +
@@ -8394,66 +8385,6 @@ const commands = [
     )
     .setContexts(0)
     .setIntegrationTypes(0),
-
-  new SlashCommandBuilder()
-    .setName("listpolls")
-    .setDescription("Zeigt eine Übersicht aller aktiven Umfragen an")
-    .setContexts(0)
-    .setIntegrationTypes(0),
-
-  new SlashCommandBuilder()
-    .setName("poll")
-    .setDescription("Verwaltet das Umfragen-System (Admin)")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
-    .addSubcommand((sub) =>
-      sub
-        .setName("start")
-        .setDescription("Startet eine neue Umfrage")
-        .addStringOption((opt) =>
-          opt
-            .setName("frage")
-            .setDescription("Die Hauptfrage")
-            .setRequired(true),
-        )
-        .addIntegerOption((opt) =>
-          opt
-            .setName("minuten")
-            .setDescription("Dauer in Minuten")
-            .setRequired(true),
-        )
-        .addStringOption((opt) =>
-          opt
-            .setName("beschreibung")
-            .setDescription("Zusätzliche Details")
-            .setRequired(true),
-        )
-        .addStringOption((opt) =>
-          opt.setName("option_1").setDescription("Option 1").setRequired(true),
-        )
-        .addStringOption((opt) =>
-          opt.setName("option_2").setDescription("Option 2").setRequired(true),
-        )
-        .addStringOption((opt) =>
-          opt.setName("option_3").setDescription("Option 3").setRequired(false),
-        )
-        .addStringOption((opt) =>
-          opt.setName("option_4").setDescription("Option 4").setRequired(false),
-        )
-        .addStringOption((opt) =>
-          opt.setName("option_5").setDescription("Option 5").setRequired(false),
-        ),
-    )
-    .addSubcommand((sub) =>
-      sub
-        .setName("close")
-        .setDescription("Beendet eine aktive Umfrage vorzeitig")
-        .addStringOption((opt) =>
-          opt
-            .setName("id")
-            .setDescription("Die ID der Umfrage")
-            .setRequired(true),
-        ),
-    ),
   new SlashCommandBuilder()
     .setName("timeout")
     .setDescription("Versetzt ein Mitglied in ein Timeout")
@@ -9220,209 +9151,6 @@ client.on("interactionCreate", async (interaction) => {
     console.log(`[HELP] Von ${user.username}`);
     await handleSlashHelpCommand(interaction);
     console.log(`${user.username} hat die "help"-Funktion genutzt`);
-    globalBotStats.commandsRunned += 1;
-  }
-  const createPollText = (q, d, opts, end, count, id, author) => {
-    const optionsArray = Array.isArray(opts)
-      ? opts
-      : opts
-        ? Array.from(opts)
-        : [];
-
-    return (
-      `## ${q}\n${d}\n\n` +
-      optionsArray.map((o) => `${o.emoji} ${o.text}`).join("\n") +
-      `\n\n` +
-      `<:info:1467246059561685238> Endet am: <t:${Math.floor(end / 1000)}:R>\n` +
-      `<:profil:1467246030998343733> Erstellt von: ${author}\n` +
-      `<:statistiques:1467246038497886311> Teilnehmer: **${count}**\n` +
-      `<:identifiant:1467246041668780227> ID: \`${id}\``
-    );
-  };
-
-  const createPollButtons = (pollId, opts) => {
-    const rows = [];
-    let currentRow = new ActionRowBuilder();
-    opts.forEach((o, i) => {
-      if (i > 0 && i % 5 === 0) {
-        rows.push(currentRow);
-        currentRow = new ActionRowBuilder();
-      }
-      currentRow.addComponents(
-        new ButtonBuilder()
-          .setCustomId(`poll_vote_${pollId}_${i}`)
-          .setEmoji(o.emoji)
-          .setStyle(ButtonStyle.Secondary),
-      );
-    });
-    if (currentRow.components.length > 0) rows.push(currentRow);
-    return rows;
-  };
-  if (commandName === "poll") {
-    if (!member.roles.cache.has(TEAM_ROLE_ID)) {
-      return interaction.reply({
-        content: ":x: Du hast keine Berechtigung.",
-        flags: [MessageFlags.Ephemeral],
-      });
-    }
-
-    const subCommand = options.getSubcommand();
-
-    if (subCommand === "start") {
-      const question = options.getString("frage");
-      const time = options.getInteger("minuten");
-      const description = options.getString("beschreibung");
-
-      const rawOptions = [];
-      for (let i = 1; i <= 10; i++) {
-        const optValue = options.getString(`option_${i}`);
-        if (optValue) rawOptions.push(optValue);
-      }
-
-      const pollId = interaction.id;
-      const emojis = [
-        "1️⃣",
-        "2️⃣",
-        "3️⃣",
-        "4️⃣",
-        "5️⃣",
-        "6️⃣",
-        "7️⃣",
-        "8️⃣",
-        "9️⃣",
-        "🔟",
-      ];
-      const pollOptions = rawOptions.map((opt, i) => ({
-        text: opt,
-        emoji: emojis[i],
-        votes: 0,
-      }));
-      const endTime = Date.now() + time * 60000;
-
-      const pollContent = createPollText(
-        question,
-        description,
-        pollOptions,
-        endTime,
-        0,
-        pollId,
-        user,
-      );
-      const components = createPollButtons(pollId, pollOptions);
-
-      await interaction.reply({
-        content: " Umfrage wird gestartet...",
-        flags: [MessageFlags.Ephemeral],
-      });
-      const pollMsg = await currentChannel.send({
-        content: `<@&1424028924387786762>\n${pollContent}`,
-        components: components,
-      });
-
-      const polls = (await getPollData("polls_data")) || [];
-      polls.push({
-        id: pollId,
-        messageId: pollMsg.id,
-        channelId: currentChannel.id,
-        question,
-        description,
-        options: pollOptions,
-        endTime,
-        creatorId: user.id,
-        voters: [],
-        closed: false,
-      });
-      await setPollData("polls_data", polls);
-
-      await sendKekseLog(
-        "Umfrage gestartet",
-        user,
-        `**Frage:** ${question}\n**Dauer:** ${time} Min.\n**ID:** \`${pollId}\``,
-      );
-      console.log(`${user.username} hat einen Poll gestartet: ${question}`);
-      globalBotStats.pollsCreated += 1;
-    }
-    const closePoll = async (poll, polls, closer) => {
-      poll.closed = true;
-      const channel = await client.channels
-        .fetch(poll.channelId)
-        .catch(() => null);
-      const pollMsg = await channel?.messages
-        .fetch(poll.messageId)
-        .catch(() => null);
-      if (pollMsg) {
-        await pollMsg.edit({ components: [] }).catch(() => {});
-      }
-      const total = poll.voters.length;
-      let resultsText = `## <:statistiques:1467246038497886311> Ergebnisse: ${poll.question}\n\n`;
-      if (total === 0) {
-        resultsText += "Keine Teilnehmer.";
-      } else {
-        const winnerVotes = Math.max(...poll.options.map((o) => o.votes));
-        poll.options.forEach((o) => {
-          const perc = Math.round((o.votes / total) * 100);
-          resultsText += `${o.emoji} **${o.text}**\n**${o.votes} Stimmen** (${perc}%)${o.votes === winnerVotes && total > 0 ? " <:checkmark:1467245996584210554>" : ""}\n\n`;
-        });
-      }
-      if (channel) await channel.send(resultsText).catch(() => {});
-      const logChannel = client.channels.cache.get("1423413348220796991");
-      if (logChannel) {
-        const logEmbed = new EmbedBuilder()
-          .setColor("#ffffff")
-          .setAuthor({
-            name: closer.username,
-            iconURL: closer.displayAvatarURL(),
-          })
-          .setDescription(
-            `**Aktion:** \`Umfrage beendet\`\n**Frage:** ${poll.question}\n**Teilnehmer:** ${total}\n**ID:** \`${poll.id}\``,
-          )
-          .setFooter({ text: "Kekse Clan | Poll System" })
-          .setTimestamp();
-        await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
-      }
-      const updatedPolls = polls.filter((p) => p.id !== poll.id);
-      await setPollData("polls_data", updatedPolls);
-    };
-    if (subCommand === "close") {
-      const pollId = options.getString("id");
-      const polls = (await getPollData("polls_data")) || [];
-      const poll = polls.find((p) => p.id === pollId && !p.closed);
-
-      if (!poll) {
-        return interaction.reply({
-          content: "❌ Poll nicht gefunden.",
-          flags: [MessageFlags.Ephemeral],
-        });
-      }
-
-      await closePoll(poll, polls, user);
-      await interaction.reply({
-        content: `✅ Die Umfrage mit der ID \`${pollId}\` wurde erfolgreich geschlossen.`,
-        flags: [MessageFlags.Ephemeral],
-      });
-      console.log(
-        `${user.username} hat den Poll ${pollId} vorzeitig geschlossen`,
-      );
-      globalBotStats.commandsRunned += 1;
-    }
-  }
-  if (commandName === "listpolls") {
-    const polls = (await getPollData("polls_data")) || [];
-    const activePolls = polls.filter((p) => !p.closed);
-    if (activePolls.length === 0) {
-      return interaction.reply({
-        content: "Keine aktiven Umfragen vorhanden.",
-        flags: [MessageFlags.Ephemeral],
-      });
-    }
-    const list = activePolls
-      .map((p) => `ID: \`${p.id}\` | ${p.question}`)
-      .join("\n");
-    await interaction.reply({
-      content: `**Aktive Umfragen:**\n${list}`,
-      ephemeral: false,
-    });
-    console.log(`${user.username} hat die "listpolls"-Funktion genutzt`);
     globalBotStats.commandsRunned += 1;
   }
   if (commandName === "moveadmin") {
