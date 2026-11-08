@@ -2211,6 +2211,28 @@
 					</div>
 				</div>`;
     }
+	    function ticketDeleteButton(t) {
+      if ((LEVEL_RANK[authLevel] || 0) < LEVEL_RANK.admin) return "";
+      return `<div style="display:flex; justify-content:flex-end;"><button class="act-btn danger" data-id="${escapeHTML(t.id)}" data-closed="${escapeHTML(t.closedAt)}" onclick="deleteTicket(this.dataset.id, this.dataset.closed)">Ticket löschen</button></div>`;
+    }
+    async function deleteTicket(id, closedAt) {
+      if (
+        !confirm(
+          `Ticket ${id} endgültig löschen?\n\nDer gesamte Verlauf wird aus dem Archiv entfernt. Das kann nicht rückgängig gemacht werden.`,
+        )
+      )
+        return;
+      try {
+        const data = await adminRequest("/api/tickets/delete", { id, closedAt });
+        rawTicketsCache = rawTicketsCache.filter(function (t) {
+          return !(t.id === id && t.closedAt === closedAt);
+        });
+        processAndRenderTickets();
+        alert(data.message);
+      } catch (error) {
+        alert("Fehler: " + error.message);
+      }
+    }
     function renderTickets(tickets) {
       const list = $("ticket-list");
       if (!tickets.length) {
@@ -2229,7 +2251,7 @@
 							<span class="ticket-count">${t.messageCount} Nachrichten</span>
 							<span class="chevron">▼</span>
 						</button>
-						<div class="ticket-body">
+						<div class="ticket-body">${ticketDeleteButton(t)}
 							${t.messages.map(renderMsg).join("") || `<div class="no-tickets">Keine Nachrichten.</div>`}
 						</div>
 					</div>`,
