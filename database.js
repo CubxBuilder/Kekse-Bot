@@ -96,3 +96,14 @@ export async function dbGet(namespace, key) {
     return null;
   }
 }
+export async function dbDelete(namespace, keys) {
+  const list = Array.isArray(keys) ? keys : [keys];
+  await flushNow();
+  for (const key of list) {
+    const k = `${namespace}:${key}`;
+    cache.delete(k);
+    dirty.delete(k);
+  }
+  const result = await StorageModel.deleteMany({ namespace, key: { $in: list } });
+  return result.deletedCount || 0;
+}
