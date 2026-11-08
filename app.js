@@ -9649,7 +9649,7 @@ client.on("interactionCreate", async (interaction) => {
   if (commandName === "daily-setup") {
     if (user.id !== FABIAN_ID) {
       return interaction.reply({
-        content: ":x: Nur der Haupt-Admin darf diesen Befehl nutzen.",
+        content: "Du hast keine Berechtigung diesen Befehl zu nutzen.",
         flags: [MessageFlags.Ephemeral],
       });
     }
@@ -9667,7 +9667,7 @@ client.on("interactionCreate", async (interaction) => {
     const embed = new EmbedBuilder()
       .setTitle(":cookie: Tägliche Kekse")
       .setDescription(
-        `${description}\n\nKlicke auf den Button unten, um 10 Kekse zu erhalten.`,
+        `${description}\n\nKlicke auf den Button unten, um 100 Kekse zu erhalten.`,
       )
       .setColor(0xffffff);
 
@@ -9695,7 +9695,7 @@ client.on("interactionCreate", async (interaction) => {
   if (commandName === "shop-setup") {
     if (user.id !== FABIAN_ID) {
       return interaction.reply({
-        content: ":x: Nur der Haupt-Admin darf diesen Befehl nutzen.",
+        content: "Du hast keine Berechtigung diesen Befehl zu nutzen.",
         flags: [MessageFlags.Ephemeral],
       });
     }
@@ -9706,7 +9706,7 @@ client.on("interactionCreate", async (interaction) => {
 
     if (!shopChannel) {
       return interaction.reply({
-        content: ":x: Shop-Kanal wurde auf diesem Server nicht gefunden!",
+        content: "Shop-Kanal wurde auf diesem Server nicht gefunden!",
         flags: [MessageFlags.Ephemeral],
       });
     }
