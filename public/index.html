@@ -1221,9 +1221,7 @@
   <article id="accounts-admin" style="grid-column: 1 / -1; flex-direction: column; display: none">
     <h3>Dashboard Accounts</h3>
     <div style="display: flex; justify-content: flex-end">
-      <button class="act-btn" onclick="openAccountDialog('create')">
-        + Account erstellen
-      </button>
+      <button id="account-create-btn" class="act-btn" onclick="openAccountDialog('create')">
     </div>
     <div style="overflow-x: auto; width: 100%">
       <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem">
@@ -1308,6 +1306,29 @@
     src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script>
     let authLevel = null;
+	const LEVEL_RANK = { mod: 1, admin: 2, super: 3 };
+	const LEVEL_NAMES = { mod: "Team", admin: "Admin", super: "Admin*" };
+	const LEVEL_COLORS = { mod: "#9b59b6", admin: "#992d22", super: "#f1c40f" };
+	const ACTION_MIN = {
+	  "toggle-block": 1,
+	  warn: 1,
+	  unwarn: 1,
+	  timeout: 1,
+	  untimeout: 1,
+	  kick: 1,
+	  ban: 1,
+	  unban: 1,
+	  "promote-user": 2,
+	  "demote-user": 2,
+	  "clan-kick": 2,
+	  "purge-data": 2,
+  	"promote-rang": 3,
+ 	 "demote-rang": 3,
+ 	 "add-xp": 3,
+ 	 "remove-xp": 3,
+ 	 "add-kekse": 3,
+ 	 "remove-kekse": 3,
+	};
     let openedLogUsers = new Set();
     const $ = (id) => document.getElementById(id);
     const set = (id, v) => {
@@ -1401,8 +1422,10 @@
       authLevel = level;
       $("login-screen").style.display = "none";
       $("dashboard-shell").style.display = "flex";
-      set("auth-level", level === "admin" ? "Admin" : "Team");
-      $("accounts-admin").style.display = level === "admin" ? "flex" : "none";
+      set("auth-level", LEVEL_NAMES[level] || level);
+      const isAdminLevel = (LEVEL_RANK[level] || 0) >= LEVEL_RANK.admin;
+      $("accounts-admin").style.display = isAdminLevel ? "flex" : "none";
+      $("account-create-btn").style.display = level === "super" ? "" : "none";
       if (location.search) {
         window.history.replaceState(
           {},
@@ -1437,7 +1460,7 @@
     }
 
     async function loadAdminAccounts() {
-      if (authLevel !== "admin") return;
+	  if ((LEVEL_RANK[authLevel] || 0) < LEVEL_RANK.admin) return;
       try {
         adminAccounts = await adminRequest("/api/admin/accounts");
         set("admin-accounts-note", "");
@@ -1450,9 +1473,7 @@
     function renderAdminAccounts() {
       $("admin-accounts-list").innerHTML = adminAccounts
         .map(function (a, i) {
-          const badges = [
-            a.level === "admin" ? badge("Admin", "#992d22") : badge("Team", "#9b59b6"),
-          ];
+    	  const badges = [badge(LEVEL_NAMES[a.level] || a.level, LEVEL_COLORS[a.level] || "#888")];
           if (a.passwordSet) badges.push(badge("Passwort gesetzt", "#4ade80"));
           if (a.setupPending) {
             const expired = a.startExpiresAt && a.startExpiresAt < Date.now();
@@ -1463,7 +1484,7 @@
             );
           }
           if (a.twoFactorEnabled === false) badges.push(badge("2FA aus", "#888"));
-          const actions = a.self
+      	  const actions = !a.manageable
             ? "—"
             : `<div class="act-row">
             <button class="act-btn" onclick="openAccountDialog('edit', ${i})">Bearbeiten</button>
@@ -1500,6 +1521,7 @@
         $("acc-form-id").value = account.discordId;
         $("acc-form-level").value = account.level;
       }
+	  $("acc-form-level").disabled = authLevel !== "super";
       $("acc-modal").classList.add("open");
     }
 
@@ -1871,18 +1893,10 @@
     }
     let openUserId = null;
     let modalSig = "";
-    const ADMIN_UI = new Set([
-      "promote-rang",
-      "demote-rang",
-      "add-xp",
-      "remove-xp",
-      "add-kekse",
-      "remove-kekse",
-	  "purge-data",
-    ]);
     const rowCache = new Map();
-    const can = (a) =>
-      ADMIN_UI.has(a) ? authLevel === "admin" : !!authLevel;
+	function can(action) {
+ 		return (LEVEL_RANK[authLevel] || 0) >= (ACTION_MIN[action] || 99);
+	}
     const badge = (t, c) =>
       `<span class="badge" style="color:${c}">${t}</span>`;
     function userRowHtml(u) {
@@ -2080,7 +2094,7 @@
 					<div class="info-grid">${info}</div>
 					<div class="act-group"><h4>Warnungen</h4>${warns}</div>
 					<div class="act-group"><h4>Server-Rang</h4><div class="act-row">${btn("promote-user", "Promote User")}${btn("demote-user", "Demote User")}${btn("clan-kick", "Clan Kick", "danger")}</div></div>
-					<div class="act-group"><h4>Rang-System &amp; XP (Admin)</h4><div class="act-row">${btn("promote-rang", "Promote Rang")}${btn("demote-rang", "Demote Rang")}${btn("add-xp", "+ XP")}${btn("remove-xp", "− XP")}</div></div>
+					<div class="act-group"><h4>Rang-System &amp; XP (Admin*)</h4><div class="act-row">${btn("promote-rang", "Promote Rang")}${btn("demote-rang", "Demote Rang")}${btn("add-xp", "+ XP")}${btn("remove-xp", "− XP")}</div></div>
 					<div class="act-group"><h4>Konto</h4><div class="act-row">${btn("add-kekse", "+ Kekse")}${btn("remove-kekse", "− Kekse")}${btn("toggle-block", u.accountActive ? "Konto sperren" : "Konto entsperren")}</div></div>
 					<div class="act-group"><h4>Daten (Admin)</h4><div class="act-row">${btn("purge-data", "Alle Daten löschen", "danger")}</div></div>
 					<div class="act-group"><h4>Moderation</h4><div class="act-row">${btn("warn", "Warn")}${btn("timeout", "Timeout")}${btn("untimeout", "Untimeout")}${btn("kick", "Kick", "danger")}${btn("ban", "Ban", "danger")}${btn("unban", "Unban")}</div></div>`;
