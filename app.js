@@ -446,7 +446,7 @@ async function logTransaction(userId, amount, type, description) {
     console.error(err);
   }
 }
-import { dbGet, dbSet, dbConnection } from "./database.js";
+import { dbGet, dbSet, dbDelete, dbConnection } from "./database.js";
 export async function getIData(key) {
   const data = await dbGet("invites", key);
   return data || {};
@@ -7587,12 +7587,9 @@ let leftQueue = Promise.resolve();
 function storageModel() {
   return mongoose.model("BotStorage");
 }
-
 async function deleteStorageKeys(namespace, keys) {
-  const result = await storageModel().deleteMany({ namespace, key: { $in: keys } });
-  return result.deletedCount || 0;
+  return dbDelete(namespace, keys);
 }
-
 function updateLeftUsers(mutator) {
   const run = leftQueue.then(async function () {
     const left = (await dbGet("retention", "left_users")) || {};
