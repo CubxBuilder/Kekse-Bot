@@ -2409,7 +2409,7 @@ export async function initEconomySystem(client) {
         const amount = parseInt(amountArg);
         const userData = await getEcoData(msg.author.id);
 
-        if (!targetUserId || isNaN(amount) || amount <= 0) {
+        if (!targetData || !targetData.username || targetData.blocked) {
           console.log(`Reply ${msg.author.username}: Nutzung: "!bank pay @User <Betrag>"`);
           return msg.reply({
             content: "Nutzung: `!bank pay @User <Betrag>`",
@@ -3010,7 +3010,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
     );
     console.log(`${member.user.tag} (${member.id}) hat den Server betreten.`);
     const account = await getEcoData(member.id);
-    if (account) {
+    if (account && account.username) {
       await member.roles.add(ECO_ROLE_ID);
       console.log(`${member.user.username} wurde die Economy-Rolle zugewiesen.`)
     }
@@ -6100,7 +6100,7 @@ export async function syncExistingUsers(client) {
     const members = guild.members.cache;
     for (const [memberId, member] of members) {
       if (member.user.bot) continue;
-
+      if (member.roles.cache.has(UNVERIFIED_ROLE_ID)) continue;
       const existingData = await getXpData(memberId);
       if (!existingData || existingData.rang === undefined) {
         await setXpData(memberId, { rang: 0, xp: 0 });
@@ -10829,7 +10829,7 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       const targetData = await getEcoData(targetUser.id);
-      if (!targetData || targetData.blocked) {
+      if (!targetData || !targetData.username || targetData.blocked) {
         return interaction.reply({
           content: "Der Zielnutzer hat kein aktives Konto oder ist gesperrt.",
           flags: [MessageFlags.Ephemeral],
