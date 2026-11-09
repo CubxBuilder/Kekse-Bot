@@ -2139,7 +2139,7 @@
         return;
 		if (action === "purge-data") {
             const typed = prompt(
-              `Alle gespeicherten Daten von ${u.username} löschen?\n\nKonto, Kekse, XP, Counting-Stand, Erinnerungen und Giveaway-Teilnahmen werden entfernt, die Rollen zurückgesetzt und die Unverified-Rolle vergeben. Warnungen bleiben erhalten.\n\nZur Bestätigung den Benutzernamen eingeben:`,
+              `Alle gespeicherten Daten von ${u.username} löschen?\n\nKonto, Kekse, XP, Counting-Stand, Erinnerungen, Giveaway-Teilnahmen, Verwarnungen, Ticket-Sperren, alle Tickets mit Beteiligung (inkl. der Nachrichten anderer darin) und Logzeilen werden entfernt, die Rollen zurückgesetzt und die Unverified-Rolle vergeben.\n\nZur Bestätigung den Benutzernamen eingeben:`,
             );
             if (typed === null) return;
             if (typed.trim() !== u.username) return alert("Benutzername stimmt nicht überein.");
