@@ -8052,10 +8052,10 @@ async function runRetentionCleanup() {
       const count = await task();
       if (count > 0) results.push(`${label}: ${count}`);
     } catch (error) {
-      console.error(`[Retention] ${label} fehlgeschlagen:`, error);
+      console.error(`${label} fehlgeschlagen:`, error);
     }
   }
-  if (results.length) console.log(`[Retention] Gelöscht: ${results.join(", ")}`);
+  if (results.length) console.log(`Gelöscht: ${results.join(", ")}`);
 }
 
 function startRetentionCleanup() {
@@ -8068,7 +8068,7 @@ client.on("guildMemberRemove", async function (member) {
   await updateLeftUsers(function (left) {
     left[member.id] = Date.now();
   }).catch(function (error) {
-    console.error("[Retention] Austritt konnte nicht gespeichert werden:", error);
+    console.error("Austritt konnte nicht gespeichert werden:", error);
   });
 });
 
