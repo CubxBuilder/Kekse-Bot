@@ -7029,7 +7029,7 @@ app.get("/api/stats", requireDashboardAuth, async (req, res) => {
       users: userCount,
       bots: botCount,
       uptime: Math.floor(process.uptime()),
-      version: "2.29.12",
+      version: "3.1.3",
       lastRestart: Math.round(Date.now() - process.uptime() * 1000),
       ping: {
         now: client.ws.ping || globalBotStats.pingNow || 0,
