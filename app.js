@@ -275,7 +275,7 @@ export async function archiveTicket(
     const sendKekseLog = async (ticketName, ticketMessages) => {
       const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
       if (!logChannel) return;
-      const ticketUrl = `https://kekse-bot.dedyn.io:5000/#ticket-${ticketIdNum}`;
+      const ticketUrl = `https://kekse-bot.de/#ticket-${ticketIdNum}`;
       const logEmbed = new EmbedBuilder()
         .setColor("#ffffff")
         .setAuthor({
@@ -6501,7 +6501,7 @@ const DASHBOARD_ASSIGNABLE = ["mod", "admin"];
 const DASHBOARD_RANKS = { mod: 1, admin: 2, super: 3 };
 const DASHBOARD_LEVEL_NAMES = { mod: "Team", admin: "Admin", super: "Admin*" };
 const DASHBOARD_USERNAME_PATTERN = /^[A-Za-z0-9_.-]{3,32}$/;
-const DASHBOARD_URL = "https://kekse-bot.dedyn.io:5000";
+const DASHBOARD_URL = "https://kekse-bot.de";
 
 function dashboardKey(username) {
   return String(username || "").trim().toLowerCase();
