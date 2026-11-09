@@ -229,6 +229,7 @@ export async function archiveTicket(
           id: msg.id,
           author: {
             name: msg.author.username,
+            id: msg.author.id,
             avatar: msg.author.displayAvatarURL({ size: 64 }),
           },
           content: msg.content || null,
@@ -547,7 +548,7 @@ export async function initEconomyGetKekse(client) {
   }
 }
 const stealBusy = new Set();
-
+const payallBusy = new Set();
 async function performSteal(guild, thiefMember) {
   const thiefId = thiefMember.id;
   if (!thiefMember.roles.cache.has(ECO_ROLE_ID)) {
@@ -2492,19 +2493,47 @@ export async function initEconomySystem(client) {
         }
         return;
       }
-           if (subCommand === "payall") {
-             if (msg.author.id !== FABIAN_ID) return;
+      if (subCommand === "payall") {
         const amount = parseInt(args[2]);
-        if (isNaN(amount) || amount <= 0) return denyReply(msg, "Nutzung: `!bank payall <Betrag>`");
-        const recipients = msg.guild.members.cache.filter(function (member) {
-          return !member.user.bot && member.roles.cache.has(ECO_ROLE_ID);
-        });
+        if (isNaN(amount) || amount <= 0) {
+          return denyReply(msg, "Nutzung: `!bank payall <Betrag pro Konto>`");
+        }
+        if (!hasEcoRole) {
+          return denyReply(msg, "Du hast noch kein Konto. Nutze `!bank create`, um dich zu registrieren.");
+        }
+        if (payallBusy.has(msg.author.id)) {
+          return denyReply(msg, "Du hast bereits eine offene Massenüberweisung.");
+        }
+        const loadRecipients = async function () {
+          const members = [...msg.guild.members.cache.values()].filter(function (m) {
+            return !m.user.bot && m.id !== msg.author.id && m.roles.cache.has(ECO_ROLE_ID);
+          });
+          const loaded = await Promise.all(
+            members.map(async function (m) {
+              return { id: m.id, data: await getEcoData(m.id) };
+            }),
+          );
+          return loaded.filter(function (r) {
+            return r.data.username && !r.data.blocked;
+          });
+        };
+        const senderData = await getEcoData(msg.author.id);
+        if (senderData.blocked) {
+          return denyReply(msg, "Dein Konto ist gesperrt. Wenn es sich um ein Missverständnis handelt wende dich an den Support.");
+        }
+        const preview = await loadRecipients();
+        if (!preview.length) return denyReply(msg, "Es gibt keine anderen aktiven Konten.");
+        const previewTotal = amount * preview.length;
+        if (previewTotal > (senderData.balance || 0)) {
+          return denyReply(msg, `Du hast nicht genug Kekse. Für **${preview.length} Konten** brauchst du **${previewTotal} Kekse**.`);
+        }
+        payallBusy.add(msg.author.id);
         const confirmRow = new ActionRowBuilder().addComponents(
           new ButtonBuilder().setCustomId("payall_confirm").setLabel("Bestätigen").setStyle(ButtonStyle.Success),
           new ButtonBuilder().setCustomId("payall_cancel").setLabel("Abbrechen").setStyle(ButtonStyle.Danger),
         );
         const confirmMsg = await msg.reply({
-          content: `**${amount} Kekse** an **${recipients.size} Konten** auszahlen (insgesamt ${amount * recipients.size} Kekse, neu erzeugt)? Gesperrte Konten werden übersprungen.`,
+          content: `Du überweist **${amount} Kekse** an **${preview.length} Konten**. Insgesamt werden **${previewTotal} Kekse** von deinem Konto abgebucht.`,
           components: [confirmRow],
         });
         const collector = confirmMsg.createMessageComponentCollector({
@@ -2519,20 +2548,35 @@ export async function initEconomySystem(client) {
           if (interaction.customId === "payall_cancel") {
             return interaction.update({ content: "Abgebrochen.", components: [] });
           }
-          await interaction.update({ content: "Zahlung läuft...", components: [] });
-          let paid = 0;
-          for (const member of recipients.values()) {
-            const data = await getEcoData(member.id);
-            if (!data.username || data.blocked) continue;
-            data.balance = (data.balance || 0) + amount;
-            await setEcoData(member.id, data);
-            await logTransaction(member.id, amount, "plus", "Bank Payall");
-            paid++;
+          await interaction.update({ content: "Überweisung läuft...", components: [] });
+          const sender = await getEcoData(msg.author.id);
+          const recipients = await loadRecipients();
+          const total = amount * recipients.length;
+          if (!recipients.length || sender.blocked || total > (sender.balance || 0)) {
+            return confirmMsg
+              .edit({ content: "Die Überweisung wurde abgebrochen. Dein Guthaben reicht nicht mehr aus oder dein Konto ist gesperrt." })
+              .catch(function () {});
           }
-          console.log(`${msg.author.username} hat per !bank payall ${amount} Kekse an ${paid} Konten ausgezahlt.`);
-          await confirmMsg.edit({ content: `**${amount} Kekse** an **${paid} Konten** ausgezahlt.` }).catch(function () {});
+          sender.balance = (sender.balance || 0) - total;
+          await setEcoData(msg.author.id, sender);
+          const logs = [logTransaction(msg.author.id, total, "minus", `Payall an ${recipients.length} Konten`)];
+          for (const r of recipients) {
+            const data = await getEcoData(r.id);
+            data.balance = (data.balance || 0) + amount;
+            await setEcoData(r.id, data);
+            logs.push(logTransaction(r.id, amount, "plus", `Payall von ${sender.username || msg.author.username}`));
+          }
+          await Promise.all(logs);
+          console.log(`${msg.author.username} hat per !bank payall ${amount} Kekse an ${recipients.length} Konten überwiesen (${total} Kekse).`);
+          await confirmMsg
+            .edit({
+              content: `<@${msg.author.id}> hat **${amount} Kekse** an **${recipients.length} Konten** überwiesen (insgesamt **${total} Kekse**).`,
+              allowedMentions: { parse: [] },
+            })
+            .catch(function () {});
         });
         collector.on("end", function (collected, reason) {
+          payallBusy.delete(msg.author.id);
           if (reason === "time") {
             confirmMsg.edit({ content: "Die Anfrage ist abgelaufen.", components: [] }).catch(function () {});
           }
@@ -6295,6 +6339,7 @@ const getHelpData = {
           "`!bank create` (`/bank create`) - Eröffne ein neues Bankkonto\n" +
           "`!bank help` (`/bank help`) - Zeige Hilfe zum Bank-System\n" +
           "`!bank pay @User x` (`/bank pay`) - Überweise einem anderen Nutzer Kekse\n" +
+          "`!bank payall x` - Überweise jedem aktiven Konto x Kekse von deinem Konto\n" +
           "`!casino` (`/casino`) - Zeige existierende Spiele im Casino\n" +
           "`!casino blackjack x` (`/blackjack`) - Starte ein Spiel Blackjack\n" +
           "`!casino coinflip x` (`/coinflip`) - Spiel Coinflip gegen das Haus\n" +
@@ -6913,6 +6958,7 @@ async function buildUserDatabase(guild) {
     const hasAccount = member
       ? member.roles.cache.has(ECO_ROLE_ID)
       : !!eco.username;
+    if (!member && !hasAccount && !ban) continue;
     users.push({
       userId: id,
       username:
@@ -7657,6 +7703,10 @@ async function purgeGiveawayEntries(userId) {
     const store = (await getGivData(key)) || {};
     let storeChanged = false;
     for (const giveaway of Object.values(store)) {
+      if (giveaway.hostId === userId) {
+        giveaway.hostId = client.user.id;
+        storeChanged = true;
+      }
       const participants = Array.isArray(giveaway.participants) ? giveaway.participants : [];
       const winners = Array.isArray(giveaway.winners) ? giveaway.winners : [];
       if (participants.includes(userId)) {
@@ -7698,6 +7748,107 @@ async function purgeAltLinks(userId) {
   if (changed) await setSaData("alt_networks", networks);
   return changed;
 }
+function escapeRegex(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function collectUserNames(userId, member) {
+  const names = new Set();
+  if (member) names.add(member.user.username);
+  const eco = await getEcoData(userId);
+  if (eco && eco.username) names.add(eco.username);
+  const fetched = await client.users.fetch(userId).catch(function () {
+    return null;
+  });
+  if (fetched) names.add(fetched.username);
+  return [...names].filter(Boolean);
+}
+
+async function purgeWarnings(userId) {
+  const data = await getMData("moderation");
+  if (!data.warns || !data.warns[userId]) return false;
+  delete data.warns[userId];
+  await setMData("moderation", data);
+  return true;
+}
+
+async function purgeTicketBlock(userId) {
+  const blocked = (await getTickData("blocked_users")) || {};
+  if (!blocked[userId]) return false;
+  delete blocked[userId];
+  await setTickData("blocked_users", blocked);
+  return true;
+}
+
+async function purgeInviteData(userId) {
+  const docs = await storageModel()
+    .find({ namespace: "invites", "value.inviterId": userId }, { key: 1 })
+    .lean();
+  const keys = docs
+    .map(function (doc) {
+      return doc.key;
+    })
+    .concat("joined_" + userId);
+  return (await dbDelete("invites", keys)) > 0;
+}
+
+async function purgeTickets(userId, names) {
+  const before = archives.length;
+  archives = archives.filter(function (ticket) {
+    if (ticket.createdById === userId) return false;
+    if (ticket.createdBy && names.includes(ticket.createdBy)) return false;
+    const messages = Array.isArray(ticket.messages) ? ticket.messages : [];
+    return !messages.some(function (m) {
+      const author = m.author || {};
+      if (author.id === userId) return true;
+      if (typeof author.avatar === "string" && author.avatar.includes("/avatars/" + userId + "/")) return true;
+      return !!author.name && names.includes(author.name);
+    });
+  });
+  const removed = before - archives.length;
+  if (removed > 0) await setTickData("archive_list", { archive: archives });
+  return removed;
+}
+
+async function purgeLogFiles(userId, names) {
+  const patterns = [new RegExp(escapeRegex(userId))];
+  for (const name of names) {
+    if (name.length < 3) continue;
+    patterns.push(
+      new RegExp("(?<![A-Za-z0-9_.])" + escapeRegex(name) + "(?![A-Za-z0-9_.])"),
+    );
+  }
+  const files = await fs.promises.readdir(LOG_DIR).catch(function () {
+    return [];
+  });
+  let removed = 0;
+  for (const file of files) {
+    if (!/^\d{2}-\d{2}-\d{4}\.log$/.test(file)) continue;
+    if (logStream && file === logStreamDate + ".log") {
+      const old = logStream;
+      logStream = null;
+      logStreamDate = null;
+      await new Promise(function (resolve) {
+        old.end(resolve);
+      });
+    }
+    const full = path.join(LOG_DIR, file);
+    const raw = await fs.promises.readFile(full, "utf8").catch(function () {
+      return null;
+    });
+    if (raw === null) continue;
+    const lines = raw.split("\n").filter(Boolean);
+    const kept = lines.filter(function (line) {
+      return !patterns.some(function (p) {
+        return p.test(line);
+      });
+    });
+    if (kept.length === lines.length) continue;
+    removed += lines.length - kept.length;
+    await fs.promises.writeFile(full, kept.length ? kept.join("\n") + "\n" : "");
+  }
+  return removed;
+}
 async function purgeUserData(userId, options) {
   const guild = options.guild;
   const member = options.member || null;
@@ -7706,14 +7857,23 @@ async function purgeUserData(userId, options) {
       throw new Error("Die Unverified-Rolle konnte nicht vergeben werden (Rollen-Reihenfolge prüfen). Es wurde nichts gelöscht.");
     });
   }
+  const names = await collectUserNames(userId, member);
   const parts = [];
   if (await deleteStorageKeys("economy", [userId, "tx_" + userId])) parts.push("Konto und Transaktionen");
   if (await deleteStorageKeys("xp", [userId])) parts.push("XP und Rang");
-  if (await deleteStorageKeys("invites", ["joined_" + userId])) parts.push("Einladungsdaten");
+  if (await purgeInviteData(userId)) parts.push("Einladungsdaten");
   if (await purgeCountingData(userId, guild)) parts.push("Counting-Stand");
   if (await purgeReminders(userId)) parts.push("Erinnerungen");
-  if (await purgeGiveawayEntries(userId)) parts.push("Giveaway-Teilnahmen");  if (await purgeGiveawayEntries(userId)) parts.push("Giveaway-Teilnahmen");
+  if (await purgeGiveawayEntries(userId)) parts.push("Giveaway-Teilnahmen");
   if (await purgeAltLinks(userId)) parts.push("Zweitaccount-Verknüpfung");
+  if (await purgeWarnings(userId)) parts.push("Verwarnungen");
+  if (await purgeTicketBlock(userId)) parts.push("Ticket-Sperre");
+  const tickets = await purgeTickets(userId, names);
+  if (tickets) parts.push(`${tickets} Ticket-Transkripte`);
+  if (!options.skipLogs) {
+    const lines = await purgeLogFiles(userId, names);
+    if (lines) parts.push(`${lines} Logzeilen`);
+  }
   if (member) {
     const roleIds = PURGE_ROLE_IDS.concat(
       ROLES_TIERS.map(function (tier) {
@@ -7727,7 +7887,6 @@ async function purgeUserData(userId, options) {
   }
   return parts.length ? parts.join(", ") : "Keine gespeicherten Daten gefunden";
 }
-
 async function cleanupLogFiles() {
   const cutoff = Date.now() - RETENTION_MS;
   const files = await fs.promises.readdir(LOG_DIR).catch(function () {
@@ -7833,7 +7992,7 @@ async function cleanupDepartedUsers() {
     }
   });
   for (const id of expired) {
-    await purgeUserData(id, { guild, member: null });
+    await purgeUserData(id, { guild, member: null, skipLogs: true });
   }
   if (expired.length) {
     await updateLeftUsers(function (left) {
