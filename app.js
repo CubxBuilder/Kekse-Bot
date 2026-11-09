@@ -2493,7 +2493,6 @@ export async function initEconomySystem(client) {
         return;
       }
            if (subCommand === "payall") {
-        if (msg.author.id !== FABIAN_ID) return denyReply(msg, "Du hast nicht die Berechtigung diese Funktion zu nutzen.");
         const amount = parseInt(args[2]);
         if (isNaN(amount) || amount <= 0) return denyReply(msg, "Nutzung: `!bank payall <Betrag>`");
         const recipients = msg.guild.members.cache.filter(function (member) {
