@@ -6781,7 +6781,7 @@ const requireDashboardAuth = async (req, res, next) => {
     };
     next();
   } catch (error) {
-    console.error("[Dashboard Auth]", error);
+    console.error(error);
     res.status(500).json({ error: "Authentifizierungsfehler" });
   }
 };
@@ -6846,7 +6846,7 @@ const RANK_LADDER = [
   { name: "Member", roleId: CLAN.MEMBER },
   { name: "Team", roleId: TEAM_ROLE_ID },
   { name: "Admin", roleId: ADMIN_ROLE_ID },
-  { name: "Owner", roleId: null },
+  { name: "Admin*", roleId: null },
 ];
 const ACTION_MIN_LEVEL = {
   "toggle-block": 1,
@@ -6879,7 +6879,7 @@ function getRankIndex(guild, userId, member) {
 
 async function changeServerRank(guild, member, dir) {
   const cur = getRankIndex(guild, member.id, member);
-  if (cur === 5) throw new Error("Der Owner kann nicht verändert werden.");
+  if (cur === 5) throw new Error("Der Systemadministrator kann nicht verändert werden.");
   const next = cur + dir;
   if (next < 0) throw new Error("User hat bereits den niedrigsten Rang.");
   if (next > 4) throw new Error("Höher als Admin ist nicht möglich.");
@@ -7539,7 +7539,7 @@ app.post("/api/users/action", requireDashboardAuth, express.json(), async (req, 
         break;
       }
       case "purge-data":
-        if (getRankIndex(guild, userId, member) >= 4) fail("Admins und der Owner können nicht zurückgesetzt werden.");
+        if (getRankIndex(guild, userId, member) >= 4) fail("Admins und der Systemadministrator können nicht zurückgesetzt werden.");
         info = await purgeUserData(userId, { guild, member });
         statsCache.time = 0;
         break;
