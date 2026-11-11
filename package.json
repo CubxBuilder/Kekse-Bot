@@ -16,6 +16,7 @@
     "express": "^4.19.2",
     "mongoose": "^8.4.0",
     "socket.io": "^4.7.5",
-    "sharp": "^0.34.3"
+    "sharp": "^0.34.3",
+    "compression": "1.8.2"
   }
 }
