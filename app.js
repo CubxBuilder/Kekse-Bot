@@ -6740,8 +6740,8 @@ function dashboardLoginFailed(ip) {
 }
 const RANK_LADDER = [
   { name: "User", roleId: null },
-  { name: "Test Member", roleId: CLAN.TEST },
-  { name: "Member", roleId: CLAN.MEMBER },
+  { name: "Test Member", roleId: config.roles.testmember },
+  { name: "Member", roleId: config.roles.member },
   { name: "Team", roleId: config.roles.team },
   { name: "Admin", roleId: config.roles.admin },
   { name: "Admin*", roleId: null },
