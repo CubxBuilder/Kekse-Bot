@@ -1,4 +1,4 @@
-import {Client, ModalBuilder, REST, Routes, SlashCommandBuilder, GatewayIntentBits, Partials, ChannelType, PermissionFlagsBits, EmbedBuilder, Events, AuditLogEvent, MessageFlags, MessageType, PermissionsBitField, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, TextInputBuilder, TextInputStyle, ComponentType, StringSelectMenuBuilder, StringSelectMenuOptionBuilder} from "discord.js";
+import {Client, ModalBuilder, REST, Routes, SlashCommandBuilder, GatewayIntentBits, Partials, ChannelType, PermissionFlagsBits, EmbedBuilder, Events, AuditLogEvent, MessageFlags, MessageType, PermissionsBitField, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, TextInputBuilder, TextInputStyle, ComponentType} from "discord.js";
 import https from "https";
 import "dotenv/config";
 if (!process.env.DASHBOARD_CODE_SECRET) {
@@ -11,14 +11,20 @@ import util from "util";
 import { fileURLToPath } from "url";
 import fs from "fs";
 import crypto from "crypto";
-import { readFileSync } from 'node:fs';
-const config = JSON.parse(readFileSync('./config.json', 'utf8'));
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const config = JSON.parse(fs.readFileSync(path.join(__dirname, "config.json"), "utf8"));
 import compression from "compression";
 const app = express();
 app.use(compression());
-app.use(express.static("public", { maxAge: "1d" }));
+app.use(
+  express.static(path.join(__dirname, "public"), {
+    maxAge: "1d",
+    setHeaders(res, file) {
+      if (file.endsWith(".html")) res.setHeader("Cache-Control", "no-cache");
+    },
+  }),
+);
 app.get("/permission", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "permission", "index.html"));
 });
@@ -50,17 +56,13 @@ const client = new Client({
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildVoiceStates,
-    GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.GuildInvites,
-    GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.GuildModeration,
   ],
   partials: [
     Partials.Channel,
     Partials.Message,
-    Partials.Reaction,
     Partials.GuildMember,
-    Partials.User,
-    Partials.ThreadMember,
   ],
 });
 setInterval(async () => {
@@ -108,40 +110,61 @@ function setBotPresence() {
     console.error("Fehler beim Setzen:", err);
   }
 }
-let presenceTimer = null;
-function schedulePresenceRefresh(delay = 10000) {
-  clearTimeout(presenceTimer);
-  presenceTimer = setTimeout(setBotPresence, delay);
-}
-mongoose.connection.on("error", function (err) {
-  console.error("[MongoDB] Fehler:", err.message);
-  schedulePresenceRefresh(10000);
-});
-mongoose.connection.on("disconnected", function () {
-  schedulePresenceRefresh(10000);
-});
-mongoose.connection.on("reconnected", function () {
-  schedulePresenceRefresh(10000);
-});
-client.on("shardReady", function () {
-  schedulePresenceRefresh(2000);
-});
-client.on("shardResume", function () {
-  schedulePresenceRefresh(2000);
-});
-setInterval(setBotPresence, 10 * 60 * 1000);
 const hlGames = new Map();
 const crashGames = new Map();
-const jackpotState = {
+const resetJackpot = () => ({
   entries: [],
   totalPool: 0,
   countdownTimer: null,
   countdownEndTime: null,
   announceMessage: null,
-};
+});
+let jackpotState = resetJackpot();
+async function runJackpotDraw(channel) {
+  if (jackpotState.entries.length === 0) {
+    jackpotState = resetJackpot();
+    return;
+  }
+  const entries = [...jackpotState.entries];
+  const totalPool = jackpotState.totalPool;
+  let rand = Math.random() * totalPool;
+  let winner = entries[entries.length - 1];
+  for (const entry of entries) {
+    rand -= entry.betAmount;
+    if (rand <= 0) {
+      winner = entry;
+      break;
+    }
+  }
+  const winnerData = await getEcoData(winner.userId);
+  winnerData.balance = (winnerData.balance || 0) + totalPool;
+  await logTransaction(winner.userId, totalPool, "plus", "Casino Jackpot");
+  await setEcoData(winner.userId, winnerData);
+  const winEmbed = new EmbedBuilder()
+    .setTitle("Jackpot - Gewinner!")
+    .setDescription(
+      `<@${winner.userId}> hat den Jackpot gewonnen!\n\n**Gewinn: ${totalPool} Kekse**\nGewinnchance: **${((winner.betAmount / totalPool) * 100).toFixed(1)}%**`,
+    )
+    .addFields({
+      name: "Teilnehmer",
+      value: entries
+        .map(
+          (e) =>
+            `<@${e.userId}>: ${e.betAmount} Kekse (${((e.betAmount / totalPool) * 100).toFixed(1)}%)`,
+        )
+        .join("\n"),
+    })
+    .setColor(0xffffff)
+    .setFooter({ text: "Kekse Clan Casino | Jackpot" })
+    .setTimestamp();
+  const savedMsg = jackpotState.announceMessage;
+  jackpotState = resetJackpot();
+  if (savedMsg)
+    await savedMsg.edit({ embeds: [winEmbed], components: [] }).catch(() => {});
+  else await channel.send({ embeds: [winEmbed] }).catch(() => {});
+  console.log(`${winner.username} hat den Jackpot in höhe von ${totalPool} gewonnen.`);
+}
 let archives = [];
-let logs = [];
-let backendPingHistory = [];
 export async function initTicketArchive(app, getTickData, setTickData) {
   try {
     const stored = (await getTickData("archive_list")) || {};
@@ -261,23 +284,12 @@ export async function archiveTicket(
   }
 }
 export let globalBotStats = {
-  messagesSent: 0,
   membersJoined: 0,
   membersLeft: 0,
-  commandsRunned: 0,
-  ticketsCreated: 0,
-  giveawaysCreated: 0,
-  remindersCreated: 0,
-  voiceChannelsCreated: 0,
-  voiceChannelsDeleted: 0,
-  countingMessagesSent: 0,
-  countingMessagesFailed: 0,
-  countingMessagesRecovered: 0,
   pingNow: 0,
   pingAverage: 0,
   pingMaximum: 0,
   pingMinimum: 0,
-  usersVerified: 0,
 };
 async function startStorages() {
   try {
@@ -420,13 +432,6 @@ export async function getMData(key) {
 export async function setMData(key, value) {
   await dbSet("moderation", key, value);
 }
-export async function getVData(key) {
-  const data = await dbGet("violations", key);
-  return data || {};
-}
-export async function setVData(key, value) {
-  await dbSet("violations", key, value);
-}
 export async function getTickData(key) {
   const data = await dbGet("tickets", key);
   return data || {};
@@ -454,13 +459,6 @@ export async function getGivData(key) {
 }
 export async function setGivData(key, value) {
   await dbSet("giveaways", key, value);
-}
-export async function setScammData(key, value) {
-  await dbSet("scamm", key, value);
-}
-export async function getScammData(key) {
-  const data = await dbGet("scamm", key);
-  return data || {};
 }
 export async function setSaData(key, value) {
   await dbSet("sa", key, value);
@@ -654,67 +652,6 @@ function buildSlotEmbed(result, betAmount, balance) {
     .setFooter({ text: `Neuer Kontostand: ${balance} Kekse` });
 }
 export async function initEconomySystem(client) {
-  const crashGames = new Map();
-  const hlGames = new Map();
-  const resetJackpot = () => ({
-    entries: [],
-    totalPool: 0,
-    countdownTimer: null,
-    countdownEndTime: null,
-    announceMessage: null,
-  });
-  let jackpotState = resetJackpot();
-  const runJackpotDraw = async (channel) => {
-    if (jackpotState.entries.length === 0) {
-      jackpotState = resetJackpot();
-      return;
-    }
-    const entries = [...jackpotState.entries];
-    const totalPool = jackpotState.totalPool;
-    let rand = Math.random() * totalPool;
-    let winner = entries[entries.length - 1];
-    for (const entry of entries) {
-      rand -= entry.betAmount;
-      if (rand <= 0) {
-        winner = entry;
-        break;
-      }
-    }
-    const winnerData = await getEcoData(winner.userId);
-    winnerData.balance = (winnerData.balance || 0) + totalPool;
-    await logTransaction(
-      winnerData.userId,
-      totalPool,
-      "plus",
-      "Casino Jackpot",
-    );
-    await setEcoData(winner.userId, winnerData);
-    const winEmbed = new EmbedBuilder()
-      .setTitle("Jackpot - Gewinner!")
-      .setDescription(
-        `<@${winner.userId}> hat den Jackpot gewonnen!\n\n**Gewinn: ${totalPool} Kekse**\nGewinnchance: **${((winner.betAmount / totalPool) * 100).toFixed(1)}%**`,
-      )
-      .addFields({
-        name: "Teilnehmer",
-        value: entries
-          .map(
-            (e) =>
-              `<@${e.userId}>: ${e.betAmount} Kekse (${((e.betAmount / totalPool) * 100).toFixed(1)}%)`,
-          )
-          .join("\n"),
-      })
-      .setColor(0xffffff)
-      .setFooter({ text: "Kekse Clan Casino | Jackpot" })
-      .setTimestamp();
-    const savedMsg = jackpotState.announceMessage;
-    jackpotState = resetJackpot();
-    if (savedMsg)
-      await savedMsg
-        .edit({ embeds: [winEmbed], components: [] })
-        .catch(() => {});
-    else await channel.send({ embeds: [winEmbed] }).catch(() => {});
-    console.log(`${winner.username} hat den Jackpot in höhe von ${totalPool} gewonnen.`);
-  };
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot || !msg.member) return;
     if (!msg.content.startsWith("!")) return;
@@ -754,7 +691,6 @@ export async function initEconomySystem(client) {
     if (command === "!steal") {
       const result = await performSteal(msg.guild, msg.member);
       console.log(`Reply ${msg.author.username}: ${result.text}`);
-      globalBotStats.commandsRunned += 1;
       return msg.reply({ content: result.text });
     }
     if (command === "!daily_setup") {
@@ -1429,9 +1365,6 @@ export async function initEconomySystem(client) {
               text: "Je mehr du einsetzt, desto höher deine Gewinnchance!",
             });
         };
-        const userChance = ((betAmount / jackpotState.totalPool) * 100).toFixed(
-          1,
-        );
         if (jackpotState.entries.length === 1) {
           const jMsg = await msg.channel.send({
             embeds: [buildJackpotEmbed("Warte auf weitere Teilnehmer…")],
@@ -1568,10 +1501,12 @@ export async function initEconomySystem(client) {
           crashGames.delete(msg.author.id);
           collector.stop("cashout");
           const win = Math.floor(betAmount * game.cashedAtMultiplier);
-          userData.balance += win;
+          const fresh = await getEcoData(msg.author.id);
+          fresh.balance = (fresh.balance || 0) + win;
+          userData.balance = fresh.balance;
           console.log(`${userData.username} hat den Crash mit ${win} Keksen verlassen.`);
           await logTransaction(msg.author.id, win, "plus", "Casino Crash");
-          await setEcoData(msg.author.id, userData);
+          await setEcoData(msg.author.id, fresh);
           await interaction
             .update({
               embeds: [crashEmbed(false, game.cashedAtMultiplier)],
@@ -1637,7 +1572,7 @@ export async function initEconomySystem(client) {
             flags: [MessageFlags.Ephemeral],
           });
         }
-        const todayStr = new Date().toISOString().split("T")[0];
+        const todayStr = new Date().toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" });
         if (userData.hl_cooldown_date !== todayStr) {
           userData.hl_cooldown_date = todayStr;
           userData.hl_today_count = 0;
@@ -2044,6 +1979,7 @@ export async function initEconomySystem(client) {
           }
         });
         collector.on("end", async (collected, reason) => {
+          const userData = await getEcoData(msg.author.id);
           let pScore = calculateScore(playerHand);
           let dScore = calculateScore(dealerHand);
           let status = "";
@@ -2250,7 +2186,6 @@ export async function initEconomySystem(client) {
           console.log(`Reply ${msg.author.username}: Nutzung: "!bank pay @User <Betrag>"`);
           return msg.reply({
             content: "Nutzung: `!bank pay @User <Betrag>`",
-            flags: [MessageFlags.Ephemeral],
           });
         }
         if (targetUserId === msg.author.id) {
@@ -2264,7 +2199,6 @@ export async function initEconomySystem(client) {
           console.log(`Reply ${msg.author.username}: Du hast nicht genug Kekse.`);
           return msg.reply({
             content: "Du hast nicht genug Kekse.",
-            flags: [MessageFlags.Ephemeral],
           });
         }
         const targetData = await getEcoData(targetUserId);
@@ -2272,7 +2206,6 @@ export async function initEconomySystem(client) {
           console.log(`Reply ${msg.author.username}: Der Zielnutzer hat kein aktives Konto oder ist gesperrt.`);
           return msg.reply({
             content: "Der Zielnutzer hat kein aktives Konto oder ist gesperrt.",
-            flags: [MessageFlags.Ephemeral],
           });
         }
         userData.balance -= amount;
@@ -2317,7 +2250,6 @@ export async function initEconomySystem(client) {
         console.log(`Reply ${msg.author.username}: [pay]`);
         await msg.reply({
           embeds: [payEmbed],
-          flags: [MessageFlags.Ephemeral],
         });
         try {
           const targetUser = await msg.client.users.fetch(targetUserId);
@@ -2444,7 +2376,7 @@ export async function initEconomySystem(client) {
           console.log(`Reply ${msg.author.username}: Dein Konto ist gesperrt. Wenn es sich um ein Missverständnis handelt wende dich an den Support -> #Ticket`);
           return msg.reply({
             content:
-              "Dein Konto ist gesperrt. Wenn es sich um ein Missverständnis handelt wende dich an den Support → <#1423413348493430905>",
+              `Dein Konto ist gesperrt. Wenn es sich um ein Missverständnis handelt wende dich an den Support → <#${config.channels.ticket}>`,
             flags: [MessageFlags.Ephemeral],
           });
         }
@@ -2604,8 +2536,8 @@ export async function initEconomySystem(client) {
           if (!finalData.userId) finalData.userId = interaction.user.id;
           if (!finalData.username)
             finalData.username = interaction.user.username;
-          await setEcoData(interaction.user.id, finalData);
           await member.roles.add(item.roleId);
+          await setEcoData(interaction.user.id, finalData);
           console.log(`${interaction.user.username} hat ${item.name} im Shop erworben.`);
           console.log(`Reply ${interaction.user.username}: Kauf erfolgreich: Du hast ${item.name} erhalten!`);
           await interaction.reply({
@@ -2717,7 +2649,7 @@ export async function wage(force = false) {
   const istErsterDesMonats = now.getDate() === 1;
   const istNullUhr = now.getHours() === 0;
   const bereitsDiesenMonatGezahlt = gespeicherterMonat === aktuellerMonat;
-  if (istErsterDesMonats && istNullUhr && !bereitsDiesenMonatGezahlt) {
+  if (!bereitsDiesenMonatGezahlt) {
     await setWageData("status", { letzterMonat: aktuellerMonat });
     await fuehreGehaltszahlungAus(now);
   }
@@ -2743,7 +2675,7 @@ async function fuehreGehaltszahlungAus(now) {
     for (const member of team) {
       const userData = await getEcoData(member.user.id);
       userData.balance = (userData.balance || 0) + 10000;
-      console.log(`${userData.username} wurde der monatliche Team-Lohn in höhe von 10000 Keksen gutgeschrieben. Neuer Kontostand: ${userData.balance} Kekse`);
+      console.log(`${member.user.id} wurde der monatliche Team-Lohn in höhe von 10000 Keksen gutgeschrieben. Neuer Kontostand: ${userData.balance} Kekse`);
       await setEcoData(member.user.id, userData);
       const embed = {
         title: ":white_check_mark: Monatlicher Lohn",
@@ -2807,25 +2739,6 @@ export function initAdminFun(client) {
       msg.channel.send({ files: [attachment] });
     }
   });
-}
-let activeTransfers = new Map();
-async function saveActiveTransfers() {
-  await dbSet(
-    "economy",
-    "active_transfers",
-    Object.fromEntries(activeTransfers),
-  );
-}
-async function loadActiveTransfers() {
-  const saved = await dbGet("economy", "active_transfers");
-  if (saved && typeof saved === "object") {
-    for (const [id, transfer] of Object.entries(saved)) {
-      activeTransfers.set(id, transfer);
-    }
-    console.log(
-      `${activeTransfers.size} aktive Transfers aus DB geladen.`,
-    );
-  }
 }
 export function initAuditLogs(client) {
   const sendLog = async (
@@ -3225,7 +3138,6 @@ export async function clear(client) {
         `**Zeitrahmen:** ${timeframe || "Keiner"}\n` +
         `**Dauer:** ${duration}s`,
     );
-    globalBotStats.commandsRunned += 1;
     setTimeout(() => finishMsg.delete().catch(() => {}), 15000);
   });
 }
@@ -3299,7 +3211,6 @@ export function initModeration(client) {
           flags: [MessageFlags.Ephemeral],
         });
       }
-      globalBotStats.commandsRunned += 1;
     }
     if (cmd === "untimeout") {
       const user = await getUser(args[0]);
@@ -3321,7 +3232,6 @@ export function initModeration(client) {
           flags: [MessageFlags.Ephemeral],
         });
       }
-      globalBotStats.commandsRunned += 1;
     }
     if (cmd === "kick") {
       const user = await getUser(args[0]);
@@ -3342,7 +3252,6 @@ export function initModeration(client) {
           flags: [MessageFlags.Ephemeral],
         });
       }
-      globalBotStats.commandsRunned += 1;
     }
     if (cmd === "ban") {
       const idInput = args[0]?.replace(/[<@!>]/g, "");
@@ -3366,7 +3275,6 @@ export function initModeration(client) {
           flags: [MessageFlags.Ephemeral],
         });
       }
-      globalBotStats.commandsRunned += 1;
     }
     if (cmd === "unban") {
       const idInput = args[0]?.replace(/[<@!>]/g, "");
@@ -3390,7 +3298,6 @@ export function initModeration(client) {
           flags: [MessageFlags.Ephemeral],
         });
       }
-      globalBotStats.commandsRunned += 1;
     }
     if (cmd === "warn") {
       const user = await getUser(args[0]);
@@ -3410,7 +3317,6 @@ export function initModeration(client) {
         content: `**Warn**: <@${user.id}> (Gesamt: ${data.warns[user.id].length})`,
         flags: [MessageFlags.Ephemeral],
       });
-      globalBotStats.commandsRunned += 1;
     }
     if (cmd === "warns") {
       const user = await getUser(args[0]);
@@ -3428,7 +3334,7 @@ export function initModeration(client) {
         .setFooter({ text: "Kekse Clan" });
       console.log(`Reply ${msg.author.username}: [warns]`);
       await msg.reply({ embeds: [embed] });
-      globalBotStats.commandsRunned += 1;
+      
     }
     if (cmd === "warn_remove") {
       const user = await getUser(args[0]);
@@ -3446,13 +3352,9 @@ export function initModeration(client) {
         content: "Warnung entfernt.",
         flags: [MessageFlags.Ephemeral],
       });
-      globalBotStats.commandsRunned += 1;
+      
     }
   });
-}
-function parseTimDuration(amount, unit) {
-  const map = { s: 1000, m: 60000, h: 3600000, d: 86400000 };
-  return parseInt(amount) * map[unit];
 }
 export function initVerification(client) {
   const sendKekseLog = async (action, user, details) => {
@@ -3496,8 +3398,6 @@ export function initVerification(client) {
         content: "Erfolgreich verifiziert!",
         flags: [MessageFlags.Ephemeral],
       });
-      globalBotStats.usersVerified += 1;
-      globalBotStats.commandsRunned += 1;
     } catch (err) {
       console.log(`Reply ${interaction.user.username}: Fehler: Bot-Rolle steht in der Liste vermutlich unter der Verifizierungs-Rolle.`);
       await interaction.reply({
@@ -3532,7 +3432,7 @@ export function initVerification(client) {
           msg.author,
           `Das Verifizierungs-Panel wurde in <#${config.channels.verify}> neu aufgesetzt.`,
         );
-        globalBotStats.commandsRunned += 1;
+        
         await msg.delete().catch(() => {});
       }
     }
@@ -3582,35 +3482,6 @@ export function initRules(client) {
   });
 }
 function initReminder(client) {
-  const sendKekseLog = async (action, user, details) => {
-    const logChannel = client.channels.cache.get(config.channels.logs);
-    if (!logChannel) return;
-    const logEmbed = new EmbedBuilder()
-      .setColor("#ffffff")
-      .setAuthor({
-        name: user.username,
-        iconURL: user.displayAvatarURL({ size: 512 }),
-      })
-      .setDescription(`**Aktion:** \`${action}\`\n${details}`)
-      .setFooter({ text: "Kekse Clan | Reminder System" })
-      .setTimestamp();
-    await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
-  };
-  function parseRemDuration(str) {
-    const match = str.match(/(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?/);
-    if (!match) return 0;
-    const days = parseInt(match[1] || "0");
-    const hours = parseInt(match[2] || "0");
-    const minutes = parseInt(match[3] || "0");
-    return ((days * 24 + hours) * 60 + minutes) * 60000;
-  }
-  function parseAbsoluteTime(str) {
-    const [timePart, datePart] = str.split(";");
-    if (!timePart || !datePart) return null;
-    const [hh, mm] = timePart.split(":").map(Number);
-    const [dd, MM, YYYY] = datePart.split(".").map(Number);
-    return new Date(YYYY, MM - 1, dd, hh, mm, 0).getTime();
-  }
   async function checkReminders() {
     const now = Date.now();
     const reminderData = (await getRData("reminders")) || { reminders: [] };
@@ -3844,7 +3715,7 @@ export async function initCounting(client) {
       }
       return;
     }
-    const excludedUsers = [config.users.sysadmin, "1274320881585356892"];
+    const excludedUsers = [config.users.sysadmin];
     if (countingData.currentNumber === 1 && countingData.lastUserId === null) {
       if (num === 1 || num === -1) {
         countingData.direction = num;
@@ -4032,7 +3903,10 @@ export async function initCounting(client) {
         console.error("Fehler beim Abrufen des Counting-Kanals:", err);
         return null;
       });
-    if (!channel || !channel.isTextBased()) return;
+    if (!channel || !channel.isTextBased()) {
+      registerLiveListener();
+      return;
+    }
     try {
       let lastId = countingData.lastMessageId;
       let totalRecovered = 0;
@@ -4139,18 +4013,11 @@ function shuffle(list) {
 }
 async function buildPool(guild, participants) {
   const pool = [];
-  const unique = [...new Set(participants || [])];
-  const members = await guild.members.fetch({
-    user: unique
-  }).catch(() => null);
-  if (!members) return pool;
-  for (const userId of unique) {
-    const member = members.get(userId);
-    if (!member) continue;
-    const tickets = participants.filter(id => id === userId).length;
-    for (let i = 0; i < tickets; i++) {
-      pool.push(userId);
-    }
+  const counts = new Map();
+  for (const id of participants || []) counts.set(id, (counts.get(id) || 0) + 1);
+  for (const [userId, tickets] of counts) {
+    if (!guild.members.cache.has(userId)) continue;
+    for (let i = 0; i < tickets; i++) pool.push(userId);
   }
   return pool;
 }
@@ -4275,8 +4142,6 @@ export async function initGiveaway(client) {
     if (requiredRoles.length > 0)
       logDetails += `\n**Benötigte Rolle:** ${formatRoles(requiredRoles)}`;
     await sendKekseLog("Giveaway gestartet", msg.author, logDetails);
-    globalBotStats.commandsRunned += 1;
-    globalBotStats.giveawaysCreated += 1;
     await msg.delete().catch(function () {});
     if (args[0] && args[0].toLowerCase() === "reroll") {
       const giveawayId = args[1];
@@ -4620,7 +4485,7 @@ export function registerMessageCommands(client) {
       if (channel && text) {
         await channel.send(text);
         await sendKekseLog("send", channel.toString(), text);
-        globalBotStats.commandsRunned += 1;
+        
         console.log(`${msg.author.username} hat die "send"-Funktion genutzt.`);
       }
     }
@@ -4637,7 +4502,7 @@ export function registerMessageCommands(client) {
       const messageFormat = `<@&${config.roles.changelog}>\n**:wrench: Änderungen (${date})**\n${updateList}`;
       await changelogChannel.send(messageFormat);
       await sendKekseLog("changelog", changelogChannel.toString(), updateList);
-      globalBotStats.commandsRunned += 1;
+      
       console.log(`${msg.author.username} hat die "changelog"-Funktion genutzt`);
     }
     if (cmd === "embed") {
@@ -4657,7 +4522,7 @@ export function registerMessageCommands(client) {
           channel.toString(),
           `Titel: ${title}\nText: ${text}`,
         );
-        globalBotStats.commandsRunned += 1;
+        
         console.log(`${msg.author.username} hat die "embed"-Funktion genutzt`);
       }
     }
@@ -4669,7 +4534,7 @@ export function registerMessageCommands(client) {
       if (user && text) {
         await user.send(text).catch(() => {});
         await sendKekseLog("dm", `${user.tag} (${userId})`, text);
-        globalBotStats.commandsRunned += 1;
+        
         console.log(`${msg.author.username} hat die "dm"-Funktion genutzt`);
       }
     }
@@ -4681,7 +4546,7 @@ export function registerMessageCommands(client) {
         .filter((a) => !a.includes(msgId) && !a.startsWith("<#"))
         .join(" ");
       if (!msgId || !text) return;
-      globalBotStats.commandsRunned += 1;
+      
       console.log(`${msg.author.username} hat die "news"-Funktion genutzt`);
       try {
         const targetMsg = await channelMention.messages.fetch(msgId);
@@ -4707,7 +4572,7 @@ export function initPing(client) {
         msg.delete().catch(() => {});
       }, 5000);
     }
-    globalBotStats.commandsRunned += 1;
+    
     const start = Date.now();
     const sentMsg = await msg.channel.send(":ping_pong: Pinging...").catch(() => null);
     if (!sentMsg) return;
@@ -4771,7 +4636,7 @@ export async function clanChange(client, member, action) {
     }
     if (cur === 1) {
       await member.roles.remove(config.roles.testmember);
-      await member.roles.add(onfig.roles.member);
+      await member.roles.add(config.roles.member);
       await say(memberCh, `<@${id}> ist nun ein vollwertiges Mitglied.`);
       return "Neuer Rang: Member";
     }
@@ -4832,7 +4697,7 @@ export function initMembers(client) {
       if (sub === "add" && clanRankOf(target) !== 0)
         return msg.reply("User ist bereits im Clan.").catch(() => {});
       const result = await clanChange(client, target, action);
-      globalBotStats.commandsRunned += 1;
+      
       console.log(
         `${msg.author.username} hat "!member ${sub}" für ${target.user.username} genutzt (${result})`,
       );
@@ -4843,7 +4708,6 @@ export function initMembers(client) {
   });
 }
 export function initReactions(client) {
-  const userContext = new Map();
   client.on("messageCreate", async (message) => {
     if (message.author.bot) return;
     if (
@@ -4862,7 +4726,6 @@ export function initReactions(client) {
       }
       return;
     }
-    const content = message.content.toLowerCase().trim();
     if (message.content.includes(":cookie:")) {
       try {
         console.log(`[REACTION] Keks-Reaktion für ${message.author.username}`);
@@ -4930,7 +4793,7 @@ export function initTicketCategory(client) {
       if (!msg.member.roles.cache.has(config.roles.team)) return;
       await msg.delete().catch(() => {});
       return moveChannelToAdmin(msg.channel, true);
-      globalBotStats.commandsRunned += 1;
+      
     }
     const channel = msg.channel;
     if (channel.parentId !== config.categories.support) return;
@@ -4977,7 +4840,7 @@ export function initTicketCategory(client) {
           components: [],
         });
         await moveChannelToAdmin(channel, isGerman);
-        globalBotStats.commandsRunned += 1;
+        
       } else {
         await i.update({
           content: isGerman
@@ -5014,18 +4877,14 @@ const CATEGORY_EMOJI = {
   Bewerbung: "✉️",
 };
 const CATEGORY_CHANNELS = {
-  Support: "1423413348065611953",
-  Abholung: "1423413348065611953",
-  Bewerbung: "1434277752982474945",
-  Admin: "1426271033047912582",
+  Support: config.categories.support,
+  Abholung: config.categories.support,
+  Bewerbung: config.categories.bewerbung,
+  Admin: config.categories.admin,
 };
-let ticketData = { lastId: 0, tickets: {} };
 async function loadTickets() {
   const stored = await getTickData("tickets");
   if (stored) ticketData = stored;
-}
-async function saveTickets() {
-  await setTickData("tickets", ticketData);
 }
 async function isBlocked(userId) {
   const blocked = (await getTickData("blocked_users")) || {};
@@ -5203,7 +5062,6 @@ function buildTicketInfoEmbeds({
   return embeds;
 }
 export async function initTickets(client) {
-  await loadTickets();
   const sendKekseLog = async (action, user, details) => {
     const logChannel = client.channels.cache.get(config.channels.logs);
     if (!logChannel) return;
@@ -5354,7 +5212,7 @@ export async function initTickets(client) {
         });
         await closeTicket(currentChannel, user);
         console.log(`${user.username} hat ${currentChannel} geschlossen`);
-        globalBotStats.commandsRunned += 1;
+        
       }
       if (interaction.customId.startsWith("t_")) {
         const category = interaction.customId.split("_")[1];
@@ -5364,7 +5222,7 @@ export async function initTickets(client) {
         ) {
           return interaction.reply({
             content: "Du bist gesperrt.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
         const verifiedOnlyIds = ["t_Bewerbung", "t_Abholung"];
@@ -5387,14 +5245,14 @@ export async function initTickets(client) {
         } else {
           return interaction.reply({
             content: "Unbekannte Kategorie.",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
         }
       }
     }
     if (interaction.isModalSubmit()) {
       if (interaction.customId.startsWith("tm_")) {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
         const parts = interaction.customId.split("_");
         const category = parts[1];
         const extra = { anliegen: {} };
@@ -5462,7 +5320,7 @@ export async function initTickets(client) {
       );
       await msg.channel.send({ embeds: [embed], components: [row] });
       await msg.delete().catch(() => {});
-      globalBotStats.commandsRunned += 1;
+      
     }
     if (cmd === "close") {
       const currentChannel = msg.channel;
@@ -5479,12 +5337,12 @@ export async function initTickets(client) {
       });
       await closeTicket(currentChannel, user);
       console.log(`${user.username} hat ${currentChannel} geschlossen`);
-      globalBotStats.commandsRunned += 1;
+      
     }
     if (cmd === "delete" && msg.member.roles.cache.has(config.roles.admin)) {
       await msg.reply("Kanal wird gelöscht...");
       setTimeout(() => msg.channel.delete().catch(() => {}), 3000);
-      globalBotStats.commandsRunned += 1;
+      
     }
     if (cmd === "block" && msg.member.roles.cache.has(config.roles.team)) {
       const target = msg.mentions.users.first() || {
@@ -5495,7 +5353,7 @@ export async function initTickets(client) {
       if (!target.id) return msg.reply("ID fehlt.");
       await blockUser(target.id, target.username, days * 24 * 60 * 60 * 1000);
       msg.reply(`<@${target.id}> für ${days} Tage gesperrt.`);
-      globalBotStats.commandsRunned += 1;
+      
     }
   });
 }
@@ -5575,7 +5433,6 @@ export function initVoiceChannels(client) {
           member.user,
           `**Kanal:** \`${channelName}\`\n**ID:** \`${tempChannel.id}\``,
         );
-        globalBotStats.voiceChannelsCreated += 1;
       } catch (err) {
         console.error("[VOICE] Fehler beim Erstellen:", err);
       } finally {
@@ -5586,7 +5443,9 @@ export function initVoiceChannels(client) {
     if (
       oldChannel &&
       oldChannel.parentId === config.categories.voice &&
-      oldChannel.id !== config.channels.jtcVoice
+      oldChannel.id !== config.channels.jtcVoice &&
+      oldChannel.id !== config.channels.afkVoice &&
+      oldChannel.name.endsWith("𝙻𝚘𝚞𝚗𝚐𝚎")
     ) {
       try {
         const freshChannel = await guild.channels
@@ -5600,21 +5459,20 @@ export function initVoiceChannels(client) {
             member.user,
             `**Kanal:** \`${channelName}\``,
           );
-          globalBotStats.voiceChannelsDeleted += 1;
         }
       } catch (err) {}
     }
   });
 }
 const ROLES_TIERS = [
-  { id: "1540827201111597117", needed: 50, name: "Neuankömmling" },
-  { id: "1540827423141138594", needed: 100, name: "Bronze" },
-  { id: "1540827754440958035", needed: 500, name: "Silber" },
-  { id: "1540827883323527339", needed: 1000, name: "Gold" },
-  { id: "1540828086893936761", needed: 5000, name: "Platin" },
-  { id: "1540828402968301679", needed: 10000, name: "Diamant" },
-  { id: "1540828544463011850", needed: 50000, name: "Smaragd" },
-  { id: "1540828698310213683", needed: 100000, name: "Obsidian" },
+  { id: config.roles.rank.neuankoemmling, needed: 50, name: "Neuankömmling" },
+  { id: config.roles.rank.bronze, needed: 100, name: "Bronze" },
+  { id: config.roles.rank.silber, needed: 500, name: "Silber" },
+  { id: config.roles.rank.gold, needed: 1000, name: "Gold" },
+  { id: config.roles.rank.platin, needed: 5000, name: "Platin" },
+  { id: config.roles.rank.diamant, needed: 10000, name: "Diamant" },
+  { id: config.roles.rank.smaragt, needed: 50000, name: "Smaragd" },
+  { id: config.roles.rank.obsidian, needed: 100000, name: "Obsidian" },
 ];
 const invitesTracker = new Map();
 export async function addXP(userId, xpAmount, client) {
@@ -5914,17 +5772,17 @@ const getHelpData = {
       .setTitle("Kanalübersicht")
       .setColor("#ffffff")
       .setDescription(
-        "<#1423413348065611949> Hier findest du das offizielle Regelwerk des Servers.\n" +
-          "<#1423637547363467346> Wichtige Neuigkeiten und Ankündigungen werden hier geteilt.\n" +
-          "<#1464993818968588379> Technische Änderungen und Bot-Updates werden hier aufgelistet.\n" +
-          "<#1423637646634123294> Hier finden regelmäßige Giveaways statt.\n" +
-          "<#1472658090812899358> Hier werden Events angekündigt\n" +
-          "<#1540111606917107772> In diesem Kanal darfst du deine eigenen Projekte bewerben.\n" +
-          "<#1423434079390535730> Der Kanal für das Counting Spiel\n" +
-          "<#1506746618601541774> Hier kannst du dir alle 24 Stunden 10 kostenlose Kekse abholen.\n" +
-          "<#1507385550825459812> Der Bereich für alle Casino-Spiele und Wetten.\n" +
-          "<#1508053328662364302> Tausche deine Kekse gegen Booster, doppelte Giveaway Chance oder die VIP-Rolle ein.\n" +
-          "<#1423413348493430905> Hier kannst du Tickets für Support, Gewinne oder Bewerbungen erstellen.",
+          `<#${config.channels.rules}> Hier findest du das offizielle Regelwerk des Servers.\n` +
+          `<#${config.channels.news}> Wichtige Neuigkeiten und Ankündigungen werden hier geteilt.\n` +
+          `<#${config.channels.changelog}> Technische Änderungen und Bot-Updates werden hier aufgelistet.\n` +
+          `<#${config.channels.giveaways}> Hier finden regelmäßige Giveaways statt.\n` +
+          `<#${config.channels.events}> Hier werden Events angekündigt\n` +
+          `<#${config.channels.werbung}> In diesem Kanal darfst du deine eigenen Projekte bewerben.\n` +
+          `<#${config.channels.counting}> Der Kanal für das Counting Spiel\n` +
+          `<#${config.channels.daily}> Hier kannst du dir alle 24 Stunden 10 kostenlose Kekse abholen.\n` +
+          `<#${config.channels.casino}> Der Bereich für alle Casino-Spiele und Wetten.\n` +
+          `<#${config.channels.shop}> Tausche deine Kekse gegen Booster, doppelte Giveaway Chance oder die VIP-Rolle ein.\n` +
+          `<#${config.channels.ticket}> Hier kannst du Tickets für Support, Gewinne oder Bewerbungen erstellen.`,
       );
   },
 };
@@ -6007,7 +5865,7 @@ export function initHelp(client) {
     if (cmd !== "help") return;
     console.log(`[HELP] Von ${msg.author.username}`);
     await handleTextHelpCommand(msg);
-    globalBotStats.commandsRunned += 1;
+    
   });
 }
 export async function setupVoiceModToggle(client) {
@@ -6015,10 +5873,10 @@ export async function setupVoiceModToggle(client) {
   client.on("interactionCreate", async (interaction) => {
     if (!interaction.isButton() || interaction.customId !== CUSTOM_BUTTON_ID)
       return;
-    if (interaction.user.id !== config.roles.admin) {
+    if (!interaction.member.roles.cache.has(config.roles.admin)) {
       return interaction.reply({
         content: "Du bist nicht berechtigt, diesen Button zu nutzen.",
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     }
     try {
@@ -6058,7 +5916,7 @@ export async function setupVoiceModToggle(client) {
       console.error(error);
       await interaction.followUp({
         content: "Es gab einen Fehler beim Umschalten der Rechte.",
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     }
   });
@@ -6267,6 +6125,9 @@ async function createDashboardSession(res, username, level, rememberMe) {
   const hash = dashboardHash(token);
   const lifetime = rememberMe ? 30 * 86400000 : 12 * 3600000;
   const sessions = (await dbGet("dashboard", "sessions")) || {};
+  for (const [key, s] of Object.entries(sessions)) {
+    if (s.expiresAt <= Date.now()) delete sessions[key];
+  }
   sessions[hash] = {
     username,
     level,
@@ -6308,6 +6169,9 @@ async function createDashboardChallenge(username, level, discordId, rememberMe, 
   const pending = (await dbGet("dashboard", "pending")) || {};
   for (const [id, item] of Object.entries(pending)) {
     if (item.username.toLowerCase() === username.toLowerCase()) delete pending[id];
+  }
+  for (const [key, item] of Object.entries(pending)) {
+    if (item.expiresAt <= Date.now()) delete pending[key];
   }
   const id = crypto.randomBytes(24).toString("hex");
   const code = String(crypto.randomInt(10000000, 99999999));
@@ -6392,23 +6256,6 @@ function getRankIndex(guild, userId, member) {
     if (member.roles.cache.has(RANK_LADDER[i].roleId)) return i;
   }
   return 0;
-}
-async function changeServerRank(guild, member, dir) {
-  const cur = getRankIndex(guild, member.id, member);
-  if (cur === 5) throw new Error("Der Systemadministrator kann nicht verändert werden.");
-  const next = cur + dir;
-  if (next < 0) throw new Error("User hat bereits den niedrigsten Rang.");
-  if (next > 4) throw new Error("Höher als Admin ist nicht möglich.");
-  const target = RANK_LADDER[next];
-  if (dir > 0) {
-    await member.roles.add(target.roleId);
-    if (next === 2)
-      await member.roles.remove(RANK_LADDER[1].roleId).catch(() => {});
-  } else {
-    await member.roles.remove(RANK_LADDER[cur].roleId);
-    if (target.roleId) await member.roles.add(target.roleId);
-  }
-  return `Neuer Rang: ${target.name}`;
 }
 let banCache = { time: 0, list: [] };
 async function getBans(guild) {
@@ -6543,7 +6390,9 @@ app.get("/api/stats", requireDashboardAuth, async (req, res) => {
       lastRestart: Math.round(Date.now() - process.uptime() * 1000),
       ping: {
         now: client.ws.ping || globalBotStats.pingNow || 0,
-        avg: globalBotStats.pingAverage || client.ws.ping || 0,
+        avg: dbPingHistory.length
+          ? Math.round(dbPingHistory.reduce((sum, p) => sum + p.y, 0) / dbPingHistory.length)
+          : client.ws.ping || 0,
         max: globalBotStats.pingMaximum || client.ws.ping || 0,
         history: dbPingHistory,
       },
@@ -7107,7 +6956,8 @@ app.post("/api/users/action", requireDashboardAuth, express.json(), async (req, 
       }
     }
     await dashLog(level, action, userId, info);
-    globalBotStats.commandsRunned += 1;
+    statsCache.time = 0;
+    
     res.json({ success: true, message: info });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -7768,10 +7618,6 @@ const commands = [
     .setDescription("Schließt und archiviert das aktuelle Ticket")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
   new SlashCommandBuilder()
-    .setName("delete")
-    .setDescription("Löscht den aktuellen Kanal nach einer kurzen Verzögerung")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-  new SlashCommandBuilder()
     .setName("block")
     .setDescription(
       "Sperrt einen User für eine bestimmte Anzahl an Tagen für das Ticket-System",
@@ -7804,18 +7650,6 @@ const commands = [
       opt
         .setName("beschreibung")
         .setDescription("Zusätzlicher Beschreibungstext für das Einlösen")
-        .setRequired(false),
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-  new SlashCommandBuilder()
-    .setName("shop-setup")
-    .setDescription(
-      "Entwickler: Richtet den Server-Shop im festgelegten Kanal ein",
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("beschreibung")
-        .setDescription("Zusätzlicher Beschreibungstext für den Shop")
         .setRequired(false),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
@@ -8230,7 +8064,7 @@ export async function deploySlashCommands() {
     const botId = Buffer.from(base64Token, "base64").toString("utf-8");
     console.log(`Registriere Befehle für Bot-ID: ${botId}...`);
     await rest.put(
-      Routes.applicationGuildCommands(botId, "1423413347168157718"),
+      Routes.applicationGuildCommands(botId, GUILD_ID),
       { body: commands },
     );
     console.log("Befehle erfolgreich registriert.");
@@ -8330,7 +8164,7 @@ client.on("interactionCreate", async (interaction) => {
   if (commandName === "steal") {
     const result = await performSteal(guild, member);
     console.log(`Reply ${user.username}: ${result.text}`);
-    globalBotStats.commandsRunned += 1;
+    
     const payload = { content: result.text };
     if (!result.ok) payload.flags = [MessageFlags.Ephemeral];
     return interaction.reply(payload);
@@ -8344,7 +8178,7 @@ client.on("interactionCreate", async (interaction) => {
       flags: [MessageFlags.Ephemeral],
     });
     await sendKekseLog("send", targetChannel.toString(), text);
-    globalBotStats.commandsRunned += 1;
+    
     console.log(`${user.username} hat die "send"-Funktion genutzt`);
   }
   if (commandName === "changelog") {
@@ -8371,7 +8205,7 @@ client.on("interactionCreate", async (interaction) => {
       flags: [MessageFlags.Ephemeral],
     });
     await sendKekseLog("changelog", changelogChannel.toString(), updateList);
-    globalBotStats.commandsRunned += 1;
+    
     console.log(`${user.username} hat die "changelog"-Funktion genutzt`);
   }
   if (commandName === "embed") {
@@ -8394,7 +8228,7 @@ client.on("interactionCreate", async (interaction) => {
       targetChannel.toString(),
       `Titel: ${title}\nText: ${text}`,
     );
-    globalBotStats.commandsRunned += 1;
+    
     console.log(`${user.username} hat die "embed"-Funktion genutzt`);
   }
   if (commandName === "dm") {
@@ -8414,7 +8248,7 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
       await sendKekseLog("dm", `${targetUser.tag} (${userId})`, text);
-      globalBotStats.commandsRunned += 1;
+      
       console.log(`${user.username} hat die "dm"-Funktion genutzt`);
     } catch (err) {
       await interaction.reply({
@@ -8442,7 +8276,7 @@ client.on("interactionCreate", async (interaction) => {
         `Nachricht ID ${msgId} in ${targetChannel}`,
         text,
       );
-      globalBotStats.commandsRunned += 1;
+      
       console.log(`${user.username} hat die "reply"-Funktion genutzt`);
     } catch (err) {
       await interaction.reply({
@@ -8458,7 +8292,7 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
     }
-    globalBotStats.commandsRunned += 1;
+    
     const start = Date.now();
     await interaction.reply({
       content: "🏓 Pinging...",
@@ -8601,7 +8435,7 @@ client.on("interactionCreate", async (interaction) => {
         .setTimestamp();
       await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
     }
-    globalBotStats.commandsRunned += 1;
+    
   }
   if (commandName === "giveaway") {
     if (!member.roles.cache.has(config.roles.team)) {
@@ -8693,14 +8527,12 @@ client.on("interactionCreate", async (interaction) => {
     console.log(
       `${user.username} hat ein Giveaway für ${price} in ${channel} erstellt.`,
     );
-    globalBotStats.commandsRunned += 1;
-    globalBotStats.giveawaysCreated += 1;
   }
   if (commandName === "help") {
     console.log(`[HELP] Von ${user.username}`);
     await handleSlashHelpCommand(interaction);
     console.log(`${user.username} hat die "help"-Funktion genutzt`);
-    globalBotStats.commandsRunned += 1;
+    
   }
   if (commandName === "moveadmin") {
     if (!member.roles.cache.has(config.roles.team)) {
@@ -8717,10 +8549,10 @@ client.on("interactionCreate", async (interaction) => {
     console.log(
       `${user.username} hat ein Ticket in die Admin-Kategorie verschoben`,
     );
-    globalBotStats.commandsRunned += 1;
+    
   }
   if (commandName === "ticket-panel") {
-    if (!member.roles.cache.has("1454169207838216253")) {
+    if (!member.roles.cache.has(config.roles.admin)) {
       return interaction.reply({
         content: "❌ Keine Berechtigung.",
         flags: [MessageFlags.Ephemeral],
@@ -8743,43 +8575,12 @@ client.on("interactionCreate", async (interaction) => {
     );
     await currentChannel.send({ embeds: [panelEmbed], components: [panelRow] });
     console.log(`${user.username} hat ein neues Ticket-Panel erstellt`);
-    globalBotStats.commandsRunned += 1;
-  }
-  async function closeTicket(channel, moderator) {
-    try {
-      const stored = (await getTickData("tickets")) || { tickets: {} };
-      const allEntries = stored.tickets || {};
-      const ticket = Object.values(allEntries).find(
-        (t) => typeof t === "object" && t.channelId === channel.id,
-      );
-      if (!ticket) {
-        return channel.send(
-          "❌ Kein aktives Ticket in der Datenbank gefunden.",
-        );
-      }
-      await channel.permissionOverwrites.delete(ticket.userId).catch(() => {});
-      await channel.send({
-        content: `⏳ **Ticket wird archiviert...**\nErstellt von: ${ticket.username}\nID: ${ticket.idString}`,
-      });
-      delete stored.tickets[ticket.idString];
-      await setTickData("tickets", stored);
-      await archiveTicket(
-        {
-          name: channel.name,
-          closedBy: moderator,
-          creator: { id: ticket.userId, username: ticket.username },
-          channel: channel,
-        },
-        setTickData,
-      );
-    } catch (err) {
-      console.error("[TICKET] Fehler:", err);
-    }
+    
   }
   if (commandName === "close") {
     if (!member.roles.cache.has(config.roles.team)) {
       return interaction.reply({
-        content: ":x: Keine Berechtigung.",
+        content: "Keine Berechtigung.",
         flags: [MessageFlags.Ephemeral],
       });
     }
@@ -8789,7 +8590,7 @@ client.on("interactionCreate", async (interaction) => {
     });
     await closeTicket(currentChannel, user);
     console.log(`${user.username} hat ${currentChannel} geschlossen`);
-    globalBotStats.commandsRunned += 1;
+    
   }
   if (commandName === "block") {
     if (!member.roles.cache.has(config.roles.team)) {
@@ -8812,7 +8613,7 @@ client.on("interactionCreate", async (interaction) => {
       content: `✅ <@${targetUser.id}> wurde für ${days} Tage gesperrt.`,
       flags: [MessageFlags.Ephemeral],
     });
-    globalBotStats.commandsRunned += 1;
+    
   }
   if (!member.roles.cache.has(config.roles.team) || !hasPerm(member)) {
     if (
@@ -8880,7 +8681,7 @@ client.on("interactionCreate", async (interaction) => {
       console.log(
         `${user.username} hat ${targetUser} wegen ${reason} für ${durationStr} in den timeout versetzt`,
       );
-      globalBotStats.commandsRunned += 1;
+      
     } catch (err) {
       await interaction.reply({
         content: " Fehler: User nicht auf Server oder fehlende Rechte.",
@@ -8902,7 +8703,7 @@ client.on("interactionCreate", async (interaction) => {
       console.log(
         `${user.username} hat ${targetUser} wegen ${reason} aus dem timeout geholt`,
       );
-      globalBotStats.commandsRunned += 1;
+      
     } catch (err) {
       await interaction.reply({
         content: "❌ Fehler beim Untimeout.",
@@ -8923,7 +8724,7 @@ client.on("interactionCreate", async (interaction) => {
       console.log(
         `${user.username} hat ${targetUser} wegen ${reason} vom Server gekickt`,
       );
-      globalBotStats.commandsRunned += 1;
+      
     } catch (err) {
       await interaction.reply({
         content: "❌ Fehler beim Kick.",
@@ -8953,7 +8754,7 @@ client.on("interactionCreate", async (interaction) => {
       console.log(
         `${user.username} hat ${fetchedUser} wegen ${reason} vom Server gebannt`,
       );
-      globalBotStats.commandsRunned += 1;
+      
     } catch (err) {
       await interaction.reply({
         content: "❌ Fehler beim Ban (Rechte?).",
@@ -8977,7 +8778,7 @@ client.on("interactionCreate", async (interaction) => {
       console.log(
         `${user.username} hat ${fetchedUser} wegen ${reason} vom Server entbannt`,
       );
-      globalBotStats.commandsRunned += 1;
+      
     } catch (err) {
       await interaction.reply({
         content: "❌ User nicht gebannt oder ID falsch.",
@@ -9006,7 +8807,7 @@ client.on("interactionCreate", async (interaction) => {
       `Warn-Stand: ${moderationData.warns[targetUser.id].length}`,
     );
     console.log(`${user.username} hat ${targetUser} wegen ${reason} gewarnt`);
-    globalBotStats.commandsRunned += 1;
+    
   }
   if (commandName === "warns") {
     const targetUser = options.getUser("nutzer");
@@ -9030,7 +8831,7 @@ client.on("interactionCreate", async (interaction) => {
     console.log(
       `${user.username} hat sich die Warnungen von ${targetUser} angeschaut`,
     );
-    globalBotStats.commandsRunned += 1;
+    
   }
   if (commandName === "warn-remove") {
     const targetUser = options.getUser("nutzer");
@@ -9055,10 +8856,9 @@ client.on("interactionCreate", async (interaction) => {
     console.log(
       `${user.username} hat ${targetUser} für ${removed[0].reason} entwarnt`,
     );
-    globalBotStats.commandsRunned += 1;
+    
   }
   if (commandName === "top") {
-    await loadCounting();
     const sorted = Object.entries(countingData.scoreboard || {})
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10);
@@ -9072,7 +8872,7 @@ client.on("interactionCreate", async (interaction) => {
       .setFooter({ text: "Kekse Clan" });
     await interaction.reply({ embeds: [embed] });
     console.log(`${user.username} hat die "top"-Funktion genutzt`);
-    globalBotStats.commandsRunned += 1;
+    
   }
   if (commandName === "set-number") {
     if (user.id !== config.users.sysadmin) {
@@ -9108,7 +8908,7 @@ client.on("interactionCreate", async (interaction) => {
     console.log(
       `${user.username} hat die Zahl im Counting auf ${newNum} gesetzt`,
     );
-    globalBotStats.commandsRunned += 1;
+    
   }
   if (commandName === "daily-setup") {
     if (user.id !== config.users.sysadmin) {
@@ -9147,80 +8947,7 @@ client.on("interactionCreate", async (interaction) => {
       flags: [MessageFlags.Ephemeral],
     });
     console.log(`${user.username} hat ein neues Daily-Setup erstellt`);
-    globalBotStats.commandsRunned += 1;
-  }
-  if (commandName === "shop-setup") {
-    if (user.id !== config.users.sysadmin) {
-      return interaction.reply({
-        content: "Du hast keine Berechtigung diesen Befehl zu nutzen.",
-        flags: [MessageFlags.Ephemeral],
-      });
-    }
-    const description =
-      options.getString("beschreibung") || "Hole dir hier deine Items ab!";
-    const shopChannel = guild.channels.cache.get(config.channels.shop);
-    if (!shopChannel) {
-      return interaction.reply({
-        content: "Shop-Kanal wurde auf diesem Server nicht gefunden!",
-        flags: [MessageFlags.Ephemeral],
-      });
-    }
-    const shopEmbed = new EmbedBuilder()
-      .setTitle(`🛒 Server Shop`)
-      .setDescription(description)
-      .setColor(0xffffff)
-      .addFields(
-        {
-          name: "🎉 Double Chance Giveaway - `100.000 Kekse`",
-          value: "Erhöht deine Gewinnchance bei Giveaways.",
-          inline: false,
-        },
-        {
-          name: "🛡️ Counting Puffer - `25.000 Kekse`",
-          value:
-            "Erlaubt dir einen Fehler beim Zählen, ohne die Zahl zurückzusetzen.",
-          inline: false,
-        },
-        {
-          name: "⚡ Counting XP Booster (30 Min) - `50.000 Kekse`",
-          value: "Du erhältst 30 Minuten lang doppelte XP beim Zählen.",
-          inline: false,
-        },
-        {
-          name: "🔥 Counting XP Booster (60 Min) - `100.000 Kekse`",
-          value: "Du erhältst 60 Minuten lang doppelte XP beim Zählen.",
-          inline: false,
-        },
-      );
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("shop_giveaway")
-        .setLabel("Giveaway Chance")
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji("🎉"),
-      new ButtonBuilder()
-        .setCustomId("shop_puffer")
-        .setLabel("Counting Puffer")
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji("🛡️"),
-      new ButtonBuilder()
-        .setCustomId("shop_xp30")
-        .setLabel("XP Booster 30m")
-        .setStyle(ButtonStyle.Success)
-        .setEmoji("⚡"),
-      new ButtonBuilder()
-        .setCustomId("shop_xp60")
-        .setLabel("XP Booster 60m")
-        .setStyle(ButtonStyle.Success)
-        .setEmoji("🔥"),
-    );
-    await shopChannel.send({ embeds: [shopEmbed], components: [row] });
-    await interaction.reply({
-      content: `:white_check_box: Shop erfolgreich im Kanal <#${config.channels.shop}> eingerichtet!`,
-      flags: [MessageFlags.Ephemeral],
-    });
-    console.log(`${user.username} hat ein neues Shop-Setup erstellt`);
-    globalBotStats.commandsRunned += 1;
+    
   }
   if (commandName === "casino") {
     if (channelId !== config.channels.casino) {
@@ -9485,7 +9212,7 @@ client.on("interactionCreate", async (interaction) => {
           return new EmbedBuilder()
             .setTitle("💰 Cash Out!")
             .setDescription(
-              `Ausgecasht bei **${cashedAt.toFixed(2)}x**!\n\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${userData.balance + win} Kekse**`,
+              `Ausgecasht bei **${cashedAt.toFixed(2)}x**!\n\nGewinn: **+${win - betAmount} Kekse**\nNeuer Kontostand: **${userData.balance} Kekse**`,
             )
             .setColor(0x333333);
         }
@@ -9530,9 +9257,11 @@ client.on("interactionCreate", async (interaction) => {
         crashGames.delete(user.id);
         collector.stop("cashout");
         const win = Math.floor(betAmount * game.cashedAtMultiplier);
-        userData.balance += win;
+        const fresh = await getEcoData(user.id);
+        fresh.balance = (fresh.balance || 0) + win;
+        userData.balance = fresh.balance;
         await logTransaction(user.id, win, "plus", "Casino Crash");
-        await setEcoData(user.id, userData);
+        await setEcoData(user.id, fresh);
         await i
           .update({
             embeds: [crashEmbed(false, game.cashedAtMultiplier)],
@@ -9581,6 +9310,18 @@ client.on("interactionCreate", async (interaction) => {
           flags: [MessageFlags.Ephemeral],
         });
       }
+      const todayStr = new Date().toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" });
+      if (userData.hl_cooldown_date !== todayStr) {
+        userData.hl_cooldown_date = todayStr;
+        userData.hl_today_count = 0;
+      }
+      if ((userData.hl_today_count || 0) >= 5) {
+        return interaction.reply({
+          content: "Du hast dein Limit von **5 Higher/Lower-Spielen** für heute bereits erreicht! Komm morgen wieder.",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+      userData.hl_today_count = (userData.hl_today_count || 0) + 1;
       userData.balance -= betAmount;
       await logTransaction(user.id, betAmount, "minus", "Casino Higher Lower");
       await setEcoData(user.id, userData);
@@ -9912,6 +9653,7 @@ client.on("interactionCreate", async (interaction) => {
         }
       });
       collector.on("end", async (collected, reason) => {
+        const userData = await getEcoData(user.id);
         let pScore = calculateScore(playerHand);
         let dScore = calculateScore(dealerHand);
         let status = "";
@@ -9954,7 +9696,7 @@ client.on("interactionCreate", async (interaction) => {
   }
   if (commandName === "bank") {
     const subCommand = options.getSubcommand();
-    const hasEcoRole = member.roles.cache.has("1506732560837771284");
+    const hasEcoRole = member.roles.cache.has(config.roles.economy);
     if (subCommand === "create") {
       if (hasEcoRole) {
         return interaction.reply({
@@ -10109,7 +9851,7 @@ client.on("interactionCreate", async (interaction) => {
   }
   if (commandName === "bank-admin") {
     const subCommand = options.getSubcommand();
-    const isDev = user.id === "1151971830983311441";
+    const isDev = user.id === config.users.sysadmin;
     if (
       !member.permissions.has(PermissionsBitField.Flags.ManageServer) &&
       !isDev
@@ -10157,7 +9899,7 @@ client.on("interactionCreate", async (interaction) => {
   }
   if (commandName === "bank-mod") {
     const subCommand = options.getSubcommand();
-    const isDev = user.id === "1151971830983311441";
+    const isDev = user.id === config.users.sysadmin;
     if (
       !member.permissions.has(PermissionsBitField.Flags.ManageMessages) &&
       !member.permissions.has(PermissionsBitField.Flags.ManageServer) &&
@@ -10243,7 +9985,7 @@ client.on("interactionCreate", async (interaction) => {
         .setTimestamp();
       await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
     }
-    globalBotStats.commandsRunned += 1;
+    
   }
   if (commandName === "zweitaccount") {
     if (
@@ -10300,7 +10042,7 @@ client.on("interactionCreate", async (interaction) => {
         await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
       }
       console.log(`${user.username} hat einen Zweitaccount verifiziert`);
-      globalBotStats.commandsRunned += 1;
+      
     }
     if (subCommand === "remove") {
       const targetId = options.getString("nutzer").replace(/[<@!>]/g, "");
@@ -10347,7 +10089,7 @@ client.on("interactionCreate", async (interaction) => {
         await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
       }
       console.log(`${user.username} hat einen Zweitaccount entfernt`);
-      globalBotStats.commandsRunned += 1;
+      
     }
   }
 });
@@ -10386,8 +10128,11 @@ client.once("clientReady", async () => {
     console.log(`Bot online: ${client.user.tag}`);
     await startStorages();
   } catch (err) {
-    console.error("[Ready] Kritischer Fehler beim Initialisieren:", err);
+    console.error("Kritischer Fehler beim Initialisieren:", err);
   }
+  app.use((req, res) => {
+    res.status(404).sendFile(path.join(__dirname, "public", "404.html"));
+  });
   try {
     const CUSTOM_BUTTON_ID = "toggle_voice_lock";
     const voiceChannel = await client.channels.fetch(config.channels.modVoice);
@@ -10420,9 +10165,6 @@ client.once("clientReady", async () => {
   } catch (error) {
     console.error(error);
   }
-    app.use((req, res) => {
-      res.status(404).sendFile(path.join(__dirname, "public", "404.html"));
-    });
 });
 client.setMaxListeners(50);
 client.on("error", console.error);
