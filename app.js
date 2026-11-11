@@ -4727,26 +4727,19 @@ export function initReactions(client) {
     }
     if (message.content.includes(":cookie:")) {
       try {
-        console.log(`[REACTION] Keks-Reaktion für ${message.author.username}`);
         await message.channel.send("<:pepecookie:1453796363442585660>");
-        console.log(`${message.author.username} hat eine Reaktion ausgelöst`);
+        console.log(`Keks von ${message.author.username} aufgegessen :)`);
       } catch {}
     }
     if (message.mentions.everyone) {
       try {
-        console.log(
-          `[REACTION] Everyone-Ping-Reaktion für ${message.author.username}`,
-        );
         await message.channel.send("<a:pingeveryone:1453800508329558218>");
-        console.log(`${message.author.username} hat eine Reaktion ausgelöst`);
+        console.log(`${message.author.username} hat @everyone gepingt :/`);
       } catch {}
     } else if (message.mentions.has(client.user.id)) {
       try {
-        console.log(
-          `[REACTION] Bot-Ping-Reaktion für ${message.author.username}`,
-        );
         await message.channel.send("<:ping:1453799622303813714>");
-        console.log(`${message.author.username} hat eine Reaktion ausgelöst`);
+        console.log(`${message.author.username} hat den Bot gepingt`);
       } catch {}
     }
   });
