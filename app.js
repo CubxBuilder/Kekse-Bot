@@ -32,9 +32,9 @@ app.get(["/Datenschutzerklärung", "/datenschutz"], (req, res) => {
   res.sendFile(path.join(__dirname, "public", "datenschutz", "index.html"));
 });
 const options = {
-  key: fs.readFileSync("/etc/letsencrypt/live/kekse-bot.dedyn.io/privkey.pem"),
+  key: fs.readFileSync("/etc/letsencrypt/live/kekse-bot.de/privkey.pem"),
   cert: fs.readFileSync(
-    "/etc/letsencrypt/live/kekse-bot.dedyn.io/fullchain.pem",
+    "/etc/letsencrypt/live/kekse-bot.de/fullchain.pem",
   ),
 };
 const port = 5000;
