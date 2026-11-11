@@ -270,7 +270,7 @@ export async function archiveTicket(
         .setDescription(
           `**Kanal:** \`${ticketName}\` archiviert\n**Erstellt von:** ${creator?.username ?? "Unbekannt"}\n**Nachrichten:** ${ticketMessages.length}\n\n**Transcript:** [**${ticketName}**](${ticketUrl})`,
         )
-        .setFooter({ text: "Kekse Clan | Ticket-Archive" })
+        .setFooter({ text: "Kekse Bot | Ticket System" })
         .setTimestamp();
       await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
     };
@@ -2758,7 +2758,7 @@ export function initAuditLogs(client) {
         iconURL: user?.displayAvatarURL() || client.user.displayAvatarURL(),
       })
       .setDescription(`**Event:** \`${title}\`\n${text}`)
-      .setFooter({ text: "Kekse Clan | Audit Log" })
+      .setFooter({ text: "Kekse Bot | Audit Log" })
       .setTimestamp();
     if (thumb) embed.setThumbnail(thumb);
     await chan.send({ embeds: [embed] }).catch(() => {});
@@ -3017,7 +3017,7 @@ export async function clear(client) {
         iconURL: user.displayAvatarURL({ size: 512 }),
       })
       .setDescription(`**Aktion:** \`${action}\`\n${details}`)
-      .setFooter({ text: "Kekse Clan | Moderation System" })
+      .setFooter({ text: "Kekse Bot | Moderation System" })
       .setTimestamp();
     await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
   };
@@ -3180,7 +3180,7 @@ export function initModeration(client) {
         .setDescription(
           `**Target:** ${target.tag || target.id} (\`${target.id}\`)\n**Grund:** ${reason}${extra ? `\n**Info:** ${extra}` : ""}`,
         )
-        .setFooter({ text: "Kekse Clan | Moderation Logs" })
+        .setFooter({ text: "Kekse Bot | Moderation System" })
         .setTimestamp();
       console.log(`Aktion: ${action}, Von: ${msg.author.username}, User: ${target.tag}, Grund: ${reason}${extra ? `Info: ${extra}` : ""}`);
       await logChannel.send({ embeds: [kekseEmbed] }).catch(() => {});
@@ -3366,7 +3366,7 @@ export function initVerification(client) {
         iconURL: user.displayAvatarURL({ size: 512 }),
       })
       .setDescription(`**Aktion:** \`${action}\`\n${details}`)
-      .setFooter({ text: "Kekse Clan | Verification System" })
+      .setFooter({ text: "Kekse Bot | Verification System" })
       .setTimestamp();
     await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
   };
@@ -3611,7 +3611,7 @@ export async function initCounting(client) {
         iconURL: user.displayAvatarURL({ size: 512 }),
       })
       .setDescription(`**Aktion:** \`${action}\`\n${details}`)
-      .setFooter({ text: "Kekse Clan | Counting System" })
+      .setFooter({ text: "Kekse Bot | Counting System" })
       .setTimestamp();
     await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
   };
@@ -4041,7 +4041,7 @@ export async function initGiveaway(client) {
         iconURL: user.displayAvatarURL({ size: 512 }),
       })
       .setDescription(`**Aktion:** \`${action}\`\n${details}`)
-      .setFooter({ text: "Kekse Clan | Giveaway System" })
+      .setFooter({ text: "Kekse Bot | Giveaway System" })
       .setTimestamp();
     await logChannel.send({ embeds: [logEmbed] }).catch(function () {});
   }
@@ -4472,7 +4472,7 @@ export function registerMessageCommands(client) {
           .setDescription(
             `**Aktion:** \`!${commandName}\`\n**Ziel:** ${target}\n**Inhalt:**\n\`\`\`${content || "Kein Inhalt"}\`\`\``,
           )
-          .setFooter({ text: "Kekse Clan | Command Logs" })
+          .setFooter({ text: "Kekse Bot | Message System" })
           .setTimestamp();
         await logChannel.send({ embeds: [kekseEmbed] });
       }
@@ -4594,7 +4594,7 @@ export function initPing(client) {
         .setDescription(
           `**Aktion:** \`!ping\`\n**Ergebnis:** RT: \`${roundtrip}ms\` | WS: \`${wsPing}ms\``,
         )
-        .setFooter({ text: "Kekse Clan | System Check" })
+        .setFooter({ text: "Kekse Bot | System Check" })
         .setTimestamp();
       await logChannel.send({ embeds: [kekseLog] });
       console.log(`${msg.author.username} hat die "ping"-Funktion genutzt`);
@@ -5064,7 +5064,7 @@ export async function initTickets(client) {
         iconURL: user.displayAvatarURL({ size: 512 }),
       })
       .setDescription(`**Aktion:** \`${action}\`\n${details}`)
-      .setFooter({ text: "Kekse Clan | Ticket System" })
+      .setFooter({ text: "Kekse Bot | Ticket System" })
       .setTimestamp();
     await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
   };
@@ -5372,7 +5372,7 @@ export function initVoiceChannels(client) {
         iconURL: user.displayAvatarURL({ size: 512 }),
       })
       .setDescription(`**Aktion:** \`${action}\`\n${details}`)
-      .setFooter({ text: "Kekse Clan | Voice System" })
+      .setFooter({ text: "Kekse Bot | Voice System" })
       .setTimestamp();
     await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
   };
@@ -6271,7 +6271,7 @@ async function dashLog(level, action, userId, details) {
     .setDescription(
       `**Aktion:** \`Dashboard: ${action}\`\n**Ziel:** <@${userId}> (\`${userId}\`)\n**Token:** ${DASHBOARD_LEVEL_NAMES[level] || level}${details ? `\n**Info:** ${details}` : ""}`,
     )
-    .setFooter({ text: "Kekse Clan | Dashboard" })
+    .setFooter({ text: "Kekse Bot | Dashboard" })
     .setTimestamp();
   await ch.send({ embeds: [embed] }).catch(() => {});
 }
@@ -8127,7 +8127,7 @@ client.on("interactionCreate", async (interaction) => {
         .setDescription(
           `**Aktion:** \`/${cmdName}\`\n**Ziel:** ${target}\n**Inhalt:**\n\`\`\`${content || "Kein Inhalt"}\`\`\``,
         )
-        .setFooter({ text: "Kekse Clan | Command Logs" })
+        .setFooter({ text: "Kekse Bot | Message System" })
         .setTimestamp();
       await logChannel.send({ embeds: [kekseEmbed] }).catch(() => {});
     }
@@ -8312,7 +8312,7 @@ client.on("interactionCreate", async (interaction) => {
         .setDescription(
           `**Aktion:** \`/ping\`\n**Ergebnis:** RT: \`${roundtrip}ms\` | WS: \`${wsPing}ms\``,
         )
-        .setFooter({ text: "Kekse Clan | System Check" })
+        .setFooter({ text: "Kekse Bot | System Check" })
         .setTimestamp();
       await logChannel.send({ embeds: [kekseLog] }).catch(() => {});
     }
@@ -8423,7 +8423,7 @@ client.on("interactionCreate", async (interaction) => {
         .setDescription(
           `**Aktion:** \`Clear\`\n\n**Kanal:** <#${targetChannel.id}>\n**Anzahl:** ${deletedCount}\n**Filter (User):** ${userList}\n**Zeitrahmen:** ${timeframe || "Keiner"}\n**Dauer:** ${duration}s`,
         )
-        .setFooter({ text: "Kekse Clan | Moderation System" })
+        .setFooter({ text: "Kekse Bot | Moderation System" })
         .setTimestamp();
       await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
     }
@@ -8642,7 +8642,7 @@ client.on("interactionCreate", async (interaction) => {
       .setDescription(
         `**Target:** ${target.tag || target.id} (\`${target.id}\`)\n**Grund:** ${reason}${extra ? `\n**Info:** ${extra}` : ""}`,
       )
-      .setFooter({ text: "Kekse Clan | Moderation Logs" })
+      .setFooter({ text: "Kekse Bot | Moderation System" })
       .setTimestamp();
     await logChannel.send({ embeds: [kekseEmbed] }).catch(() => {});
   };
@@ -8889,7 +8889,7 @@ client.on("interactionCreate", async (interaction) => {
         .setDescription(
           `**Aktion:** \`Counting Reset (Admin)\`\nDie Zahl wurde manuell auf **${newNum}** gesetzt.`,
         )
-        .setFooter({ text: "Kekse Clan | Counting System" })
+        .setFooter({ text: "Kekse Bot | Counting System" })
         .setTimestamp();
       await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
     }
@@ -9973,7 +9973,7 @@ client.on("interactionCreate", async (interaction) => {
         .setDescription(
           `**Aktion:** \`Reminder gesetzt\`\n**Zeitraum:** ${timeStr}\n**Grund:** ${reason}`,
         )
-        .setFooter({ text: "Kekse Clan | Reminder System" })
+        .setFooter({ text: "Kekse Bot | Reminder System" })
         .setTimestamp();
       await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
     }
