@@ -4903,7 +4903,7 @@ async function blockUser(
 }
 const BEWERBUNG_VORLAGE_TEXT = `
 > ### Bewerbungsvorlage:
-> - Name & Ingame-Name
+> - Rufname & Ingame-Name
 > - Alter
 > - Auf welchem Spiel / Auf welchem Server bist du aktiv? Zur Auswahl stehen derzeit: \`Minevale.de\` \`CraftValley.de\` \`BrawlStars\`
 > - Weshalb du in den Clan willst
