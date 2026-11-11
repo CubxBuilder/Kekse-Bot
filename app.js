@@ -48,7 +48,6 @@ https.createServer(options, app).listen(port, "0.0.0.0", () => {
   console.log(`Dashboard läuft auf Port ${port}`);
 });
 const GUILD_ID = "1423413347168157718"; // Cookieverse: https://discord.gg/pU9zyJRFGn
-
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
