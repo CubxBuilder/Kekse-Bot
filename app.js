@@ -2902,18 +2902,18 @@ client.on(Events.GuildMemberAdd, async (member) => {
       await sendLog(
         "Channel erstellt",
         executor,
-        `ID: <#${targetId}>\nEin neuer Kanal wurde angelegt.`,
+        `ID: <#${targetId}>\nEin neuer Kanal wurde erstellt.`,
       );
-      console.log(`ID: <#${targetId}>\nEin neuer Kanal wurde angelegt.`);
+      console.log(`ID: <#${targetId}>\nEin neuer Kanal wurde erstellt.`);
     }
     if (action === AuditLogEvent.ChannelDelete) {
       await sendLog(
         "Channel gelöscht",
         executor,
-        `ID: \`${targetId}\` (Kanal wurde entfernt)`,
+        `ID: \`${targetId}\` Kanal wurde gelöscht.`,
         "#ffffff",
       );
-      console.log(`ID: \`${targetId}\` (Kanal wurde entfernt)`);
+      console.log(`ID: \`${targetId}\` Kanal wurde gelöscht.`);
     }
     if (action === AuditLogEvent.ChannelUpdate) {
       await sendLog(
@@ -2931,10 +2931,10 @@ client.on(Events.GuildMemberAdd, async (member) => {
       await sendLog(
         "Channel Permissions aktualisiert",
         executor,
-        `Berechtigungen in <#${targetId}> wurden modifiziert.`,
+        `Berechtigungen in <#${targetId}> wurden geändert.`,
         "#ffffff",
       );
-      console.log(`Berechtigungen in <#${targetId}> wurden modifiziert.`);
+      console.log(`Berechtigungen in <#${targetId}> wurden geändert.`);
     }
     if (action === AuditLogEvent.ThreadCreate) {
       await sendLog("Thread erstellt", executor, `Thread: <#${targetId}>`);
@@ -2958,14 +2958,14 @@ client.on(Events.GuildMemberAdd, async (member) => {
       await sendLog(
         "Rolle erstellt",
         executor,
-        `Eine neue Rolle wurde angelegt.`,
+        `Eine neue Rolle wurde erstellt.`,
       );
     }
     if (action === AuditLogEvent.RoleDelete) {
       await sendLog(
         "Rolle gelöscht",
         executor,
-        `ID: \`${targetId}\` (Rolle wurde entfernt)`,
+        `ID: \`${targetId}\` Rolle wurde gelöscht.`,
         "#ffffff",
       );
     }
