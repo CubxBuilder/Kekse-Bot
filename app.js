@@ -8292,14 +8292,6 @@ const commands = [
       "Verschiebt das aktuelle Ticket manuell in den Admin-Bereich",
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName("setup-verify")
-    .setDescription(
-      "Erstellt das Verifizierungs-Panel mit Button im festgelegten Kanal",
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
   new SlashCommandBuilder()
     .setName("top")
     .setDescription(
@@ -9782,52 +9774,6 @@ client.on("interactionCreate", async (interaction) => {
     );
     console.log(
       `${user.username} hat ${targetUser} für ${removed[0].reason} entwarnt`,
-    );
-    globalBotStats.commandsRunned += 1;
-  }
-  if (commandName === "setup-verify") {
-    if (!member.roles.cache.has(TEAM_ROLE_ID)) {
-      return interaction.reply({
-        content: ":x: Keine Berechtigung.",
-        flags: [MessageFlags.Ephemeral],
-      });
-    }
-
-    const targetChannel = client.channels.cache.get(VERIFY_CHANNEL_ID);
-    if (!targetChannel) {
-      return interaction.reply({
-        content:
-          ":x: Verifizierungs-Kanal konnte nicht in der Cache gefunden werden.",
-        flags: [MessageFlags.Ephemeral],
-      });
-    }
-
-    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
-
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("verify_user")
-        .setLabel("Verifizieren")
-        .setStyle(ButtonStyle.Success),
-    );
-
-    const imageUrl = new AttachmentBuilder("./verify.png");
-
-    await targetChannel.send({
-      content:
-        "**Willkommen!** Klicke auf den Button, um die Verifizierung abzuschließen.",
-      files: [imageUrl],
-      components: [row],
-    });
-
-    await interaction.editReply({
-      content: `:white_check_box: Das Verifizierungs-Panel wurde erfolgreich in ${targetChannel} erstellt.`,
-    });
-
-    await sendKekseLog(
-      "Verification Setup",
-      user,
-      `Das Verifizierungs-Panel wurde in <#${VERIFY_CHANNEL_ID}> neu aufgesetzt.`,
     );
     globalBotStats.commandsRunned += 1;
   }
