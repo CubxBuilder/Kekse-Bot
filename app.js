@@ -4586,7 +4586,7 @@ export async function initGiveaway(client) {
     ).size;
     const totalTickets =
       activeBonusCount === 2 ? 4 : activeBonusCount === 1 ? 2 : 1;
-    if (blockedUsers.includes(interaction.user.id)) {
+    if (config.users.giveaway_blocked.includes(interaction.user.id)) {
       await sendKekseLog(
         "Giveaway Teilnahme blockiert",
         interaction.user,
