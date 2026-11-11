@@ -11,6 +11,7 @@ import util from "util";
 import { fileURLToPath } from "url";
 import fs from "fs";
 import crypto from "crypto";
+import config from './config.json' with { type: 'json' };
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 import compression from "compression";
@@ -41,37 +42,8 @@ https.createServer(options, app).listen(port, "0.0.0.0", () => {
   console.log(`Dashboard läuft auf Port ${port}`);
 });
 
-const GUILD_ID = "1423413347168157718";
+const GUILD_ID = "1423413347168157718"; // Cookieverse: https://discord.gg/pU9zyJRFGn
 
-// Roles / Users
-const FABIAN_ID = "1151971830983311441";
-const TEAM_ROLE_ID = "1457906448234319922";
-const ECO_ROLE_ID = "1506732560837771284";
-const GIVEAWAY_DOUBLE_ROLE_ID = "1506164984202264656";
-const COUNTING_PUFFER_ROLE_ID = "1508050024355856494";
-const COUNTING_XP30_ROLE_ID = "1506164829029666827";
-const COUNTING_XP60_ROLE_ID = "1508054186930208768";
-const VIP_ROLE_ID = "1434555291252297728";
-const UNVERIFIED_ROLE_ID = "1439337577508245837";
-const COUNTING_KING_ROLE_ID = "1511305653103104041";
-const BOOSTER_ROLE_ID = "1464202435638722621";
-const GIVEAWAYS_ROLE_ID = "1424028650080178348";
-const CHANGELOG_ROLE_ID = "1464994942345547857";
-const ADMIN_ROLE_ID = "1423427747103113307";
-
-// Channels / Categorys
-const LOG_CHANNEL_ID = "1423413348220796991";
-const SHOP_CHANNEL_ID = "1508053328662364302";
-const CASINO_CHANNEL_ID = "1507385550825459812";
-const VERIFY_CHANNEL_ID = "1439337595090898955";
-const COUNTING_CHANNEL_ID = "1423434079390535730";
-const CHANGELOG_CHANNEL_ID = "1464993818968588379";
-const ADMIN_CATEGORY_ID = "1426271033047912582";
-const SUPPORT_CATEGORY_ID = "1423413348065611953";
-const VOICE_CATEGORY_ID = "1423413348493430902";
-const JTC_VOICE_CHANNEL_ID = "1423438527319900180";
-const AFK_VOICE_CHANNEL_ID = "1423413348493430901";
-const TICKET_CHANNEL_ID = "1423413348493430905";
 
 const client = new Client({
   intents: [
@@ -274,7 +246,7 @@ export async function archiveTicket(
       `"${name}" archiviert. Ersteller: ${creator?.username ?? "Unbekannt"} Nachrichten: ${messages.length}`,
     );
     const sendKekseLog = async (ticketName, ticketMessages) => {
-      const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+      const logChannel = client.channels.cache.get(config.channels.logs);
       if (!logChannel) return;
       const ticketUrl = `https://kekse-bot.de/#ticket-${ticketIdNum}`;
       const logEmbed = new EmbedBuilder()
@@ -551,7 +523,7 @@ const stealBusy = new Set();
 const payallBusy = new Set();
 async function performSteal(guild, thiefMember) {
   const thiefId = thiefMember.id;
-  if (!thiefMember.roles.cache.has(ECO_ROLE_ID)) {
+  if (!thiefMember.roles.cache.has(config.roles.economy)) {
     return {
       ok: false,
       text: "Du benötigst ein Bankkonto, um zu klauen. Nutze `!bank create`.",
@@ -582,7 +554,7 @@ async function performSteal(guild, thiefMember) {
       guild.members.cache
         .filter(
           (m) =>
-            !m.user.bot && m.id !== thiefId && m.roles.cache.has(ECO_ROLE_ID),
+            !m.user.bot && m.id !== thiefId && m.roles.cache.has(config.roles.economy),
         )
         .map((m) => m),
     ).slice(0, 20);
@@ -769,7 +741,7 @@ export async function initEconomySystem(client) {
     if (!msg.content.startsWith("!")) return;
     if (
       msg.content === "!wage pay" &&
-      msg.author.id == FABIAN_ID
+      msg.author.id == config.users.sysadmin
     ) {
       await wage(true);
       console.log(`Team-Mitgliedern wurde der monatliche Lohn manuell gutgeschrieben.`);
@@ -808,7 +780,7 @@ export async function initEconomySystem(client) {
       return msg.reply({ content: result.text });
     }
     if (command === "!daily_setup") {
-      if (msg.author.id !== FABIAN_ID) return;
+      if (msg.author.id !== config.users.sysadmin) return;
       const setupId = args[1];
       if (!setupId) {
         console.log(`Reply ${msg.author.username}: setup_id is missing`);
@@ -845,7 +817,7 @@ export async function initEconomySystem(client) {
       return msg.delete().catch(() => {});
     }
     if (command === "!shop_setup") {
-      if (msg.author.id !== FABIAN_ID) return;
+      if (msg.author.id !== config.users.sysadmin) return;
       const setupId = args[0];
       if (!setupId) {
         console.log(`Reply ${msg.author.username}: setup_id is missing`);
@@ -860,7 +832,7 @@ export async function initEconomySystem(client) {
         description: description,
         exists: true,
       });
-      const shopChannel = msg.guild.channels.cache.get(SHOP_CHANNEL_ID);
+      const shopChannel = msg.guild.channels.cache.get(config.channels.shop);
       if (!shopChannel) return msg.reply("Shop-Kanal wurde nicht gefunden!");
       const shopEmbed = new EmbedBuilder()
         .setTitle(`🛒 Server Shop`)
@@ -930,7 +902,7 @@ export async function initEconomySystem(client) {
       console.log(`Neuer Shop erstellt (setup_${setupId})`);
       console.log(`Reply ${msg.author.username}: Shop erfolgreich im Kanal #Shop erstellt.`);
       return msg.reply(
-        `Shop erfolgreich im Kanal <#${SHOP_CHANNEL_ID}> erstellt`,
+        `Shop erfolgreich im Kanal <#${config.channels.shop}> erstellt`,
       );
     }
     if (command === "!coinflip") {
@@ -951,10 +923,10 @@ export async function initEconomySystem(client) {
           flags: [MessageFlags.Ephemeral],
         });
       }
-      if (msg.channelId !== CASINO_CHANNEL_ID) {
+      if (msg.channelId !== config.channels.casino) {
         console.log(`Reply ${msg.author.username}: Nur in #Casino nutzbar.`);
         return msg.reply({
-          content: `Nur in <#${CASINO_CHANNEL_ID}> nutzbar.`,
+          content: `Nur in <#${config.channels.casino}> nutzbar.`,
           flags: [MessageFlags.Ephemeral],
         });
       }
@@ -1093,10 +1065,10 @@ export async function initEconomySystem(client) {
           flags: [MessageFlags.Ephemeral],
         });
       }
-      if (msg.channelId !== CASINO_CHANNEL_ID) {
+      if (msg.channelId !== config.channels.casino) {
         console.log(`Reply ${msg.author.username}: Nur in #Casino nutzbar.`);
         return msg.reply({
-          content: `Nur in <#${CASINO_CHANNEL_ID}> nutzbar.`,
+          content: `Nur in <#${config.channels.casino}> nutzbar.`,
           flags: [MessageFlags.Ephemeral],
         });
       }
@@ -1282,7 +1254,7 @@ export async function initEconomySystem(client) {
       });
     }
     if (command === "!casino") {
-      const hasEcoRole = msg.member.roles.cache.has(ECO_ROLE_ID);
+      const hasEcoRole = msg.member.roles.cache.has(config.roles.economy);
       if (!hasEcoRole) {
         console.log(`Reply ${msg.author.username}: Du benötigst ein Account um im Casino zu spielen. nutze "!bank create".`);
         return msg.reply({
@@ -1291,10 +1263,10 @@ export async function initEconomySystem(client) {
           flags: [MessageFlags.Ephemeral],
         });
       }
-      if (msg.channelId !== CASINO_CHANNEL_ID) {
+      if (msg.channelId !== config.channels.casino) {
         console.log(`Reply ${msg.author.username}: Das Casino ist nur in #Casino nutzbar.`);
         return msg.reply({
-          content: `Das Casino ist nur in <#${CASINO_CHANNEL_ID}> nutzbar.`,
+          content: `Das Casino ist nur in <#${config.channels.casino}> nutzbar.`,
           flags: [MessageFlags.Ephemeral],
         });
       }
@@ -2261,8 +2233,8 @@ export async function initEconomySystem(client) {
       });
     }
     if (command === "!bank") {
-      const hasEcoRole = msg.member.roles.cache.has(ECO_ROLE_ID);
-      const isAdmin = msg.author.id == FABIAN_ID;
+      const hasEcoRole = msg.member.roles.cache.has(config.roles.economy);
+      const isAdmin = msg.author.id == config.users.sysadmin;
       if (
         isAdmin &&
         (subCommand === "add" ||
@@ -2506,7 +2478,7 @@ export async function initEconomySystem(client) {
         }
         const loadRecipients = async function () {
           const members = [...msg.guild.members.cache.values()].filter(function (m) {
-            return !m.user.bot && m.id !== msg.author.id && m.roles.cache.has(ECO_ROLE_ID);
+            return !m.user.bot && m.id !== msg.author.id && m.roles.cache.has(config.roles.economy);
           });
           const loaded = await Promise.all(
             members.map(async function (m) {
@@ -2584,7 +2556,7 @@ export async function initEconomySystem(client) {
         return;
       }
       if (subCommand === "get") {
-        if (msg.author.id == FABIAN_ID) {
+        if (msg.author.id == config.users.sysadmin) {
           const existingKekse = await initEconomyGetKekse(client);
           return msg.reply(`Es sind aktuell ${existingKekse} Kekse im Umlauf.`);
         } else {
@@ -2642,7 +2614,7 @@ export async function initEconomySystem(client) {
           });
         }
 
-        const hasEcoRole = interaction.member.roles.cache.has(ECO_ROLE_ID);
+        const hasEcoRole = interaction.member.roles.cache.has(config.roles.economy);
         if (hasEcoRole) {
           console.log(`Reply ${interaction.user.username}: Du besitzt bereits ein registriertes Bankkonto.`);
           return interaction.reply({
@@ -2668,7 +2640,7 @@ export async function initEconomySystem(client) {
         return;
       }
       if (interaction.customId.startsWith("daily_claim_")) {
-        const hasEcoRole = interaction.member.roles.cache.has(ECO_ROLE_ID);
+        const hasEcoRole = interaction.member.roles.cache.has(config.roles.economy);
         if (!hasEcoRole) {
           console.log(`Reply ${interaction.user.username}: Du benötigst zuerst ein registriertes Bankkonto ("!bank create")`);
           return interaction.reply({
@@ -2717,31 +2689,31 @@ export async function initEconomySystem(client) {
         const itemType = interaction.customId.replace("shop_", "");
         const SHOP_ITEMS = {
           giveaway: {
-            roleId: GIVEAWAY_DOUBLE_ROLE_ID,
+            roleId: config.roles.giveawayDouble,
             name: ":tada: Double Chance Giveaway",
             duration: null,
             price: 100000,
           },
           puffer: {
-            roleId: COUNTING_PUFFER_ROLE_ID,
+            roleId: config.roles.countingPuffer,
             name: ":shield: Counting Puffer",
             duration: null,
             price: 25000,
           },
           xp30: {
-            roleId: COUNTING_XP30_ROLE_ID,
+            roleId: config.roles.countingXp30,
             name: ":zap: Counting XP Booster (30 Min)",
             duration: 30 * 60 * 1000,
             price: 50000,
           },
           xp60: {
-            roleId: COUNTING_XP60_ROLE_ID,
+            roleId: config.roles.countingXp60,
             name: ":fire: Counting XP Booster (60 Min)",
             duration: 60 * 60 * 1000,
             price: 100000,
           },
           vip: {
-            roleId: VIP_ROLE_ID,
+            roleId: config.roles.vip,
             name: ":gem: VIP-Rolle (7d)",
             duration: 7 * 24 * 60 * 60 * 1000,
             price: 500000,
@@ -2877,7 +2849,7 @@ export async function initEconomySystem(client) {
           .fetch(interaction.user.id)
           .catch(() => null);
         if (member) {
-          await member.roles.add(ECO_ROLE_ID).catch(() => {});
+          await member.roles.add(config.roles.economy).catch(() => {});
         }
         console.log(`${interaction.user.username} hat ein Konto erstellt.`);
         console.log(`Reply ${interaction.user.username}: Dein Konto wurde erfolgreich angelegt! Minecraft-Name: ${mcUsername}, Startguthaben: 100 Kekse, Du hast nun zugriff auf dein Konto mit "!bank"`);
@@ -2920,8 +2892,8 @@ async function fuehreGehaltszahlungAus(now) {
       client.guilds.cache.first() ||
       (await client.guilds.fetch(GUILD_ID));
     const role =
-      guild.roles.cache.get(TEAM_ROLE_ID) ||
-      (await guild.roles.fetch(TEAM_ROLE_ID));
+      guild.roles.cache.get(config.roles.team) ||
+      (await guild.roles.fetch(config.roles.team));
     const team = Array.from(role.members.values());
 
     const nowFormatted = now
@@ -2955,7 +2927,7 @@ async function fuehreGehaltszahlungAus(now) {
           embeds: [embed],
           content: `Dein aktueller Kontostand beträgt: **${userData.balance} Kekse** :cookie:`,
         });
-        const logchannel = client.channels.cache.get(LOG_CHANNEL_ID);
+        const logchannel = client.channels.cache.get(config.channels.logs);
         logchannel.send(
           `:white_check_mark: Überweisung an <@${userData.userId}> erfolgreich.\n**Beschreibung:** Monatlicher Lohn (Team)\n**Menge:** 10000 Kekse\n**Typ:** Gutschrift\n**Datum:** ${nowFormatted}`,
         );
@@ -3032,8 +3004,8 @@ export function initAuditLogs(client) {
     thumb = null,
     channelId = null,
   ) => {
-    if (channelId === LOG_CHANNEL_ID) return;
-    const chan = client.channels.cache.get(LOG_CHANNEL_ID);
+    if (channelId === config.channels.logs) return;
+    const chan = client.channels.cache.get(config.channels.logs);
     if (!chan) return;
 
     const embed = new EmbedBuilder()
@@ -3051,7 +3023,7 @@ export function initAuditLogs(client) {
   };
 
   client.on(Events.MessageDelete, async (msg) => {
-    if (msg.partial || msg.author?.bot || msg.channel.id === LOG_CHANNEL_ID)
+    if (msg.partial || msg.author?.bot || msg.channel.id === config.channels.logs)
       return;
     const ghostPing =
       msg.mentions.users.size > 0 ? "**GHOST PING ERKANNT**\n" : "";
@@ -3070,7 +3042,7 @@ export function initAuditLogs(client) {
       oldMsg.partial ||
       oldMsg.content === newMsg.content ||
       oldMsg.author?.bot ||
-      oldMsg.channel.id === LOG_CHANNEL_ID
+      oldMsg.channel.id === config.channels.logs
     )
       return;
     await sendLog(
@@ -3094,7 +3066,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
     console.log(`${member.user.tag} (${member.id}) hat den Server betreten.`);
     const account = await getEcoData(member.id);
     if (account && account.username) {
-      await member.roles.add(ECO_ROLE_ID);
+      await member.roles.add(config.roles.economy);
       console.log(`${member.user.username} wurde die Economy-Rolle zugewiesen.`)
     }
   } catch (error) {
@@ -3306,7 +3278,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
 }
 export async function clear(client) {
   const sendKekseLog = async (action, user, details) => {
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+    const logChannel = client.channels.cache.get(config.channels.logs);
     if (!logChannel) return;
     const logEmbed = new EmbedBuilder()
       .setColor("#ffffff")
@@ -3321,7 +3293,7 @@ export async function clear(client) {
   };
   client.on("messageCreate", async (message) => {
     if (!message.content.startsWith("!clear") || message.author.bot) return;
-    if (!message.member.roles.cache.has(TEAM_ROLE_ID)) {
+    if (!message.member.roles.cache.has(config.roles.team)) {
       await message.delete().catch(() => {});
       const warnMsg = await message.channel.send("Keine Berechtigung!");
       return setTimeout(() => warnMsg.delete().catch(() => {}), 5000);
@@ -3460,7 +3432,7 @@ export function initModeration(client) {
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot || !msg.content.startsWith("!")) return;
     if (
-      !msg.member.roles.cache.has(TEAM_ROLE_ID) ||
+      !msg.member.roles.cache.has(config.roles.team) ||
       !hasPerm(msg.member)
     )
       return;
@@ -3479,7 +3451,7 @@ export function initModeration(client) {
 
     const sendModLog = async (action, target, reason, extra = null) => {
       const logChannel = await client.channels
-        .fetch(LOG_CHANNEL_ID)
+        .fetch(config.channels.logs)
         .catch(() => null);
       if (!logChannel) return;
 
@@ -3686,7 +3658,7 @@ function parseTimDuration(amount, unit) {
 }
 export function initVerification(client) {
   const sendKekseLog = async (action, user, details) => {
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+    const logChannel = client.channels.cache.get(config.channels.logs);
     if (!logChannel) return;
     const logEmbed = new EmbedBuilder()
       .setColor("#ffffff")
@@ -3700,13 +3672,13 @@ export function initVerification(client) {
     await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
   };
   client.on("guildMemberAdd", async (member) => {
-    await member.roles.add(UNVERIFIED_ROLE_ID).catch(() => {});
+    await member.roles.add(config.roles.unverified).catch(() => {});
   });
   client.on("interactionCreate", async (interaction) => {
     if (!interaction.isButton() || interaction.customId !== "verify_user")
       return;
     const member = interaction.member;
-    if (!member.roles.cache.has(UNVERIFIED_ROLE_ID)) {
+    if (!member.roles.cache.has(config.roles.unverified)) {
       console.log(`Reply ${interaction.user.username}: Du bist bereits verifiziert.`);
       return interaction.reply({
         content: "Du bist bereits verifiziert.",
@@ -3714,7 +3686,7 @@ export function initVerification(client) {
       });
     }
     try {
-      await member.roles.remove(UNVERIFIED_ROLE_ID);
+      await member.roles.remove(config.roles.unverified);
       console.log(`${interaction.user.username} hat sich verifiziert.`);
       await sendKekseLog(
         "User Verifiziert",
@@ -3740,7 +3712,7 @@ export function initVerification(client) {
 
   client.on("messageCreate", async (msg) => {
     if (msg.content === "!setup_verify") {
-      if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) return;
+      if (!msg.member.roles.cache.has(config.roles.team)) return;
 
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
@@ -3748,7 +3720,7 @@ export function initVerification(client) {
           .setLabel("Verifizieren")
           .setStyle(ButtonStyle.Success),
       );
-      const channel = client.channels.cache.get(VERIFY_CHANNEL_ID);
+      const channel = client.channels.cache.get(config.channels.verify);
       if (channel) {
         const imageUrl = new AttachmentBuilder("./verify.png");
         console.log(`Send: [Verify]`);
@@ -3763,7 +3735,7 @@ export function initVerification(client) {
         await sendKekseLog(
           "Verification Setup",
           msg.author,
-          `Das Verifizierungs-Panel wurde in <#${VERIFY_CHANNEL_ID}> neu aufgesetzt.`,
+          `Das Verifizierungs-Panel wurde in <#${config.channels.verify}> neu aufgesetzt.`,
         );
         globalBotStats.commandsRunned += 1;
 
@@ -3775,7 +3747,7 @@ export function initVerification(client) {
 export function initRules(client) {
   client.on("messageCreate", async (msg) => {
     if (msg.content === "!setup_rules") {
-      if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) {
+      if (!msg.member.roles.cache.has(config.roles.team)) {
         console.log(`Reply ${msg.author.username}: Du hast keine Berechtigung diese funktion zu nutzen.`);
         msg.reply(`Du hast keine Berechtigung diese Funktion zu nutzen.`);
         return;
@@ -3817,7 +3789,7 @@ export function initRules(client) {
 }
 function initReminder(client) {
   const sendKekseLog = async (action, user, details) => {
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+    const logChannel = client.channels.cache.get(config.channels.logs);
     if (!logChannel) return;
     const logEmbed = new EmbedBuilder()
       .setColor("#ffffff")
@@ -3968,7 +3940,7 @@ function getMilestoneReward(score) {
 
 export async function initCounting(client) {
   const sendKekseLog = async (action, user, details) => {
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+    const logChannel = client.channels.cache.get(config.channels.logs);
     if (!logChannel) return;
 
     const logEmbed = new EmbedBuilder()
@@ -4010,7 +3982,7 @@ export async function initCounting(client) {
 
   const handleCountingInner = async (msg, syncMode = false) => {
     if (!syncMode && msg.author.bot) return;
-    if (msg.channel.id !== COUNTING_CHANNEL_ID) return;
+    if (msg.channel.id !== config.channels.counting) return;
     if (!syncMode && msg.content === "!top") {
       const sorted = Object.entries(countingData.scoreboard || {})
         .sort((a, b) => b[1] - a[1])
@@ -4046,7 +4018,7 @@ export async function initCounting(client) {
     }
     const match = msg.content.trim().match(/^-?\d+/);
     if (!match && !syncMode && msg.content.startsWith("!set_number")) {
-      if (msg.author.id !== FABIAN_ID) return;
+      if (msg.author.id !== config.users.sysadmin) return;
       const args = msg.content.split(" ");
       const newNum = parseInt(args[1]);
       if (isNaN(newNum)) return;
@@ -4087,7 +4059,7 @@ export async function initCounting(client) {
       return;
     }
 
-    const excludedUsers = [FABIAN_ID, "1274320881585356892"];
+    const excludedUsers = [config.users.sysadmin, "1274320881585356892"];
 
     if (countingData.currentNumber === 1 && countingData.lastUserId === null) {
       if (num === 1 || num === -1) {
@@ -4125,7 +4097,7 @@ export async function initCounting(client) {
           ? `Falsche Zahl (${num} statt ${countingData.currentNumber})`
           : "Doppel-Post";
       const hasRolePuffer =
-        !syncMode && member ? member.roles.cache.has(COUNTING_PUFFER_ROLE_ID) : false;
+        !syncMode && member ? member.roles.cache.has(config.roles.countingPuffer) : false;
 
       if (countingData.systemPuffer > 0) {
         countingData.systemPuffer = 0;
@@ -4144,7 +4116,7 @@ export async function initCounting(client) {
 
       if (hasRolePuffer) {
         try {
-          await member.roles.remove(COUNTING_PUFFER_ROLE_ID);
+          await member.roles.remove(config.roles.countingPuffer);
         } catch {
           return;
         }
@@ -4167,7 +4139,7 @@ export async function initCounting(client) {
         if (!excludedUsers.includes(msg.author.id)) {
           countingData.scoreboard[msg.author.id] ??= 0;
           countingData.scoreboard[msg.author.id]++;
-          if (member.roles.cache.has(COUNTING_XP30_ROLE_ID) || member.roles.cache.has(COUNTING_XP60_ROLE_ID)) {
+          if (member.roles.cache.has(config.roles.countingXp30) || member.roles.cache.has(config.roles.countingXp60)) {
             countingData.scoreboard[msg.author.id]++;
           }
           await checkMilestone(msg.author.id, msg.channel);
@@ -4230,7 +4202,7 @@ export async function initCounting(client) {
     if (!excludedUsers.includes(msg.author.id)) {
       countingData.scoreboard[msg.author.id] ??= 0;
       countingData.scoreboard[msg.author.id]++;
-      if (member && (member.roles.cache.has(COUNTING_XP30_ROLE_ID) || member.roles.cache.has(COUNTING_XP60_ROLE_ID))) {
+      if (member && (member.roles.cache.has(config.roles.countingXp30) || member.roles.cache.has(config.roles.countingXp60))) {
         countingData.scoreboard[msg.author.id]++;
       }
       await checkMilestone(msg.author.id, msg.channel);
@@ -4253,8 +4225,8 @@ export async function initCounting(client) {
           ? await msg.guild.members.fetch(oldKing).catch(() => null)
           : null;
         const newMember = await msg.guild.members.fetch(kingId).catch(() => null);
-        if (oldMember) await oldMember.roles.remove(COUNTING_KING_ROLE_ID).catch(() => {});
-        if (newMember) await newMember.roles.add(COUNTING_KING_ROLE_ID).catch(() => {});
+        if (oldMember) await oldMember.roles.remove(config.roles.countingKing).catch(() => {});
+        if (newMember) await newMember.roles.add(config.roles.countingKing).catch(() => {});
         console.log(`<@${kingId}> ist der neue King of Counting.`);
         if (!syncMode)
           await msg.channel
@@ -4277,7 +4249,7 @@ export async function initCounting(client) {
     console.log("Starte Counting-Synchronisation...");
     await loadCounting();
     const channel = await client.channels
-      .fetch(COUNTING_CHANNEL_ID)
+      .fetch(config.channels.counting)
       .catch((err) => {
         console.error("Fehler beim Abrufen des Counting-Kanals:", err);
         return null;
@@ -4418,7 +4390,7 @@ function pickWinners(pool, count, excluded) {
 
 export async function initGiveaway(client) {
   async function sendKekseLog(action, user, details) {
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+    const logChannel = client.channels.cache.get(config.channels.logs);
     if (!logChannel) return;
     const logEmbed = new EmbedBuilder()
       .setColor("#ffffff")
@@ -4447,7 +4419,7 @@ export async function initGiveaway(client) {
 
   client.on("messageCreate", async function (msg) {
     if (!msg.content.startsWith("!giveaway") || msg.author.bot) return;
-    if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) return denyReply(msg, "Du hast keine Berechtigung diesen Befehl zu nutzen.");
+    if (!msg.member.roles.cache.has(config.roles.team)) return denyReply(msg, "Du hast keine Berechtigung diesen Befehl zu nutzen.");
     const args =
       msg.content
         .slice(1)
@@ -4519,7 +4491,7 @@ export async function initGiveaway(client) {
         .setStyle(ButtonStyle.Primary),
     );
     const giveawayMsg = await channel.send({
-      content: `<@&${GIVEAWAYS_ROLE_ID}>`,
+      content: `<@&${config.roles.giveaways}>`,
       embeds: [embed],
       components: [row],
     });
@@ -4606,7 +4578,7 @@ export async function initGiveaway(client) {
         flags: [MessageFlags.Ephemeral],
       });
     }
-    const bonusRoles = [BOOSTER_ROLE_ID, GIVEAWAY_DOUBLE_ROLE_ID];
+    const bonusRoles = [config.roles.booster, config.roles.giveawayDouble];
     const activeBonusCount = interaction.member.roles.cache.filter(
       function (role) {
         return bonusRoles.includes(role.id);
@@ -4614,7 +4586,6 @@ export async function initGiveaway(client) {
     ).size;
     const totalTickets =
       activeBonusCount === 2 ? 4 : activeBonusCount === 1 ? 2 : 1;
-    const blockedUsers = ["1210284390568038410", "1531346210261307553"]; // Idiotos
     if (blockedUsers.includes(interaction.user.id)) {
       await sendKekseLog(
         "Giveaway Teilnahme blockiert",
@@ -4712,8 +4683,8 @@ async function endGiveaway(client, msg, data, logFunc) {
     const member = await guild.members.fetch(userId).catch(function () {
       return null;
     });
-    if (member && member.roles.cache.has(GIVEAWAY_DOUBLE_ROLE_ID)) {
-      await member.roles.remove(GIVEAWAY_DOUBLE_ROLE_ID).catch(function () {});
+    if (member && member.roles.cache.has(config.roles.giveawayDouble)) {
+      await member.roles.remove(config.roles.giveawayDouble).catch(function () {});
     }
   }
 
@@ -4727,7 +4698,7 @@ async function endGiveaway(client, msg, data, logFunc) {
   );
 
   const reportChannel = await client.channels
-    .fetch(LOG_CHANNEL_ID)
+    .fetch(config.channels.logs)
     .catch(function () {
       return null;
     });
@@ -4833,7 +4804,7 @@ export function registerMessageCommands(client) {
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot || !msg.content.startsWith("!")) return;
     if (msg.content.startsWith("!setup_dashboardInfo")) {
-      if (msg.author.id !== FABIAN_ID) return;
+      if (msg.author.id !== config.users.sysadmin) return;
       const infoEmbed = new EmbedBuilder()
         .setColor("#ffffff")
         .setTitle(`Dashboard Login`)
@@ -4864,7 +4835,7 @@ export function registerMessageCommands(client) {
       await msg.channel.send({embeds: [infoEmbed]});
     }
     if (
-      !msg.member.roles.cache.has(TEAM_ROLE_ID) &&
+      !msg.member.roles.cache.has(config.roles.team) &&
       !msg.member.permissions.has(PermissionsBitField.Flags.ManageMessages)
     )
       return;
@@ -4877,7 +4848,7 @@ export function registerMessageCommands(client) {
     const deleteCmd = () => msg.delete().catch(() => {});
 
     const sendKekseLog = async (commandName, target, content) => {
-      const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+      const logChannel = client.channels.cache.get(config.channels.logs);
       if (logChannel) {
         const kekseEmbed = new EmbedBuilder()
           .setColor("#ffffff")
@@ -4894,7 +4865,6 @@ export function registerMessageCommands(client) {
         await logChannel.send({ embeds: [kekseEmbed] });
       }
     };
-
     if (cmd === "send") {
       await deleteCmd();
       const channel = msg.mentions.channels.first();
@@ -4908,7 +4878,7 @@ export function registerMessageCommands(client) {
     }
     if (cmd === "changelog") {
       await deleteCmd();
-      const changelogChannel = msg.guild.channels.cache.get(CHANGELOG_CHANNEL_ID);
+      const changelogChannel = msg.guild.channels.cache.get(config.channels.changelog);
       if (!changelogChannel || args.length === 0) return;
       const date = new Date().toLocaleDateString("de-DE", {
         day: "2-digit",
@@ -4916,7 +4886,7 @@ export function registerMessageCommands(client) {
         year: "numeric",
       });
       const updateList = args.map((item) => `- ${item}`).join("\n");
-      const messageFormat = `<@&${CHANGELOG_ROLE_ID}>\n**:wrench: Änderungen (${date})**\n${updateList}`;
+      const messageFormat = `<@&${config.roles.changelog}>\n**:wrench: Änderungen (${date})**\n${updateList}`;
       await changelogChannel.send(messageFormat);
       await sendKekseLog("changelog", changelogChannel.toString(), updateList);
       globalBotStats.commandsRunned += 1;
@@ -4957,70 +4927,6 @@ export function registerMessageCommands(client) {
         console.log(`${msg.author.username} hat die "dm"-Funktion genutzt`);
       }
     }
-
-    if (cmd === "news") {
-      await deleteCmd();
-      const channel = msg.mentions.channels.first();
-      if (!channel) return;
-      let rawText = msg.content.replace(/^!news\s+<#[0-9]+>\s?/, "").trim();
-      if (!rawText) return;
-      const emojiMap = {
-        regles: "1467246063122649180",
-        mail: "1467246078226334040",
-        like: "1467246068235501733",
-        management: "1467246065437642999",
-        moins: "1467246060689690849",
-        info: "1467246059561685238",
-        web: "1467246058341142833",
-        dislike: "1467246057070268681",
-        logs: "1467246054910070938",
-        check: "1467246053911957759",
-        staff: "1467246044772569218",
-        lien: "1467246043182924040",
-        identifiant: "1467246041668780227",
-        cybersecurite: "1467246039731015794",
-        statistiques: "1467246038497886311",
-        administrateur: "1467246035922321478",
-        croix: "1467246034580410429",
-        certifier: "1467246033389092904",
-        supprimer: "1467246032181006499",
-        profil: "1467246030998343733",
-        moderateur: "1467246028758712575",
-        crayon: "1467246026846109821",
-        stats: "1467246025411658012",
-        ouvert: "1467246023872352358",
-        discordoff: "1467246022668583147",
-        warningicon: "1467246020445339875",
-        "2nd": "1467246019556282533",
-        discordon: "1467246018218430696",
-        "1st": "1467246016926453810",
-        help: "1467246015332618372",
-        timeout: "1467246013487255705",
-        unstableping: "1467246011578712186",
-        yinfo: "1467246010349785119",
-        "3rd": "1467246008734847138",
-        failed: "1467246005870264352",
-        mute: "1467246003890425928",
-        verified: "1467246002628202507",
-        cross: "1467246000258420767",
-        interruption: "1467245998043824128",
-        checkmark: "1467245996584210554",
-        moderatorprogramsalumnia: "1467245995510337659",
-        pingeveryone: "1453800508329558218",
-        ping: "1453799622303813714",
-        pepecookie: "1453796363442585660",
-      };
-      const formattedText = rawText.replace(
-        /:([a-zA-Z0-9_]+):/g,
-        (match, name) => {
-          return emojiMap[name] ? `<:emoji:${emojiMap[name]}>` : match;
-        },
-      );
-      await channel.send(formattedText);
-      await sendKekseLog("news", channel.toString(), rawText);
-      globalBotStats.commandsRunned += 1;
-    }
-
     if (cmd === "reply") {
       await deleteCmd();
       const channelMention = msg.mentions.channels.first() || msg.channel;
@@ -5048,7 +4954,7 @@ export function registerMessageCommands(client) {
 export function initPing(client) {
   client.on("messageCreate", async (msg) => {
     if (!msg.content.startsWith("!ping") || msg.author.bot) return;
-    if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) {
+    if (!msg.member.roles.cache.has(config.roles.team)) {
       const warn = await msg.channel.send("Du hast keine Berechtigung diese Funktion zu nutzen.");
       return setTimeout(() => {
         warn.delete().catch(() => {});
@@ -5067,7 +4973,7 @@ export function initPing(client) {
         content: `:ping_pong: **Pong!**\n- API-Latenz: \`${roundtrip}ms\`\n- WebSocket: \`${wsPing}ms\``,
       })
       .catch(() => {});
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+    const logChannel = client.channels.cache.get(config.channels.logs);
     if (logChannel) {
       const kekseLog = new EmbedBuilder()
         .setColor("#ffffff")
@@ -5090,21 +4996,12 @@ export function initPing(client) {
     }, 10000);
   });
 }
-const CLAN = {
-  MEMBER_CHANNEL: "1436074576076472411",
-  TEAM_CHANNEL: "1423441064232222800",
-  TEST: "1436073052638285959",
-  MEMBER: "1423428139790499983",
-  TEAM: TEAM_ROLE_ID,
-  MOD: "1424020019070898186",
-  ADMIN: "1423427747103113307",
-};
 function clanRankOf(member) {
   const r = member.roles.cache;
-  if (r.has(CLAN.ADMIN)) return 4;
-  if (r.has(CLAN.TEAM)) return 3;
-  if (r.has(CLAN.MEMBER)) return 2;
-  if (r.has(CLAN.TEST)) return 1;
+  if (r.has(config.roles.admin)) return 4;
+  if (r.has(config.roles.team)) return 3;
+  if (r.has(config.roles.member)) return 2;
+  if (r.has(config.roles.testmember)) return 1;
   return 0;
 }
 
@@ -5112,10 +5009,10 @@ export async function clanChange(client, member, action) {
   const cur = clanRankOf(member);
   const id = member.id;
   const memberCh = await client.channels
-    .fetch(CLAN.MEMBER_CHANNEL)
+    .fetch(config.channels.memberchat)
     .catch(() => null);
   const teamCh = await client.channels
-    .fetch(CLAN.TEAM_CHANNEL)
+    .fetch(config.channels.modchat)
     .catch(() => null);
   const say = (ch, text) => ch?.send(text).catch(() => {});
 
@@ -5123,7 +5020,7 @@ export async function clanChange(client, member, action) {
 
   if (action === "promote") {
     if (cur === 0) {
-      await member.roles.add(CLAN.TEST);
+      await member.roles.add(config.roles.testmember);
       await say(
         memberCh,
         `<@${id}> hat den Clan betreten. Herzlich Willkommen :cookie:`,
@@ -5131,13 +5028,13 @@ export async function clanChange(client, member, action) {
       return "Neuer Rang: Test Member";
     }
     if (cur === 1) {
-      await member.roles.remove(CLAN.TEST);
-      await member.roles.add(CLAN.MEMBER);
+      await member.roles.remove(config.roles.testmember);
+      await member.roles.add(onfig.roles.member);
       await say(memberCh, `<@${id}> ist nun ein vollwertiges Mitglied.`);
       return "Neuer Rang: Member";
     }
     if (cur === 2) {
-      await member.roles.add([CLAN.TEAM, CLAN.MOD]);
+      await member.roles.add([config.roles.team, config.roles.moderator]);
       await say(teamCh, `<@${id}> hat das Team betreten.`);
       return "Neuer Rang: Team";
     }
@@ -5147,12 +5044,12 @@ export async function clanChange(client, member, action) {
   if (action === "demote") {
     if (cur === 0) throw new Error("User ist kein Clan-Mitglied.");
     if (cur === 3) {
-      await member.roles.remove([CLAN.TEAM, CLAN.MOD]);
-      await member.roles.add(CLAN.MEMBER);
+      await member.roles.remove([config.roles.team, config.roles.moderator]);
+      await member.roles.add(config.roles.member);
       await say(teamCh, `<@${id}> hat das Team verlassen.`);
       return "Neuer Rang: Member";
     }
-    await member.roles.remove([CLAN.TEST, CLAN.MEMBER]);
+    await member.roles.remove([config.roles.testmember, config.roles.member]);
     await say(memberCh, `<@${id}> hat den Clan verlassen. :wave:`);
     return "Neuer Rang: User";
   }
@@ -5160,7 +5057,7 @@ export async function clanChange(client, member, action) {
   if (action === "kick") {
     if (cur === 0) throw new Error("User ist kein Clan-Mitglied.");
     const wasTeam = cur === 3;
-    await member.roles.remove([CLAN.TEAM, CLAN.MOD, CLAN.MEMBER, CLAN.TEST]);
+    await member.roles.remove([config.roles.team, config.roles.moderator, config.roles.member, config.roles.testmember]);
     if (wasTeam)
       await say(teamCh, `:no_entry: <@${id}> wurde aus dem Team geschmissen.`);
     await say(memberCh, `:no_entry: <@${id}> wurde aus dem Clan geschmissen.`);
@@ -5173,7 +5070,7 @@ export function initMembers(client) {
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot || !msg.member) return;
     if (!msg.content.startsWith("!member")) return;
-    if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) return;
+    if (!msg.member.roles.cache.has(config.roles.team)) return;
 
     const args = msg.content.trim().split(/\s+/);
     const sub = args[1]?.toLowerCase();
@@ -5304,14 +5201,14 @@ export function initTicketCategory(client) {
     if (msg.author.bot || !msg.guild) return;
 
     if (msg.content.startsWith("!moveadmin")) {
-      if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) return;
+      if (!msg.member.roles.cache.has(config.roles.team)) return;
       await msg.delete().catch(() => {});
       return moveChannelToAdmin(msg.channel, true);
       globalBotStats.commandsRunned += 1;
     }
 
     const channel = msg.channel;
-    if (channel.parentId !== SUPPORT_CATEGORY_ID) return;
+    if (channel.parentId !== config.categories.support) return;
 
     const content = msg.content.toLowerCase();
     const foundTrigger = TRIGGERS.find((t) => content.includes(t));
@@ -5386,11 +5283,11 @@ export function initTicketCategory(client) {
 
 async function moveChannelToAdmin(channel, isGerman) {
   try {
-    await channel.setParent(ADMIN_CATEGORY_ID);
+    await channel.setParent(config.categories.admin);
     await channel.send(
       isGerman
-        ? `Dieses Ticket wurde zu den **Admins** verschoben.\n<@&${ADMIN_ROLE_ID}>`
-        : `This ticket has been moved to the **Admins**.\n<@&${ADMIN_ROLE_ID}>`,
+        ? `Dieses Ticket wurde zu den **Admins** verschoben.\n<@&${config.roles.admin}>`
+        : `This ticket has been moved to the **Admins**.\n<@&${config.roles.admin}>`,
     );
   } catch (err) {
     console.error("Fehler beim Verschieben:", err);
@@ -5596,7 +5493,7 @@ function buildTicketInfoEmbeds({
 export async function initTickets(client) {
   await loadTickets();
   const sendKekseLog = async (action, user, details) => {
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+    const logChannel = client.channels.cache.get(config.channels.logs);
     if (!logChannel) return;
     const logEmbed = new EmbedBuilder()
       .setColor("#ffffff")
@@ -5613,7 +5510,7 @@ export async function initTickets(client) {
     if (!target) return false;
     const member = target.member || target;
     if (!member || !member.roles || !member.roles.cache) return false;
-    return member.roles.cache.has(ECO_ROLE_ID);
+    return member.roles.cache.has(config.roles.economy);
   }
 
   async function getStoredIngameName(userId) {
@@ -5677,7 +5574,7 @@ export async function initTickets(client) {
         permissionOverwrites: [
           { id: guild.roles.everyone, deny: [PermissionFlagsBits.ViewChannel] },
           {
-            id: TEAM_ROLE_ID,
+            id: config.roles.team,
             allow: [
               PermissionFlagsBits.ViewChannel,
               PermissionFlagsBits.SendMessages,
@@ -5719,7 +5616,7 @@ export async function initTickets(client) {
       );
 
       await channel.send({
-        content: `${user} ||<@&${TEAM_ROLE_ID}>||`,
+        content: `${user} ||<@&${config.roles.team}>||`,
         embeds,
         components: [closeRow],
       });
@@ -5754,7 +5651,7 @@ export async function initTickets(client) {
       if (interaction.customId.startsWith("ticket_close_")) {
         const currentChannel = interaction.channel;
         const user = interaction.user;
-        if (!interaction.member.roles.cache.has(TEAM_ROLE_ID)) {
+        if (!interaction.member.roles.cache.has(config.roles.team)) {
           return interaction.reply({
             content: "Du hast keine Berechtigung diese Funktion zu nutzen.",
             flags: [MessageFlags.Ephemeral],
@@ -5774,7 +5671,7 @@ export async function initTickets(client) {
 
         if (
           (await isBlocked(interaction.user.id)) &&
-          !interaction.member.roles.cache.has(TEAM_ROLE_ID)
+          !interaction.member.roles.cache.has(config.roles.team)
         ) {
           return interaction.reply({
             content: "Du bist gesperrt.",
@@ -5784,7 +5681,7 @@ export async function initTickets(client) {
         const verifiedOnlyIds = ["t_Bewerbung", "t_Abholung"];
         if (
           verifiedOnlyIds.includes(interaction.customId) &&
-          interaction.member.roles.cache.has(UNVERIFIED_ROLE_ID)
+          interaction.member.roles.cache.has(config.roles.unverified)
         ) {
           return interaction.reply({
             content:
@@ -5853,7 +5750,7 @@ export async function initTickets(client) {
     if (!msg.content.startsWith("!") || msg.author.bot) return;
     const args = msg.content.slice(1).split(/\s+/);
     const cmd = args.shift().toLowerCase();
-    if (cmd === "ticket_panel" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
+    if (cmd === "ticket_panel" && msg.member.roles.cache.has(config.roles.team)) {
       const embed = new EmbedBuilder()
         .setTitle("Willkommen im Support")
         .setDescription(
@@ -5884,7 +5781,7 @@ export async function initTickets(client) {
     if (cmd === "close") {
       const currentChannel = msg.channel;
       const user = msg.author;
-      if (!msg.member.roles.cache.has(TEAM_ROLE_ID)) {
+      if (!msg.member.roles.cache.has(config.roles.team)) {
         return msg.reply({
           content: "Du hast keine Berechtigung diesen Befehl zu nutzen.",
           flags: [MessageFlags.Ephemeral],
@@ -5898,12 +5795,12 @@ export async function initTickets(client) {
       console.log(`${user.username} hat ${currentChannel} geschlossen`);
       globalBotStats.commandsRunned += 1;
     }
-    if (cmd === "delete" && msg.member.roles.cache.has(ADMIN_ROLE_ID)) {
+    if (cmd === "delete" && msg.member.roles.cache.has(config.roles.admin)) {
       await msg.reply("Kanal wird gelöscht...");
       setTimeout(() => msg.channel.delete().catch(() => {}), 3000);
       globalBotStats.commandsRunned += 1;
     }
-    if (cmd === "block" && msg.member.roles.cache.has(TEAM_ROLE_ID)) {
+    if (cmd === "block" && msg.member.roles.cache.has(config.roles.team)) {
       const target = msg.mentions.users.first() || {
         id: args[0],
         username: "Unbekannt",
@@ -5931,7 +5828,7 @@ function toMonospace(text) {
 
 export function initVoiceChannels(client) {
   const sendKekseLog = async (action, user, details) => {
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+    const logChannel = client.channels.cache.get(config.channels.logs);
     if (!logChannel) return;
     const logEmbed = new EmbedBuilder()
       .setColor("#ffffff")
@@ -5949,7 +5846,7 @@ export function initVoiceChannels(client) {
     const { member, guild } = newState;
     if (!member || member.user.bot) return;
 
-    if (newState.channelId === JTC_VOICE_CHANNEL_ID) {
+    if (newState.channelId === config.channels.jtcVoice) {
       if (activeCreations.has(member.id)) return;
       activeCreations.add(member.id);
 
@@ -5960,7 +5857,7 @@ export function initVoiceChannels(client) {
         const tempChannel = await guild.channels.create({
           name: channelName,
           type: ChannelType.GuildVoice,
-          parent: VOICE_CATEGORY_ID,
+          parent: config.categories.voice,
           permissionOverwrites: [
             {
               id: guild.id,
@@ -5970,7 +5867,7 @@ export function initVoiceChannels(client) {
               ],
             },
             {
-              id: TEAM_ROLE_ID,
+              id: config.roles.team,
               allow: [
                 PermissionFlagsBits.ViewChannel,
                 PermissionFlagsBits.Connect,
@@ -6010,8 +5907,8 @@ export function initVoiceChannels(client) {
     const oldChannel = oldState.channel;
     if (
       oldChannel &&
-      oldChannel.parentId === VOICE_CATEGORY_ID &&
-      oldChannel.id !== JTC_VOICE_CHANNEL_ID
+      oldChannel.parentId === config.categories.voice &&
+      oldChannel.id !== config.channels.jtcVoice
     ) {
       try {
         const freshChannel = await guild.channels
@@ -6128,7 +6025,7 @@ export function startVoiceXpTracker(client) {
           !voiceState.member.user.bot &&
           !voiceState.deaf &&
           !voiceState.mute &&
-          voiceState.channelId !== AFK_VOICE_CHANNEL_ID &&
+          voiceState.channelId !== config.channels.afkVoice &&
           voiceState.channel.members.filter((m) => !m.user.bot).size > 1
         ) {
           await addXP(voiceState.id, 2, client);
@@ -6208,7 +6105,7 @@ export async function syncExistingUsers(client) {
     const members = guild.members.cache;
     for (const [memberId, member] of members) {
       if (member.user.bot) continue;
-      if (member.roles.cache.has(UNVERIFIED_ROLE_ID)) continue;
+      if (member.roles.cache.has(config.roles.unverified)) continue;
       const existingData = await getXpData(memberId);
       if (!existingData || existingData.rang === undefined) {
         await setXpData(memberId, { rang: 0, xp: 0 });
@@ -6226,7 +6123,7 @@ export async function syncExistingUsers(client) {
   }
 }
 client.on("messageCreate", async (message) => {
-  if (message.channelId == COUNTING_CHANNEL_ID) return;
+  if (message.channelId == config.channels.counting) return;
   handleMessageXP(message);
 });
 client.on("guildMemberAdd", async (member) => {
@@ -6286,7 +6183,7 @@ const getHelpData = {
       .setTitle("Hilfemenü")
       .setDescription(
         "Willkommen im Hilfemenü! Klicke auf die Buttons unten, um zwischen den Kategorien zu wechseln.\n\n" +
-          `Falls du ein Supportanliegen hast, einen Gewinn abholen möchtest (Giveaway oder Event) oder dich für den Clan bewerben willst, erstelle bitte ein Ticket in <#${TICKET_CHANNEL_ID}>.`,
+          `Falls du ein Supportanliegen hast, einen Gewinn abholen möchtest (Giveaway oder Event) oder dich für den Clan bewerben willst, erstelle bitte ein Ticket in <#${config.channels.ticket}>.`,
       )
       .setColor("#ffffff");
   },
@@ -6477,7 +6374,7 @@ export async function setupVoiceModToggle(client) {
     if (!interaction.isButton() || interaction.customId !== CUSTOM_BUTTON_ID)
       return;
 
-    if (interaction.user.id !== ADMIN_ROLE_ID) {
+    if (interaction.user.id !== config.roles.admin) {
       return interaction.reply({
         content: "Du bist nicht berechtigt, diesen Button zu nutzen.",
         ephemeral: true,
@@ -6489,7 +6386,7 @@ export async function setupVoiceModToggle(client) {
 
       const voiceChannel = interaction.channel;
       const currentOverwrites =
-        voiceChannel.permissionOverwrites.cache.get(TEAM_ROLE_ID);
+        voiceChannel.permissionOverwrites.cache.get(config.roles.team);
 
       let isCurrentlyLocked = false;
       if (
@@ -6502,11 +6399,11 @@ export async function setupVoiceModToggle(client) {
       let nextLockState = !isCurrentlyLocked;
 
       if (isCurrentlyLocked) {
-        await voiceChannel.permissionOverwrites.edit(TEAM_ROLE_ID, {
+        await voiceChannel.permissionOverwrites.edit(config.roles.team, {
           Connect: true,
         });
       } else {
-        await voiceChannel.permissionOverwrites.edit(TEAM_ROLE_ID, {
+        await voiceChannel.permissionOverwrites.edit(config.roles.team, {
           Connect: false,
         });
       }
@@ -6592,7 +6489,7 @@ function requireDashboardAdmin(req, res, next) {
 async function promoteSuperAdmin(users) {
   let changed = false;
   for (const user of Object.values(users)) {
-    if (user.discordId === FABIAN_ID && user.level !== "super") {
+    if (user.discordId === config.users.sysadmin && user.level !== "super") {
       user.level = "super";
       changed = true;
     }
@@ -6683,7 +6580,7 @@ async function executeAccountAction(action, data, actor) {
       `Gültig bis: <t:${Math.floor(expires / 1000)}:f>\n\n` +
       `Dashboard: ${DASHBOARD_URL}\n` +
       "Bei der ersten Anmeldung legt die Person ihr eigenes Passwort fest.";
-    if (!(await sendDashboardDm(FABIAN_ID, text))) {
+    if (!(await sendDashboardDm(config.users.sysadmin, text))) {
       throw new Error("Das Startpasswort konnte dir nicht per DM zugestellt werden. Es wurde kein Account erstellt.");
     }
     users[key] = {
@@ -6844,8 +6741,8 @@ const RANK_LADDER = [
   { name: "User", roleId: null },
   { name: "Test Member", roleId: CLAN.TEST },
   { name: "Member", roleId: CLAN.MEMBER },
-  { name: "Team", roleId: TEAM_ROLE_ID },
-  { name: "Admin", roleId: ADMIN_ROLE_ID },
+  { name: "Team", roleId: config.roles.team },
+  { name: "Admin", roleId: config.roles.admin },
   { name: "Admin*", roleId: null },
 ];
 const ACTION_MIN_LEVEL = {
@@ -6911,7 +6808,7 @@ async function dashLog(level, action, userId, details) {
   console.log(
     `[Dashboard] (${level}) ${action} -> <@${userId}>${details ? " | " + details : ""}`,
   );
-  const ch = client.channels.cache.get(LOG_CHANNEL_ID);
+  const ch = client.channels.cache.get(config.channels.logs);
   if (!ch) return;
   const embed = new EmbedBuilder()
     .setColor("#ffffff")
@@ -6956,7 +6853,7 @@ async function buildUserDatabase(guild) {
     const tierIdx = Math.min(xp.rang ?? 0, ROLES_TIERS.length - 1);
     const rankIdx = getRankIndex(guild, id, member);
     const hasAccount = member
-      ? member.roles.cache.has(ECO_ROLE_ID)
+      ? member.roles.cache.has(config.roles.economy)
       : !!eco.username;
     if (!member && !hasAccount && !ban) continue;
     users.push({
@@ -7319,7 +7216,7 @@ app.post("/api/admin/accounts/reset", requireDashboardAuth, requireDashboardAdmi
     let sentTo = "user";
     if (!(await sendDashboardDm(target.discordId, personText))) {
       sentTo = "admin";
-      if (!(await sendDashboardDm(FABIAN_ID, adminText))) {
+      if (!(await sendDashboardDm(config.users.sysadmin, adminText))) {
         throw new Error("Das Einmalpasswort konnte per DM nicht zugestellt werden. Es wurde nichts geändert.");
       }
     }
@@ -7440,7 +7337,7 @@ app.post("/api/tickets/delete", requireDashboardAuth, requireDashboardAdmin, exp
     await dashLog(
       req.dashboardUser.level,
       "ticket-delete",
-      removed.createdById || actor?.discordId || FABIAN_ID,
+      removed.createdById || actor?.discordId || config.users.sysadmin,
       `${removed.name} (${removed.messageCount} Nachrichten) gelöscht von ${req.dashboardUser.username}`,
     );
     res.json({ success: true, message: `Ticket ${removed.name} gelöscht.` });
@@ -7624,13 +7521,13 @@ app.post("/api/users/action", requireDashboardAuth, express.json(), async (req, 
 });
 const RETENTION_MS = 365 * 86400000;
 const PURGE_ROLE_IDS = [
-  ECO_ROLE_ID,
-  GIVEAWAY_DOUBLE_ROLE_ID,
-  COUNTING_PUFFER_ROLE_ID,
-  COUNTING_XP30_ROLE_ID,
-  COUNTING_XP60_ROLE_ID,
-  VIP_ROLE_ID,
-  COUNTING_KING_ROLE_ID,
+  config.roles.economy,
+  config.roles.giveawayDouble,
+  config.roles.countingPuffer,
+  config.roles.countingXp30,
+  config.roles.countingXp60,
+  config.roles.vip,
+  config.roles.countingKing,
 ];
 
 let leftQueue = Promise.resolve();
@@ -7679,7 +7576,7 @@ function purgeCountingData(userId, guild) {
       const newKing = await guild.members.fetch(kingId).catch(function () {
         return null;
       });
-      if (newKing) await newKing.roles.add(COUNTING_KING_ROLE_ID).catch(function () {});
+      if (newKing) await newKing.roles.add(config.roles.countingKing).catch(function () {});
     }
     return true;
   });
@@ -7853,7 +7750,7 @@ async function purgeUserData(userId, options) {
   const guild = options.guild;
   const member = options.member || null;
   if (member) {
-    await member.roles.add(UNVERIFIED_ROLE_ID).catch(function () {
+    await member.roles.add(config.roles.unverified).catch(function () {
       throw new Error("Die Unverified-Rolle konnte nicht vergeben werden (Rollen-Reihenfolge prüfen). Es wurde nichts gelöscht.");
     });
   }
@@ -8003,7 +7900,7 @@ async function cleanupDepartedUsers() {
 }
 async function cleanupLogChannel() {
   const cutoff = Date.now() - RETENTION_MS;
-  const channel = await client.channels.fetch(LOG_CHANNEL_ID).catch(function () {
+  const channel = await client.channels.fetch(config.channels.logs).catch(function () {
     return null;
   });
   if (!channel || !channel.isTextBased()) return 0;
@@ -8830,7 +8727,7 @@ client.on("interactionCreate", async (interaction) => {
     channel: currentChannel,
   } = interaction;
   if (commandName === "dashboard-verify") {
-    if (!member?.roles?.cache?.has(TEAM_ROLE_ID)) {
+    if (!member?.roles?.cache?.has(config.roles.team)) {
       return interaction.reply({
         content: "Du benötigst die Team-Rolle.",
         flags: [MessageFlags.Ephemeral]
@@ -8870,7 +8767,7 @@ client.on("interactionCreate", async (interaction) => {
     });
   }
   const sendKekseLog = async (cmdName, target, content) => {
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+    const logChannel = client.channels.cache.get(config.channels.logs);
     if (logChannel) {
       const kekseEmbed = new EmbedBuilder()
         .setColor("#ffffff")
@@ -9109,7 +9006,7 @@ client.on("interactionCreate", async (interaction) => {
     }
   }
   if (commandName === "ping") {
-    if (!member.roles.cache.has(TEAM_ROLE_ID)) {
+    if (!member.roles.cache.has(config.roles.team)) {
       return interaction.reply({
         content: "❌ Keine Berechtigung.",
         flags: [MessageFlags.Ephemeral],
@@ -9134,7 +9031,7 @@ client.on("interactionCreate", async (interaction) => {
       })
       .catch(() => {});
 
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+    const logChannel = client.channels.cache.get(config.channels.logs);
     console.log(
       `${user.username} hat eine Pingabfrage gestartet. Antwort: API-Latenz:${roundtrip}ms , WebSocket:${wsPing}ms`,
     );
@@ -9155,7 +9052,7 @@ client.on("interactionCreate", async (interaction) => {
     }
   }
   if (commandName === "clear") {
-    if (!member.roles.cache.has(TEAM_ROLE_ID)) {
+    if (!member.roles.cache.has(config.roles.team)) {
       return interaction.reply({
         content: ":x: Keine Berechtigung.",
         flags: [MessageFlags.Ephemeral],
@@ -9261,7 +9158,7 @@ client.on("interactionCreate", async (interaction) => {
     console.log(
       `${user.username} hat die "clear"-Funktion genutzt: ${deletedCount} innerhalb von ${duration}s in ${targetChannel} gelöscht`,
     );
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+    const logChannel = client.channels.cache.get(config.channels.logs);
     if (logChannel) {
       const userList = targetUser ? `<@${targetUser.id}>` : "Alle User";
       const logEmbed = new EmbedBuilder()
@@ -9280,7 +9177,7 @@ client.on("interactionCreate", async (interaction) => {
     globalBotStats.commandsRunned += 1;
   }
   if (commandName === "giveaway") {
-    if (!member.roles.cache.has(TEAM_ROLE_ID)) {
+    if (!member.roles.cache.has(config.roles.team)) {
       return interaction.reply({
         content: " Keine Rechte.",
         flags: [MessageFlags.Ephemeral],
@@ -9392,7 +9289,7 @@ client.on("interactionCreate", async (interaction) => {
     globalBotStats.commandsRunned += 1;
   }
   if (commandName === "moveadmin") {
-    if (!member.roles.cache.has(TEAM_ROLE_ID)) {
+    if (!member.roles.cache.has(config.roles.team)) {
       return interaction.reply({
         content: ":x: Keine Berechtigung.",
         flags: [MessageFlags.Ephemeral],
@@ -9468,7 +9365,7 @@ client.on("interactionCreate", async (interaction) => {
     }
   }
   if (commandName === "close") {
-    if (!member.roles.cache.has(TEAM_ROLE_ID)) {
+    if (!member.roles.cache.has(config.roles.team)) {
       return interaction.reply({
         content: ":x: Keine Berechtigung.",
         flags: [MessageFlags.Ephemeral],
@@ -9483,7 +9380,7 @@ client.on("interactionCreate", async (interaction) => {
     globalBotStats.commandsRunned += 1;
   }
   if (commandName === "block") {
-    if (!member.roles.cache.has(TEAM_ROLE_ID)) {
+    if (!member.roles.cache.has(config.roles.team)) {
       return interaction.reply({
         content: ":x: Keine Berechtigung.",
         flags: [MessageFlags.Ephemeral],
@@ -9506,7 +9403,7 @@ client.on("interactionCreate", async (interaction) => {
     });
     globalBotStats.commandsRunned += 1;
   }
-  if (!member.roles.cache.has(TEAM_ROLE_ID) || !hasPerm(member)) {
+  if (!member.roles.cache.has(config.roles.team) || !hasPerm(member)) {
     if (
       [
         "timeout",
@@ -9530,7 +9427,7 @@ client.on("interactionCreate", async (interaction) => {
 
   const sendModLog = async (action, target, reason, extra = null) => {
     const logChannel = await client.channels
-      .fetch(LOG_CHANNEL_ID)
+      .fetch(config.channels.logs)
       .catch(() => null);
     if (!logChannel) return;
 
@@ -9799,7 +9696,7 @@ client.on("interactionCreate", async (interaction) => {
   }
 
   if (commandName === "set-number") {
-    if (user.id !== FABIAN_ID) {
+    if (user.id !== config.users.sysadmin) {
       return interaction.reply({
         content: ":x: Nur der Haupt-Admin darf diesen Befehl nutzen.",
         flags: [MessageFlags.Ephemeral],
@@ -9813,7 +9710,7 @@ client.on("interactionCreate", async (interaction) => {
     countingData.direction = newNum < 0 ? -1 : 1;
     await saveCounting();
 
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+    const logChannel = client.channels.cache.get(config.channels.logs);
     if (logChannel) {
       const logEmbed = new EmbedBuilder()
         .setColor("#ffffff")
@@ -9839,7 +9736,7 @@ client.on("interactionCreate", async (interaction) => {
     globalBotStats.commandsRunned += 1;
   }
   if (commandName === "daily-setup") {
-    if (user.id !== FABIAN_ID) {
+    if (user.id !== config.users.sysadmin) {
       return interaction.reply({
         content: "Du hast keine Berechtigung diesen Befehl zu nutzen.",
         flags: [MessageFlags.Ephemeral],
@@ -9885,7 +9782,7 @@ client.on("interactionCreate", async (interaction) => {
   }
 
   if (commandName === "shop-setup") {
-    if (user.id !== FABIAN_ID) {
+    if (user.id !== config.users.sysadmin) {
       return interaction.reply({
         content: "Du hast keine Berechtigung diesen Befehl zu nutzen.",
         flags: [MessageFlags.Ephemeral],
@@ -9894,7 +9791,7 @@ client.on("interactionCreate", async (interaction) => {
 
     const description =
       options.getString("beschreibung") || "Hole dir hier deine Items ab!";
-    const shopChannel = guild.channels.cache.get(SHOP_CHANNEL_ID);
+    const shopChannel = guild.channels.cache.get(config.channels.shop);
 
     if (!shopChannel) {
       return interaction.reply({
@@ -9957,16 +9854,16 @@ client.on("interactionCreate", async (interaction) => {
     await shopChannel.send({ embeds: [shopEmbed], components: [row] });
 
     await interaction.reply({
-      content: `:white_check_box: Shop erfolgreich im Kanal <#${SHOP_CHANNEL_ID}> eingerichtet!`,
+      content: `:white_check_box: Shop erfolgreich im Kanal <#${config.channels.shop}> eingerichtet!`,
       flags: [MessageFlags.Ephemeral],
     });
     console.log(`${user.username} hat ein neues Shop-Setup erstellt`);
     globalBotStats.commandsRunned += 1;
   }
   if (commandName === "casino") {
-    if (channelId !== CASINO_CHANNEL_ID) {
+    if (channelId !== config.channels.casino) {
       return interaction.reply({
-        content: `Das Casino ist nur in <#${CASINO_CHANNEL_ID}> nutzbar.`,
+        content: `Das Casino ist nur in <#${config.channels.casino}> nutzbar.`,
         flags: [MessageFlags.Ephemeral],
       });
     }
@@ -9999,7 +9896,7 @@ client.on("interactionCreate", async (interaction) => {
       "slot",
     ].includes(commandName)
   ) {
-    const hasEcoRole = member.roles.cache.has(ECO_ROLE_ID);
+    const hasEcoRole = member.roles.cache.has(config.roles.economy);
     if (!hasEcoRole) {
       return interaction.reply({
         content:
@@ -10008,9 +9905,9 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
 
-    if (channelId !== CASINO_CHANNEL_ID) {
+    if (channelId !== config.channels.casino) {
       return interaction.reply({
-        content: `Das Casino ist nur in <#${CASINO_CHANNEL_ID}> nutzbar.`,
+        content: `Das Casino ist nur in <#${config.channels.casino}> nutzbar.`,
         flags: [MessageFlags.Ephemeral],
       });
     }
@@ -10182,7 +10079,7 @@ client.on("interactionCreate", async (interaction) => {
           });
       };
 
-      const casinoChannel = guild.channels.cache.get(CASINO_CHANNEL_ID);
+      const casinoChannel = guild.channels.cache.get(config.channels.casino);
 
       if (!jackpotState.countdownTimer) {
         const drawTime = Date.now() + 5 * 60 * 1000;
@@ -11074,7 +10971,7 @@ client.on("interactionCreate", async (interaction) => {
       ephemeral: false,
     });
 
-    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+    const logChannel = client.channels.cache.get(config.channels.logs);
     if (logChannel) {
       const logEmbed = new EmbedBuilder()
         .setColor("#ffffff")
@@ -11094,7 +10991,7 @@ client.on("interactionCreate", async (interaction) => {
   }
   if (commandName === "zweitaccount") {
     if (
-      !member.roles.cache.has(TEAM_ROLE_ID) &&
+      !member.roles.cache.has(config.roles.team) &&
       !member.permissions.has(PermissionsBitField.Flags.ManageMessages)
     ) {
       return interaction.reply({
@@ -11142,7 +11039,7 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
 
-      const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+      const logChannel = client.channels.cache.get(config.channels.logs);
       if (logChannel) {
         const logEmbed = new EmbedBuilder()
           .setColor("#ffffff")
@@ -11197,7 +11094,7 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
 
-      const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+      const logChannel = client.channels.cache.get(config.channels.logs);
       if (logChannel) {
         const logEmbed = new EmbedBuilder()
           .setColor("#ffffff")
@@ -11254,11 +11151,8 @@ client.once("clientReady", async () => {
     console.error("[Ready] Kritischer Fehler beim Initialisieren:", err);
   }
   try {
-    const VOICE_CHANNEL_ID = "1567194137650925598";
-    const ALLOWED_USER_ID = "1423427747103113307";
-    const TARGET_ROLE_ID = "1457906448234319922";
     const CUSTOM_BUTTON_ID = "toggle_voice_lock";
-    const voiceChannel = await client.channels.fetch(VOICE_CHANNEL_ID);
+    const voiceChannel = await client.channels.fetch(config.channels.modVoice);
     if (!voiceChannel || voiceChannel.type !== ChannelType.GuildVoice) return;
     const messages = await voiceChannel.messages.fetch({ limit: 5 });
     const existingBotMessage = messages.find(
@@ -11270,7 +11164,7 @@ client.once("clientReady", async () => {
     );
     if (!existingBotMessage) {
       const currentOverwrites =
-        voiceChannel.permissionOverwrites.cache.get(TARGET_ROLE_ID);
+        voiceChannel.permissionOverwrites.cache.get(config.roles.team);
       const isLocked =
         currentOverwrites &&
         currentOverwrites.deny.has(PermissionFlagsBits.Connect);
