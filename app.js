@@ -37,14 +37,11 @@ const options = {
     "/etc/letsencrypt/live/kekse-bot.dedyn.io/fullchain.pem",
   ),
 };
-
 const port = 5000;
 https.createServer(options, app).listen(port, "0.0.0.0", () => {
   console.log(`Dashboard läuft auf Port ${port}`);
 });
-
 const GUILD_ID = "1423413347168157718"; // Cookieverse: https://discord.gg/pU9zyJRFGn
-
 
 const client = new Client({
   intents: [
@@ -111,37 +108,28 @@ function setBotPresence() {
     console.error("Fehler beim Setzen:", err);
   }
 }
-
 let presenceTimer = null;
-
 function schedulePresenceRefresh(delay = 10000) {
   clearTimeout(presenceTimer);
   presenceTimer = setTimeout(setBotPresence, delay);
 }
-
 mongoose.connection.on("error", function (err) {
   console.error("[MongoDB] Fehler:", err.message);
   schedulePresenceRefresh(10000);
 });
-
 mongoose.connection.on("disconnected", function () {
   schedulePresenceRefresh(10000);
 });
-
 mongoose.connection.on("reconnected", function () {
   schedulePresenceRefresh(10000);
 });
-
 client.on("shardReady", function () {
   schedulePresenceRefresh(2000);
 });
-
 client.on("shardResume", function () {
   schedulePresenceRefresh(2000);
 });
-
 setInterval(setBotPresence, 10 * 60 * 1000);
-
 const hlGames = new Map();
 const crashGames = new Map();
 const jackpotState = {
@@ -151,7 +139,6 @@ const jackpotState = {
   countdownEndTime: null,
   announceMessage: null,
 };
-
 let archives = [];
 let logs = [];
 let backendPingHistory = [];
@@ -326,7 +313,6 @@ const LOG_DIR = path.join(__dirname, "logs");
 fs.mkdirSync(LOG_DIR, { recursive: true });
 let logStream = null;
 let logStreamDate = null;
-
 function logDateString(date = new Date()) {
   return date
     .toLocaleDateString("de-DE", {
@@ -337,7 +323,6 @@ function logDateString(date = new Date()) {
     })
     .replace(/\./g, "-");
 }
-
 function writeLogLine(entry) {
   const day = logDateString(new Date(entry.t));
   if (day !== logStreamDate) {
@@ -350,7 +335,6 @@ function writeLogLine(entry) {
   }
   logStream.write(JSON.stringify(entry) + "\n");
 }
-
 async function readLogFile(day) {
   try {
     const raw = await fs.promises.readFile(
@@ -376,7 +360,6 @@ console.log = function (...args) {
   originalLog.apply(console, args);
   captureLog("info", args);
 };
-
 console.error = function (...args) {
   originalError.apply(console, args);
   captureLog("error", args);
@@ -616,7 +599,6 @@ async function performSteal(guild, thiefMember) {
     stealBusy.delete(thiefId);
   }
 }
-
 const SLOT_SYMBOLS = [
   { emoji: "🍒", weight: 28, multiplier: 5 },
   { emoji: "🍋", weight: 24, multiplier: 8 },
@@ -626,7 +608,6 @@ const SLOT_SYMBOLS = [
   { emoji: "💎", weight: 4, multiplier: 100 },
   { emoji: "7️⃣", weight: 2, multiplier: 250 },
 ];
-
 function spinSlotReel() {
   let r = Math.random() * 100;
   for (const s of SLOT_SYMBOLS) {
@@ -635,7 +616,6 @@ function spinSlotReel() {
   }
   return SLOT_SYMBOLS[0];
 }
-
 function playSlot(betAmount) {
   const reels = [spinSlotReel(), spinSlotReel(), spinSlotReel()];
   let returned = 0;
@@ -684,7 +664,6 @@ export async function initEconomySystem(client) {
     announceMessage: null,
   });
   let jackpotState = resetJackpot();
-
   const runJackpotDraw = async (channel) => {
     if (jackpotState.entries.length === 0) {
       jackpotState = resetJackpot();
@@ -736,7 +715,6 @@ export async function initEconomySystem(client) {
     else await channel.send({ embeds: [winEmbed] }).catch(() => {});
     console.log(`${winner.username} hat den Jackpot in höhe von ${totalPool} gewonnen.`);
   };
-
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot || !msg.member) return;
     if (!msg.content.startsWith("!")) return;
@@ -756,7 +734,6 @@ export async function initEconomySystem(client) {
         { namespace: "economy", key: /^\d+$/, "value.balance": { $gt: 0 } },
         { key: 1, "value.balance": 1 },
       ).sort({ "value.balance": -1 }).limit(5).lean();
-
       const embed = new EmbedBuilder()
         .setTitle(":trophy: Top 5 Balance")
         .setColor("#ffffff")
@@ -795,14 +772,12 @@ export async function initEconomySystem(client) {
         description: description,
         exists: true,
       });
-
       const embed = new EmbedBuilder()
         .setTitle(":cookie: Tägliche Kekse")
         .setDescription(
           `${description}\n\nKlicke auf den Button unten, um 100 Kekse zu erhalten.`,
         )
         .setColor(0xffffff);
-
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId(`daily_claim_${setupId}`)
@@ -810,7 +785,6 @@ export async function initEconomySystem(client) {
           .setStyle(ButtonStyle.Success)
           .setEmoji("🍪"),
       );
-
       await msg.channel.send({ embeds: [embed], components: [row] });
       console.log(
         `Neues Daily Setup erstellt. (daily_claim_${setupId})`,
@@ -898,7 +872,6 @@ export async function initEconomySystem(client) {
           .setStyle(ButtonStyle.Primary)
           .setEmoji("💎"),
       );
-
       await shopChannel.send({ embeds: [shopEmbed], components: [row] });
       console.log(`Neuer Shop erstellt (setup_${setupId})`);
       console.log(`Reply ${msg.author.username}: Shop erfolgreich im Kanal #Shop erstellt.`);
@@ -909,7 +882,6 @@ export async function initEconomySystem(client) {
     if (command === "!coinflip") {
       const targetUser = msg.mentions.users.first();
       const betAmount = parseInt(args[2]);
-
       if (!targetUser || isNaN(betAmount) || betAmount <= 0) {
         console.log(`Reply ${msg.author.username}: Nutzung: "!coinflip @User <Einsatz>"`);
         return msg.reply({
@@ -931,10 +903,8 @@ export async function initEconomySystem(client) {
           flags: [MessageFlags.Ephemeral],
         });
       }
-
       const challengerData = await getEcoData(msg.author.id);
       const challengedData = await getEcoData(targetUser.id);
-
       if ((challengerData.balance || 0) < betAmount) {
         console.log(`Reply ${msg.author.username}: du hast nicht genug Kekse.`);
         return msg.reply({
@@ -949,7 +919,6 @@ export async function initEconomySystem(client) {
           flags: [MessageFlags.Ephemeral],
         });
       }
-
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId(
@@ -967,13 +936,11 @@ export async function initEconomySystem(client) {
         content: `<@${targetUser.id}>, du wurdest von <@${msg.author.id}> zu einem Coinflip um **${betAmount} Kekse** herausgefordert.`,
         components: [row],
       });
-
       const collector = challengeMsg.createMessageComponentCollector({
         filter: (i) => i.user.id === targetUser.id,
         componentType: ComponentType.Button,
         time: 30000,
       });
-
       collector.on("collect", async (interaction) => {
         if (interaction.customId.startsWith("cf_decline_")) {
           console.log(`${targetUser.username} hat die Herausforderung abgelehnt.`);
@@ -985,7 +952,6 @@ export async function initEconomySystem(client) {
         }
         const freshChallenger = await getEcoData(msg.author.id);
         const freshChallenged = await getEcoData(targetUser.id);
-
         if (
           (freshChallenger.balance || 0) < betAmount ||
           (freshChallenged.balance || 0) < betAmount
@@ -997,14 +963,11 @@ export async function initEconomySystem(client) {
           console.log(`Herausforderung abgebrochen.`);
           return collector.stop();
         }
-
         const flip = Math.random() < 0.5;
         const winner = flip ? msg.author : targetUser;
         const loser = flip ? targetUser : msg.author;
-
         const winnerData = flip ? freshChallenger : freshChallenged;
         const loserData = flip ? freshChallenged : freshChallenger;
-
         winnerData.balance = (winnerData.balance || 0) + betAmount;
         loserData.balance = (loserData.balance || 0) - betAmount;
         console.log(`${winner.username} hat ${loser.username} in einem Coinflip um ${betAmount} besiegt.`);
@@ -1022,7 +985,6 @@ export async function initEconomySystem(client) {
         );
         await setEcoData(winner.id, winnerData);
         await setEcoData(loser.id, loserData);
-
         const resultEmbed = new EmbedBuilder()
           .setTitle("Coinflip Ergebnis")
           .setDescription(
@@ -1030,7 +992,6 @@ export async function initEconomySystem(client) {
           )
           .setColor(0xffffff)
           .setFooter({ text: "Kekse Clan Casino | Multiplayer Coinflip" });
-
         await interaction.update({
           content: "",
           embeds: [resultEmbed],
@@ -1038,7 +999,6 @@ export async function initEconomySystem(client) {
         });
         collector.stop();
       });
-
       collector.on("end", (_, reason) => {
         if (reason === "time") {
           console.log(`Herausforderung abgebrochen.`);
@@ -1051,7 +1011,6 @@ export async function initEconomySystem(client) {
     if (command === "!ssp") {
       const targetUser = msg.mentions.users.first();
       const betAmount = parseInt(args[2]);
-
       if (!targetUser || isNaN(betAmount) || betAmount <= 0) {
         console.log(`Reply ${msg.author.username}: Nutzung: "!ssp @User <Einsatz>"`);
         return msg.reply({
@@ -1073,10 +1032,8 @@ export async function initEconomySystem(client) {
           flags: [MessageFlags.Ephemeral],
         });
       }
-
       const challengerData = await getEcoData(msg.author.id);
       const challengedData = await getEcoData(targetUser.id);
-
       if ((challengerData.balance || 0) < betAmount) {
         console.log(`Reply ${msg.author.username}: Du hast nicht genug Kekse.`);
         return msg.reply({
@@ -1120,20 +1077,17 @@ export async function initEconomySystem(client) {
           .setLabel("Ablehnen")
           .setStyle(ButtonStyle.Danger),
       );
-
       const inviteMsg = await msg.channel.send({
         content: `<@${targetUser.id}>, du wurdest von <@${msg.author.id}> zu **Schere Stein Papier** um **${betAmount} Kekse** herausgefordert!`,
         components: [inviteRow],
       });
       console.log(`${msg.author.username} hat ${targetUser.username} zu Schere Stein Papier um ${betAmount} Kekse herausgefordert.`);
-
       const inviteCollector = inviteMsg.createMessageComponentCollector({
         filter: (i) => i.user.id === targetUser.id,
         componentType: ComponentType.Button,
         time: 30000,
         max: 1,
       });
-
       inviteCollector.on("collect", async (inviteInt) => {
         if (inviteInt.customId.startsWith("ssp_invite_decline_")) {
           console.log(`${targetUser.username} hat abgelehnt.`);
@@ -1147,9 +1101,7 @@ export async function initEconomySystem(client) {
           content: `Herausforderung angenommen! Beide Spieler wählen jetzt per DM.`,
           components: [],
         });
-
         const choices = {};
-
         const askChoice = async (playerUser) => {
           try {
             const dm = await playerUser.send({
@@ -1173,7 +1125,6 @@ export async function initEconomySystem(client) {
                 });
                 resolve(choice);
               });
-
               dmCollector.on("end", (_, reason) => {
                 if (reason === "time") {
                   console.log(`Herausforderung abgebrochen.`);
@@ -1187,9 +1138,7 @@ export async function initEconomySystem(client) {
             return null;
           }
         };
-
         await Promise.all([askChoice(msg.author), askChoice(targetUser)]);
-
         const c1 = choices[msg.author.id];
         const c2 = choices[targetUser.id];
         if (!c1 || !c2) {
@@ -1199,14 +1148,11 @@ export async function initEconomySystem(client) {
             `<@${whoTimeout.id}> hat nicht rechtzeitig gewählt. Das Spiel wurde abgebrochen.`,
           );
         }
-
         const freshChallenger = await getEcoData(msg.author.id);
         const freshChallenged = await getEcoData(targetUser.id);
-
         let resultText;
         let winner = null;
         let loser = null;
-
         if (c1 === c2) {
           resultText = `**Unentschieden!** Beide haben ${c1} gewählt.`;
           console.log(`Herausforderung beendet. Unentschieden.`);
@@ -1233,7 +1179,6 @@ export async function initEconomySystem(client) {
           console.log(`${winner.username} hat ${loser.username} in Schere Stein Papier um ${betAmount} Kekse besiegt.`);
           resultText = `**Gewinner:** <@${winner.id}> ${SSP_EMOJI[c2]} **+${betAmount} Kekse**\n**Verlierer:** <@${loser.id}> ${SSP_EMOJI[c1]} **-${betAmount} Kekse**`;
         }
-
         const resultEmbed = new EmbedBuilder()
           .setTitle("Schere-Stein-Papier Ergebnis")
           .setDescription(
@@ -1241,10 +1186,8 @@ export async function initEconomySystem(client) {
           )
           .setColor(0xffffff)
           .setFooter({ text: "Kekse Clan Casino | Multiplayer SSP" });
-
         await inviteMsg.channel.send({ embeds: [resultEmbed] });
       });
-
       inviteCollector.on("end", (collected, reason) => {
         if (reason === "time") {
           console.log(`Herausforderung abgebrochen.`);
@@ -1306,7 +1249,6 @@ export async function initEconomySystem(client) {
             flags: [MessageFlags.Ephemeral],
           });
         }
-
         const redNumbers = new Set([
           1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36,
         ]);
@@ -1314,11 +1256,9 @@ export async function initEconomySystem(client) {
         const spinColor =
           spin === 0 ? "green" : redNumbers.has(spin) ? "red" : "black";
         const spinEmoji = spin === 0 ? ":green_circle:" : spinColor === "red" ? ":red_circle:" : ":black_circle:";
-
         let won = false;
         let payout = 0;
         let betDesc = betType;
-
         const numBet = parseInt(betType);
         if (!isNaN(numBet) && numBet >= 0 && numBet <= 36) {
           won = spin === numBet;
@@ -1364,7 +1304,6 @@ export async function initEconomySystem(client) {
           "Casino Roulette",
         );
         await setEcoData(msg.author.id, userData);
-
         const roulEmbed = new EmbedBuilder()
           .setTitle("Roulette")
           .setDescription(
@@ -1403,7 +1342,6 @@ export async function initEconomySystem(client) {
             flags: [MessageFlags.Ephemeral],
           });
         }
-
         const flip = Math.random() < 0.5 ? "heads" : "tails";
         const won = flip === choice;
         userData.balance =
@@ -1416,7 +1354,6 @@ export async function initEconomySystem(client) {
           "Casino Coinflip",
         );
         await setEcoData(msg.author.id, userData);
-
         const cfEmbed = new EmbedBuilder()
           .setTitle(`Coinflip`)
           .setDescription(
@@ -1453,7 +1390,6 @@ export async function initEconomySystem(client) {
             flags: [MessageFlags.Ephemeral],
           });
         }
-
         userData.balance -= betAmount;
         await logTransaction(
           msg.author.id,
@@ -1469,7 +1405,6 @@ export async function initEconomySystem(client) {
           betAmount,
         });
         jackpotState.totalPool += betAmount;
-
         const buildJackpotEmbed = (extra = "") => {
           const list = jackpotState.entries
             .map((e) => {
@@ -1494,11 +1429,9 @@ export async function initEconomySystem(client) {
               text: "Je mehr du einsetzt, desto höher deine Gewinnchance!",
             });
         };
-
         const userChance = ((betAmount / jackpotState.totalPool) * 100).toFixed(
           1,
         );
-
         if (jackpotState.entries.length === 1) {
           const jMsg = await msg.channel.send({
             embeds: [buildJackpotEmbed("Warte auf weitere Teilnehmer…")],
@@ -1506,7 +1439,6 @@ export async function initEconomySystem(client) {
           console.log(`Reply ${msg.author.username}: [jackpot]`);
           jackpotState.announceMessage = jMsg;
         }
-
         if (jackpotState.announceMessage) {
           const extra = jackpotState.countdownEndTime
             ? `Ziehung <t:${Math.floor(jackpotState.countdownEndTime / 1000)}:R>`
@@ -1515,7 +1447,6 @@ export async function initEconomySystem(client) {
             .edit({ embeds: [buildJackpotEmbed(extra)] })
             .catch(() => {});
         }
-
         if (!jackpotState.countdownTimer) {
           const drawTime = Date.now() + 5 * 60 * 1000;
           jackpotState.countdownEndTime = drawTime;
@@ -1560,18 +1491,15 @@ export async function initEconomySystem(client) {
             flags: [MessageFlags.Ephemeral],
           });
         }
-
         userData.balance -= betAmount;
         console.log(`${userData.username} hat einen Crash gestartet.`);
         await logTransaction(msg.author.id, betAmount, "minus", "Casino Crash");
         await setEcoData(msg.author.id, userData);
-
         const crashPoint = parseFloat(
           Math.max(1.01, 0.97 / (1 - Math.random())).toFixed(2),
         );
         let multiplier = 1.0;
         let intervalHandle = null;
-
         const cashoutRow = () =>
           new ActionRowBuilder().addComponents(
             new ButtonBuilder()
@@ -1581,7 +1509,6 @@ export async function initEconomySystem(client) {
               )
               .setStyle(ButtonStyle.Success),
           );
-
         const crashEmbed = (crashed = false, cashedAt = null) => {
           if (crashed)
             return new EmbedBuilder()
@@ -1611,14 +1538,12 @@ export async function initEconomySystem(client) {
           embeds: [crashEmbed()],
           components: [cashoutRow()],
         });
-
         crashGames.set(msg.author.id, {
           betAmount,
           crashPoint,
           cashedOut: false,
           cashedAtMultiplier: null,
         });
-
         const collector = gameMsg.createMessageComponentCollector({
           filter: (i) =>
             i.user.id === msg.author.id &&
@@ -1626,7 +1551,6 @@ export async function initEconomySystem(client) {
           componentType: ComponentType.Button,
           time: 120000,
         });
-
         collector.on("collect", async (interaction) => {
           const game = crashGames.get(msg.author.id);
           if (!game || game.cashedOut) {
@@ -1638,19 +1562,16 @@ export async function initEconomySystem(client) {
               .catch(() => {});
             return;
           }
-
           game.cashedOut = true;
           game.cashedAtMultiplier = multiplier;
           if (intervalHandle) clearInterval(intervalHandle);
           crashGames.delete(msg.author.id);
           collector.stop("cashout");
-
           const win = Math.floor(betAmount * game.cashedAtMultiplier);
           userData.balance += win;
           console.log(`${userData.username} hat den Crash mit ${win} Keksen verlassen.`);
           await logTransaction(msg.author.id, win, "plus", "Casino Crash");
           await setEcoData(msg.author.id, userData);
-
           await interaction
             .update({
               embeds: [crashEmbed(false, game.cashedAtMultiplier)],
@@ -1658,16 +1579,13 @@ export async function initEconomySystem(client) {
             })
             .catch(() => {});
         });
-
         intervalHandle = setInterval(async () => {
           const game = crashGames.get(msg.author.id);
           if (!game) {
             clearInterval(intervalHandle);
             return;
           }
-
           multiplier = parseFloat((multiplier + 0.2).toFixed(2));
-
           if (multiplier >= game.crashPoint) {
             clearInterval(intervalHandle);
             crashGames.delete(msg.author.id);
@@ -1682,7 +1600,6 @@ export async function initEconomySystem(client) {
             .edit({ embeds: [crashEmbed()], components: [cashoutRow()] })
             .catch(() => {});
         }, 1500);
-
         collector.on("end", async (collected, reason) => {
           if (reason === "time") {
             clearInterval(intervalHandle);
@@ -1695,7 +1612,6 @@ export async function initEconomySystem(client) {
             }
           }
         });
-
         return;
       }
       if (subCommand === "highlow" || subCommand === "hl") {
@@ -1776,7 +1692,6 @@ export async function initEconomySystem(client) {
           A: 14,
         };
         const suits = [":spades:", ":hearts:", ":diamonds:", ":clubs:"];
-
         const getCard = () => {
           const n = cardNames[Math.floor(Math.random() * cardNames.length)];
           return {
@@ -1784,12 +1699,10 @@ export async function initEconomySystem(client) {
             value: cardVals[n],
           };
         };
-
         let currentCard = getCard();
         let lastDrawnCard = null;
         let streak = 0;
         let multiplier = 1.0;
-
         const hlRow = (disabled = false) =>
           new ActionRowBuilder().addComponents(
             new ButtonBuilder()
@@ -1810,7 +1723,6 @@ export async function initEconomySystem(client) {
               .setStyle(ButtonStyle.Success)
               .setDisabled(disabled || streak === 0),
           );
-
         const hlEmbed = (desc, color = 0xffffff) =>
           new EmbedBuilder()
             .setTitle("Higher or Lower")
@@ -1825,25 +1737,20 @@ export async function initEconomySystem(client) {
           ],
           components: [hlRow()],
         });
-
         const collector = gameMsg.createMessageComponentCollector({
           filter: (i) => i.user.id === msg.author.id,
           componentType: ComponentType.Button,
           time: 90000,
         });
-
         collector.on("collect", async (interaction) => {
           try {
             await interaction.deferUpdate();
             const id = interaction.customId;
-
             if (id === `hl_cashout_${msg.author.id}`) {
               collector.stop("cashout");
               return;
             }
-
             await gameMsg.edit({ components: [hlRow(true)] }).catch(() => {});
-
             const nextCard = getCard();
             lastDrawnCard = nextCard;
             const choice = id.startsWith(`hl_higher`) ? "higher" : "lower";
@@ -1852,7 +1759,6 @@ export async function initEconomySystem(client) {
               !isTie &&
               ((choice === "higher" && nextCard.value > currentCard.value) ||
                 (choice === "lower" && nextCard.value < currentCard.value));
-
             if (isTie) {
               currentCard = nextCard;
               await gameMsg
@@ -1867,7 +1773,6 @@ export async function initEconomySystem(client) {
                 .catch(() => {});
               return;
             }
-
             if (correct) {
               streak++;
               multiplier = parseFloat((multiplier + 0.5).toFixed(2));
@@ -1890,11 +1795,9 @@ export async function initEconomySystem(client) {
             console.error("Fehler im HL-Collector abgefangen:", error);
           }
         });
-
         collector.on("end", async (collected, reason) => {
           hlGames.delete(msg.author.id);
           const fresh = await getEcoData(msg.author.id);
-
           if (reason === "cashout") {
             const win = Math.floor(betAmount * multiplier);
             fresh.balance = (fresh.balance || 0) + win;
@@ -1968,7 +1871,6 @@ export async function initEconomySystem(client) {
             }
           }
         });
-
         return;
       }
       if (subCommand === "slot") {
@@ -2021,7 +1923,6 @@ export async function initEconomySystem(client) {
             flags: [MessageFlags.Ephemeral],
           });
         }
-
         const suits = [":spades:", ":hearts:", ":diamonds:", ":clubs:"];
         const values = [
           { n: "2", v: 2 },
@@ -2038,7 +1939,6 @@ export async function initEconomySystem(client) {
           { n: "K", v: 10 },
           { n: "A", v: 11 },
         ];
-
         let deck = [];
         for (const suit of suits) {
           for (const val of values) {
@@ -2046,10 +1946,8 @@ export async function initEconomySystem(client) {
           }
         }
         deck = deck.sort(() => Math.random() - 0.5);
-
         const playerHand = [deck.pop(), deck.pop()];
         const dealerHand = [deck.pop(), deck.pop()];
-
         const calculateScore = (hand) => {
           let score = hand.reduce((sum, card) => sum + card.value, 0);
           let aces = hand.filter((card) => card.name.startsWith("A")).length;
@@ -2059,7 +1957,6 @@ export async function initEconomySystem(client) {
           }
           return score;
         };
-
         const row = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
             .setCustomId("bj_hit")
@@ -2070,7 +1967,6 @@ export async function initEconomySystem(client) {
             .setLabel("Stand")
             .setStyle(ButtonStyle.Primary),
         );
-
         const createEmbed = (title, color, showAllDealer = false) => {
           const pScore = calculateScore(playerHand);
           const dScore = showAllDealer
@@ -2080,7 +1976,6 @@ export async function initEconomySystem(client) {
           const dCards = showAllDealer
             ? dealerHand.map((c) => c.name).join(" ")
             : `${dealerHand[0].name} :flower_playing_cards:`;
-
           return new EmbedBuilder()
             .setTitle(title)
             .setColor(color)
@@ -2098,7 +1993,6 @@ export async function initEconomySystem(client) {
           let dScore = calculateScore(dealerHand);
           let status = "";
           let finalColor = 0x333333;
-
           if (dScore === 21) {
             status = "Beide haben Blackjack! Unentschieden.";
             finalColor = 0x333333;
@@ -2113,7 +2007,6 @@ export async function initEconomySystem(client) {
               "Casino Blackjack",
             );
           }
-
           await setEcoData(msg.author.id, userData);
           const finalEmbed = createEmbed(
             `Blackjack - ${status}`,
@@ -2127,16 +2020,13 @@ export async function initEconomySystem(client) {
           embeds: [createEmbed("Blackjack", 0xffffff)],
           components: [row],
         });
-
         const collector = gameMessage.createMessageComponentCollector({
           filter: (i) => i.user.id === msg.author.id,
           componentType: ComponentType.Button,
           time: 60000,
         });
-
         collector.on("collect", async (interaction) => {
           await interaction.deferUpdate();
-
           if (interaction.customId === "bj_hit") {
             playerHand.push(deck.pop());
             if (calculateScore(playerHand) >= 21) {
@@ -2149,25 +2039,21 @@ export async function initEconomySystem(client) {
               });
             }
           }
-
           if (interaction.customId === "bj_stand") {
             collector.stop("stand");
           }
         });
-
         collector.on("end", async (collected, reason) => {
           let pScore = calculateScore(playerHand);
           let dScore = calculateScore(dealerHand);
           let status = "";
           let finalColor = 0x333333;
-
           if (reason !== "busted") {
             while (dScore < 17) {
               dealerHand.push(deck.pop());
               dScore = calculateScore(dealerHand);
             }
           }
-
           if (reason === "busted" || pScore > 21) {
             status = "Überkauft! Du hast verloren.";
             userData.balance -= betAmount;
@@ -2216,13 +2102,11 @@ export async function initEconomySystem(client) {
             finalColor = 0x333333;
           }
           await setEcoData(msg.author.id, userData);
-
           const finalEmbed = createEmbed(
             `Blackjack - ${status}`,
             finalColor,
             true,
           ).setFooter({ text: `Neuer Kontostand: ${userData.balance} Kekse` });
-
           await gameMessage.edit({ embeds: [finalEmbed], components: [] });
         });
         return;
@@ -2245,7 +2129,6 @@ export async function initEconomySystem(client) {
         const targetUser = msg.mentions.users.first();
         let amount = 0;
         let targetId = msg.author.id;
-
         if (subCommand === "see") {
           if (!targetUser) return denyReply(msg, "user is missing");
           const data = await getEcoData(targetUser.id);
@@ -2266,14 +2149,12 @@ export async function initEconomySystem(client) {
           await msg.author.send({ embeds: [dmEmbed] }).catch(() => {});
           return msg.delete().catch(() => {});
         }
-
         if (targetUser) {
           targetId = targetUser.id;
           amount = parseInt(args[3]);
         } else {
           amount = parseInt(args[2]);
         }
-
         if (isNaN(amount) || amount <= 0) {
           console.log(`Reply ${msg.author.username}: incorrect amount`);
           return msg.reply({
@@ -2281,10 +2162,8 @@ export async function initEconomySystem(client) {
             flags: [MessageFlags.Ephemeral],
           });
         }
-
         const targetData = await getEcoData(targetId);
         let currentBalance = targetData.balance || 0;
-
         if (subCommand === "add") {
           currentBalance += amount;
           console.log(`${targetData.username} erhält ${amount} Kekse.`);
@@ -2292,10 +2171,8 @@ export async function initEconomySystem(client) {
           currentBalance = Math.max(0, currentBalance - amount);
           console.log(`${targetData.username} verliert ${amount} Kekse`);
         }
-
         targetData.balance = currentBalance;
         await setEcoData(targetId, targetData);
-
         const logEmbed = new EmbedBuilder()
           .setTitle("Konto-Aktualisierung")
           .setDescription(`Konto von <@${targetId}> wurde aktualisiert.`)
@@ -2308,12 +2185,10 @@ export async function initEconomySystem(client) {
             { name: "Neuer Kontostand", value: `${currentBalance} Kekse` },
           )
           .setColor(0xffffff);
-
         await msg.author.send({ embeds: [logEmbed] }).catch(() => {});
         console.log(`Reply ${msg.author.username}: [Konto-Aktualisierung]`);
         return msg.delete().catch(() => {});
       }
-
       if (subCommand === "create") {
         if (hasEcoRole) {
           console.log(`Reply ${msg.author.username}: Du besitzt bereits ein registriertes Bankkonto`);
@@ -2322,7 +2197,6 @@ export async function initEconomySystem(client) {
             flags: [MessageFlags.Ephemeral],
           });
         }
-
         const row = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
             .setCustomId(`open_bank_modal_${msg.author.id}`)
@@ -2339,10 +2213,8 @@ export async function initEconomySystem(client) {
           reply.delete().catch(() => {});
           msg.delete().catch(() => {});
         }, 30000);
-
         return;
       }
-
       if (subCommand === "help") {
         const helpEmbed = new EmbedBuilder()
           .setTitle(":bank: Bank-System Hilfe")
@@ -2371,7 +2243,6 @@ export async function initEconomySystem(client) {
       if (subCommand === "pay") {
         let targetArg = args[2];
         let amountArg = args[3];
-
         const targetUserId = targetArg?.replace(/[<@!&>#]/g, "");
         const amount = parseInt(amountArg);
         const userData = await getEcoData(msg.author.id);
@@ -2382,7 +2253,6 @@ export async function initEconomySystem(client) {
             flags: [MessageFlags.Ephemeral],
           });
         }
-
         if (targetUserId === msg.author.id) {
           console.log(`Reply ${msg.author.username}: Du kannst dir selbst keine Kekse überweisen.`);
           return msg.reply({
@@ -2390,7 +2260,6 @@ export async function initEconomySystem(client) {
             flags: [MessageFlags.Ephemeral],
           });
         }
-
         if (amount > (userData.balance || 0)) {
           console.log(`Reply ${msg.author.username}: Du hast nicht genug Kekse.`);
           return msg.reply({
@@ -2398,7 +2267,6 @@ export async function initEconomySystem(client) {
             flags: [MessageFlags.Ephemeral],
           });
         }
-
         const targetData = await getEcoData(targetUserId);
         if (!targetData || !targetData.username || targetData.blocked) {
           console.log(`Reply ${msg.author.username}: Der Zielnutzer hat kein aktives Konto oder ist gesperrt.`);
@@ -2407,7 +2275,6 @@ export async function initEconomySystem(client) {
             flags: [MessageFlags.Ephemeral],
           });
         }
-
         userData.balance -= amount;
         targetData.balance = (targetData.balance || 0) + amount;
         await logTransaction(
@@ -2424,11 +2291,9 @@ export async function initEconomySystem(client) {
         );
         await setEcoData(msg.author.id, userData);
         await setEcoData(targetUserId, targetData);
-
         console.log(
           `Überweisung von ${userData.username || msg.author.username} an ${targetData.username || targetUserId} für ${amount} Kekse.`,
         );
-
         const payEmbed = new EmbedBuilder()
           .setTitle("Überweisung erfolgreich")
           .setDescription(
@@ -2439,7 +2304,6 @@ export async function initEconomySystem(client) {
             value: `${userData.balance} Kekse`,
           })
           .setColor(0xffffff);
-
         const getEmbed = new EmbedBuilder()
           .setTitle("Kekse erhalten!")
           .setDescription(
@@ -2455,7 +2319,6 @@ export async function initEconomySystem(client) {
           embeds: [payEmbed],
           flags: [MessageFlags.Ephemeral],
         });
-
         try {
           const targetUser = await msg.client.users.fetch(targetUserId);
           await targetUser.send({ embeds: [getEmbed] });
@@ -2576,9 +2439,7 @@ export async function initEconomySystem(client) {
             flags: [MessageFlags.Ephemeral],
           });
         }
-
         const userData = await getEcoData(msg.author.id);
-
         if (userData.blocked) {
           console.log(`Reply ${msg.author.username}: Dein Konto ist gesperrt. Wenn es sich um ein Missverständnis handelt wende dich an den Support -> #Ticket`);
           return msg.reply({
@@ -2605,7 +2466,6 @@ export async function initEconomySystem(client) {
           "open_bank_modal_",
           "",
         );
-
         if (interaction.user.id !== allowedUserId) {
           console.log(`Reply ${interaction.user.username}: Du kannst diesen Button nicht nutzen, da du den Befehl nicht eingegeben hast.`);
           return interaction.reply({
@@ -2614,7 +2474,6 @@ export async function initEconomySystem(client) {
             flags: [MessageFlags.Ephemeral],
           });
         }
-
         const hasEcoRole = interaction.member.roles.cache.has(config.roles.economy);
         if (hasEcoRole) {
           console.log(`Reply ${interaction.user.username}: Du besitzt bereits ein registriertes Bankkonto.`);
@@ -2623,20 +2482,16 @@ export async function initEconomySystem(client) {
             flags: [MessageFlags.Ephemeral],
           });
         }
-
         const modal = new ModalBuilder()
           .setCustomId(`bank_create_${interaction.user.id}`)
           .setTitle("Bankkonto erstellen");
-
         const mcInput = new TextInputBuilder()
           .setCustomId("mc_username")
           .setLabel("Minecraft Benutzername")
           .setStyle(TextInputStyle.Short)
           .setRequired(true)
           .setPlaceholder("Dein exakter Name im Spiel");
-
         modal.addComponents(new ActionRowBuilder().addComponents(mcInput));
-
         await interaction.showModal(modal).catch(console.error);
         return;
       }
@@ -2650,13 +2505,11 @@ export async function initEconomySystem(client) {
             flags: [MessageFlags.Ephemeral],
           });
         }
-
         const setupId = interaction.customId.replace("daily_claim_", "");
         const localizedDateStr = new Date().toLocaleDateString("de-DE", {
           timeZone: "Europe/Berlin",
         });
         const userData = (await getEcoData(interaction.user.id)) || {};
-
         if (!userData.claimedDailies) {
           userData.claimedDailies = {};
         }
@@ -2671,7 +2524,6 @@ export async function initEconomySystem(client) {
         userData.balance = (userData.balance || 0) + payout;
         await logTransaction(interaction.user.id, payout, "plus", "Daily");
         userData.claimedDailies[setupId] = localizedDateStr;
-
         if (typeof userData.markModified === "function") {
           userData.markModified("claimedDailies");
         } else {
@@ -2720,7 +2572,6 @@ export async function initEconomySystem(client) {
             price: 500000,
           },
         };
-
         const item = SHOP_ITEMS[itemType];
         if (!item) {
           console.log(`Reply ${interaction.user.username}: Dieses Item existiert nicht.`);
@@ -2729,7 +2580,6 @@ export async function initEconomySystem(client) {
             flags: MessageFlags.Ephemeral,
           });
         }
-
         if (member.roles.cache.has(item.roleId)) {
           console.log(`Reply ${interaction.user.username}: Du besitzt das Item ${item.name} bereits.`);
           return interaction.reply({
@@ -2737,11 +2587,9 @@ export async function initEconomySystem(client) {
             flags: MessageFlags.Ephemeral,
           });
         }
-
         let freshData = await getEcoData(interaction.user.id);
         if (!freshData || typeof freshData !== "object") freshData = {};
         let currentCookies = freshData.balance || 0;
-
         if (currentCookies < item.price) {
           console.log(`Reply ${interaction.user.username}: Du hast nicht genug Kekse für diesen Kauf! 1x ${item.name} kostet ${item.price.toLocaleString("de-DE")} Kekse (Du hast: ${currentCookies.toLocaleString("de-DE")}).`);
           return interaction.reply({
@@ -2749,7 +2597,6 @@ export async function initEconomySystem(client) {
             flags: MessageFlags.Ephemeral,
           });
         }
-
         try {
           const finalData = (await getEcoData(interaction.user.id)) || {};
           finalData.balance =
@@ -2757,7 +2604,6 @@ export async function initEconomySystem(client) {
           if (!finalData.userId) finalData.userId = interaction.user.id;
           if (!finalData.username)
             finalData.username = interaction.user.username;
-
           await setEcoData(interaction.user.id, finalData);
           await member.roles.add(item.roleId);
           console.log(`${interaction.user.username} hat ${item.name} im Shop erworben.`);
@@ -2767,7 +2613,6 @@ export async function initEconomySystem(client) {
             flags: MessageFlags.Ephemeral,
           });
           addXP(interaction.user.id, 100, client);
-
           const invoiceEmbed = {
             color: 0xffffff,
             title: ":receipt: Deine Shop-Quittung",
@@ -2787,11 +2632,9 @@ export async function initEconomySystem(client) {
             ],
             timestamp: new Date(),
           };
-
           await interaction.user.send({ embeds: [invoiceEmbed] }).catch(() => {
             console.log(`Konnte keine DM an ${interaction.user.tag} senden.`);
           });
-
           if (item.duration) {
             setTimeout(async () => {
               try {
@@ -2843,9 +2686,7 @@ export async function initEconomySystem(client) {
           blocked: false,
           claimedDailies: {},
         };
-
         await setEcoData(interaction.user.id, accountData);
-
         const member = await interaction.guild.members
           .fetch(interaction.user.id)
           .catch(() => null);
@@ -2865,28 +2706,22 @@ export async function initEconomySystem(client) {
 export async function wage(force = false) {
   const now = new Date();
   const aktuellerMonat = now.getMonth();
-
   const istErzwungen = force === true;
-
   if (istErzwungen) {
     await fuehreGehaltszahlungAus(now);
     return;
   }
-
   const status = await getWageData("status");
   const gespeicherterMonat =
     status.letzterMonat !== undefined ? status.letzterMonat : -1;
-
   const istErsterDesMonats = now.getDate() === 1;
   const istNullUhr = now.getHours() === 0;
   const bereitsDiesenMonatGezahlt = gespeicherterMonat === aktuellerMonat;
-
   if (istErsterDesMonats && istNullUhr && !bereitsDiesenMonatGezahlt) {
     await setWageData("status", { letzterMonat: aktuellerMonat });
     await fuehreGehaltszahlungAus(now);
   }
 }
-
 async function fuehreGehaltszahlungAus(now) {
   try {
     const guild =
@@ -2896,7 +2731,6 @@ async function fuehreGehaltszahlungAus(now) {
       guild.roles.cache.get(config.roles.team) ||
       (await guild.roles.fetch(config.roles.team));
     const team = Array.from(role.members.values());
-
     const nowFormatted = now
       .toLocaleString("de-DE", {
         day: "2-digit",
@@ -2906,13 +2740,11 @@ async function fuehreGehaltszahlungAus(now) {
         minute: "2-digit",
       })
       .replace(",", "");
-
     for (const member of team) {
       const userData = await getEcoData(member.user.id);
       userData.balance = (userData.balance || 0) + 10000;
       console.log(`${userData.username} wurde der monatliche Team-Lohn in höhe von 10000 Keksen gutgeschrieben. Neuer Kontostand: ${userData.balance} Kekse`);
       await setEcoData(member.user.id, userData);
-
       const embed = {
         title: ":white_check_mark: Monatlicher Lohn",
         description:
@@ -2922,7 +2754,6 @@ async function fuehreGehaltszahlungAus(now) {
         color: 0x2ecc70,
         footer: { text: nowFormatted },
       };
-
       try {
         await member.send({
           embeds: [embed],
@@ -3008,7 +2839,6 @@ export function initAuditLogs(client) {
     if (channelId === config.channels.logs) return;
     const chan = client.channels.cache.get(config.channels.logs);
     if (!chan) return;
-
     const embed = new EmbedBuilder()
       .setColor(color)
       .setAuthor({
@@ -3018,11 +2848,9 @@ export function initAuditLogs(client) {
       .setDescription(`**Event:** \`${title}\`\n${text}`)
       .setFooter({ text: "Kekse Clan | Audit Log" })
       .setTimestamp();
-
     if (thumb) embed.setThumbnail(thumb);
     await chan.send({ embeds: [embed] }).catch(() => {});
   };
-
   client.on(Events.MessageDelete, async (msg) => {
     if (msg.partial || msg.author?.bot || msg.channel.id === config.channels.logs)
       return;
@@ -3037,7 +2865,6 @@ export function initAuditLogs(client) {
       msg.channel.id,
     );
   });
-
   client.on(Events.MessageUpdate, async (oldMsg, newMsg) => {
     if (
       oldMsg.partial ||
@@ -3086,7 +2913,6 @@ client.on(Events.GuildMemberAdd, async (member) => {
       `<@${member.id}> (${member.user.tag}) hat den Server verlassen.`,
     );
   });
-
   client.on(Events.GuildMemberUpdate, async (oldMember, newMember) => {
     if (oldMember.nickname !== newMember.nickname) {
       await sendLog(
@@ -3119,7 +2945,6 @@ client.on(Events.GuildMemberAdd, async (member) => {
         "#f04747",
       );
   });
-
   client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
     const user = newState.member.user;
     if (!oldState.channelId && newState.channelId) {
@@ -3158,11 +2983,9 @@ client.on(Events.GuildMemberAdd, async (member) => {
       console.log(`${user} hat sich gestummt.`);
     }
   });
-
   client.on(Events.GuildAuditLogEntryCreate, async (entry) => {
     const { action, executorId, targetId } = entry;
     const executor = await client.users.fetch(executorId).catch(() => null);
-
     if (action === AuditLogEvent.ChannelCreate) {
       await sendLog(
         "Channel erstellt",
@@ -3201,7 +3024,6 @@ client.on(Events.GuildMemberAdd, async (member) => {
       );
       console.log(`Berechtigungen in <#${targetId}> wurden modifiziert.`);
     }
-
     if (action === AuditLogEvent.ThreadCreate) {
       await sendLog("Thread erstellt", executor, `Thread: <#${targetId}>`);
     }
@@ -3220,7 +3042,6 @@ client.on(Events.GuildMemberAdd, async (member) => {
         `Thread <#${targetId}> wurde bearbeitet.`,
       );
     }
-
     if (action === AuditLogEvent.RoleCreate) {
       await sendLog(
         "Rolle erstellt",
@@ -3243,7 +3064,6 @@ client.on(Events.GuildMemberAdd, async (member) => {
         `Die Rolle <@&${targetId}> wurde bearbeitet.`,
       );
     }
-
     if (action === AuditLogEvent.InviteCreate) {
       await sendLog(
         "Invite erstellt",
@@ -3251,7 +3071,6 @@ client.on(Events.GuildMemberAdd, async (member) => {
         `Ein neuer Einladungslink wurde generiert.`,
       );
     }
-
     if (action === AuditLogEvent.GuildUpdate) {
       await sendLog(
         "Server aktualisiert",
@@ -3260,7 +3079,6 @@ client.on(Events.GuildMemberAdd, async (member) => {
         "#ffffff",
       );
     }
-
     if (action === AuditLogEvent.MemberBanAdd)
       await sendLog("BAN", executor, `Ziel: <@${targetId}>`, "#ffffff");
     if (action === AuditLogEvent.MemberBanRemove)
@@ -3268,7 +3086,6 @@ client.on(Events.GuildMemberAdd, async (member) => {
     if (action === AuditLogEvent.MemberKick)
       await sendLog("KICK", executor, `Ziel: <@${targetId}>`, "#ffffff");
   });
-
   client.on(Events.GuildInviteCreate, async (invite) => {
     await sendLog(
       "Invite gesendet",
@@ -3320,12 +3137,10 @@ export async function clear(client) {
       if (/^\d+$/.test(args[0])) amount = Math.min(parseInt(args.shift()), 500);
       else timeframe = args.shift();
     }
-
     const statusMsg = await message.channel.send(" Suche Nachrichten...");
     let messagesToDelete = [];
     let lastId = null;
     let deletedCount = 0;
-
     try {
       while (messagesToDelete.length < amount) {
         const fetched = await targetChannel.messages.fetch({
@@ -3347,13 +3162,11 @@ export async function clear(client) {
         lastId = lastMsg.id;
         if (fetched.size < 100) break;
       }
-
       if (messagesToDelete.length === 0) {
         return statusMsg
           .edit("Keine Nachrichten gefunden, die den Kriterien entsprechen.")
           .then((m) => setTimeout(() => m.delete().catch(() => {}), 5000));
       }
-
       const fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
       const youngMsgs = messagesToDelete.filter(
         (m) => m.createdTimestamp > fourteenDaysAgo,
@@ -3361,7 +3174,6 @@ export async function clear(client) {
       const oldMsgs = messagesToDelete.filter(
         (m) => m.createdTimestamp <= fourteenDaysAgo,
       );
-
       if (youngMsgs.length > 0) {
         await statusMsg.edit(
           ` Bulk-Löschung von ${youngMsgs.length} Nachrichten...`,
@@ -3371,7 +3183,6 @@ export async function clear(client) {
           .catch(() => new Map());
         deletedCount += deletedBulk.size;
       }
-
       if (oldMsgs.length > 0) {
         for (let i = 0; i < oldMsgs.length; i++) {
           await oldMsgs[i].delete().catch(() => {});
@@ -3395,15 +3206,12 @@ export async function clear(client) {
           .catch(() => {});
       return;
     }
-
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     await statusMsg.delete().catch(() => {});
-
     const finishMsg = await message.channel.send(
       `**Abschlussbericht:**\n- Gelöscht: **${deletedCount}**\n- Dauer: **${duration}s**\n- Kanal: <#${targetChannel.id}>`,
     );
     console.log(`Clear: ${deletedCount} Nachrichten, Dauer: ${duration}s, Kanal: <#${targetChannel.id}>`);
-
     const userList =
       userIds.length > 0
         ? userIds.map((id) => `<@${id}>`).join(", ")
@@ -3417,7 +3225,6 @@ export async function clear(client) {
         `**Zeitrahmen:** ${timeframe || "Keiner"}\n` +
         `**Dauer:** ${duration}s`,
     );
-
     globalBotStats.commandsRunned += 1;
     setTimeout(() => finishMsg.delete().catch(() => {}), 15000);
   });
@@ -3437,11 +3244,9 @@ export function initModeration(client) {
       !hasPerm(msg.member)
     )
       return;
-
     const args = msg.content.slice(1).split(/\s+/);
     const cmd = args.shift().toLowerCase();
     let data = (await getMData("moderation")) || { warns: {} };
-
     const getUser = async (input) => {
       if (!input) return null;
       const id = input.replace(/[<@!>]/g, "");
@@ -3449,13 +3254,11 @@ export function initModeration(client) {
         return await client.users.fetch(id).catch(() => null);
       return null;
     };
-
     const sendModLog = async (action, target, reason, extra = null) => {
       const logChannel = await client.channels
         .fetch(config.channels.logs)
         .catch(() => null);
       if (!logChannel) return;
-
       const kekseEmbed = new EmbedBuilder()
         .setColor("#ffffff")
         .setAuthor({
@@ -3502,7 +3305,6 @@ export function initModeration(client) {
       const user = await getUser(args[0]);
       const reason = args.slice(1).join(" ") || "Kein Grund";
       if (!user) return denyReply(msg, "User nicht gefunden.");
-
       try {
         const member = await msg.guild.members.fetch(user.id);
         await member.timeout(null, reason);
@@ -3521,7 +3323,6 @@ export function initModeration(client) {
       }
       globalBotStats.commandsRunned += 1;
     }
-
     if (cmd === "kick") {
       const user = await getUser(args[0]);
       const reason = args.slice(1).join(" ") || "Kein Grund";
@@ -3543,7 +3344,6 @@ export function initModeration(client) {
       }
       globalBotStats.commandsRunned += 1;
     }
-
     if (cmd === "ban") {
       const idInput = args[0]?.replace(/[<@!>]/g, "");
       const reason = args.slice(1).join(" ") || "Kein Grund";
@@ -3568,7 +3368,6 @@ export function initModeration(client) {
       }
       globalBotStats.commandsRunned += 1;
     }
-
     if (cmd === "unban") {
       const idInput = args[0]?.replace(/[<@!>]/g, "");
       const reason = args.slice(1).join(" ") || "Kein Grund";
@@ -3593,7 +3392,6 @@ export function initModeration(client) {
       }
       globalBotStats.commandsRunned += 1;
     }
-
     if (cmd === "warn") {
       const user = await getUser(args[0]);
       const reason = args.slice(1).join(" ") || "Kein Grund";
@@ -3601,7 +3399,6 @@ export function initModeration(client) {
       data.warns[user.id] ??= [];
       data.warns[user.id].push({ reason, by: msg.author.id, date: Date.now() });
       await setMData("moderation", data);
-
       await sendModLog(
         "Warnung",
         user,
@@ -3710,11 +3507,9 @@ export function initVerification(client) {
       });
     }
   });
-
   client.on("messageCreate", async (msg) => {
     if (msg.content === "!setup_verify") {
       if (!msg.member.roles.cache.has(config.roles.team)) return;
-
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId("verify_user")
@@ -3732,14 +3527,12 @@ export function initVerification(client) {
           files: [imageUrl],
           components: [row],
         });
-
         await sendKekseLog(
           "Verification Setup",
           msg.author,
           `Das Verifizierungs-Panel wurde in <#${config.channels.verify}> neu aufgesetzt.`,
         );
         globalBotStats.commandsRunned += 1;
-
         await msg.delete().catch(() => {});
       }
     }
@@ -3918,7 +3711,6 @@ function withCountingLock(fn) {
   countingLock = run.catch(() => {});
   return run;
 }
-
 async function loadCounting() {
   const stored = await getCouData("counting");
   if (stored) {
@@ -3938,12 +3730,10 @@ function getMilestoneReward(score) {
   if (score <= 100000) return score % 1000 === 0 ? 5000 : null;
   return null;
 }
-
 export async function initCounting(client) {
   const sendKekseLog = async (action, user, details) => {
     const logChannel = client.channels.cache.get(config.channels.logs);
     if (!logChannel) return;
-
     const logEmbed = new EmbedBuilder()
       .setColor("#ffffff")
       .setAuthor({
@@ -3953,10 +3743,8 @@ export async function initCounting(client) {
       .setDescription(`**Aktion:** \`${action}\`\n${details}`)
       .setFooter({ text: "Kekse Clan | Counting System" })
       .setTimestamp();
-
     await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
   };
-
   const checkMilestone = async (userId, channel) => {
     const score = countingData.scoreboard[userId];
     const reward = getMilestoneReward(score);
@@ -3980,7 +3768,6 @@ export async function initCounting(client) {
       )
       .catch(() => {});
   };
-
   const handleCountingInner = async (msg, syncMode = false) => {
     if (!syncMode && msg.author.bot) return;
     if (msg.channel.id !== config.channels.counting) return;
@@ -3988,7 +3775,6 @@ export async function initCounting(client) {
       const sorted = Object.entries(countingData.scoreboard || {})
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10);
-
       const embed = new EmbedBuilder()
         .setTitle(":trophy: Top 10 Counter")
         .setDescription(
@@ -4047,7 +3833,6 @@ export async function initCounting(client) {
     }
     const member = msg.member;
     if (!syncMode && !member) return;
-
     const num = parseInt(match[0]);
     if (num > Number.MAX_SAFE_INTEGER || num < -Number.MAX_SAFE_INTEGER) {
       if (!syncMode) {
@@ -4059,9 +3844,7 @@ export async function initCounting(client) {
       }
       return;
     }
-
     const excludedUsers = [config.users.sysadmin, "1274320881585356892"];
-
     if (countingData.currentNumber === 1 && countingData.lastUserId === null) {
       if (num === 1 || num === -1) {
         countingData.direction = num;
@@ -4088,7 +3871,6 @@ export async function initCounting(client) {
         return;
       }
     }
-
     if (
       num !== countingData.currentNumber ||
       msg.author.id === countingData.lastUserId
@@ -4099,7 +3881,6 @@ export async function initCounting(client) {
           : "Doppel-Post";
       const hasRolePuffer =
         !syncMode && member ? member.roles.cache.has(config.roles.countingPuffer) : false;
-
       if (countingData.systemPuffer > 0) {
         countingData.systemPuffer = 0;
         await saveCounting();
@@ -4114,7 +3895,6 @@ export async function initCounting(client) {
         }
         return;
       }
-
       if (hasRolePuffer) {
         try {
           await member.roles.remove(config.roles.countingPuffer);
@@ -4154,7 +3934,6 @@ export async function initCounting(client) {
         if (!syncMode) await msg.react("🟨").catch(() => {});
         return;
       }
-
       if (!syncMode) {
         console.log(`Counting Fehler von ${msg.author.username}. Grund: ${reason}`);
         await sendKekseLog(
@@ -4181,7 +3960,6 @@ export async function initCounting(client) {
       }
       return;
     }
-
     countingData.currentNumber = num + (countingData.direction || 1);
     recordHighscore(num, msg);
     const currentHundred = Math.floor(
@@ -4199,7 +3977,6 @@ export async function initCounting(client) {
     }
     countingData.lastUserId = msg.author.id;
     countingData.lastCountingTime = msg.createdTimestamp;
-
     if (!excludedUsers.includes(msg.author.id)) {
       countingData.scoreboard[msg.author.id] ??= 0;
       countingData.scoreboard[msg.author.id]++;
@@ -4322,7 +4099,6 @@ export async function initCounting(client) {
 }
 const GIVEAWAY_EMOJI = "🎉";
 const EMBED_COLOR = 0xffffff;
-
 function countUnique(participants) {
   return new Set(participants || []).size;
 }
@@ -4388,7 +4164,6 @@ function pickWinners(pool, count, excluded) {
   }
   return winners;
 }
-
 export async function initGiveaway(client) {
   async function sendKekseLog(action, user, details) {
     const logChannel = client.channels.cache.get(config.channels.logs);
@@ -4417,7 +4192,6 @@ export async function initGiveaway(client) {
     }
   }
   setInterval(checkGiveaways, 10000);
-
   client.on("messageCreate", async function (msg) {
     if (!msg.content.startsWith("!giveaway") || msg.author.bot) return;
     if (!msg.member.roles.cache.has(config.roles.team)) return denyReply(msg, "Du hast keine Berechtigung diesen Befehl zu nutzen.");
@@ -4467,7 +4241,6 @@ export async function initGiveaway(client) {
     const messageText = positional[3] || "Viel Glück 🍀";
     const startTime = Date.now();
     const endTime = startTime + durationMs;
-
     const giveawayData = {
       channelId: channel.id,
       startTime,
@@ -4479,7 +4252,6 @@ export async function initGiveaway(client) {
       hostId: msg.author.id,
       participants: [],
     };
-
     const embed = new EmbedBuilder()
       .setTitle(`:gift: Giveaway: ${price}`)
       .setDescription(buildDescription(giveawayData, 0))
@@ -4499,7 +4271,6 @@ export async function initGiveaway(client) {
     const giveaways = (await getGivData("activeGiveaways")) || {};
     giveaways[giveawayMsg.id] = giveawayData;
     await setGivData("activeGiveaways", giveaways);
-
     let logDetails = `**Preis:** ${price}\n**Kanal:** ${channel}\n**Dauer:** ${positional[1]}\n**Gewinner:** ${winnerCount}`;
     if (requiredRoles.length > 0)
       logDetails += `\n**Benötigte Rolle:** ${formatRoles(requiredRoles)}`;
@@ -4525,7 +4296,6 @@ export async function initGiveaway(client) {
       return msg.delete().catch(function () {});
     }
   });
-
   client.on("interactionCreate", async function (interaction) {
     if (!interaction.isButton() || interaction.customId !== "join_giveaway")
       return;
@@ -4538,7 +4308,6 @@ export async function initGiveaway(client) {
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     const requiredRoles = data.requiredRoles || [];
     if (requiredRoles.length > 0) {
       let hasRequiredRole = false;
@@ -4556,7 +4325,6 @@ export async function initGiveaway(client) {
         });
       }
     }
-
     if (data.participants.includes(interaction.user.id)) {
       console.log(`Reply ${interaction.user.username}: Du nimmst bereits an diesem Giveaway teil!`);
       return interaction.reply({
@@ -4596,9 +4364,7 @@ export async function initGiveaway(client) {
       console.log(
         `${interaction.user.tag} hat versucht am Giveaway für "${data.price}" teilzunehmen.`,
       );
-
       addXP(interaction.user.id, 10, client);
-
       let replyText = "Du hast das Giveaway erfolgreich betreten!";
       if (totalTickets === 2) {
         replyText += " (Inklusive **doppelter Chance** durch deine Rolle!)";
@@ -4610,7 +4376,6 @@ export async function initGiveaway(client) {
         .reply({ content: replyText, flags: [MessageFlags.Ephemeral] })
         .catch(function () {});
     }
-
     for (let i = 0; i < totalTickets; i++) {
       data.participants.push(interaction.user.id);
     }
@@ -4640,7 +4405,6 @@ export async function initGiveaway(client) {
       .catch(function () {});
   });
 }
-
 async function endGiveaway(client, msg, data, logFunc) {
   const guild = msg.guild;
   const participants = data.participants || [];
@@ -4653,7 +4417,6 @@ async function endGiveaway(client, msg, data, logFunc) {
         })
         .join(", ")
     : "Niemand";
-
   const endEmbed = EmbedBuilder.from(msg.embeds[0])
     .setTitle(`:confetti_ball: Giveaway beendet: ${data.price}`)
     .setDescription(
@@ -4661,13 +4424,11 @@ async function endGiveaway(client, msg, data, logFunc) {
     )
     .setColor(0x2f3136);
   await msg.edit({ embeds: [endEmbed], components: [] }).catch(function () {});
-
   if (winners.length > 0) {
     await msg.channel.send(
       `:tada: Glückwunsch ${winnerMentions}! Du hast **${data.price}** gewonnen!\nMelde dich bitte zeitnah im Support.`,
     );
   }
-
   const ended = (await getGivData("endedGiveaways")) || {};
   ended[msg.id] = {
     channelId: data.channelId,
@@ -4688,7 +4449,6 @@ async function endGiveaway(client, msg, data, logFunc) {
       await member.roles.remove(config.roles.giveawayDouble).catch(function () {});
     }
   }
-
   const host = await client.users.fetch(data.hostId).catch(function () {
     return client.user;
   });
@@ -4697,7 +4457,6 @@ async function endGiveaway(client, msg, data, logFunc) {
     host,
     `**Preis:** ${data.price}\n**Teilnehmer:** ${countUnique(participants)}\n**Gewinner:** ${winnerMentions}`,
   );
-
   const reportChannel = await client.channels
     .fetch(config.channels.logs)
     .catch(function () {
@@ -4722,7 +4481,6 @@ async function endGiveaway(client, msg, data, logFunc) {
     });
   }
 }
-
 function parseDuration(input) {
   if (!input) return 0;
   const match = input.match(/^(\d+)(s|sec|m|min|h|std|d|tag|tage)$/i);
@@ -4743,13 +4501,11 @@ export function buildDescription(data, participantCount) {
   }
   return text;
 }
-
 export function formatRoles(roleIds) {
   const parts = [];
   for (const id of roleIds) parts.push(`<@&${id}>`);
   return parts.join(", ");
 }
-
 export async function rerollGiveaway(
   client,
   guild,
@@ -4760,28 +4516,23 @@ export async function rerollGiveaway(
 ) {
   const ended = (await getGivData("endedGiveaways")) || {};
   const data = ended[giveawayId];
-
   if (!data) {
     const active = (await getGivData("activeGiveaways")) || {};
     if (active[giveawayId])
       return "Dieses Giveaway läuft noch und kann nicht gerollt werden.";
     return "Kein beendetes Giveaway mit dieser ID gefunden.";
   }
-
   const channel = await client.channels
     .fetch(data.channelId)
     .catch(function () {
       return null;
     });
   if (!channel) return "Der Kanal des Giveaways existiert nicht mehr.";
-
   const pool = await buildPool(guild, data.participants);
   const previousWinners = data.winners || [];
   const winners = pickWinners(pool, count, previousWinners);
-
   if (winners.length === 0)
     return "Es gibt keine weiteren Teilnehmer für einen Reroll.";
-
   const mentions = [];
   for (const id of winners) mentions.push(`<@${id}>`);
   const winnerMentions = mentions.join(", ");
@@ -4789,11 +4540,9 @@ export async function rerollGiveaway(
   await channel.send(
     `**Reroll _(${count})_:**:tada: Glückwunsch ${winnerMentions}! Du hast ${data.price} gewonnen.\nMelde dich im Support.`,
   );
-
   data.winners = previousWinners.concat(winners);
   ended[giveawayId] = data;
   await setGivData("endedGiveaways", ended);
-
   await logFunc(
     "Giveaway Reroll",
     actor,
@@ -4847,7 +4596,6 @@ export function registerMessageCommands(client) {
         ?.map((a) => a.replace(/"/g, "")) || [];
     const cmd = args.shift().toLowerCase();
     const deleteCmd = () => msg.delete().catch(() => {});
-
     const sendKekseLog = async (commandName, target, content) => {
       const logChannel = client.channels.cache.get(config.channels.logs);
       if (logChannel) {
@@ -4862,7 +4610,6 @@ export function registerMessageCommands(client) {
           )
           .setFooter({ text: "Kekse Clan | Command Logs" })
           .setTimestamp();
-
         await logChannel.send({ embeds: [kekseEmbed] });
       }
     };
@@ -4893,7 +4640,6 @@ export function registerMessageCommands(client) {
       globalBotStats.commandsRunned += 1;
       console.log(`${msg.author.username} hat die "changelog"-Funktion genutzt`);
     }
-
     if (cmd === "embed") {
       await deleteCmd();
       const channel = msg.mentions.channels.first();
@@ -4915,7 +4661,6 @@ export function registerMessageCommands(client) {
         console.log(`${msg.author.username} hat die "embed"-Funktion genutzt`);
       }
     }
-
     if (cmd === "dm") {
       await deleteCmd();
       const userId = args[0];
@@ -4987,7 +4732,6 @@ export function initPing(client) {
         )
         .setFooter({ text: "Kekse Clan | System Check" })
         .setTimestamp();
-
       await logChannel.send({ embeds: [kekseLog] });
       console.log(`${msg.author.username} hat die "ping"-Funktion genutzt`);
     }
@@ -5005,7 +4749,6 @@ function clanRankOf(member) {
   if (r.has(config.roles.testmember)) return 1;
   return 0;
 }
-
 export async function clanChange(client, member, action) {
   const cur = clanRankOf(member);
   const id = member.id;
@@ -5016,9 +4759,7 @@ export async function clanChange(client, member, action) {
     .fetch(config.channels.modchat)
     .catch(() => null);
   const say = (ch, text) => ch?.send(text).catch(() => {});
-
   if (cur === 4) throw new Error("Admins können hier nicht verändert werden.");
-
   if (action === "promote") {
     if (cur === 0) {
       await member.roles.add(config.roles.testmember);
@@ -5041,7 +4782,6 @@ export async function clanChange(client, member, action) {
     }
     throw new Error("Höher als Team ist nicht möglich.");
   }
-
   if (action === "demote") {
     if (cur === 0) throw new Error("User ist kein Clan-Mitglied.");
     if (cur === 3) {
@@ -5054,7 +4794,6 @@ export async function clanChange(client, member, action) {
     await say(memberCh, `<@${id}> hat den Clan verlassen. :wave:`);
     return "Neuer Rang: User";
   }
-
   if (action === "kick") {
     if (cur === 0) throw new Error("User ist kein Clan-Mitglied.");
     const wasTeam = cur === 3;
@@ -5064,7 +4803,6 @@ export async function clanChange(client, member, action) {
     await say(memberCh, `:no_entry: <@${id}> wurde aus dem Clan geschmissen.`);
     return wasTeam ? "Aus Team und Clan entfernt" : "Aus dem Clan entfernt";
   }
-
   throw new Error("Unbekannte Aktion.");
 }
 export function initMembers(client) {
@@ -5072,7 +4810,6 @@ export function initMembers(client) {
     if (msg.author.bot || !msg.member) return;
     if (!msg.content.startsWith("!member")) return;
     if (!msg.member.roles.cache.has(config.roles.team)) return;
-
     const args = msg.content.trim().split(/\s+/);
     const sub = args[1]?.toLowerCase();
     const targetId = args[2]?.replace(/[<@!>]/g, "");
@@ -5082,22 +4819,18 @@ export function initMembers(client) {
         .reply("Nutzung: `!member <add|promote|demote|remove|kick> @User`")
         .catch(() => {});
     }
-
     try {
       const target = await msg.guild.members.fetch(targetId).catch(() => null);
       if (!target)
         return msg.reply("User nicht auf dem Server.").catch(() => {});
-
       const action =
         sub === "add" || sub === "promote"
           ? "promote"
           : sub === "kick"
             ? "kick"
             : "demote";
-
       if (sub === "add" && clanRankOf(target) !== 0)
         return msg.reply("User ist bereits im Clan.").catch(() => {});
-
       const result = await clanChange(client, target, action);
       globalBotStats.commandsRunned += 1;
       console.log(
@@ -5111,10 +4844,8 @@ export function initMembers(client) {
 }
 export function initReactions(client) {
   const userContext = new Map();
-
   client.on("messageCreate", async (message) => {
     if (message.author.bot) return;
-
     if (
       message.type === MessageType.GuildBoost ||
       message.type === MessageType.GuildBoostTier1 ||
@@ -5131,9 +4862,7 @@ export function initReactions(client) {
       }
       return;
     }
-
     const content = message.content.toLowerCase().trim();
-
     if (message.content.includes(":cookie:")) {
       try {
         console.log(`[REACTION] Keks-Reaktion für ${message.author.username}`);
@@ -5141,7 +4870,6 @@ export function initReactions(client) {
         console.log(`${message.author.username} hat eine Reaktion ausgelöst`);
       } catch {}
     }
-
     if (message.mentions.everyone) {
       try {
         console.log(
@@ -5194,33 +4922,25 @@ const TRIGGERS = [
   "role",
   "rolle",
 ];
-
 export function initTicketCategory(client) {
   const askedUsers = new Set();
-
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot || !msg.guild) return;
-
     if (msg.content.startsWith("!moveadmin")) {
       if (!msg.member.roles.cache.has(config.roles.team)) return;
       await msg.delete().catch(() => {});
       return moveChannelToAdmin(msg.channel, true);
       globalBotStats.commandsRunned += 1;
     }
-
     const channel = msg.channel;
     if (channel.parentId !== config.categories.support) return;
-
     const content = msg.content.toLowerCase();
     const foundTrigger = TRIGGERS.find((t) => content.includes(t));
-
     if (!foundTrigger || (foundTrigger.length < 4 && content !== foundTrigger))
       return;
     if (askedUsers.has(msg.author.id)) return;
-
     askedUsers.add(msg.author.id);
     const isGerman = TRIGGERS.indexOf(foundTrigger) <= 30;
-
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("move_yes")
@@ -5231,21 +4951,17 @@ export function initTicketCategory(client) {
         .setLabel(isGerman ? "Nein / No" : "No")
         .setStyle(ButtonStyle.Danger),
     );
-
     const questionText = isGerman
       ? `:warning: <@${msg.author.id}>, Keyword "**${foundTrigger}**" erkannt. Benötigt dieses Ticket einen **Admin**?`
       : `:warning: <@${msg.author.id}>, keyword "**${foundTrigger}**" detected. Does this ticket require an **Admin**?`;
-
     const questionMsg = await channel.send({
       content: questionText,
       components: [row],
     });
-
     const collector = questionMsg.createMessageComponentCollector({
       componentType: ComponentType.Button,
       time: 30000,
     });
-
     collector.on("collect", async (i) => {
       if (i.user.id !== msg.author.id) {
         return i.reply({
@@ -5255,7 +4971,6 @@ export function initTicketCategory(client) {
           flags: [MessageFlags.Ephemeral],
         });
       }
-
       if (i.customId === "move_yes") {
         await i.update({
           content: isGerman ? "Verschiebe..." : "Moving...",
@@ -5274,14 +4989,12 @@ export function initTicketCategory(client) {
       }
       collector.stop();
     });
-
     collector.on("end", (collected, reason) => {
       askedUsers.delete(msg.author.id);
       if (reason === "time") questionMsg.delete().catch(() => {});
     });
   });
 }
-
 async function moveChannelToAdmin(channel, isGerman) {
   try {
     await channel.setParent(config.categories.admin);
@@ -5440,7 +5153,6 @@ function buildModal(category, { needsIngameName }) {
   }
   return null;
 }
-
 function buildTicketInfoEmbeds({
   idString,
   category,
@@ -5490,7 +5202,6 @@ function buildTicketInfoEmbeds({
   }
   return embeds;
 }
-
 export async function initTickets(client) {
   await loadTickets();
   const sendKekseLog = async (action, user, details) => {
@@ -5513,7 +5224,6 @@ export async function initTickets(client) {
     if (!member || !member.roles || !member.roles.cache) return false;
     return member.roles.cache.has(config.roles.economy);
   }
-
   async function getStoredIngameName(userId) {
     const ecoData = await getEcoData(userId);
     return ecoData?.mcUsername || null;
@@ -5522,24 +5232,19 @@ export async function initTickets(client) {
     try {
       const stored = (await getTickData("tickets")) || { tickets: {} };
       const allEntries = stored.tickets || {};
-
       const ticket = Object.values(allEntries).find(
         (t) => typeof t === "object" && t.channelId === channel.id,
       );
-
       if (!ticket) {
         console.log("Gesuchte Channel-ID:", channel.id);
         return channel.send(" Kein aktives Ticket in der Datenbank gefunden.");
       }
-
       await channel.permissionOverwrites.delete(ticket.userId).catch(() => {});
       await channel.send({
         content: ` **Ticket wird archiviert...**\nErstellt von: ${ticket.username}\nID: ${ticket.idString}`,
       });
-
       delete stored.tickets[ticket.idString];
       await setTickData("tickets", stored);
-
       await archiveTicket(
         {
           name: channel.name,
@@ -5553,20 +5258,15 @@ export async function initTickets(client) {
       console.error("[TICKET] Fehler:", err);
     }
   }
-
   async function createTicket(category, user, guild, extra = {}) {
     if (await isBlocked(user.id)) return null;
-
     const stored = (await getTickData("tickets")) || { tickets: { lastId: 0 } };
     if (!stored.tickets) stored.tickets = { lastId: 0 };
-
     const currentLastId = parseInt(stored.tickets.lastId) || 0;
     const id = currentLastId + 1;
     const idString = id.toString().padStart(4, "0");
     stored.tickets.lastId = id;
-
     const parentId = CATEGORY_CHANNELS[category];
-
     try {
       const channel = await guild.channels.create({
         name: `${CATEGORY_EMOJI[category] || " "}-${category}-${idString}`,
@@ -5590,14 +5290,11 @@ export async function initTickets(client) {
           },
         ],
       });
-
       const member = guild.members.cache.get(user.id);
       const hasAccount = hasEconomyAccount(member);
-
       const ingameName = hasAccount
         ? await getStoredIngameName(user.id)
         : extra.ingame;
-
       const embeds = buildTicketInfoEmbeds({
         idString,
         category,
@@ -5607,7 +5304,6 @@ export async function initTickets(client) {
         ingameName,
         anliegen: extra.anliegen || {},
       });
-
       const closeRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId(`ticket_close_${idString}`)
@@ -5615,17 +5311,14 @@ export async function initTickets(client) {
           .setEmoji("🗑️")
           .setStyle(ButtonStyle.Danger),
       );
-
       await channel.send({
         content: `${user} ||<@&${config.roles.team}>||`,
         embeds,
         components: [closeRow],
       });
-
       if (extra.needsTemplate) {
         await channel.send({ content: BEWERBUNG_VORLAGE_TEXT });
       }
-
       stored.tickets[idString] = {
         idString,
         channelId: channel.id,
@@ -5633,20 +5326,17 @@ export async function initTickets(client) {
         username: user.username,
         category: category,
       };
-
       await setTickData("tickets", stored);
       await sendKekseLog(
         "Ticket Erstellt",
         user,
         `Kategorie: \`${category}\`\nKanal: ${channel}`,
       );
-
       return channel;
     } catch (error) {
       console.error("Fehler beim Erstellen des Tickets:", error);
     }
   }
-
   client.on("interactionCreate", async (interaction) => {
     if (interaction.isButton()) {
       if (interaction.customId.startsWith("ticket_close_")) {
@@ -5666,10 +5356,8 @@ export async function initTickets(client) {
         console.log(`${user.username} hat ${currentChannel} geschlossen`);
         globalBotStats.commandsRunned += 1;
       }
-
       if (interaction.customId.startsWith("t_")) {
         const category = interaction.customId.split("_")[1];
-
         if (
           (await isBlocked(interaction.user.id)) &&
           !interaction.member.roles.cache.has(config.roles.team)
@@ -5758,7 +5446,6 @@ export async function initTickets(client) {
           `Wähle eins der Themen um ein Ticket zu erstellen. Ein Team-Mitglied wird sich schnellstmöglich um dein Anliegen kümmern.\n\n⚙️ **Support** → Allgemeine Support-Anliegen\n🎉 **Abholung** → Abholung von Giveaways und Events\n✉️ **Bewerbung** → Clan-Bewerbungen`,
         )
         .setColor("#ffffff");
-
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId("t_Support")
@@ -5773,12 +5460,10 @@ export async function initTickets(client) {
           .setLabel("✉️ Bewerbung")
           .setStyle(ButtonStyle.Secondary),
       );
-
       await msg.channel.send({ embeds: [embed], components: [row] });
       await msg.delete().catch(() => {});
       globalBotStats.commandsRunned += 1;
     }
-
     if (cmd === "close") {
       const currentChannel = msg.channel;
       const user = msg.author;
@@ -5826,7 +5511,6 @@ function toMonospace(text) {
   }
   return result;
 }
-
 export function initVoiceChannels(client) {
   const sendKekseLog = async (action, user, details) => {
     const logChannel = client.channels.cache.get(config.channels.logs);
@@ -5842,19 +5526,15 @@ export function initVoiceChannels(client) {
       .setTimestamp();
     await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
   };
-
   client.on("voiceStateUpdate", async (oldState, newState) => {
     const { member, guild } = newState;
     if (!member || member.user.bot) return;
-
     if (newState.channelId === config.channels.jtcVoice) {
       if (activeCreations.has(member.id)) return;
       activeCreations.add(member.id);
-
       try {
         const userNameMono = toMonospace(member.user.username);
         const channelName = `${userNameMono}'𝚜 𝙻𝚘𝚞𝚗𝚐𝚎`;
-
         const tempChannel = await guild.channels.create({
           name: channelName,
           type: ChannelType.GuildVoice,
@@ -5887,11 +5567,9 @@ export function initVoiceChannels(client) {
             },
           ],
         });
-
         await newState.setChannel(tempChannel).catch(async () => {
           await tempChannel.delete().catch(() => {});
         });
-
         await sendKekseLog(
           "Voice Lounge erstellt",
           member.user,
@@ -5904,7 +5582,6 @@ export function initVoiceChannels(client) {
         setTimeout(() => activeCreations.delete(member.id), 5000);
       }
     }
-
     const oldChannel = oldState.channel;
     if (
       oldChannel &&
@@ -5940,24 +5617,18 @@ const ROLES_TIERS = [
   { id: "1540828698310213683", needed: 100000, name: "Obsidian" },
 ];
 const invitesTracker = new Map();
-
 export async function addXP(userId, xpAmount, client) {
   if (xpAmount <= 0) return;
-
   const userData = await getXpData(userId);
-
   let currentTier = userData.rang !== undefined ? userData.rang : 0;
   let currentXp = userData.xp !== undefined ? userData.xp : 0;
-
   if (currentTier >= ROLES_TIERS.length - 1) {
     currentXp += xpAmount;
     await setXpData(userId, { rang: currentTier, xp: currentXp });
     return;
   }
-
   currentXp += xpAmount;
   let leveledUp = false;
-
   while (
     currentTier < ROLES_TIERS.length - 1 &&
     currentXp >= ROLES_TIERS[currentTier].needed
@@ -5966,14 +5637,11 @@ export async function addXP(userId, xpAmount, client) {
     currentTier++;
     leveledUp = true;
   }
-
   await setXpData(userId, { rang: currentTier, xp: currentXp });
-
   if (leveledUp && client) {
     try {
       const guild = await client.guilds.fetch(GUILD_ID);
       const member = await guild.members.fetch(userId).catch(() => null);
-
       if (member) {
         const rolesToRemove = ROLES_TIERS.map((tier) => tier.id);
         await member.roles.remove(rolesToRemove);
@@ -5991,7 +5659,6 @@ async function applyTierRole(userId, tier, client) {
   await member.roles.remove(ROLES_TIERS.map((t) => t.id)).catch(() => {});
   await member.roles.add(ROLES_TIERS[tier].id).catch(() => {});
 }
-
 export async function removeXP(userId, amount, client) {
   if (amount <= 0) return;
   const d = await getXpData(userId);
@@ -6037,7 +5704,6 @@ export function startVoiceXpTracker(client) {
     }
   }, 60000);
 }
-
 export async function initInviteTracker(client) {
   try {
     const guild = await client.guilds.fetch(GUILD_ID);
@@ -6050,17 +5716,13 @@ export async function initInviteTracker(client) {
     console.error(error);
   }
 }
-
 export async function handleGuildMemberAdd(member) {
   if (member.guild.id !== GUILD_ID || member.user.bot) return;
-
   const existingData = await getXpData(member.id);
   if (!existingData || existingData.rang === undefined) {
     await setXpData(member.id, { rang: 0, xp: 0 });
   }
-
   await member.roles.add(ROLES_TIERS[0].id).catch(console.error);
-
   try {
     const newInvites = await member.guild.invites.fetch();
     const oldInvites = invitesTracker.get(member.guild.id);
@@ -6098,7 +5760,6 @@ export function handleInviteCreate(invite) {
   currentInvites.set(invite.code, invite.uses);
   invitesTracker.set(invite.guild.id, currentInvites);
 }
-
 export async function syncExistingUsers(client) {
   try {
     const guild = await client.guilds.fetch(GUILD_ID);
@@ -6110,7 +5771,6 @@ export async function syncExistingUsers(client) {
       const existingData = await getXpData(memberId);
       if (!existingData || existingData.rang === undefined) {
         await setXpData(memberId, { rang: 0, xp: 0 });
-
         const hasTierRole = member.roles.cache.some((role) =>
           ROLES_TIERS.map((t) => t.id).includes(role.id),
         );
@@ -6188,27 +5848,22 @@ const getHelpData = {
       )
       .setColor("#ffffff");
   },
-
   getProfileEmbed: async (userId, userUsername, userAvatarURL) => {
     const ecoData = (await getEcoData(userId)) || {};
     const xpData = (await getXpData(userId)) || {};
     const countData = (await getCouData("counting")) || {};
-
     const username = ecoData.username || userUsername;
     const mcUsername = ecoData.mcUsername || "Nicht verknüpft";
     const balance = (ecoData.balance || 0).toLocaleString("de-DE");
     const isBlocked = ecoData.blocked ? "Gesperrt" : "Aktiv";
-
     const currentPoints = xpData.xp || 0;
     const tier = ROLES_TIERS[xpData.rang ?? 0];
     const currentTierName = tier?.name ?? "Kein Rang";
     const nextTierPoints = tier?.needed ?? "Max";
-
     let countedRight = 0;
     if (countData.scoreboard && typeof countData.scoreboard === "object") {
       countedRight = countData.scoreboard[userId] || 0;
     }
-
     return new EmbedBuilder()
       .setTitle(`Profil von ${username}`)
       .setThumbnail(userAvatarURL)
@@ -6227,7 +5882,6 @@ const getHelpData = {
         { name: "Counting", value: `${countedRight} Zahlen`, inline: true },
       );
   },
-
   getCommandsEmbed: () => {
     return new EmbedBuilder()
       .setTitle("Befehlsübersicht")
@@ -6255,7 +5909,6 @@ const getHelpData = {
           "`!steal` (`/steal`) - Klaue einmal täglich 1-100 Kekse von einem zufälligen Mitglied",
       );
   },
-
   getChannelsEmbed: () => {
     return new EmbedBuilder()
       .setTitle("Kanalübersicht")
@@ -6275,7 +5928,6 @@ const getHelpData = {
       );
   },
 };
-
 const helpRow = new ActionRowBuilder().addComponents(
   new ButtonBuilder()
     .setCustomId("help_profile")
@@ -6290,7 +5942,6 @@ const helpRow = new ActionRowBuilder().addComponents(
     .setLabel("Channels")
     .setStyle(ButtonStyle.Secondary),
 );
-
 export async function handleTextHelpCommand(msg) {
   const mainEmbed = getHelpData.getMainEmbed();
   const responseMessage = await msg.reply({
@@ -6299,7 +5950,6 @@ export async function handleTextHelpCommand(msg) {
   });
   createHelpCollector(responseMessage, msg.author.id, msg.author.username);
 }
-
 export async function handleSlashHelpCommand(interaction) {
   if (!interaction || !interaction.user) return;
   const mainEmbed = getHelpData.getMainEmbed();
@@ -6314,13 +5964,11 @@ export async function handleSlashHelpCommand(interaction) {
     interaction.user.username,
   );
 }
-
 function createHelpCollector(messageTarget, userId, userUsername) {
   const collector = messageTarget.createMessageComponentCollector({
     componentType: ComponentType.Button,
     time: 120000,
   });
-
   collector.on("collect", async (interaction) => {
     if (interaction.user.id !== userId) {
       return interaction.reply({
@@ -6329,9 +5977,7 @@ function createHelpCollector(messageTarget, userId, userUsername) {
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     await interaction.deferUpdate();
-
     let newEmbed;
     if (interaction.customId === "help_profile") {
       newEmbed = await getHelpData.getProfileEmbed(
@@ -6344,12 +5990,10 @@ function createHelpCollector(messageTarget, userId, userUsername) {
     } else if (interaction.customId === "help_channels") {
       newEmbed = getHelpData.getChannelsEmbed();
     }
-
     await interaction
       .editReply({ embeds: [newEmbed], components: [helpRow] })
       .catch(() => {});
   });
-
   collector.on("end", async () => {
     await messageTarget.delete().catch(() => {});
   });
@@ -6358,12 +6002,9 @@ export function initHelp(client) {
   client.on("messageCreate", async (msg) => {
     if (msg.author.bot) return;
     if (!msg.content.startsWith("!")) return;
-
     const args = msg.content.slice(1).trim().split(" ");
     const cmd = args.shift().toLowerCase();
-
     if (cmd !== "help") return;
-
     console.log(`[HELP] Von ${msg.author.username}`);
     await handleTextHelpCommand(msg);
     globalBotStats.commandsRunned += 1;
@@ -6374,21 +6015,17 @@ export async function setupVoiceModToggle(client) {
   client.on("interactionCreate", async (interaction) => {
     if (!interaction.isButton() || interaction.customId !== CUSTOM_BUTTON_ID)
       return;
-
     if (interaction.user.id !== config.roles.admin) {
       return interaction.reply({
         content: "Du bist nicht berechtigt, diesen Button zu nutzen.",
         ephemeral: true,
       });
     }
-
     try {
       await interaction.deferUpdate();
-
       const voiceChannel = interaction.channel;
       const currentOverwrites =
         voiceChannel.permissionOverwrites.cache.get(config.roles.team);
-
       let isCurrentlyLocked = false;
       if (
         currentOverwrites &&
@@ -6396,9 +6033,7 @@ export async function setupVoiceModToggle(client) {
       ) {
         isCurrentlyLocked = true;
       }
-
       let nextLockState = !isCurrentlyLocked;
-
       if (isCurrentlyLocked) {
         await voiceChannel.permissionOverwrites.edit(config.roles.team, {
           Connect: true,
@@ -6408,7 +6043,6 @@ export async function setupVoiceModToggle(client) {
           Connect: false,
         });
       }
-
       const updatedRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId(CUSTOM_BUTTON_ID)
@@ -6417,7 +6051,6 @@ export async function setupVoiceModToggle(client) {
             nextLockState ? ButtonStyle.Secondary : ButtonStyle.Secondary,
           ),
       );
-
       await interaction.editReply({
         components: [updatedRow],
       });
@@ -6433,7 +6066,6 @@ export async function setupVoiceModToggle(client) {
 const dashboardScrypt = util.promisify(crypto.scrypt);
 const DASHBOARD_COOKIE = "__Host-kekse_dashboard";
 const dashboardLoginAttempts = new Map();
-
 function getDashboardAccounts() {
   const accounts = JSON.parse(process.env.DASHBOARD_ACCOUNTS || "[]");
   if (!Array.isArray(accounts)) throw new Error("DASHBOARD_ACCOUNTS muss ein Array sein.");
@@ -6445,11 +6077,9 @@ const DASHBOARD_RANKS = { mod: 1, admin: 2, super: 3 };
 const DASHBOARD_LEVEL_NAMES = { mod: "Team", admin: "Admin", super: "Admin*" };
 const DASHBOARD_USERNAME_PATTERN = /^[A-Za-z0-9_.-]{3,32}$/;
 const DASHBOARD_URL = "https://kekse-bot.de";
-
 function dashboardKey(username) {
   return String(username || "").trim().toLowerCase();
 }
-
 async function getDashboardUsers() {
   const stored = await dbGet("dashboard", "users");
   if (stored) return promoteSuperAdmin(stored);
@@ -6476,7 +6106,6 @@ async function getDashboardUsers() {
   await dbSet("dashboard", "accounts", accounts);
   return promoteSuperAdmin(users);
 }
-
 async function getDashboardUser(username) {
   const users = await getDashboardUsers();
   return users[dashboardKey(username)] || null;
@@ -6527,7 +6156,6 @@ async function sendDashboardDm(userId, content) {
     return false;
   }
 }
-
 function validateAccountFields(username, discordId, level) {
   if (!DASHBOARD_USERNAME_PATTERN.test(username)) {
     throw new Error("Benutzername: 3-32 Zeichen, nur Buchstaben, Zahlen, _ . -");
@@ -6535,7 +6163,6 @@ function validateAccountFields(username, discordId, level) {
   if (!/^\d{17,20}$/.test(discordId)) throw new Error("Ungültige Discord-ID.");
   if (!DASHBOARD_ASSIGNABLE.includes(level)) throw new Error("Ungültige Berechtigung.");
 }
-
 async function prepareAccountAction(action, input, actor) {
   const users = await getDashboardUsers();
   if (action === "create") {
@@ -6564,7 +6191,6 @@ async function prepareAccountAction(action, input, actor) {
   }
   throw new Error("Unbekannte Aktion.");
 }
-
 async function executeAccountAction(action, data, actor) {
   const users = await getDashboardUsers();
   const accounts = (await dbGet("dashboard", "accounts")) || {};
@@ -6618,13 +6244,11 @@ async function executeAccountAction(action, data, actor) {
 function dashboardHash(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
-
 async function hashDashboardPassword(password) {
   const salt = crypto.randomBytes(16).toString("hex");
   const hash = await dashboardScrypt(password, salt, 64);
   return `${salt}:${hash.toString("hex")}`;
 }
-
 async function verifyDashboardPassword(password, stored) {
   if (!stored || typeof stored !== "string") return false;
   const [salt, hash] = stored.split(":");
@@ -6633,13 +6257,11 @@ async function verifyDashboardPassword(password, stored) {
   const expected = Buffer.from(hash, "hex");
   return expected.length === derived.length && crypto.timingSafeEqual(expected, derived);
 }
-
 function getDashboardCookie(req) {
   const prefix = `${DASHBOARD_COOKIE}=`;
   const entry = (req.headers.cookie || "").split(";").map(v => v.trim()).find(v => v.startsWith(prefix));
   return entry ? decodeURIComponent(entry.slice(prefix.length)) : null;
 }
-
 async function createDashboardSession(res, username, level, rememberMe) {
   const token = crypto.randomBytes(32).toString("base64url");
   const hash = dashboardHash(token);
@@ -6654,7 +6276,6 @@ async function createDashboardSession(res, username, level, rememberMe) {
   const cookie = `${DASHBOARD_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Strict${rememberMe ? `; Max-Age=${Math.floor(lifetime / 1000)}` : ""}`;
   res.setHeader("Set-Cookie", cookie);
 }
-
 const requireDashboardAuth = async (req, res, next) => {
   try {
     const token = getDashboardCookie(req);
@@ -6683,7 +6304,6 @@ const requireDashboardAuth = async (req, res, next) => {
     res.status(500).json({ error: "Authentifizierungsfehler" });
   }
 };
-
 async function createDashboardChallenge(username, level, discordId, rememberMe, firstLogin) {
   const pending = (await dbGet("dashboard", "pending")) || {};
   for (const [id, item] of Object.entries(pending)) {
@@ -6729,7 +6349,6 @@ function dashboardLoginBlocked(ip) {
   const entry = dashboardLoginAttempts.get(ip);
   return !!entry && entry.count >= 5 && entry.until > Date.now();
 }
-
 function dashboardLoginFailed(ip) {
   const entry = dashboardLoginAttempts.get(ip);
   if (!entry || entry.until <= Date.now()) {
@@ -6774,7 +6393,6 @@ function getRankIndex(guild, userId, member) {
   }
   return 0;
 }
-
 async function changeServerRank(guild, member, dir) {
   const cur = getRankIndex(guild, member.id, member);
   if (cur === 5) throw new Error("Der Systemadministrator kann nicht verändert werden.");
@@ -6792,7 +6410,6 @@ async function changeServerRank(guild, member, dir) {
   }
   return `Neuer Rang: ${target.name}`;
 }
-
 let banCache = { time: 0, list: [] };
 async function getBans(guild) {
   if (Date.now() - banCache.time < 60000) return banCache.list;
@@ -6804,7 +6421,6 @@ async function getBans(guild) {
   }
   return banCache.list;
 }
-
 async function dashLog(level, action, userId, details) {
   console.log(
     `[Dashboard] (${level}) ${action} -> <@${userId}>${details ? " | " + details : ""}`,
@@ -6820,7 +6436,6 @@ async function dashLog(level, action, userId, details) {
     .setTimestamp();
   await ch.send({ embeds: [embed] }).catch(() => {});
 }
-
 async function buildUserDatabase(guild) {
   const Storage = mongoose.model("BotStorage");
   const [ecoDocs, xpDocs] = await Promise.all([
@@ -6838,13 +6453,11 @@ async function buildUserDatabase(guild) {
   const modData = await getMData("moderation");
   const warnsMap = modData.warns || {};
   const banMap = new Map((await getBans(guild)).map((b) => [b.user.id, b]));
-
   const ids = new Set([
     ...guild.members.cache.filter((m) => !m.user.bot).keys(),
     ...ecoMap.keys(),
     ...banMap.keys(),
   ]);
-
   const users = [];
   for (const id of ids) {
     const member = guild.members.cache.get(id);
@@ -6912,7 +6525,6 @@ app.get("/api/stats", requireDashboardAuth, async (req, res) => {
       pingDoc && pingDoc.value && Array.isArray(pingDoc.value.history)
         ? pingDoc.value.history
         : [];
-
     const { users, txLogs } = guild
       ? await buildUserDatabase(guild)
       : { users: [], txLogs: {} };
@@ -7138,7 +6750,6 @@ app.get("/api/admin/accounts", requireDashboardAuth, requireDashboardAdmin, asyn
     res.status(500).json({ error: error.message });
   }
 });
-
 app.post("/api/admin/accounts/update", requireDashboardAuth, requireDashboardAdmin, express.json({ limit: "10kb" }), async function (req, res) {
   try {
     const users = await getDashboardUsers();
@@ -7186,7 +6797,6 @@ app.post("/api/admin/accounts/update", requireDashboardAuth, requireDashboardAdm
     res.status(400).json({ error: error.message });
   }
 });
-
 app.post("/api/admin/accounts/reset", requireDashboardAuth, requireDashboardAdmin, express.json({ limit: "10kb" }), async function (req, res) {
   try {
     const users = await getDashboardUsers();
@@ -7244,7 +6854,6 @@ app.post("/api/admin/accounts/reset", requireDashboardAuth, requireDashboardAdmi
     res.status(400).json({ error: error.message });
   }
 });
-
 app.post("/api/admin/accounts/stepup", requireDashboardAuth, requireDashboardAdmin, express.json({ limit: "10kb" }), async function (req, res) {
   try {
     const actor = req.dashboardUser;
@@ -7281,7 +6890,6 @@ app.post("/api/admin/accounts/stepup", requireDashboardAuth, requireDashboardAdm
     res.status(400).json({ error: error.message });
   }
 });
-
 app.post("/api/admin/accounts/stepup-status", requireDashboardAuth, requireDashboardAdmin, express.json({ limit: "10kb" }), async function (req, res) {
   try {
     const id = String(req.body?.challengeId || "");
@@ -7300,7 +6908,6 @@ app.post("/api/admin/accounts/stepup-status", requireDashboardAuth, requireDashb
     res.status(500).json({ error: error.message });
   }
 });
-
 app.post("/api/admin/accounts/execute", requireDashboardAuth, requireDashboardAdmin, express.json({ limit: "10kb" }), async function (req, res) {
   try {
     const id = String(req.body?.challengeId || "");
@@ -7360,7 +6967,6 @@ app.post("/api/users/action", requireDashboardAuth, express.json(), async (req, 
     const guild = client.guilds.cache.get(GUILD_ID);
     if (!guild)
       return res.status(503).json({ error: "Server nicht verfügbar" });
-
     const fail = (m) => {
       throw new Error(m);
     };
@@ -7388,11 +6994,9 @@ app.post("/api/users/action", requireDashboardAuth, express.json(), async (req, 
       case "promote-user":
         info = await clanChange(client, needMember(), "promote");
         break;
-
       case "demote-user":
         info = await clanChange(client, needMember(), "demote");
         break;
-
       case "clan-kick":
         info = await clanChange(client, needMember(), "kick");
         break;
@@ -7408,19 +7012,16 @@ app.post("/api/users/action", requireDashboardAuth, express.json(), async (req, 
         info = `Rang: ${ROLES_TIERS[next].name} (XP auf 0 gesetzt)`;
         break;
       }
-
       case "add-xp":
         if (isNaN(val) || val <= 0) fail("Ungültige Menge");
         await addXP(userId, val, client);
         info = `+${val} XP`;
         break;
-
       case "remove-xp":
         if (isNaN(val) || val <= 0) fail("Ungültige Menge");
         await removeXP(userId, val, client);
         info = `-${val} XP`;
         break;
-
       case "add-kekse":
       case "remove-kekse": {
         if (isNaN(val) || val <= 0) fail("Ungültige Menge");
@@ -7454,7 +7055,6 @@ app.post("/api/users/action", requireDashboardAuth, express.json(), async (req, 
         info = d.blocked ? "Konto gesperrt" : "Konto entsperrt";
         break;
       }
-
       case "timeout": {
         const ms = parseTimeframe(String(duration || ""));
         if (!ms) fail("Ungültige Dauer (z.B. 10m, 2h, 1d)");
@@ -7463,29 +7063,24 @@ app.post("/api/users/action", requireDashboardAuth, express.json(), async (req, 
         info = `Timeout ${duration} | ${note}`;
         break;
       }
-
       case "untimeout":
         await needMember().timeout(null, note);
         info = note;
         break;
-
       case "kick":
         await needMember().kick(note);
         info = note;
         break;
-
       case "ban":
         await guild.members.ban(userId, { reason: note });
         banCache.time = 0;
         info = note;
         break;
-
       case "unban":
         await guild.members.unban(userId, note);
         banCache.time = 0;
         info = note;
         break;
-
       case "warn": {
         const md = await getMData("moderation");
         md.warns ??= {};
@@ -7499,7 +7094,6 @@ app.post("/api/users/action", requireDashboardAuth, express.json(), async (req, 
         info = `${note} (Gesamt: ${md.warns[userId].length})`;
         break;
       }
-
       case "unwarn": {
         const md = await getMData("moderation");
         const list = md.warns?.[userId] || [];
@@ -7512,7 +7106,6 @@ app.post("/api/users/action", requireDashboardAuth, express.json(), async (req, 
         break;
       }
     }
-
     await dashLog(level, action, userId, info);
     globalBotStats.commandsRunned += 1;
     res.json({ success: true, message: info });
@@ -7530,9 +7123,7 @@ const PURGE_ROLE_IDS = [
   config.roles.vip,
   config.roles.countingKing,
 ];
-
 let leftQueue = Promise.resolve();
-
 function storageModel() {
   return mongoose.model("BotStorage");
 }
@@ -7548,7 +7139,6 @@ function updateLeftUsers(mutator) {
   leftQueue = run.catch(function () {});
   return run;
 }
-
 function purgeCountingData(userId, guild) {
   return withCountingLock(async function () {
     const board = countingData.scoreboard || {};
@@ -7582,7 +7172,6 @@ function purgeCountingData(userId, guild) {
     return true;
   });
 }
-
 async function purgeReminders(userId) {
   const data = (await getRData("reminders")) || { reminders: [] };
   const list = Array.isArray(data.reminders) ? data.reminders : [];
@@ -7594,7 +7183,6 @@ async function purgeReminders(userId) {
   await setRData("reminders", data);
   return true;
 }
-
 async function purgeGiveawayEntries(userId) {
   let changed = false;
   for (const key of ["activeGiveaways", "endedGiveaways"]) {
@@ -7649,7 +7237,6 @@ async function purgeAltLinks(userId) {
 function escapeRegex(text) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
-
 async function collectUserNames(userId, member) {
   const names = new Set();
   if (member) names.add(member.user.username);
@@ -7661,7 +7248,6 @@ async function collectUserNames(userId, member) {
   if (fetched) names.add(fetched.username);
   return [...names].filter(Boolean);
 }
-
 async function purgeWarnings(userId) {
   const data = await getMData("moderation");
   if (!data.warns || !data.warns[userId]) return false;
@@ -7669,7 +7255,6 @@ async function purgeWarnings(userId) {
   await setMData("moderation", data);
   return true;
 }
-
 async function purgeTicketBlock(userId) {
   const blocked = (await getTickData("blocked_users")) || {};
   if (!blocked[userId]) return false;
@@ -7677,7 +7262,6 @@ async function purgeTicketBlock(userId) {
   await setTickData("blocked_users", blocked);
   return true;
 }
-
 async function purgeInviteData(userId) {
   const docs = await storageModel()
     .find({ namespace: "invites", "value.inviterId": userId }, { key: 1 })
@@ -7689,7 +7273,6 @@ async function purgeInviteData(userId) {
     .concat("joined_" + userId);
   return (await dbDelete("invites", keys)) > 0;
 }
-
 async function purgeTickets(userId, names) {
   const before = archives.length;
   archives = archives.filter(function (ticket) {
@@ -7707,7 +7290,6 @@ async function purgeTickets(userId, names) {
   if (removed > 0) await setTickData("archive_list", { archive: archives });
   return removed;
 }
-
 async function purgeLogFiles(userId, names) {
   const patterns = [new RegExp(escapeRegex(userId))];
   for (const name of names) {
@@ -7805,7 +7387,6 @@ async function cleanupLogFiles() {
   }
   return removed;
 }
-
 async function cleanupTicketArchive() {
   const cutoff = Date.now() - RETENTION_MS;
   const before = archives.length;
@@ -7817,7 +7398,6 @@ async function cleanupTicketArchive() {
   if (removed > 0) await setTickData("archive_list", { archive: archives });
   return removed;
 }
-
 async function cleanupWarnings() {
   const cutoff = Date.now() - RETENTION_MS;
   const data = await getMData("moderation");
@@ -7840,7 +7420,6 @@ async function cleanupWarnings() {
   }
   return removed;
 }
-
 async function cleanupEndedGiveaways() {
   const cutoff = Date.now() - RETENTION_MS;
   const ended = (await getGivData("endedGiveaways")) || {};
@@ -7854,7 +7433,6 @@ async function cleanupEndedGiveaways() {
   if (removed > 0) await setGivData("endedGiveaways", ended);
   return removed;
 }
-
 async function cleanupDepartedUsers() {
   const guild = await client.guilds.fetch(GUILD_ID).catch(function () {
     return null;
@@ -7955,12 +7533,10 @@ async function runRetentionCleanup() {
   }
   if (results.length) console.log(`Gelöscht: ${results.join(", ")}`);
 }
-
 function startRetentionCleanup() {
   setTimeout(runRetentionCleanup, 60 * 1000);
   setInterval(runRetentionCleanup, 24 * 60 * 60 * 1000);
 }
-
 client.on("guildMemberRemove", async function (member) {
   if (member.guild.id !== GUILD_ID || member.user.bot) return;
   await updateLeftUsers(function (left) {
@@ -7969,7 +7545,6 @@ client.on("guildMemberRemove", async function (member) {
     console.error("Austritt konnte nicht gespeichert werden:", error);
   });
 });
-
 client.on("guildMemberAdd", async function (member) {
   if (member.guild.id !== GUILD_ID) return;
   await updateLeftUsers(function (left) {
@@ -7996,7 +7571,6 @@ const commands = [
         .setRequired(true),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
   new SlashCommandBuilder()
     .setName("changelog")
     .setDescription("Erstellt einen neuen Changelog-Eintrag")
@@ -8007,7 +7581,6 @@ const commands = [
         .setRequired(true),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
   new SlashCommandBuilder()
     .setName("embed")
     .setDescription("Sendet ein strukturiertes Embed")
@@ -8033,7 +7606,6 @@ const commands = [
         .setRequired(false),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
   new SlashCommandBuilder()
     .setName("dm")
     .setDescription("Sendet eine Direktnachricht an einen User")
@@ -8050,23 +7622,6 @@ const commands = [
         .setRequired(true),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
-  new SlashCommandBuilder()
-    .setName("news")
-    .setDescription(
-      "Sendet eine News-Nachricht mit integrierter Emoji-Ersetzung",
-    )
-    .addChannelOption((opt) =>
-      opt.setName("kanal").setDescription("Der Zielkanal").setRequired(true),
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("text")
-        .setDescription("Der Newstext (Nutze :emojiName:)")
-        .setRequired(true),
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
   new SlashCommandBuilder()
     .setName("reply")
     .setDescription("Antwortet auf eine existierende Nachricht")
@@ -8086,12 +7641,10 @@ const commands = [
         .setRequired(false),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
   new SlashCommandBuilder()
     .setName("ping")
     .setDescription("Zeigt die aktuelle Latenz des Bots an")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
   new SlashCommandBuilder()
     .setName("clear")
     .setDescription("Löscht eine bestimmte Anzahl an Nachrichten mit Filtern")
@@ -8120,7 +7673,6 @@ const commands = [
         .setRequired(false),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
   new SlashCommandBuilder()
     .setName("giveaway")
     .setDescription("Giveaway-Verwaltung")
@@ -8177,13 +7729,11 @@ const commands = [
             .setMinValue(1);
         });
     }),
-
   new SlashCommandBuilder()
     .setName("help")
     .setDescription("Zeigt dir, wie du Hilfe oder Support erhalten kannst")
     .setContexts(0)
     .setIntegrationTypes(0),
-
   new SlashCommandBuilder()
     .setName("moveadmin")
     .setDescription(
@@ -8197,7 +7747,6 @@ const commands = [
     )
     .setContexts(0)
     .setIntegrationTypes(0),
-
   new SlashCommandBuilder()
     .setName("set-number")
     .setDescription("Admin: Setzt die nächste zu zählende Nummer manuell fest")
@@ -8208,24 +7757,20 @@ const commands = [
         .setRequired(true),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer),
-
   new SlashCommandBuilder()
     .setName("ticket-panel")
     .setDescription(
       "Sendet das Ticket-Panel mit Buttons in den aktuellen Kanal",
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer),
-
   new SlashCommandBuilder()
     .setName("close")
     .setDescription("Schließt und archiviert das aktuelle Ticket")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
   new SlashCommandBuilder()
     .setName("delete")
     .setDescription("Löscht den aktuellen Kanal nach einer kurzen Verzögerung")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
   new SlashCommandBuilder()
     .setName("block")
     .setDescription(
@@ -8262,7 +7807,6 @@ const commands = [
         .setRequired(false),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
   new SlashCommandBuilder()
     .setName("shop-setup")
     .setDescription(
@@ -8275,13 +7819,11 @@ const commands = [
         .setRequired(false),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
   new SlashCommandBuilder()
     .setName("casino")
     .setDescription("Zeigt eine Übersicht aller verfügbaren Casino-Spiele an")
     .setContexts(0)
     .setIntegrationTypes(0),
-
   new SlashCommandBuilder()
     .setName("roulette")
     .setDescription("Spiele eine Runde Roulette")
@@ -8301,7 +7843,6 @@ const commands = [
     )
     .setContexts(0)
     .setIntegrationTypes(0),
-
   new SlashCommandBuilder()
     .setName("coinflip")
     .setDescription("Mache einen Münzwurf")
@@ -8334,7 +7875,6 @@ const commands = [
     )
     .setContexts(0)
     .setIntegrationTypes(0),
-
   new SlashCommandBuilder()
     .setName("crash")
     .setDescription("Starte ein Crash-Multiplikator-Spiel")
@@ -8346,7 +7886,6 @@ const commands = [
     )
     .setContexts(0)
     .setIntegrationTypes(0),
-
   new SlashCommandBuilder()
     .setName("highlow")
     .setDescription("Errate, ob die nächste Karte höher oder niedriger ist")
@@ -8358,7 +7897,6 @@ const commands = [
     )
     .setContexts(0)
     .setIntegrationTypes(0),
-
   new SlashCommandBuilder()
     .setName("blackjack")
     .setDescription("Spiele eine Runde Blackjack gegen den Bot")
@@ -8370,7 +7908,6 @@ const commands = [
     )
     .setContexts(0)
     .setIntegrationTypes(0),
-
   new SlashCommandBuilder()
     .setName("bank")
     .setDescription("Nutze das integrierte Bank- und Währungssystem")
@@ -8408,7 +7945,6 @@ const commands = [
     )
     .setContexts(0)
     .setIntegrationTypes(0),
-
   new SlashCommandBuilder()
     .setName("bank-admin")
     .setDescription("Serverleitung: Konten von Mitgliedern modifizieren")
@@ -8447,7 +7983,6 @@ const commands = [
             .setRequired(false),
         ),
     ),
-
   new SlashCommandBuilder()
     .setName("bank-mod")
     .setDescription("Team: Kontoinformationen und Umläufe einsehen")
@@ -8468,7 +8003,6 @@ const commands = [
         .setName("get")
         .setDescription("Zeigt an, wie viele Kekse insgesamt im Umlauf sind"),
     ),
-
   new SlashCommandBuilder()
     .setName("zweitaccount")
     .setDescription("Verwaltet die Zweitaccounts von Mitgliedern")
@@ -8503,7 +8037,6 @@ const commands = [
             .setRequired(true),
         ),
     ),
-
   new SlashCommandBuilder()
     .setName("remind")
     .setDescription("Erstellt eine persönliche Erinnerung")
@@ -8543,7 +8076,6 @@ const commands = [
         .setRequired(false),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
   new SlashCommandBuilder()
     .setName("untimeout")
     .setDescription("Hebt das Timeout eines Mitglieds vorzeitig auf")
@@ -8560,7 +8092,6 @@ const commands = [
         .setRequired(false),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
   new SlashCommandBuilder()
     .setName("kick")
     .setDescription("Kickt ein Mitglied vom Server")
@@ -8577,7 +8108,6 @@ const commands = [
         .setRequired(false),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
   new SlashCommandBuilder()
     .setName("ban")
     .setDescription("Bannt einen User vom Server (auch per ID)")
@@ -8594,7 +8124,6 @@ const commands = [
         .setRequired(false),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
   new SlashCommandBuilder()
     .setName("unban")
     .setDescription("Hebt den Ban eines Users auf")
@@ -8611,7 +8140,6 @@ const commands = [
         .setRequired(false),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
   new SlashCommandBuilder()
     .setName("warn")
     .setDescription("Verwarnt ein Mitglied auf dem Server")
@@ -8628,7 +8156,6 @@ const commands = [
         .setRequired(false),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
   new SlashCommandBuilder()
     .setName("warns")
     .setDescription("Zeigt alle Verwarnungen eines Nutzers an")
@@ -8639,7 +8166,6 @@ const commands = [
         .setRequired(true),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-
   new SlashCommandBuilder()
     .setName("warn-remove")
     .setDescription(
@@ -8668,7 +8194,6 @@ const commands = [
     .setDescription("Klaue einmal täglich 1-100 Kekse von einem zufälligen Mitglied")
     .setContexts(0)
     .setIntegrationTypes(0),
-
   new SlashCommandBuilder()
     .setName("slot")
     .setDescription("Drehe an der Slotmaschine")
@@ -8694,15 +8219,12 @@ const commands = [
     .setContexts(0)
     .setIntegrationTypes(0),
 ].map((cmd) => cmd.toJSON());
-
 export async function deploySlashCommands() {
   if (!process.env.BOT_TOKEN) {
     console.error("❌ Fehler: BOT_TOKEN fehlt in den Umgebungsvariablen!");
     return;
   }
-
   const rest = new REST({ version: "10" }).setToken(process.env.BOT_TOKEN);
-
   try {
     const base64Token = process.env.BOT_TOKEN.split(".")[0];
     const botId = Buffer.from(base64Token, "base64").toString("utf-8");
@@ -8781,7 +8303,6 @@ client.on("interactionCreate", async (interaction) => {
         )
         .setFooter({ text: "Kekse Clan | Command Logs" })
         .setTimestamp();
-
       await logChannel.send({ embeds: [kekseEmbed] }).catch(() => {});
     }
   };
@@ -8791,7 +8312,6 @@ client.on("interactionCreate", async (interaction) => {
       { namespace: "economy", key: /^\d+$/, "value.balance": { $gt: 0 } },
       { key: 1, "value.balance": 1 },
     ).sort({ "value.balance": -1 }).limit(5).lean();
-
     const embed = new EmbedBuilder()
       .setTitle("🏆 Top 5 Balance")
       .setColor("#ffffff")
@@ -8805,7 +8325,6 @@ client.on("interactionCreate", async (interaction) => {
       )
       .setFooter({ text: "Kekse Clan" })
       .setTimestamp();
-
     return interaction.reply({ embeds: [embed] });
   }
   if (commandName === "steal") {
@@ -8819,7 +8338,6 @@ client.on("interactionCreate", async (interaction) => {
   if (commandName === "send") {
     const targetChannel = options.getChannel("kanal");
     const text = options.getString("text");
-
     await targetChannel.send(text);
     await interaction.reply({
       content: `Nachricht in ${targetChannel} gesendet.`,
@@ -8856,15 +8374,12 @@ client.on("interactionCreate", async (interaction) => {
     globalBotStats.commandsRunned += 1;
     console.log(`${user.username} hat die "changelog"-Funktion genutzt`);
   }
-
   if (commandName === "embed") {
     const targetChannel = options.getChannel("kanal");
     const title = options.getString("titel");
     const text = options.getString("text");
     const color = options.getString("farbe") || "#ffffff";
-
     const validColor = /^#[0-9A-F]{6}$/i.test(color) ? color : "#ffffff";
-
     const embed = new EmbedBuilder()
       .setTitle(title)
       .setDescription(text)
@@ -8882,19 +8397,16 @@ client.on("interactionCreate", async (interaction) => {
     globalBotStats.commandsRunned += 1;
     console.log(`${user.username} hat die "embed"-Funktion genutzt`);
   }
-
   if (commandName === "dm") {
     const userId = options.getString("userid");
     const text = options.getString("text");
     const targetUser = await client.users.fetch(userId).catch(() => null);
-
     if (!targetUser) {
       return interaction.reply({
         content: "❌ User konnte nicht gefunden werden. Ungültige ID?",
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     try {
       await targetUser.send(text);
       await interaction.reply({
@@ -8911,73 +8423,6 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
     }
-  }
-
-  if (commandName === "news") {
-    const targetChannel = options.getChannel("kanal");
-    const rawText = options.getString("text");
-
-    const emojiMap = {
-      regles: "1467246063122649180",
-      mail: "1467246078226334040",
-      like: "1467246068235501733",
-      management: "1467246065437642999",
-      moins: "1467246060689690849",
-      info: "1467246059561685238",
-      web: "1467246058341142833",
-      dislike: "1467246057070268681",
-      logs: "1467246054910070938",
-      check: "1467246053911957759",
-      staff: "1467246044772569218",
-      lien: "1467246043182924040",
-      identifiant: "1467246041668780227",
-      cybersecurite: "1467246039731015794",
-      statistiques: "1467246038497886311",
-      administrateur: "1467246035922321478",
-      croix: "1467246034580410429",
-      certifier: "1467246033389092904",
-      supprimer: "1467246032181006499",
-      profil: "1467246030998343733",
-      moderateur: "1467246028758712575",
-      crayon: "1467246026846109821",
-      stats: "1467246025411658012",
-      ouvert: "1467246023872352358",
-      discordoff: "1467246022668583147",
-      warningicon: "1467246020445339875",
-      "2nd": "1467246019556282533",
-      discordon: "1467246018218430696",
-      "1st": "1467246016926453810",
-      help: "1467246015332618372",
-      timeout: "1467246013487255705",
-      unstableping: "1467246011578712186",
-      yinfo: "1467246010349785119",
-      "3rd": "1467246008734847138",
-      failed: "1467246005870264352",
-      mute: "1467246003890425928",
-      verified: "1467246002628202507",
-      cross: "1467246000258420767",
-      interruption: "1467245998043824128",
-      checkmark: "1467245996584210554",
-      moderatorprogramsalumnia: "1467245995510337659",
-      pingeveryone: "1453800508329558218",
-      ping: "1453799622303813714",
-      pepecookie: "1453796363442585660",
-    };
-    const formattedText = rawText.replace(
-      /:([a-zA-Z0-9_]+):/g,
-      (match, name) => {
-        return emojiMap[name] ? `<:emoji:${emojiMap[name]}>` : match;
-      },
-    );
-
-    await targetChannel.send(formattedText);
-    await interaction.reply({
-      content: `News-Nachricht erfolgreich in ${targetChannel} gepostet.`,
-      flags: [MessageFlags.Ephemeral],
-    });
-    await sendKekseLog("news", targetChannel.toString(), rawText);
-    globalBotStats.commandsRunned += 1;
-    console.log(`${user.username} hat die "news"-Funktion genutzt`);
   }
   if (commandName === "reply") {
     const msgId = options.getString("msgid");
@@ -9013,25 +8458,20 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     globalBotStats.commandsRunned += 1;
-
     const start = Date.now();
     await interaction.reply({
       content: "🏓 Pinging...",
       flags: [MessageFlags.Ephemeral],
     });
     const end = Date.now();
-
     const roundtrip = end - start;
     const wsPing = client.ws.ping;
-
     await interaction
       .editReply({
         content: `🏓 **Pong!**\n- API-Latenz: \`${roundtrip}ms\`\n- WebSocket: \`${wsPing}ms\``,
       })
       .catch(() => {});
-
     const logChannel = client.channels.cache.get(config.channels.logs);
     console.log(
       `${user.username} hat eine Pingabfrage gestartet. Antwort: API-Latenz:${roundtrip}ms , WebSocket:${wsPing}ms`,
@@ -9048,7 +8488,6 @@ client.on("interactionCreate", async (interaction) => {
         )
         .setFooter({ text: "Kekse Clan | System Check" })
         .setTimestamp();
-
       await logChannel.send({ embeds: [kekseLog] }).catch(() => {});
     }
   }
@@ -9059,26 +8498,21 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     const amount = Math.min(options.getInteger("anzahl") || 100, 500);
     const targetChannel = options.getChannel("kanal") || currentChannel;
     const targetUser = options.getUser("nutzer");
     const timeframe = options.getString("zeitrahmen");
-
     if (!targetChannel.isTextBased()) {
       return interaction.reply({
         content: "❌ Der ausgewählte Kanal ist kein Textkanal.",
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
     const startTime = Date.now();
-
     let messagesToDelete = [];
     let lastId = null;
     let deletedCount = 0;
-
     try {
       while (messagesToDelete.length < amount) {
         const fetched = await targetChannel.messages.fetch({
@@ -9086,7 +8520,6 @@ client.on("interactionCreate", async (interaction) => {
           before: lastId || undefined,
         });
         if (!fetched || fetched.size === 0) break;
-
         for (const msg of fetched.values()) {
           if (targetUser && msg.author.id !== targetUser.id) continue;
           if (timeframe) {
@@ -9096,20 +8529,17 @@ client.on("interactionCreate", async (interaction) => {
           messagesToDelete.push(msg);
           if (messagesToDelete.length >= amount) break;
         }
-
         const lastMsg = fetched.last();
         if (!lastMsg) break;
         lastId = lastMsg.id;
         if (fetched.size < 100) break;
       }
-
       if (messagesToDelete.length === 0) {
         return interaction.editReply({
           content:
             " Keine Nachrichten gefunden, die den Kriterien entsprechen.",
         });
       }
-
       const fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
       const youngMsgs = messagesToDelete.filter(
         (m) => m.createdTimestamp > fourteenDaysAgo,
@@ -9117,7 +8547,6 @@ client.on("interactionCreate", async (interaction) => {
       const oldMsgs = messagesToDelete.filter(
         (m) => m.createdTimestamp <= fourteenDaysAgo,
       );
-
       if (youngMsgs.length > 0) {
         await interaction.editReply({
           content: ` Bulk-Löschung von ${youngMsgs.length} Nachrichten...`,
@@ -9127,7 +8556,6 @@ client.on("interactionCreate", async (interaction) => {
           .catch(() => new Map());
         deletedCount += deletedBulk.size;
       }
-
       if (oldMsgs.length > 0) {
         for (let i = 0; i < oldMsgs.length; i++) {
           await oldMsgs[i].delete().catch(() => {});
@@ -9150,9 +8578,7 @@ client.on("interactionCreate", async (interaction) => {
         content: "❌ Ein interner Fehler ist beim Löschen aufgetreten.",
       });
     }
-
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-
     await interaction.editReply({
       content: `✅ **Abschlussbericht:**\n- Gelöscht: **${deletedCount}**\n- Dauer: **${duration}s**\n- Kanal: <#${targetChannel.id}>`,
     });
@@ -9184,13 +8610,10 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     const subcommand = options.getSubcommand();
-
     if (subcommand === "reroll") {
       const giveawayId = options.getString("id");
       const count = options.getInteger("anzahl");
-
       await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
       const error = await rerollGiveaway(
         interaction.client,
@@ -9208,14 +8631,12 @@ client.on("interactionCreate", async (interaction) => {
     const price = options.getString("preis");
     const messageText = options.getString("text") || "Viel Glück 🍀";
     const winnerCount = options.getInteger("gewinner") || 1;
-
     if (!channel.isTextBased()) {
       return interaction.reply({
         content: "❌ Der ausgewählte Kanal ist kein Textkanal.",
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     const durationMs = parseDuration(durationStr);
     if (durationMs <= 0) {
       return interaction.reply({
@@ -9229,10 +8650,8 @@ client.on("interactionCreate", async (interaction) => {
       const role = options.getRole(optionName);
       if (role && !requiredRoles.includes(role.id)) requiredRoles.push(role.id);
     }
-
     const startTime = Date.now();
     const endTime = startTime + durationMs;
-
     const giveawayData = {
       channelId: channel.id,
       startTime,
@@ -9244,12 +8663,10 @@ client.on("interactionCreate", async (interaction) => {
       hostId: user.id,
       participants: [],
     };
-
     const embed = new EmbedBuilder()
       .setTitle(`🎁 Giveaway: ${price}`)
       .setDescription(buildDescription(giveawayData, 0))
       .setColor(EMBED_COLOR);
-
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`join_giveaway`)
@@ -9257,13 +8674,11 @@ client.on("interactionCreate", async (interaction) => {
         .setEmoji(GIVEAWAY_EMOJI)
         .setStyle(ButtonStyle.Primary),
     );
-
     const giveawayMsg = await channel.send({
       content: "<@&1424028650080178348>",
       embeds: [embed],
       components: [row],
     });
-
     const giveaways = (await getGivData("activeGiveaways")) || {};
     giveaways[giveawayMsg.id] = giveawayData;
     await setGivData("activeGiveaways", giveaways);
@@ -9271,7 +8686,6 @@ client.on("interactionCreate", async (interaction) => {
       content: `✅ Giveaway erfolgreich in ${channel} gestartet!\n**ID:** \`${giveawayMsg.id}\``,
       flags: [MessageFlags.Ephemeral],
     });
-
     let logDetails = `**Preis:** ${price}\n**Kanal:** ${channel}\n**Dauer:** ${durationStr}\n**Gewinner:** ${winnerCount}`;
     if (requiredRoles.length > 0)
       logDetails += `\n**Benötigte Rolle:** ${formatRoles(requiredRoles)}`;
@@ -9279,7 +8693,6 @@ client.on("interactionCreate", async (interaction) => {
     console.log(
       `${user.username} hat ein Giveaway für ${price} in ${channel} erstellt.`,
     );
-
     globalBotStats.commandsRunned += 1;
     globalBotStats.giveawaysCreated += 1;
   }
@@ -9296,7 +8709,6 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     await interaction.reply({
       content: "⏳ Verschiebe Ticket in den Admin-Bereich...",
       flags: [MessageFlags.Ephemeral],
@@ -9314,7 +8726,6 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     await interaction.reply({
       content: "⏳ Sende Ticket-Panel...",
       flags: [MessageFlags.Ephemeral],
@@ -9389,7 +8800,6 @@ client.on("interactionCreate", async (interaction) => {
     }
     const targetUser = options.getUser("nutzer");
     const days = options.getInteger("tage") || 7;
-
     await blockUser(
       targetUser.id,
       targetUser.username,
@@ -9423,15 +8833,12 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
   }
-
   let moderationData = (await getMData("moderation")) || { warns: {} };
-
   const sendModLog = async (action, target, reason, extra = null) => {
     const logChannel = await client.channels
       .fetch(config.channels.logs)
       .catch(() => null);
     if (!logChannel) return;
-
     const kekseEmbed = new EmbedBuilder()
       .setColor("#ffffff")
       .setAuthor({
@@ -9444,29 +8851,24 @@ client.on("interactionCreate", async (interaction) => {
       )
       .setFooter({ text: "Kekse Clan | Moderation Logs" })
       .setTimestamp();
-
     await logChannel.send({ embeds: [kekseEmbed] }).catch(() => {});
   };
-
   if (commandName === "timeout") {
     const targetUser = options.getUser("nutzer");
     const durationStr = options.getString("dauer");
     const reason = options.getString("grund") || "Kein Grund";
-
     const match = durationStr.match(/^(\d+)([smhd])$/);
     if (!match)
       return interaction.reply({
         content: " Format: 10s, 5m, 2h, 1d",
         flags: [MessageFlags.Ephemeral],
       });
-
     const durationMs = parseTimeframe(durationStr);
     if (durationMs === 0)
       return interaction.reply({
         content: " Ungültige Zeitangabe.",
         flags: [MessageFlags.Ephemeral],
       });
-
     try {
       const targetMember = await guild.members.fetch(targetUser.id);
       await targetMember.timeout(durationMs, reason);
@@ -9486,11 +8888,9 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
   }
-
   if (commandName === "untimeout") {
     const targetUser = options.getUser("nutzer");
     const reason = options.getString("grund") || "Kein Grund";
-
     try {
       const targetMember = await guild.members.fetch(targetUser.id);
       await targetMember.timeout(null, reason);
@@ -9510,11 +8910,9 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
   }
-
   if (commandName === "kick") {
     const targetUser = options.getUser("nutzer");
     const reason = options.getString("grund") || "Kein Grund";
-
     try {
       await guild.members.kick(targetUser.id, reason);
       await interaction.reply({
@@ -9533,18 +8931,15 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
   }
-
   if (commandName === "ban") {
     const idInput = options.getString("userid").replace(/[<@!>]/g, "");
     const reason = options.getString("grund") || "Kein Grund";
-
     if (!/^\d{17,20}$/.test(idInput)) {
       return interaction.reply({
         content: "❌ Gültige ID/Erwähnung angeben.",
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     try {
       const fetchedUser = await client.users
         .fetch(idInput)
@@ -9566,11 +8961,9 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
   }
-
   if (commandName === "unban") {
     const idInput = options.getString("userid").replace(/[<@!>]/g, "");
     const reason = options.getString("grund") || "Kein Grund";
-
     try {
       const fetchedUser = await client.users
         .fetch(idInput)
@@ -9592,11 +8985,9 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
   }
-
   if (commandName === "warn") {
     const targetUser = options.getUser("nutzer");
     const reason = options.getString("grund") || "Kein Grund";
-
     moderationData.warns[targetUser.id] ??= [];
     moderationData.warns[targetUser.id].push({
       reason,
@@ -9604,7 +8995,6 @@ client.on("interactionCreate", async (interaction) => {
       date: Date.now(),
     });
     await setMData("moderation", moderationData);
-
     await interaction.reply({
       content: `⚠️ **Warn**: <@${targetUser.id}> (Gesamt: ${moderationData.warns[targetUser.id].length})`,
       flags: [MessageFlags.Ephemeral],
@@ -9618,18 +9008,15 @@ client.on("interactionCreate", async (interaction) => {
     console.log(`${user.username} hat ${targetUser} wegen ${reason} gewarnt`);
     globalBotStats.commandsRunned += 1;
   }
-
   if (commandName === "warns") {
     const targetUser = options.getUser("nutzer");
     const userWarns = moderationData.warns[targetUser.id] || [];
-
     if (userWarns.length === 0) {
       return interaction.reply({
         content: "✅ Keine Warnungen.",
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     const embed = new EmbedBuilder()
       .setTitle(`Warnungen: ${targetUser.username}`)
       .setColor("#ffffff")
@@ -9639,28 +9026,23 @@ client.on("interactionCreate", async (interaction) => {
           .join("\n"),
       )
       .setFooter({ text: "Kekse Clan" });
-
     await interaction.reply({ embeds: [embed] });
     console.log(
       `${user.username} hat sich die Warnungen von ${targetUser} angeschaut`,
     );
     globalBotStats.commandsRunned += 1;
   }
-
   if (commandName === "warn-remove") {
     const targetUser = options.getUser("nutzer");
     const index = options.getInteger("nummer") - 1;
-
     if (!moderationData.warns[targetUser.id]?.[index]) {
       return interaction.reply({
         content: "❌ Ungültige Warn-Nummer.",
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     const removed = moderationData.warns[targetUser.id].splice(index, 1);
     await setMData("moderation", moderationData);
-
     await interaction.reply({
       content: "✅ Warnung entfernt.",
       flags: [MessageFlags.Ephemeral],
@@ -9677,11 +9059,9 @@ client.on("interactionCreate", async (interaction) => {
   }
   if (commandName === "top") {
     await loadCounting();
-
     const sorted = Object.entries(countingData.scoreboard || {})
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10);
-
     const embed = new EmbedBuilder()
       .setTitle(":trophy: Top 10 Counter")
       .setDescription(
@@ -9690,12 +9070,10 @@ client.on("interactionCreate", async (interaction) => {
       )
       .setColor("#ffffff")
       .setFooter({ text: "Kekse Clan" });
-
     await interaction.reply({ embeds: [embed] });
     console.log(`${user.username} hat die "top"-Funktion genutzt`);
     globalBotStats.commandsRunned += 1;
   }
-
   if (commandName === "set-number") {
     if (user.id !== config.users.sysadmin) {
       return interaction.reply({
@@ -9703,14 +9081,11 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     const newNum = options.getInteger("nummer");
-
     await loadCounting();
     countingData.currentNumber = newNum;
     countingData.direction = newNum < 0 ? -1 : 1;
     await saveCounting();
-
     const logChannel = client.channels.cache.get(config.channels.logs);
     if (logChannel) {
       const logEmbed = new EmbedBuilder()
@@ -9726,7 +9101,6 @@ client.on("interactionCreate", async (interaction) => {
         .setTimestamp();
       await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
     }
-
     await interaction.reply({
       content: ` Die nächste Zahl wurde auf **${newNum}** gesetzt.`,
       flags: [MessageFlags.Ephemeral],
@@ -9743,24 +9117,20 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     const setupId = options.getString("id");
     const description =
       options.getString("beschreibung") ||
       "Hole dir hier deine täglichen Kekse ab!";
-
     await setEcoData(`setup_${setupId}`, {
       description: description,
       exists: true,
     });
-
     const embed = new EmbedBuilder()
       .setTitle(":cookie: Tägliche Kekse")
       .setDescription(
         `${description}\n\nKlicke auf den Button unten, um 100 Kekse zu erhalten.`,
       )
       .setColor(0xffffff);
-
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`daily_claim_${setupId}`)
@@ -9768,12 +9138,10 @@ client.on("interactionCreate", async (interaction) => {
         .setStyle(ButtonStyle.Success)
         .setEmoji("🍪"),
     );
-
     await currentChannel.send({ embeds: [embed], components: [row] });
     console.log(
       `[Economy] Neues Daily Setup erstellt. (daily_claim_${setupId})`,
     );
-
     await interaction.reply({
       content: ":white_check_box: Daily Setup erfolgreich platziert.",
       flags: [MessageFlags.Ephemeral],
@@ -9781,7 +9149,6 @@ client.on("interactionCreate", async (interaction) => {
     console.log(`${user.username} hat ein neues Daily-Setup erstellt`);
     globalBotStats.commandsRunned += 1;
   }
-
   if (commandName === "shop-setup") {
     if (user.id !== config.users.sysadmin) {
       return interaction.reply({
@@ -9789,18 +9156,15 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     const description =
       options.getString("beschreibung") || "Hole dir hier deine Items ab!";
     const shopChannel = guild.channels.cache.get(config.channels.shop);
-
     if (!shopChannel) {
       return interaction.reply({
         content: "Shop-Kanal wurde auf diesem Server nicht gefunden!",
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     const shopEmbed = new EmbedBuilder()
       .setTitle(`🛒 Server Shop`)
       .setDescription(description)
@@ -9828,7 +9192,6 @@ client.on("interactionCreate", async (interaction) => {
           inline: false,
         },
       );
-
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("shop_giveaway")
@@ -9851,9 +9214,7 @@ client.on("interactionCreate", async (interaction) => {
         .setStyle(ButtonStyle.Success)
         .setEmoji("🔥"),
     );
-
     await shopChannel.send({ embeds: [shopEmbed], components: [row] });
-
     await interaction.reply({
       content: `:white_check_box: Shop erfolgreich im Kanal <#${config.channels.shop}> eingerichtet!`,
       flags: [MessageFlags.Ephemeral],
@@ -9868,7 +9229,6 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     const listEmbed = new EmbedBuilder()
       .setTitle("🎲 Kekse Clan Casino")
       .setDescription(
@@ -9882,10 +9242,8 @@ client.on("interactionCreate", async (interaction) => {
           "**/slot** `<Einsatz>` - Drehe an der Slotmaschine",
       )
       .setColor("#ffffff");
-
     return interaction.reply({ embeds: [listEmbed] });
   }
-
   if (
     [
       "roulette",
@@ -9905,14 +9263,12 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     if (channelId !== config.channels.casino) {
       return interaction.reply({
         content: `Das Casino ist nur in <#${config.channels.casino}> nutzbar.`,
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     const userData = await getEcoData(user.id);
     if (userData.blocked) {
       return interaction.reply({
@@ -9920,7 +9276,6 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     const betAmount = options.getInteger("einsatz");
     if (betAmount <= 0) {
       return interaction.reply({
@@ -9928,7 +9283,6 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     if (betAmount > (userData.balance || 0)) {
       return interaction.reply({
         content: "Du hast nicht genug Kekse für diesen Einsatz.",
@@ -9944,12 +9298,10 @@ client.on("interactionCreate", async (interaction) => {
       const spinColor =
         spin === 0 ? "green" : redNumbers.has(spin) ? "red" : "black";
       const spinEmoji = spin === 0 ? "🟢" : spinColor === "red" ? "🔴" : "⚫";
-
       let won = false;
       let payout = 0;
       let betDesc = betType;
       const numBet = parseInt(betType);
-
       if (!isNaN(numBet) && numBet >= 0 && numBet <= 36) {
         won = spin === numBet;
         payout = won ? betAmount * 35 : -betAmount;
@@ -9985,7 +9337,6 @@ client.on("interactionCreate", async (interaction) => {
           flags: [MessageFlags.Ephemeral],
         });
       }
-
       userData.balance = (userData.balance || 0) + payout;
       await logTransaction(
         user.id,
@@ -9994,7 +9345,6 @@ client.on("interactionCreate", async (interaction) => {
         "Casino Roulette",
       );
       await setEcoData(user.id, userData);
-
       const roulEmbed = new EmbedBuilder()
         .setTitle("Roulette")
         .setDescription(
@@ -10005,14 +9355,12 @@ client.on("interactionCreate", async (interaction) => {
           value: `${payout >= 0 ? "+" : ""}${payout} Kekse\nNeuer Kontostand: **${userData.balance} Kekse**`,
         })
         .setColor(0x333333);
-
       return interaction.reply({ embeds: [roulEmbed] });
     }
     if (commandName === "coinflip") {
       const choice = options.getString("seite");
       const flip = Math.random() < 0.5 ? "heads" : "tails";
       const won = flip === choice;
-
       userData.balance =
         (userData.balance || 0) + (won ? betAmount : -betAmount);
       await logTransaction(
@@ -10022,7 +9370,6 @@ client.on("interactionCreate", async (interaction) => {
         "Casino Coinflip",
       );
       await setEcoData(user.id, userData);
-
       const cfEmbed = new EmbedBuilder()
         .setTitle(`Coinflip`)
         .setDescription(
@@ -10033,7 +9380,6 @@ client.on("interactionCreate", async (interaction) => {
           value: `${won ? "+" : "-"}${betAmount} Kekse\nNeuer Kontostand: **${userData.balance} Kekse**`,
         })
         .setColor(0x333333);
-
       return interaction.reply({ embeds: [cfEmbed] });
     }
     if (commandName === "jackpot") {
@@ -10043,18 +9389,15 @@ client.on("interactionCreate", async (interaction) => {
           flags: [MessageFlags.Ephemeral],
         });
       }
-
       userData.balance -= betAmount;
       await logTransaction(user.id, betAmount, "minus", "Casino Jackpot");
       await setEcoData(user.id, userData);
-
       jackpotState.entries.push({
         userId: user.id,
         username: user.username,
         betAmount,
       });
       jackpotState.totalPool += betAmount;
-
       const buildJackpotEmbed = (extra = "") => {
         const list = jackpotState.entries
           .map((e) => {
@@ -10064,7 +9407,6 @@ client.on("interactionCreate", async (interaction) => {
             return `<@${e.userId}> - **${e.betAmount} Kekse** (${pct}%)`;
           })
           .join("\n");
-
         return new EmbedBuilder()
           .setTitle("Jackpot")
           .setDescription(
@@ -10079,9 +9421,7 @@ client.on("interactionCreate", async (interaction) => {
             text: "Je mehr du einsetzt, desto höher deine Gewinnchance!",
           });
       };
-
       const casinoChannel = guild.channels.cache.get(config.channels.casino);
-
       if (!jackpotState.countdownTimer) {
         const drawTime = Date.now() + 5 * 60 * 1000;
         jackpotState.countdownEndTime = drawTime;
@@ -10090,10 +9430,8 @@ client.on("interactionCreate", async (interaction) => {
           5 * 60 * 1000,
         );
       }
-
       const timestamp = `<t:${Math.floor(jackpotState.countdownEndTime / 1000)}:R>`;
       const extraText = `Ziehung ${timestamp}`;
-
       if (jackpotState.entries.length === 1) {
         const jMsg = await casinoChannel.send({
           embeds: [buildJackpotEmbed(extraText)],
@@ -10104,7 +9442,6 @@ client.on("interactionCreate", async (interaction) => {
           .edit({ embeds: [buildJackpotEmbed(extraText)] })
           .catch(() => {});
       }
-
       const userChance = ((betAmount / jackpotState.totalPool) * 100).toFixed(
         1,
       );
@@ -10120,17 +9457,14 @@ client.on("interactionCreate", async (interaction) => {
           flags: [MessageFlags.Ephemeral],
         });
       }
-
       userData.balance -= betAmount;
       await logTransaction(user.id, betAmount, "minus", "Casino Crash");
       await setEcoData(user.id, userData);
-
       const crashPoint = parseFloat(
         Math.max(1.01, 0.97 / (1 - Math.random())).toFixed(2),
       );
       let multiplier = 1.0;
       let intervalHandle = null;
-
       const cashoutRow = () =>
         new ActionRowBuilder().addComponents(
           new ButtonBuilder()
@@ -10138,7 +9472,6 @@ client.on("interactionCreate", async (interaction) => {
             .setLabel(`Cash Out (${Math.floor(betAmount * multiplier)} Kekse)`)
             .setStyle(ButtonStyle.Success),
         );
-
       const crashEmbed = (crashed = false, cashedAt = null) => {
         if (crashed)
           return new EmbedBuilder()
@@ -10163,27 +9496,23 @@ client.on("interactionCreate", async (interaction) => {
           )
           .setColor(0xffffff);
       };
-
       const gameMsg = await interaction.reply({
         embeds: [crashEmbed()],
         components: [cashoutRow()],
         fetchReply: true,
       });
-
       crashGames.set(user.id, {
         betAmount,
         crashPoint,
         cashedOut: false,
         cashedAtMultiplier: null,
       });
-
       const collector = gameMsg.createMessageComponentCollector({
         filter: (i) =>
           i.user.id === user.id && i.customId === `crash_cashout_${user.id}`,
         componentType: ComponentType.Button,
         time: 120000,
       });
-
       collector.on("collect", async (i) => {
         const game = crashGames.get(user.id);
         if (!game || game.cashedOut) {
@@ -10195,18 +9524,15 @@ client.on("interactionCreate", async (interaction) => {
             .catch(() => {});
           return;
         }
-
         game.cashedOut = true;
         game.cashedAtMultiplier = multiplier;
         if (intervalHandle) clearInterval(intervalHandle);
         crashGames.delete(user.id);
         collector.stop("cashout");
-
         const win = Math.floor(betAmount * game.cashedAtMultiplier);
         userData.balance += win;
         await logTransaction(user.id, win, "plus", "Casino Crash");
         await setEcoData(user.id, userData);
-
         await i
           .update({
             embeds: [crashEmbed(false, game.cashedAtMultiplier)],
@@ -10214,16 +9540,13 @@ client.on("interactionCreate", async (interaction) => {
           })
           .catch(() => {});
       });
-
       intervalHandle = setInterval(async () => {
         const game = crashGames.get(user.id);
         if (!game) {
           clearInterval(intervalHandle);
           return;
         }
-
         multiplier = parseFloat((multiplier + 0.2).toFixed(2));
-
         if (multiplier >= game.crashPoint) {
           clearInterval(intervalHandle);
           crashGames.delete(user.id);
@@ -10233,12 +9556,10 @@ client.on("interactionCreate", async (interaction) => {
             .catch(() => {});
           return;
         }
-
         await gameMsg
           .edit({ embeds: [crashEmbed()], components: [cashoutRow()] })
           .catch(() => {});
         }, 1500);
-
       collector.on("end", async (collected, reason) => {
         if (reason === "time") {
           clearInterval(intervalHandle);
@@ -10251,7 +9572,6 @@ client.on("interactionCreate", async (interaction) => {
           }
         }
       });
-
       return;
     }
     if (commandName === "highlow") {
@@ -10261,12 +9581,10 @@ client.on("interactionCreate", async (interaction) => {
           flags: [MessageFlags.Ephemeral],
         });
       }
-
       userData.balance -= betAmount;
       await logTransaction(user.id, betAmount, "minus", "Casino Higher Lower");
       await setEcoData(user.id, userData);
       hlGames.set(user.id, true);
-
       const cardNames = [
         "2",
         "3",
@@ -10305,11 +9623,9 @@ client.on("interactionCreate", async (interaction) => {
           value: cardVals[n],
         };
       };
-
       let currentCard = getCard();
       let streak = 0;
       let multiplier = 1.0;
-
       const hlRow = (disabled = false) =>
         new ActionRowBuilder().addComponents(
           new ButtonBuilder()
@@ -10328,13 +9644,11 @@ client.on("interactionCreate", async (interaction) => {
             .setStyle(ButtonStyle.Success)
             .setDisabled(disabled || streak === 0),
         );
-
       const hlEmbed = (desc, color = 0xffffff) =>
         new EmbedBuilder()
           .setTitle("Higher or Lower")
           .setDescription(desc)
           .setColor(color);
-
       const gameMsg = await interaction.reply({
         embeds: [
           hlEmbed(
@@ -10344,13 +9658,11 @@ client.on("interactionCreate", async (interaction) => {
         components: [hlRow()],
         fetchReply: true,
       });
-
       const collector = gameMsg.createMessageComponentCollector({
         filter: (i) => i.user.id === user.id,
         componentType: ComponentType.Button,
         time: 90000,
       });
-
       collector.on("collect", async (i) => {
         await i.deferUpdate();
         const id = i.customId;
@@ -10358,7 +9670,6 @@ client.on("interactionCreate", async (interaction) => {
           collector.stop("cashout");
           return;
         }
-
         const nextCard = getCard();
         const choice = id.startsWith(`hl_higher`) ? "higher" : "lower";
         const isTie = nextCard.value === currentCard.value;
@@ -10366,7 +9677,6 @@ client.on("interactionCreate", async (interaction) => {
           !isTie &&
           ((choice === "higher" && nextCard.value > currentCard.value) ||
             (choice === "lower" && nextCard.value < currentCard.value));
-
         if (isTie) {
           currentCard = nextCard;
           await gameMsg
@@ -10381,7 +9691,6 @@ client.on("interactionCreate", async (interaction) => {
             .catch(() => {});
           return;
         }
-
         if (correct) {
           streak++;
           multiplier = parseFloat((multiplier + 0.5).toFixed(2));
@@ -10401,7 +9710,6 @@ client.on("interactionCreate", async (interaction) => {
           collector.stop("wrong");
         }
       });
-
       collector.on("end", async (collected, reason) => {
         hlGames.delete(user.id);
         const fresh = await getEcoData(user.id);
@@ -10501,7 +9809,6 @@ client.on("interactionCreate", async (interaction) => {
         { n: "K", v: 10 },
         { n: "A", v: 11 },
       ];
-
       let deck = [];
       for (const suit of suits) {
         for (const val of values) {
@@ -10509,10 +9816,8 @@ client.on("interactionCreate", async (interaction) => {
         }
       }
       deck = deck.sort(() => Math.random() - 0.5);
-
       const playerHand = [deck.pop(), deck.pop()];
       const dealerHand = [deck.pop(), deck.pop()];
-
       const calculateScore = (hand) => {
         let score = hand.reduce((sum, card) => sum + card.value, 0);
         let aces = hand.filter((card) => card.name.startsWith("A")).length;
@@ -10522,7 +9827,6 @@ client.on("interactionCreate", async (interaction) => {
         }
         return score;
       };
-
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId("bj_hit")
@@ -10533,7 +9837,6 @@ client.on("interactionCreate", async (interaction) => {
           .setLabel("Halten (Stand)")
           .setStyle(ButtonStyle.Secondary),
       );
-
       const createEmbed = (title, color, showAllDealer = false) => {
         const pScore = calculateScore(playerHand);
         const dScore = showAllDealer
@@ -10556,7 +9859,6 @@ client.on("interactionCreate", async (interaction) => {
             },
           );
       };
-
       if (calculateScore(playerHand) === 21) {
         let dScore = calculateScore(dealerHand);
         let status = "";
@@ -10581,19 +9883,16 @@ client.on("interactionCreate", async (interaction) => {
         ).setFooter({ text: `Neuer Kontostand: ${userData.balance} Kekse` });
         return interaction.reply({ embeds: [finalEmbed] });
       }
-
       const gameMessage = await interaction.reply({
         embeds: [createEmbed("Blackjack", 0xffffff)],
         components: [row],
         fetchReply: true,
       });
-
       const collector = gameMessage.createMessageComponentCollector({
         filter: (i) => i.user.id === user.id,
         componentType: ComponentType.Button,
         time: 60000,
       });
-
       collector.on("collect", async (i) => {
         await i.deferUpdate();
         if (i.customId === "bj_hit") {
@@ -10612,20 +9911,17 @@ client.on("interactionCreate", async (interaction) => {
           collector.stop("stand");
         }
       });
-
       collector.on("end", async (collected, reason) => {
         let pScore = calculateScore(playerHand);
         let dScore = calculateScore(dealerHand);
         let status = "";
         let finalColor = 0x333333;
-
         if (reason !== "busted") {
           while (dScore < 17) {
             dealerHand.push(deck.pop());
             dScore = calculateScore(dealerHand);
           }
         }
-
         if (reason === "busted" || pScore > 21) {
           status = "❌ Überkauft! Du hast verloren.";
           userData.balance -= betAmount;
@@ -10645,7 +9941,6 @@ client.on("interactionCreate", async (interaction) => {
         } else {
           status = "🤝 Unentschieden! Kekse zurück.";
         }
-
         await setEcoData(user.id, userData);
         const finalEmbed = createEmbed(
           `Blackjack - ${status}`,
@@ -10660,7 +9955,6 @@ client.on("interactionCreate", async (interaction) => {
   if (commandName === "bank") {
     const subCommand = options.getSubcommand();
     const hasEcoRole = member.roles.cache.has("1506732560837771284");
-
     if (subCommand === "create") {
       if (hasEcoRole) {
         return interaction.reply({
@@ -10668,14 +9962,12 @@ client.on("interactionCreate", async (interaction) => {
           flags: [MessageFlags.Ephemeral],
         });
       }
-
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId(`open_bank_modal_${user.id}`)
           .setLabel("Registrierungsformular öffnen")
           .setStyle(ButtonStyle.Primary),
       );
-
       return interaction.reply({
         content:
           "Klicke auf den Button unten, um dein Konto zu erstellen. Dieser Button funktioniert nur für dich.",
@@ -10684,7 +9976,6 @@ client.on("interactionCreate", async (interaction) => {
       });
       console.log(`${user.username} hat eine Konto-Erstellung gestartet`);
     }
-
     if (subCommand === "help") {
       const helpEmbed = new EmbedBuilder()
         .setTitle("🏦 Bank-System Hilfe")
@@ -10705,40 +9996,34 @@ client.on("interactionCreate", async (interaction) => {
             value: "Überträgt Kekse sicher auf das Konto eines Mitspielers.",
           },
         );
-
       return interaction.reply({
         embeds: [helpEmbed],
         flags: [MessageFlags.Ephemeral],
       });
       console.log(`${user.username} hat die "bank help"-Funktion genutzt`);
     }
-
     if (subCommand === "pay") {
       const targetUser = options.getUser("nutzer");
       const amount = options.getInteger("anzahl");
       const userData = await getEcoData(user.id);
-
       if (amount <= 0) {
         return interaction.reply({
           content: "Bitte gib eine gültige Anzahl an Keksen an.",
           flags: [MessageFlags.Ephemeral],
         });
       }
-
       if (targetUser.id === user.id) {
         return interaction.reply({
           content: "Du kannst dir selbst keine Kekse überweisen.",
           flags: [MessageFlags.Ephemeral],
         });
       }
-
       if (amount > (userData.balance || 0)) {
         return interaction.reply({
           content: "Du hast nicht genug Kekse für diese Überweisung.",
           flags: [MessageFlags.Ephemeral],
         });
       }
-
       const targetData = await getEcoData(targetUser.id);
       if (!targetData || !targetData.username || targetData.blocked) {
         return interaction.reply({
@@ -10746,10 +10031,8 @@ client.on("interactionCreate", async (interaction) => {
           flags: [MessageFlags.Ephemeral],
         });
       }
-
       userData.balance -= amount;
       targetData.balance = (targetData.balance || 0) + amount;
-
       await logTransaction(
         user.id,
         amount,
@@ -10764,11 +10047,9 @@ client.on("interactionCreate", async (interaction) => {
       );
       await setEcoData(user.id, userData);
       await setEcoData(targetUser.id, targetData);
-
       console.log(
         `[Economy] Überweisung von ${userData.username || user.username} an ${targetData.username || targetUser.id} für ${amount} Kekse.`,
       );
-
       const payEmbed = new EmbedBuilder()
         .setTitle("Überweisung erfolgreich")
         .setDescription(
@@ -10779,7 +10060,6 @@ client.on("interactionCreate", async (interaction) => {
           value: `${userData.balance} Kekse`,
         })
         .setColor(0xffffff);
-
       const getEmbed = new EmbedBuilder()
         .setTitle("Kekse erhalten!")
         .setDescription(
@@ -10790,18 +10070,15 @@ client.on("interactionCreate", async (interaction) => {
           value: `${targetData.balance} Kekse`,
         })
         .setColor(0xffffff);
-
       await interaction.reply({
         embeds: [payEmbed],
         flags: [MessageFlags.Ephemeral],
       });
-
       await targetUser.send({ embeds: [getEmbed] }).catch(() => {
         console.log(`Konnte keine DM an ${targetUser.id} senden.`);
       });
       return;
     }
-
     if (subCommand === "status") {
       if (!hasEcoRole) {
         return interaction.reply({
@@ -10810,9 +10087,7 @@ client.on("interactionCreate", async (interaction) => {
           flags: [MessageFlags.Ephemeral],
         });
       }
-
       const userData = await getEcoData(user.id);
-
       if (userData.blocked) {
         return interaction.reply({
           content:
@@ -10820,7 +10095,6 @@ client.on("interactionCreate", async (interaction) => {
           flags: [MessageFlags.Ephemeral],
         });
       }
-
       await user
         .send({
           content: `Dein aktueller Kontostand beträgt: **${userData.balance || 0} Kekse** 🍪`,
@@ -10833,11 +10107,9 @@ client.on("interactionCreate", async (interaction) => {
       console.log(`${user.username} hat seinen Kontostand eingesehen.`);
     }
   }
-
   if (commandName === "bank-admin") {
     const subCommand = options.getSubcommand();
     const isDev = user.id === "1151971830983311441";
-
     if (
       !member.permissions.has(PermissionsBitField.Flags.ManageServer) &&
       !isDev
@@ -10847,20 +10119,16 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     const amount = options.getInteger("anzahl");
     const targetUser = options.getUser("nutzer") || user;
-
     if (amount <= 0) {
       return interaction.reply({
         content: "Bitte gib eine gültige Anzahl an Keksen an.",
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     const targetData = await getEcoData(targetUser.id);
     let currentBalance = targetData.balance || 0;
-
     if (subCommand === "add") {
       currentBalance += amount;
       console.log(`${user.username} hat sich ${amount} Kekse hinzugefügt`);
@@ -10868,10 +10136,8 @@ client.on("interactionCreate", async (interaction) => {
       currentBalance = Math.max(0, currentBalance - amount);
       console.log(`${user.username} hat sich ${amount} Kekse entfernt`);
     }
-
     targetData.balance = currentBalance;
     await setEcoData(targetUser.id, targetData);
-
     const logEmbed = new EmbedBuilder()
       .setTitle("Konto-Aktualisierung")
       .setDescription(`Konto von <@${targetUser.id}> wurde aktualisiert.`)
@@ -10883,18 +10149,15 @@ client.on("interactionCreate", async (interaction) => {
         { name: "Neuer Kontostand", value: `${currentBalance} Kekse` },
       )
       .setColor(0xffffff);
-
     await user.send({ embeds: [logEmbed] }).catch(() => {});
     return interaction.reply({
       content: `✅ Das Konto von <@${targetUser.id}> wurde erfolgreich modifiziert.`,
       flags: [MessageFlags.Ephemeral],
     });
   }
-
   if (commandName === "bank-mod") {
     const subCommand = options.getSubcommand();
     const isDev = user.id === "1151971830983311441";
-
     if (
       !member.permissions.has(PermissionsBitField.Flags.ManageMessages) &&
       !member.permissions.has(PermissionsBitField.Flags.ManageServer) &&
@@ -10906,7 +10169,6 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     if (subCommand === "see") {
       const targetUser = options.getUser("nutzer");
       const data = await getEcoData(targetUser.id);
@@ -10923,7 +10185,6 @@ client.on("interactionCreate", async (interaction) => {
           { name: "Kontostand", value: `${data.balance || 0} Kekse` },
           { name: "Gesperrt?", value: data.blocked ? "Ja" : "Nein" },
         );
-
       await user.send({ embeds: [dmEmbed] }).catch(() => {});
       return interaction.reply({
         content: `✅ Die Kontodetails von ${targetUser.username} wurden dir per DM zugestellt.`,
@@ -10945,7 +10206,6 @@ client.on("interactionCreate", async (interaction) => {
   if (commandName === "remind") {
     const timeStr = options.getString("zeit");
     const reason = options.getString("grund");
-
     const ms = parseTimeframe(timeStr);
     if (!ms || ms < 10000) {
       return interaction.reply({
@@ -10954,7 +10214,6 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     const reminderData = (await getRData("reminders")) || { reminders: [] };
     const newReminder = {
       userId: user.id,
@@ -10962,16 +10221,13 @@ client.on("interactionCreate", async (interaction) => {
       time: Date.now() + ms,
       reason: reason,
     };
-
     reminderData.reminders.push(newReminder);
     await setRData("reminders", reminderData);
     console.log(`${user.username} hat einen Reminder für sich gestartet`);
-
     await interaction.reply({
       content: `✅ Ich werde dich in **${timeStr}** an folgendes erinnern: ${reason}`,
       ephemeral: false,
     });
-
     const logChannel = client.channels.cache.get(config.channels.logs);
     if (logChannel) {
       const logEmbed = new EmbedBuilder()
@@ -10987,7 +10243,6 @@ client.on("interactionCreate", async (interaction) => {
         .setTimestamp();
       await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
     }
-
     globalBotStats.commandsRunned += 1;
   }
   if (commandName === "zweitaccount") {
@@ -11000,21 +10255,17 @@ client.on("interactionCreate", async (interaction) => {
         flags: [MessageFlags.Ephemeral],
       });
     }
-
     const subCommand = options.getSubcommand();
     let networks = (await getSaData("alt_networks")) || {};
-
     if (subCommand === "add") {
       const input1 = options.getString("account_1").replace(/[<@!>]/g, "");
       const input2 = options.getString("account_2").replace(/[<@!>]/g, "");
-
       if (!/^\d{17,20}$/.test(input1) || !/^\d{17,20}$/.test(input2)) {
         return interaction.reply({
           content: "❌ Ungültige IDs oder Erwähnungen angegeben.",
           flags: [MessageFlags.Ephemeral],
         });
       }
-
       if (input1 === input2) {
         return interaction.reply({
           content:
@@ -11022,24 +10273,18 @@ client.on("interactionCreate", async (interaction) => {
           flags: [MessageFlags.Ephemeral],
         });
       }
-
       let list1 = networks[input1] || [];
       let list2 = networks[input2] || [];
-
       let allLinked = new Set([input1, input2, ...list1, ...list2]);
       const finalGroup = Array.from(allLinked);
-
       for (const id of finalGroup) {
         networks[id] = finalGroup.filter((uid) => uid !== id);
       }
-
       await setSaData("alt_networks", networks);
-
       await interaction.reply({
         content: `✅ Die Accounts <@${input1}> und <@${input2}> wurden erfolgreich verknüpft.`,
         flags: [MessageFlags.Ephemeral],
       });
-
       const logChannel = client.channels.cache.get(config.channels.logs);
       if (logChannel) {
         const logEmbed = new EmbedBuilder()
@@ -11057,17 +10302,14 @@ client.on("interactionCreate", async (interaction) => {
       console.log(`${user.username} hat einen Zweitaccount verifiziert`);
       globalBotStats.commandsRunned += 1;
     }
-
     if (subCommand === "remove") {
       const targetId = options.getString("nutzer").replace(/[<@!>]/g, "");
-
       if (!/^\d{17,20}$/.test(targetId)) {
         return interaction.reply({
           content: "❌ Ungültige ID oder Erwähnung angegeben.",
           flags: [MessageFlags.Ephemeral],
         });
       }
-
       const linkedWith = networks[targetId];
       if (!linkedWith || linkedWith.length === 0) {
         return interaction.reply({
@@ -11075,10 +10317,8 @@ client.on("interactionCreate", async (interaction) => {
           flags: [MessageFlags.Ephemeral],
         });
       }
-
       const fullGroup = [targetId, ...linkedWith];
       delete networks[targetId];
-
       for (const id of linkedWith) {
         if (networks[id]) {
           networks[id] = networks[id].filter((uid) => uid !== targetId);
@@ -11087,14 +10327,11 @@ client.on("interactionCreate", async (interaction) => {
           }
         }
       }
-
       await setSaData("alt_networks", networks);
-
       await interaction.reply({
         content: `✅ Der Account <@${targetId}> wurde aus dem Netzwerk gelöst.`,
         flags: [MessageFlags.Ephemeral],
       });
-
       const logChannel = client.channels.cache.get(config.channels.logs);
       if (logChannel) {
         const logEmbed = new EmbedBuilder()
