@@ -121,7 +121,9 @@ footer{padding:14px 12px}}
 <tr><td>Sprachkanäle</td><td>Für „Join to Create“ wird ein temporärer Kanal mit deinem Benutzernamen im Titel angelegt und nach Verlassen gelöscht. Beitritte, Wechsel, Verlassen und Selbst-Stummschaltung werden protokolliert (Abschnitt 4).</td><td>Betrieb der Sprachkanäle. Art. 6 Abs. 1 lit. b und f.</td><td>Kanal bis zum Verlassen der letzten Person</td></tr>
 <tr><td>Rückkehr von Mitgliedern</td><td>Hast du früher ein Bankkonto angelegt und trittst erneut bei, erhältst du die Konto-Rolle automatisch zurück.</td><td>Komfort, Art. 6 Abs. 1 lit. b.</td><td>Wie Bankkonto</td></tr>
 <tr><td>Ehemalige Mitglieder</td><td>Verlässt du den Server, speichern wir Discord-ID und Austrittsdatum. Kehrst du zurück, wird der Eintrag entfernt.</td><td>Umsetzung der Löschfristen. Art. 6 Abs. 1 lit. f.</td><td>365 Tage, danach werden alle oben genannten personenbezogenen Daten gelöscht</td></tr>
+<tr><td>Datenbank-Sicherung</td><td>Täglich um 23:59 Uhr (Europe/Berlin) wird im Zuge des automatischen Neustarts eine vollständige Kopie der Datenbank erstellt. Sie enthält alle in dieser Tabelle genannten Daten (z. B. Konten, Transaktionen, XP, Counting-Stand, Verwarnungen, Ticket-Archiv, Giveaways) sowie die Dashboard-Konten (Passwörter und Sitzungen nur als Hash). Die Kopie wird komprimiert als Datei auf dem Bot-Server gespeichert. Der Vorgang wird ohne personenbezogene Inhalte in den Logdateien vermerkt (Abschnitt 4).</td><td>Wiederherstellung nach Datenverlust, technischen Defekten oder Fehlbedienung sowie Schutz der Integrität und Verfügbarkeit der Daten. Art. 6 Abs. 1 lit. f (vgl. Art. 32).</td><td>Es werden nur die zwei neuesten Sicherungen aufbewahrt. Bei jeder neuen Sicherung wird die älteste gelöscht. Gelöschte Daten können daher in der Regel noch höchstens etwa zwei Tage in einer Sicherung enthalten sein.</td></tr>
 <tr><td>Statistiken</td><td>Zähler wie genutzte Befehle, erstellte Tickets, Giveaways oder Latenzwerte. Diese Werte sind aggregiert und nicht personenbezogen.</td><td>Betriebsüberwachung.</td><td>Unbegrenzt</td></tr>
+
 </tbody></table></div>
 <h2 id="protokolle">4. Protokollierung</h2>
 <h3>Log-Kanal auf Discord</h3>
@@ -148,7 +150,7 @@ footer{padding:14px 12px}}
 <ul>
 <li><strong>Teammitglieder</strong> des Servers, soweit sie die Daten für ihre Aufgabe brauchen (je nach Berechtigungsstufe).</li>
 <li><strong>Discord</strong> als Plattform (siehe Abschnitt 2).</li>
-<li><strong>Hosting des Bots:</strong> IONOS SE, Rechenzentrum in Frankfurt am Main (Deutschland). Mit dem Anbieter besteht ein Auftragsverarbeitungsvertrag nach Art. 28 DSGVO.</li>
+<li><strong>Hosting des Bots:</strong> IONOS SE, Rechenzentrum in Frankfurt am Main (Deutschland). Dort liegen auch die täglichen Datenbank-Sicherungen. Mit dem Anbieter besteht ein Auftragsverarbeitungsvertrag nach Art. 28 DSGVO.</li>
 <li><strong>Datenbankdienst (MongoDB):</strong> MongoDB Atlas (MongoDB, Inc.), betrieben auf der Infrastruktur von Amazon Web Services in Frankfurt am Main (Region eu-central-1). Mit dem Anbieter besteht ein Auftragsverarbeitungsvertrag nach Art. 28 DSGVO.</li>
 <li><strong>jsDelivr</strong> als Auslieferer von Skripten für das Dashboard (Abschnitt 7).</li>
 <li><strong>Behörden und Gerichte</strong>, wenn wir gesetzlich dazu verpflichtet sind.</li>
@@ -161,7 +163,7 @@ footer{padding:14px 12px}}
 <ul>
 <li>Täglich läuft eine automatische Bereinigung. Sie entfernt nach <strong>365 Tagen</strong>: Logdateien, Einträge im Log-Kanal, archivierte Tickets, Verwarnungen, beendete Giveaways und alle Daten ehemaliger Mitglieder (Konto, Transaktionen, XP, Einladungsdaten, Counting-Stand, Zweitaccount-Verknüpfungen).</li>
 <li>Löschung durch das Team: Auf Antrag oder bei Bedarf löscht das Team Konto samt Transaktionsverlauf, Kekse, XP und Rang, Einladungsdaten (auch Einträge, in denen die Person als Einladende genannt ist), Counting-Stand, Zweitaccount-Verknüpfungen, Erinnerungen, Shop-Ablaufdaten, Giveaway-Teilnahmen und -Gewinne, Verwarnungen, Ticket-Sperren, alle archivierten Tickets, an denen die Person beteiligt war, sowie Zeilen in den Logdateien, die ihre Discord-ID oder ihren Benutzernamen enthalten. Die zugehörigen Rollen (Konto-, Rang- und Shop-Rollen wie VIP) werden zurückgesetzt und die Rolle „Unverified“ vergeben.</li>
-<li>Bei einer Löschung bleiben nur ein Protokolleintrag über die Löschung selbst (mit Discord-ID, Zeitpunkt und ausführendem Teammitglied, als Nachweis) sowie Einträge im Log-Kanal bestehen. Letztere laufen nach 365 Tagen ab; auf Antrag löschen wir sie im Einzelfall früher.</li>
+<li>Bei einer Löschung bleiben nur ein Protokolleintrag über die Löschung selbst (mit Discord-ID, Zeitpunkt und ausführendem Teammitglied, als Nachweis) sowie Einträge im Log-Kanal bestehen. Letztere laufen nach 365 Tagen ab; auf Antrag löschen wir sie im Einzelfall früher. Deine Daten können außerdem noch in den Datenbank-Sicherungen enthalten sein, bis diese überschrieben werden (in der Regel nach spätestens zwei Tagen, siehe Abschnitt 3). Aus den Sicherungen werden einzelne Daten nicht gesondert gelöscht.</li>
 <li>Eine Löschung deines Kontos ist endgültig. Guthaben, Ränge und Rollen gehen verloren.</li>
 <li>Datenbankanbieter können technische Sicherungskopien führen, die nach deren Zyklus überschrieben werden.</li>
 </ul>
@@ -183,7 +185,7 @@ footer{padding:14px 12px}}
 <h2 id="minderjaehrige">13. Minderjährige</h2>
 <p>Discord erlaubt die Nutzung erst ab einem Mindestalter (in Deutschland 13 Jahre). Wir prüfen das Alter nicht gesondert. Bewerbungen sind nur für Personen gedacht, die das nach den Angaben im Bewerbungsformular erforderliche Alter erfüllen. Wenn du minderjährig bist, sprich bei Fragen zu deinen Daten bitte auch mit deinen Eltern oder Erziehungsberechtigten.</p>
 <h2 id="sicherheit">14. Datensicherheit</h2>
-<p>Das Dashboard wird ausschließlich per HTTPS ausgeliefert. Passwörter und Sitzungs-Token speichern wir nur als Hash, die Anmeldung ist durch Rollen, eine Zwei-Faktor-Bestätigung über Discord und Begrenzung von Fehlversuchen gesichert. Kritische Verwaltungsaktionen für Dashboard-Konten erfordern eine zusätzliche Bestätigung in Discord. Der Zugriff auf die Daten ist nach Berechtigungsstufen beschränkt.</p>
+<p>Das Dashboard wird ausschließlich per HTTPS ausgeliefert. Passwörter und Sitzungs-Token speichern wir nur als Hash, die Anmeldung ist durch Rollen, eine Zwei-Faktor-Bestätigung über Discord und Begrenzung von Fehlversuchen gesichert. Kritische Verwaltungsaktionen für Dashboard-Konten erfordern eine zusätzliche Bestätigung in Discord. Der Zugriff auf die Daten ist nach Berechtigungsstufen beschränkt. Die Datenbank-Sicherungen liegen in einem Verzeichnis auf dem Bot-Server, auf das nur der Serverbetrieb Zugriff hat (eingeschränkte Dateirechte).
 <h2 id="aenderungen">15. Änderungen</h2>
 <p>Wir passen diese Erklärung an, wenn sich Funktionen des Bots oder die rechtlichen Vorgaben ändern. Wesentliche Änderungen kündigen wir im Changelog-Kanal des Servers an. Es gilt die jeweils hier veröffentlichte Fassung.</p>
 </main>
