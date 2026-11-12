@@ -4725,11 +4725,11 @@ export function initReactions(client) {
       }
       return;
     }
-    if (message.content.includes(":cookie:")) {
+    if (message.content.includes("🍪")) {
       try {
         await message.channel.send("<:pepecookie:1453796363442585660>");
         console.log(`Keks von ${message.author.username} aufgegessen :)`);
-      } catch {}
+      } catch (err){ console.error(err)  }
     }
     if (message.mentions.everyone) {
       try {
