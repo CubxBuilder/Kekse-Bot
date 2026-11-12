@@ -38,7 +38,33 @@ th{background:var(--elev);font-weight:600}
 tr:last-child td{border-bottom:none}
 td:first-child{font-weight:600;min-width:130px}
 footer{border-top:1px solid var(--border);background:var(--surface);color:var(--muted);text-align:center;padding:16px;font-size:.85rem}
-@media(max-width:640px){nav ol{columns:1}h1{font-size:1.6rem}header{padding:12px 16px}}
+html{-webkit-text-size-adjust:100%}
+code{overflow-wrap:anywhere}
+@media(max-width:700px){
+body{font-size:15px}
+header{flex-wrap:wrap;padding:12px 16px}
+header img{width:32px;height:32px}
+main{padding:20px 14px 48px}
+h1{font-size:1.5rem}
+h2{font-size:1.15rem;margin:34px 0 10px}
+h3{font-size:1rem}
+p,ul{max-width:none}
+nav{padding:12px 16px}
+nav ol{columns:1}
+.box{padding:14px 16px}
+.scroll{overflow:visible;border:none;border-radius:0}
+table,tbody{display:block;width:100%;min-width:0}
+thead{display:none}
+tr{display:block;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden}
+td{display:block;padding:10px 14px;border-bottom:1px solid var(--border);overflow-wrap:anywhere}
+tr:last-child td{border-bottom:1px solid var(--border)}
+tr td:last-child{border-bottom:none}
+td:first-child{min-width:0;background:var(--elev);font-size:1rem}
+td:not(:first-child)::before{display:block;margin-bottom:2px;font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+td:nth-child(2)::before{content:"Daten"}
+td:nth-child(3)::before{content:"Zweck, Rechtsgrundlage"}
+td:nth-child(4)::before{content:"Speicherdauer"}
+footer{padding:14px 12px}}
 </style>
 </head>
 <body>
@@ -46,9 +72,7 @@ footer{border-top:1px solid var(--border);background:var(--surface);color:var(--
 <main>
 <h1>Datenschutzerklärung</h1>
 <p class="stand">Stand: 08.11.2026</p>
-
 <p>Diese Erklärung beschreibt, welche personenbezogenen Daten der Discord-Server „Cookieverse“, der „Kekse Bot“ und das zugehörige Dashboard verarbeiten, wofür das geschieht und wie lange die Daten gespeichert bleiben. Sie gilt für alle Mitglieder des Servers, für Bewerber und für Mitglieder des Teams, die das Dashboard nutzen.</p>
-
 <nav aria-label="Inhalt"><ol>
 <li><a href="#verantwortlicher">Verantwortlicher und Kontakt</a></li>
 <li><a href="#discord">Discord als Plattform</a></li>
@@ -66,21 +90,17 @@ footer{border-top:1px solid var(--border);background:var(--surface);color:var(--
 <li><a href="#sicherheit">Datensicherheit</a></li>
 <li><a href="#aenderungen">Änderungen</a></li>
 </ol></nav>
-
 <h2 id="verantwortlicher">1. Verantwortlicher und Kontakt</h2>
 <div class="box">
 <p><strong>Fabian Lehradt</strong><br />E-Mail: <a href="mailto:fabian.lehradt@gmail.com">fabian.lehradt@gmail.com</a></p>
 <p>Bevorzugter Weg für alle Datenschutzanliegen (Auskunft, Löschung, Widerspruch usw.): ein <strong>Ticket</strong> in der Kategorie „Support“ im Kanal <a href="https://discord.com/channels/1423413347168157718/1423413348493430905">Tickets</a> auf dem Discord-Server. Über das Ticket können wir dich über dein Discord-Konto eindeutig zuordnen. Eine E-Mail ist ebenfalls möglich.</p>
 </div>
 <p>Ein Datenschutzbeauftragter ist nicht bestellt.</p>
-
 <h2 id="discord">2. Discord als Plattform</h2>
 <p>Der Server läuft auf Discord. Discord verarbeitet deine Daten (Konto, Nachrichten, Sprachkanäle, IP-Adresse usw.) in eigener Verantwortung nach der <a href="https://discord.com/privacy" target="_blank" rel="noopener">Datenschutzerklärung von Discord</a>. Diese Erklärung betrifft nur das, was wir als Serverbetreiber und über den Bot zusätzlich verarbeiten.</p>
 <p>Der Bot erhält von Discord Nachrichteninhalte, Mitgliederinformationen, Sprachkanal-Status, Einladungs- und Rollendaten, weil er dafür freigeschaltet ist. Online- oder Spielstatus (Presence) liest der Bot nicht.</p>
-
 <h2 id="daten">3. Welche Daten wir verarbeiten</h2>
 <p>Die meisten Daten werden über deine Discord-ID einem Konto zugeordnet. Rechtsgrundlagen: Art. 6 Abs. 1 lit. b DSGVO, soweit du eine Funktion nutzt (Bank, Casino, Shop, Tickets, Erinnerungen), und Art. 6 Abs. 1 lit. f DSGVO für Sicherheit, Missbrauchsabwehr, Moderation und den ordnungsgemäßen Betrieb des Servers. Unser berechtigtes Interesse ist ein geordneter, fairer und sicherer Server- und Spielbetrieb.</p>
-
 <div class="scroll"><table>
 <thead><tr><th>Bereich</th><th>Daten</th><th>Zweck, Rechtsgrundlage</th><th>Speicherdauer</th></tr></thead>
 <tbody>
@@ -103,20 +123,16 @@ footer{border-top:1px solid var(--border);background:var(--surface);color:var(--
 <tr><td>Ehemalige Mitglieder</td><td>Verlässt du den Server, speichern wir Discord-ID und Austrittsdatum. Kehrst du zurück, wird der Eintrag entfernt.</td><td>Umsetzung der Löschfristen. Art. 6 Abs. 1 lit. f.</td><td>365 Tage, danach werden alle oben genannten personenbezogenen Daten gelöscht</td></tr>
 <tr><td>Statistiken</td><td>Zähler wie genutzte Befehle, erstellte Tickets, Giveaways oder Latenzwerte. Diese Werte sind aggregiert und nicht personenbezogen.</td><td>Betriebsüberwachung.</td><td>Unbegrenzt</td></tr>
 </tbody></table></div>
-
 <h2 id="protokolle">4. Protokollierung</h2>
 <h3>Log-Kanal auf Discord</h3>
 <p>Der Bot schreibt in einen nur für das Team sichtbaren Kanal Protokolleinträge. Dazu gehören: gelöschte und bearbeitete Nachrichten (mit Inhalt, soweit der Bot sie zwischengespeichert hatte; Hinweis bei Ghost-Pings), Beitritte und Austritte (Name, ID, Alter des Kontos), Nickname- und Rollenänderungen, Beitritt, Wechsel und Verlassen von Sprachkanälen, Selbst-Stummschaltung, Änderungen an Kanälen, Rollen, Threads und Servereinstellungen, Bans, Kicks, Timeouts, Einladungen, Verifizierungen, Tickets, Giveaways (einschließlich Berichtsdatei mit Teilnehmerliste), Moderationsaktionen, Team-Befehle samt Inhalt, Gehaltszahlungen und Aktionen im Dashboard.</p>
 <p>Zweck ist die Sicherheit des Servers, die Nachvollziehbarkeit von Teamhandlungen und der Schutz vor Missbrauch (Art. 6 Abs. 1 lit. f DSGVO). Der Bot löscht Einträge, die älter als 365 Tage sind, täglich automatisch aus dem Kanal. Auf Antrag löschen wir dich betreffende Einträge auch früher, soweit keine berechtigten Interessen entgegenstehen.</p>
 <h3>Logdateien auf dem Server</h3>
 <p>Die Konsolenausgabe des Bots wird in Tagesdateien (<code>TT-MM-JJJJ.log</code>) auf dem Server gespeichert. Sie enthält Befehlsnutzung mit Benutzernamen, Hinweise zu Bot-Aktionen (z. B. Spielergebnisse, Überweisungen, Beitritte, Austritte) und technische Fehler. Das Team sieht sie im Dashboard. Zweck: Fehlersuche, Sicherheit, Nachvollziehbarkeit (Art. 6 Abs. 1 lit. f). Speicherdauer: 365 Tage, danach werden die Dateien automatisch gelöscht.</p>
-
 <h2 id="oeffentlich">5. Öffentlich sichtbare Daten</h2>
 <p>Für alle Mitglieder des Servers sichtbar sind: Bestenlisten (<code>!leaderboard</code> mit Kontostand, <code>!top</code> und <code>!highscore</code> im Counting), Ergebnisse von Spielen und Herausforderungen, die Rolle „King of Counting“, deine Ränge als Rolle, Umfrage- und Giveaway-Ergebnisse, Hinweise des Bots mit Erwähnung deines Namens sowie temporäre Sprachkanäle mit deinem Benutzernamen. Wenn du das nicht möchtest, melde dich per Ticket.</p>
-
 <h2 id="dm">6. Direktnachrichten durch den Bot</h2>
 <p>Der Bot sendet dir in folgenden Fällen eine private Nachricht: Kontostand auf Abruf, Eingang einer Überweisung, Shop-Quittung und Ablauf befristeter Artikel, Auswahl bei Schere-Stein-Papier, monatlicher Team-Lohn, Rückbuchung von XP und Verwarnung bei Einladungs-Missbrauch sowie, für Team-Mitglieder, Hinweise zum Dashboard. Das Team kann über den Bot außerdem Direktnachrichten verschicken. Wenn du keine DMs von Servermitgliedern zulässt, schlagen diese Nachrichten still fehl.</p>
-
 <h2 id="dashboard">7. Dashboard und Website</h2>
 <h3>Teamzugang</h3>
 <p>Das Dashboard ist nur für Teammitglieder gedacht. Für jedes Konto speichern wir: Benutzername, Discord-ID, Berechtigungsstufe, Passwort (nur als gesalzener Hash, scrypt), Einstellung zur Zwei-Faktor-Bestätigung sowie die Sitzung (nur als Hash des Tokens mit Ablaufzeit). Die Anmeldung wird, sofern nicht ausgeschaltet, mit einem Code bestätigt, den du in Discord mit <code>/dashboard-verify</code> eingibst; der Code wird nur als Hash gespeichert und ist 5 Minuten gültig. Rechtsgrundlage: Art. 6 Abs. 1 lit. f (Sicherheit und Verwaltung des Teams).</p>
@@ -128,7 +144,6 @@ footer{border-top:1px solid var(--border);background:var(--surface);color:var(--
 <p>Die Dashboard-Seite lädt die Bibliothek Chart.js und einen Datumsadapter von <code>cdn.jsdelivr.net</code> (jsDelivr). Dabei erhält der Anbieter technisch bedingt deine IP-Adresse und Browserdaten. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f (effiziente und sichere Darstellung der Diagramme). Weitere Tracker, Werbung oder Webanalyse setzen wir nicht ein.</p>
 <h3>Aufrufe der Website</h3>
 <p>Beim Aufruf der Seiten (HTTPS) verarbeitet der Server kurzzeitig IP-Adresse, Zeitpunkt und abgerufene Adresse, um die Seite auszuliefern. Der Bot selbst führt darüber kein Protokoll. Der Hosting-Anbieter kann eigene technische Zugriffsprotokolle führen.</p>
-
 <h2 id="empfaenger">8. Empfänger der Daten</h2>
 <ul>
 <li><strong>Teammitglieder</strong> des Servers, soweit sie die Daten für ihre Aufgabe brauchen (je nach Berechtigungsstufe).</li>
@@ -139,10 +154,8 @@ footer{border-top:1px solid var(--border);background:var(--surface);color:var(--
 <li><strong>Behörden und Gerichte</strong>, wenn wir gesetzlich dazu verpflichtet sind.</li>
 </ul>
 <p>Wir verkaufen keine Daten und nutzen sie nicht für Werbung oder Profiling.</p>
-
 <h2 id="drittland">9. Übermittlung in Drittländer</h2>
 <p>Discord verarbeitet Daten auch außerhalb der EU, insbesondere in den USA. Die dafür geltenden Garantien findest du in der Datenschutzerklärung von Discord. jsDelivr arbeitet mit einem weltweit verteilten Netzwerk; eine Verarbeitung außerhalb der EU ist dort möglich. Unser Bot-Server (IONOS) und unsere Datenbank (AWS) stehen in Frankfurt am Main. Da der Datenbankanbieter MongoDB, Inc. seinen Sitz in den USA hat, lässt sich ein Zugriff im Rahmen von Support oder Administration nicht völlig ausschließen. Die Übermittlung ist über die im Auftragsverarbeitungsvertrag vereinbarten Garantien (insbesondere Standardvertragsklauseln) abgesichert.</p>
-
 <h2 id="dauer">10. Speicherdauer und Löschung</h2>
 <p>Die Dauer steht jeweils in der Tabelle in Abschnitt 3. Zusammengefasst:</p>
 <ul>
@@ -152,10 +165,8 @@ footer{border-top:1px solid var(--border);background:var(--surface);color:var(--
 <li>Eine Löschung deines Kontos ist endgültig. Guthaben, Ränge und Rollen gehen verloren.</li>
 <li>Datenbankanbieter können technische Sicherungskopien führen, die nach deren Zyklus überschrieben werden.</li>
 </ul>
-
 <h2 id="automatisiert">11. Automatisierte Vorgänge</h2>
 <p>Wir treffen keine Entscheidungen mit rechtlicher Wirkung, die ausschließlich automatisiert erfolgen, und erstellen keine Profile. Automatisch laufen: Glücksspiele und Auslosungen (Zufall), Counting-Prüfung, XP-Vergabe sowie die Rückbuchung von XP und eine automatische Verwarnung für den Einladenden, wenn eine eingeladene Person den Server innerhalb von 24 Stunden wieder verlässt. Du kannst dazu jederzeit per Ticket eine Überprüfung durch einen Menschen verlangen.</p>
-
 <h2 id="rechte">12. Deine Rechte</h2>
 <ul>
 <li>Auskunft über die zu dir gespeicherten Daten (Art. 15 DSGVO)</li>
@@ -169,13 +180,10 @@ footer{border-top:1px solid var(--border);background:var(--surface);color:var(--
 </ul>
 <p>Zur Ausübung öffne ein Ticket (Abschnitt 1). Wir antworten in der Regel innerhalb eines Monats. Zur Auskunft oder Löschung brauchen wir deine Discord-ID, damit wir deine Daten finden können; die Anfrage aus dem betreffenden Discord-Konto reicht uns dafür aus.</p>
 <p>Die Bereitstellung der Daten ist nicht gesetzlich vorgeschrieben. Ohne bestimmte Daten (z. B. Minecraft-Name, Discord-ID) können einzelne Funktionen wie Bankkonto oder Tickets aber nicht genutzt werden.</p>
-
 <h2 id="minderjaehrige">13. Minderjährige</h2>
 <p>Discord erlaubt die Nutzung erst ab einem Mindestalter (in Deutschland 13 Jahre). Wir prüfen das Alter nicht gesondert. Bewerbungen sind nur für Personen gedacht, die das nach den Angaben im Bewerbungsformular erforderliche Alter erfüllen. Wenn du minderjährig bist, sprich bei Fragen zu deinen Daten bitte auch mit deinen Eltern oder Erziehungsberechtigten.</p>
-
 <h2 id="sicherheit">14. Datensicherheit</h2>
 <p>Das Dashboard wird ausschließlich per HTTPS ausgeliefert. Passwörter und Sitzungs-Token speichern wir nur als Hash, die Anmeldung ist durch Rollen, eine Zwei-Faktor-Bestätigung über Discord und Begrenzung von Fehlversuchen gesichert. Kritische Verwaltungsaktionen für Dashboard-Konten erfordern eine zusätzliche Bestätigung in Discord. Der Zugriff auf die Daten ist nach Berechtigungsstufen beschränkt.</p>
-
 <h2 id="aenderungen">15. Änderungen</h2>
 <p>Wir passen diese Erklärung an, wenn sich Funktionen des Bots oder die rechtlichen Vorgaben ändern. Wesentliche Änderungen kündigen wir im Changelog-Kanal des Servers an. Es gilt die jeweils hier veröffentlichte Fassung.</p>
 </main>
