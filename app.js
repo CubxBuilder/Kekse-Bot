@@ -2711,30 +2711,7 @@ export function initAdminFun(client) {
     if (!msg.content.startsWith("!")) return;
     const args = msg.content.slice(1).split(/\s+/);
     const cmd = args.shift().toLowerCase();
-    if (cmd === "blob") {
-      const filePfad = path.join(__dirname, "blobfish.jpg");
-      const attachment = new AttachmentBuilder(filePfad, {
-        name: "blobfish.jpg",
-      });
-      console.log(`${msg.author.username} hat !blob genutzt.`);
-      msg.channel.send({ files: [attachment] });
-    }
-    if (cmd === "sand") {
-      const filePfad = path.join(__dirname, "sandkorn.png");
-      const attachment = new AttachmentBuilder(filePfad, {
-        name: "sandkorn.png",
-      });
-      console.log(`${msg.author.username} hat !sand genutzt.`);
-      msg.channel.send({ files: [attachment] });
-    }
-    if (cmd === "sandkorn") {
-      const filePfad = path.join(__dirname, "strand.jpg");
-      const attachment = new AttachmentBuilder(filePfad, {
-        name: "strand.jpg",
-      });
-      console.log(`${msg.author.username} hat !sandkorn genutzt.`);
-      msg.channel.send({ files: [attachment] });
-    }
+    // if (cmd === "") {}
   });
 }
 export function initAuditLogs(client) {
