@@ -6339,6 +6339,36 @@ async function buildUserDatabase(guild) {
   return { users, txLogs };
 }
 let statsCache = { time: 0, data: null };
+function collectLogMentions(guild, logs) {
+  const users = {};
+  const roles = {};
+  const channels = {};
+  const text = logs
+    .map(function (entry) {
+      return entry.m || "";
+    })
+    .join("\n");
+  for (const match of text.matchAll(/<@!?(\d{17,20})>/g)) {
+    const id = match[1];
+    if (id in users) continue;
+    const member = guild ? guild.members.cache.get(id) : null;
+    const user = member ? member.user : client.users.cache.get(id);
+    users[id] = member ? member.displayName : user ? user.username : null;
+  }
+  for (const match of text.matchAll(/<@&(\d{17,20})>/g)) {
+    const id = match[1];
+    if (id in roles) continue;
+    const role = guild ? guild.roles.cache.get(id) : null;
+    roles[id] = role ? { name: role.name, color: role.color ? role.hexColor : null } : null;
+  }
+  for (const match of text.matchAll(/<#(\d{17,20})>/g)) {
+    const id = match[1];
+    if (id in channels) continue;
+    const channel = client.channels.cache.get(id);
+    channels[id] = channel && channel.name ? channel.name : null;
+  }
+  return { users, roles, channels };
+}
 app.get("/api/stats", requireDashboardAuth, async (req, res) => {
   if (statsCache.data && Date.now() - statsCache.time < 15000) return res.json(statsCache.data);
   try {
@@ -6366,6 +6396,7 @@ app.get("/api/stats", requireDashboardAuth, async (req, res) => {
       ? await buildUserDatabase(guild)
       : { users: [], txLogs: {} };
     const mappedLogs = await readLogFile(logDateString());
+    const mentions = collectLogMentions(guild, mappedLogs);
     const payload = {
       guild: {
         name: guild?.name || "Kekse Server",
@@ -6389,6 +6420,7 @@ app.get("/api/stats", requireDashboardAuth, async (req, res) => {
       userDatabase: users,
       transactionLogs: txLogs,
       logs: mappedLogs,
+      mentions,
     };
     statsCache = { time: Date.now(), data: payload };
     res.json(payload);
