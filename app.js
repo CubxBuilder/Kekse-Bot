@@ -2618,7 +2618,6 @@ export async function initEconomySystem(client) {
                     await member.roles.add(config.roles.economy).catch(() => { });
                 }
                 console.log(`${interaction.user.username} hat ein Konto erstellt.`);
-                console.log(`Reply ${interaction.user.username}: Dein Konto wurde erfolgreich angelegt! Minecraft-Name: ${mcUsername}, Startguthaben: 100 Kekse, Du hast nun zugriff auf dein Konto mit "!bank"`);
                 await interaction.reply({
                     content: `Dein Konto wurde erfolgreich angelegt!\n**Minecraft-Name:** ${mcUsername}\n**Startguthaben:** 100 Kekse\nDu hast nun Zugriff auf dein Konto mit \`!bank\`.`,
                     flags: MessageFlags.Ephemeral,
