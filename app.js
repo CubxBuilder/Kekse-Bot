@@ -119,6 +119,20 @@ const resetJackpot = () => ({
   announceMessage: null,
 });
 let jackpotState = resetJackpot();
+const JACKPOT_LOCK_HOUR = 23;
+const JACKPOT_LOCK_MINUTE = 54;
+const JACKPOT_LOCK_TEXT = "Es ist im Moment nicht möglich ein neuen Jackpot zu erstellen. Bitte komme um 00:00 Uhr wieder.";
+function isJackpotLocked() {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Berlin",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+  const map = {};
+  for (const part of parts) map[part.type] = part.value;
+  return Number(map.hour) === JACKPOT_LOCK_HOUR && Number(map.minute) >= JACKPOT_LOCK_MINUTE;
+}
 async function runJackpotDraw(channel) {
   if (jackpotState.entries.length === 0) {
     jackpotState = resetJackpot();
@@ -1308,6 +1322,13 @@ export async function initEconomySystem(client) {
           console.log(`Reply ${msg.author.username}: Nutzung: "!casino jackpot <Einsatz>"`);
           return msg.reply({
             content: "Nutzung: `!casino jackpot <Einsatz>`",
+            flags: [MessageFlags.Ephemeral],
+          });
+        }
+        if (jackpotState.entries.length === 0 && isJackpotLocked()) {
+          console.log(`Reply ${msg.author.username}: ${JACKPOT_LOCK_TEXT}`);
+          return msg.reply({
+            content: JACKPOT_LOCK_TEXT,
             flags: [MessageFlags.Ephemeral],
           });
         }
@@ -2566,32 +2587,9 @@ export async function initEconomySystem(client) {
           await interaction.user.send({ embeds: [invoiceEmbed] }).catch(() => {
             console.log(`Konnte keine DM an ${interaction.user.tag} senden.`);
           });
-          if (item.duration) {
-            setTimeout(async () => {
-              try {
-                const currentMember = await interaction.guild.members
-                  .fetch(member.id)
-                  .catch(() => null);
-                if (
-                  currentMember &&
-                  currentMember.roles.cache.has(item.roleId)
-                ) {
-                  await currentMember.roles.remove(item.roleId);
-                  console.log(`Send ${interaction.user.username}: Dein ${item.name} ist abgelaufen und wurde entfernt.`);
-                  await currentMember
-                    .send(
-                      `Dein **${item.name}** ist abgelaufen und wurde entfernt!`,
-                    )
-                    .catch(() => null);
-                }
-              } catch (timerError) {
-                console.error(
-                  `Fehler beim Entfernen von ${item.name}:`,
-                  timerError,
-                );
-              }
-            }, item.duration);
-          }
+        if (item.duration) {
+          await addShopExpiration(interaction.user.id, item.roleId, item.name, Date.now() + item.duration);
+        }
         } catch (error) {
           console.error("Fehler beim Shop-Kauf:", error);
           console.log(`Reply ${interaction.user.username}: Es gab einen Fehler beim Verarbeiten deines Kaufs.`);
@@ -7171,6 +7169,73 @@ async function purgeLogFiles(userId, names) {
   }
   return removed;
 }
+let shopQueue = Promise.resolve();
+function updateShopExpirations(mutator) {
+  const run = shopQueue.then(async function () {
+    const data = (await dbGet("shop", "expirations")) || {};
+    const result = await mutator(data);
+    await dbSet("shop", "expirations", data);
+    return result;
+  });
+  shopQueue = run.catch(function () {});
+  return run;
+}
+function addShopExpiration(userId, roleId, name, expiresAt) {
+  return updateShopExpirations(function (data) {
+    data[userId + "_" + roleId] = { userId, roleId, name, expiresAt };
+  });
+}
+function purgeShopExpirations(userId) {
+  return updateShopExpirations(function (data) {
+    let changed = false;
+    for (const [key, entry] of Object.entries(data)) {
+      if (entry.userId === userId) {
+        delete data[key];
+        changed = true;
+      }
+    }
+    return changed;
+  });
+}
+async function checkShopExpirations() {
+  const guild = client.guilds.cache.get(GUILD_ID);
+  if (!guild) return;
+  const now = Date.now();
+  const current = (await dbGet("shop", "expirations")) || {};
+  const due = Object.entries(current).filter(function ([key, entry]) {
+    return entry.expiresAt <= now;
+  });
+  if (!due.length) return;
+  const finished = [];
+  for (const [key, entry] of due) {
+    const member = await guild.members.fetch(entry.userId).catch(function (error) {
+      return error.code === 10007 ? null : undefined;
+    });
+    if (member === undefined) continue;
+    if (member === null) {
+      finished.push(key);
+      continue;
+    }
+    if (member.roles.cache.has(entry.roleId)) {
+      const removed = await member.roles
+        .remove(entry.roleId)
+        .then(function () {
+          return true;
+        })
+        .catch(function () {
+          return false;
+        });
+      if (!removed) continue;
+      console.log(`${member.user.username}: ${entry.name} ist abgelaufen und wurde entfernt.`);
+      await member.send(`Dein **${entry.name}** ist abgelaufen und wurde entfernt!`).catch(function () {});
+    }
+    finished.push(key);
+  }
+  if (!finished.length) return;
+  await updateShopExpirations(function (data) {
+    for (const key of finished) delete data[key];
+  });
+}
 async function purgeUserData(userId, options) {
   const guild = options.guild;
   const member = options.member || null;
@@ -7190,6 +7255,7 @@ async function purgeUserData(userId, options) {
   if (await purgeAltLinks(userId)) parts.push("Zweitaccount-Verknüpfung");
   if (await purgeWarnings(userId)) parts.push("Verwarnungen");
   if (await purgeTicketBlock(userId)) parts.push("Ticket-Sperre");
+  if (await purgeShopExpirations(userId)) parts.push("Shop-Ablaufdaten");
   const tickets = await purgeTickets(userId, names);
   if (tickets) parts.push(`${tickets} Ticket-Transkripte`);
   if (!options.skipLogs) {
@@ -9102,6 +9168,12 @@ client.on("interactionCreate", async (interaction) => {
       return interaction.reply({ embeds: [cfEmbed] });
     }
     if (commandName === "jackpot") {
+      if (jackpotState.entries.length === 0 && isJackpotLocked()) {
+        return interaction.reply({
+          content: JACKPOT_LOCK_TEXT,
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
       if (jackpotState.entries.find((e) => e.userId === user.id)) {
         return interaction.reply({
           content: "Du bist bereits im Jackpot! Warte auf die Ziehung.",
@@ -10114,6 +10186,10 @@ client.once("clientReady", async () => {
     await initInviteTracker(client);
     await setupVoiceModToggle(client);
     startVoiceXpTracker(client);
+    checkShopExpirations().catch(console.error);
+    setInterval(function () {
+      checkShopExpirations().catch(console.error);
+    }, 30000);
     wage().catch(console.error);
     setInterval(() => wage().catch(console.error), 60 * 1000);
     console.log(`Server-Sync gestartet...`);
