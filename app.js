@@ -7268,10 +7268,24 @@ async function purgeUserData(userId, options) {
         return tier.id;
       }),
     );
-    await member.roles.remove(roleIds).catch(function (error) {
-      console.error("Rollen konnten nicht entfernt werden:", error);
-    });
-    parts.push("Rollen zurückgesetzt, Unverified-Rolle vergeben");
+    const failed = [];
+    for (const roleId of roleIds) {
+      if (!member.roles.cache.has(roleId)) continue;
+      const removed = await member.roles
+        .remove(roleId)
+        .then(function () {
+          return true;
+        })
+        .catch(function () {
+          return false;
+        });
+      if (!removed) failed.push(roleId);
+    }
+    parts.push(
+      failed.length
+        ? `Rollen teilweise zurückgesetzt (nicht entfernbar: ${failed.join(", ")}), Unverified-Rolle vergeben`
+        : "Rollen zurückgesetzt, Unverified-Rolle vergeben",
+    );
   }
   return parts.length ? parts.join(", ") : "Keine gespeicherten Daten gefunden";
 }
