@@ -5806,7 +5806,7 @@ export async function handleSlashHelpCommand(interaction) {
   const responseMessage = await interaction.reply({
     embeds: [mainEmbed],
     components: [helpRow],
-    fetchReply: true,
+    withResponse: true,
   });
   createHelpCollector(
     responseMessage,
@@ -9218,7 +9218,7 @@ client.on("interactionCreate", async (interaction) => {
       const gameMsg = await interaction.reply({
         embeds: [crashEmbed()],
         components: [cashoutRow()],
-        fetchReply: true,
+        withResponse: true,
       });
       crashGames.set(user.id, {
         betAmount,
@@ -9389,7 +9389,7 @@ client.on("interactionCreate", async (interaction) => {
           ),
         ],
         components: [hlRow()],
-        fetchReply: true,
+        withResponse: true,
       });
       const collector = gameMsg.createMessageComponentCollector({
         filter: (i) => i.user.id === user.id,
@@ -9619,7 +9619,7 @@ client.on("interactionCreate", async (interaction) => {
       const gameMessage = await interaction.reply({
         embeds: [createEmbed("Blackjack", 0xffffff)],
         components: [row],
-        fetchReply: true,
+        withResponse: true,
       });
       const collector = gameMessage.createMessageComponentCollector({
         filter: (i) => i.user.id === user.id,
