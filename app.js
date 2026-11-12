@@ -716,7 +716,7 @@ export async function initEconomySystem(client) {
                 });
             }
             const description =
-                args.slice(1).join(" ") || "Hole dir hier deine täglichen Kekse ab!";
+                args.slice(2).join(" ") || "Hole dir hier deine täglichen Kekse ab!";
             await setEcoData(`setup_${setupId}`, {
                 description: description,
                 exists: true,
@@ -742,7 +742,7 @@ export async function initEconomySystem(client) {
         }
         if (command === "!shop_setup") {
             if (msg.author.id !== config.users.sysadmin) return;
-            const setupId = args[0];
+            const setupId = args[1];
             if (!setupId) {
                 console.log(`Reply ${msg.author.username}: setup_id is missing`);
                 return msg.reply({
@@ -750,7 +750,7 @@ export async function initEconomySystem(client) {
                 });
             }
             const description =
-                args.slice(1).join(" ") ||
+                args.slice(2).join(" ") ||
                 "Kaufe dir hier von deinen Keksen Booster, Rollen und Puffer\n";
             await setEcoData(`setup_${setupId}`, {
                 description: description,
@@ -1208,7 +1208,7 @@ export async function initEconomySystem(client) {
                 let won = false;
                 let payout = 0;
                 let betDesc = betType;
-                const numBet = parseInt(betType);
+                const numBet = /^\d+$/.test(betType) ? parseInt(betType) : NaN;
                 if (!isNaN(numBet) && numBet >= 0 && numBet <= 36) {
                     won = spin === numBet;
                     payout = won ? betAmount * 35 : -betAmount;
@@ -2474,14 +2474,9 @@ export async function initEconomySystem(client) {
                 }
                 const payout = 100;
                 userData.balance = (userData.balance || 0) + payout;
-                await logTransaction(interaction.user.id, payout, "plus", "Daily");
                 userData.claimedDailies[setupId] = localizedDateStr;
-                if (typeof userData.markModified === "function") {
-                    userData.markModified("claimedDailies");
-                } else {
-                    userData.claimedDailies = { ...userData.claimedDailies };
-                }
                 await setEcoData(interaction.user.id, userData);
+                await logTransaction(interaction.user.id, payout, "plus", "Daily");
                 console.log(`Reply ${interaction.user.username}: Dir wurden 100 Kekse auf dein Bankkonto gutgeschrieben.`);
                 return interaction.reply({
                     content:
@@ -2646,7 +2641,7 @@ export async function wage(force = false) {
     const istErsterDesMonats = now.getDate() === 1;
     const istNullUhr = now.getHours() === 0;
     const bereitsDiesenMonatGezahlt = gespeicherterMonat === aktuellerMonat;
-    if (!bereitsDiesenMonatGezahlt) {
+    if (istErsterDesMonats && !bereitsDiesenMonatGezahlt) {
         await setWageData("status", { letzterMonat: aktuellerMonat });
         await fuehreGehaltszahlungAus(now);
     }
@@ -4024,9 +4019,9 @@ export async function initGiveaway(client) {
             if (now < data.endTime) continue;
             const channel = await client.channels.fetch(data.channelId).catch(() => null);
             const msg = channel ? await channel.messages.fetch(msgId).catch(() => null) : null;
+            if (msg) await endGiveaway(client, msg, data, sendKekseLog);
             delete giveaways[msgId];
             await setGivData("activeGiveaways", giveaways);
-            if (msg) await endGiveaway(client, msg, data, sendKekseLog);
         }
     }
     setInterval(checkGiveaways, 10000);
@@ -5729,7 +5724,7 @@ const getHelpData = {
                 `<#${config.channels.events}> Hier werden Events angekündigt\n` +
                 `<#${config.channels.werbung}> In diesem Kanal darfst du deine eigenen Projekte bewerben.\n` +
                 `<#${config.channels.counting}> Der Kanal für das Counting Spiel\n` +
-                `<#${config.channels.daily}> Hier kannst du dir alle 24 Stunden 10 kostenlose Kekse abholen.\n` +
+                `<#${config.channels.daily}> Hier kannst du dir alle 24 Stunden 100 kostenlose Kekse abholen.\n` +
                 `<#${config.channels.casino}> Der Bereich für alle Casino-Spiele und Wetten.\n` +
                 `<#${config.channels.shop}> Tausche deine Kekse gegen Booster, doppelte Giveaway Chance oder die VIP-Rolle ein.\n` +
                 `<#${config.channels.ticket}> Hier kannst du Tickets für Support, Gewinne oder Bewerbungen erstellen.`,
@@ -7484,16 +7479,6 @@ const commands = [
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
     new SlashCommandBuilder()
-        .setName("changelog")
-        .setDescription("Erstellt einen neuen Changelog-Eintrag")
-        .addStringOption((opt) =>
-            opt
-                .setName("eintrag")
-                .setDescription("Inhalt des Updates (Nutze Kommas für Listenpunkte)")
-                .setRequired(true),
-        )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-    new SlashCommandBuilder()
         .setName("embed")
         .setDescription("Sendet ein strukturiertes Embed")
         .addChannelOption((opt) =>
@@ -7670,16 +7655,6 @@ const commands = [
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer),
     new SlashCommandBuilder()
-        .setName("ticket-panel")
-        .setDescription(
-            "Sendet das Ticket-Panel mit Buttons in den aktuellen Kanal",
-        )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer),
-    new SlashCommandBuilder()
-        .setName("close")
-        .setDescription("Schließt und archiviert das aktuelle Ticket")
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-    new SlashCommandBuilder()
         .setName("block")
         .setDescription(
             "Sperrt einen User für eine bestimmte Anzahl an Tagen für das Ticket-System",
@@ -7694,24 +7669,6 @@ const commands = [
             opt
                 .setName("tage")
                 .setDescription("Anzahl der Tage für die Sperre (Standard: 7)")
-                .setRequired(false),
-        )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
-    new SlashCommandBuilder()
-        .setName("daily-setup")
-        .setDescription(
-            "Entwickler: Richtet ein tägliches Belohnungssystem mit Button ein",
-        )
-        .addStringOption((opt) =>
-            opt
-                .setName("id")
-                .setDescription("Eine eindeutige ID für dieses Setup (z.B. event1)")
-                .setRequired(true),
-        )
-        .addStringOption((opt) =>
-            opt
-                .setName("beschreibung")
-                .setDescription("Zusätzlicher Beschreibungstext für das Einlösen")
                 .setRequired(false),
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
@@ -7841,64 +7798,6 @@ const commands = [
         )
         .setContexts(0)
         .setIntegrationTypes(0),
-    new SlashCommandBuilder()
-        .setName("bank-admin")
-        .setDescription("Serverleitung: Konten von Mitgliedern modifizieren")
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageServer)
-        .addSubcommand((sub) =>
-            sub
-                .setName("add")
-                .setDescription("Fügt einem Konto Kekse hinzu")
-                .addIntegerOption((opt) =>
-                    opt
-                        .setName("anzahl")
-                        .setDescription("Die Menge an Keksen")
-                        .setRequired(true),
-                )
-                .addUserOption((opt) =>
-                    opt
-                        .setName("nutzer")
-                        .setDescription("Der Zielnutzer")
-                        .setRequired(false),
-                ),
-        )
-        .addSubcommand((sub) =>
-            sub
-                .setName("remove")
-                .setDescription("Zieht von einem Konto Kekse ab")
-                .addIntegerOption((opt) =>
-                    opt
-                        .setName("anzahl")
-                        .setDescription("Die Menge an Keksen")
-                        .setRequired(true),
-                )
-                .addUserOption((opt) =>
-                    opt
-                        .setName("nutzer")
-                        .setDescription("Der Zielnutzer")
-                        .setRequired(false),
-                ),
-        ),
-    new SlashCommandBuilder()
-        .setName("bank-mod")
-        .setDescription("Team: Kontoinformationen und Umläufe einsehen")
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
-        .addSubcommand((sub) =>
-            sub
-                .setName("see")
-                .setDescription("Zeigt detaillierte Kontoinformationen eines Nutzers")
-                .addUserOption((opt) =>
-                    opt
-                        .setName("nutzer")
-                        .setDescription("Der zu prüfende Nutzer")
-                        .setRequired(true),
-                ),
-        )
-        .addSubcommand((sub) =>
-            sub
-                .setName("get")
-                .setDescription("Zeigt an, wie viele Kekse insgesamt im Umlauf sind"),
-        ),
     new SlashCommandBuilder()
         .setName("zweitaccount")
         .setDescription("Verwaltet die Zweitaccounts von Mitgliedern")
@@ -8117,7 +8016,7 @@ const commands = [
 ].map((cmd) => cmd.toJSON());
 export async function deploySlashCommands() {
     if (!process.env.BOT_TOKEN) {
-        console.error("❌ Fehler: BOT_TOKEN fehlt in den Umgebungsvariablen!");
+        console.error("Fehler: BOT_TOKEN fehlt in den Umgebungsvariablen!");
         return;
     }
     const rest = new REST({ version: "10" }).setToken(process.env.BOT_TOKEN);
@@ -8241,32 +8140,6 @@ client.on("interactionCreate", async (interaction) => {
         await sendKekseLog("send", targetChannel.toString(), text);
         console.log(`${user.username} hat die "send"-Funktion genutzt`);
     }
-    if (commandName === "changelog") {
-        const changelogChannel = guild.channels.cache.get("1464993818968588379");
-        const eintrag = options.getString("eintrag");
-        if (!changelogChannel)
-            return interaction.reply({
-                content: "Kanal nicht gefunden.",
-                flags: [MessageFlags.Ephemeral],
-            });
-        const date = new Date().toLocaleDateString("de-DE", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-        });
-        const updateList = eintrag
-            .split(",")
-            .map((item) => `- ${item.trim()}`)
-            .join("\n");
-        const messageFormat = `<@&1464994942345547857>\n**:wrench: Änderungen (${date})**\n${updateList}`;
-        await changelogChannel.send(messageFormat);
-        await interaction.reply({
-            content: "Changelog erfolgreich gepostet.",
-            flags: [MessageFlags.Ephemeral],
-        });
-        await sendKekseLog("changelog", changelogChannel.toString(), updateList);
-        console.log(`${user.username} hat die "changelog"-Funktion genutzt`);
-    }
     if (commandName === "embed") {
         const targetChannel = options.getChannel("kanal");
         const title = options.getString("titel");
@@ -8295,7 +8168,7 @@ client.on("interactionCreate", async (interaction) => {
         const targetUser = await client.users.fetch(userId).catch(() => null);
         if (!targetUser) {
             return interaction.reply({
-                content: "❌ User konnte nicht gefunden werden. Ungültige ID?",
+                content: "User konnte nicht gefunden werden. Ungültige ID?",
                 flags: [MessageFlags.Ephemeral],
             });
         }
@@ -8310,7 +8183,7 @@ client.on("interactionCreate", async (interaction) => {
         } catch (err) {
             await interaction.reply({
                 content:
-                    "❌ Die DM konnte nicht zugestellt werden (Privatsphäre-Einstellungen des Users).",
+                    "Die DM konnte nicht zugestellt werden (Privatsphäre-Einstellungen des Users).",
                 flags: [MessageFlags.Ephemeral],
             });
         }
@@ -8336,7 +8209,7 @@ client.on("interactionCreate", async (interaction) => {
             console.log(`${user.username} hat die "reply"-Funktion genutzt`);
         } catch (err) {
             await interaction.reply({
-                content: "❌ Nachricht im angegebenen Kanal nicht gefunden.",
+                content: "Nachricht im angegebenen Kanal nicht gefunden.",
                 flags: [MessageFlags.Ephemeral],
             });
         }
@@ -8344,13 +8217,13 @@ client.on("interactionCreate", async (interaction) => {
     if (commandName === "ping") {
         if (!member.roles.cache.has(config.roles.team)) {
             return interaction.reply({
-                content: "❌ Keine Berechtigung.",
+                content: "Keine Berechtigung.",
                 flags: [MessageFlags.Ephemeral],
             });
         }
         const start = Date.now();
         await interaction.reply({
-            content: "🏓 Pinging...",
+            content: "Pinging...",
             flags: [MessageFlags.Ephemeral],
         });
         const end = Date.now();
@@ -8358,7 +8231,7 @@ client.on("interactionCreate", async (interaction) => {
         const wsPing = client.ws.ping;
         await interaction
             .editReply({
-                content: `🏓 **Pong!**\n- API-Latenz: \`${roundtrip}ms\`\n- WebSocket: \`${wsPing}ms\``,
+                content: `**Pong!**\n- API-Latenz: \`${roundtrip}ms\`\n- WebSocket: \`${wsPing}ms\``,
             })
             .catch(() => { });
         const logChannel = client.channels.cache.get(config.channels.logs);
@@ -8393,7 +8266,7 @@ client.on("interactionCreate", async (interaction) => {
         const timeframe = options.getString("zeitrahmen");
         if (!targetChannel.isTextBased()) {
             return interaction.reply({
-                content: "❌ Der ausgewählte Kanal ist kein Textkanal.",
+                content: "Der ausgewählte Kanal ist kein Textkanal.",
                 flags: [MessageFlags.Ephemeral],
             });
         }
@@ -8426,7 +8299,7 @@ client.on("interactionCreate", async (interaction) => {
             if (messagesToDelete.length === 0) {
                 return interaction.editReply({
                     content:
-                        " Keine Nachrichten gefunden, die den Kriterien entsprechen.",
+                        "Keine Nachrichten gefunden, die den Kriterien entsprechen.",
                 });
             }
             const fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
@@ -8461,15 +8334,15 @@ client.on("interactionCreate", async (interaction) => {
             }
         } catch (clearError) {
             console.log(
-                `[ClearCommand] Fehler bei der Ausführung: ${clearError.message}`,
+                `Fehler bei der Ausführung: ${clearError.message}`,
             );
             return interaction.editReply({
-                content: "❌ Ein interner Fehler ist beim Löschen aufgetreten.",
+                content: "Ein interner Fehler ist beim Löschen aufgetreten.",
             });
         }
         const duration = ((Date.now() - startTime) / 1000).toFixed(2);
         await interaction.editReply({
-            content: `✅ **Abschlussbericht:**\n- Gelöscht: **${deletedCount}**\n- Dauer: **${duration}s**\n- Kanal: <#${targetChannel.id}>`,
+            content: `**Abschlussbericht:**\n- Gelöscht: **${deletedCount}**\n- Dauer: **${duration}s**\n- Kanal: <#${targetChannel.id}>`,
         });
         console.log(
             `${user.username} hat die "clear"-Funktion genutzt: ${deletedCount} innerhalb von ${duration}s in ${targetChannel} gelöscht`,
@@ -8494,7 +8367,7 @@ client.on("interactionCreate", async (interaction) => {
     if (commandName === "giveaway") {
         if (!member.roles.cache.has(config.roles.team)) {
             return interaction.reply({
-                content: " Keine Rechte.",
+                content: "Keine Rechte.",
                 flags: [MessageFlags.Ephemeral],
             });
         }
@@ -8512,7 +8385,7 @@ client.on("interactionCreate", async (interaction) => {
                 sendKekseLog,
             );
             if (error) return interaction.editReply({ content: error });
-            return interaction.editReply({ content: "✅ Reroll durchgeführt." });
+            return interaction.editReply({ content: "Reroll durchgeführt." });
         }
         const channel = options.getChannel("kanal");
         const durationStr = options.getString("dauer");
@@ -8521,14 +8394,14 @@ client.on("interactionCreate", async (interaction) => {
         const winnerCount = options.getInteger("gewinner") || 1;
         if (!channel.isTextBased()) {
             return interaction.reply({
-                content: "❌ Der ausgewählte Kanal ist kein Textkanal.",
+                content: "Der ausgewählte Kanal ist kein Textkanal.",
                 flags: [MessageFlags.Ephemeral],
             });
         }
         const durationMs = parseDuration(durationStr);
         if (durationMs <= 0) {
             return interaction.reply({
-                content: "❌ Zeitformat ungültig (z.B. 1h, 30m, 1d).",
+                content: "Zeitformat ungültig (z.B. 1h, 30m, 1d).",
                 flags: [MessageFlags.Ephemeral],
             });
         }
@@ -8563,7 +8436,7 @@ client.on("interactionCreate", async (interaction) => {
                 .setStyle(ButtonStyle.Primary),
         );
         const giveawayMsg = await channel.send({
-            content: "<@&1424028650080178348>",
+            content: `<@&${config.roles.giveaways}>`,
             embeds: [embed],
             components: [row],
         });
@@ -8571,7 +8444,7 @@ client.on("interactionCreate", async (interaction) => {
         giveaways[giveawayMsg.id] = giveawayData;
         await setGivData("activeGiveaways", giveaways);
         await interaction.editReply({
-            content: `✅ Giveaway erfolgreich in ${channel} gestartet!\n**ID:** \`${giveawayMsg.id}\``,
+            content: `iveaway in ${channel} gestartet!\n**ID:** \`${giveawayMsg.id}\``,
             flags: [MessageFlags.Ephemeral],
         });
         let logDetails = `**Preis:** ${price}\n**Kanal:** ${channel}\n**Dauer:** ${durationStr}\n**Gewinner:** ${winnerCount}`;
@@ -8590,12 +8463,12 @@ client.on("interactionCreate", async (interaction) => {
     if (commandName === "moveadmin") {
         if (!member.roles.cache.has(config.roles.team)) {
             return interaction.reply({
-                content: ":x: Keine Berechtigung.",
+                content: "Keine Berechtigung.",
                 flags: [MessageFlags.Ephemeral],
             });
         }
         await interaction.reply({
-            content: "⏳ Verschiebe Ticket in den Admin-Bereich...",
+            content: "Verschiebe Ticket in den Admin-Bereich...",
             flags: [MessageFlags.Ephemeral],
         });
         await moveChannelToAdmin(currentChannel, true);
@@ -8628,24 +8501,10 @@ client.on("interactionCreate", async (interaction) => {
         await currentChannel.send({ embeds: [panelEmbed], components: [panelRow] });
         console.log(`${user.username} hat ein neues Ticket-Panel erstellt`);
     }
-    if (commandName === "close") {
-        if (!member.roles.cache.has(config.roles.team)) {
-            return interaction.reply({
-                content: "Keine Berechtigung.",
-                flags: [MessageFlags.Ephemeral],
-            });
-        }
-        await interaction.reply({
-            content: "⏳ Ticket-Schließung initiiert...",
-            flags: [MessageFlags.Ephemeral],
-        });
-        await closeTicket(currentChannel, user);
-        console.log(`${user.username} hat ${currentChannel} geschlossen`);
-    }
     if (commandName === "block") {
         if (!member.roles.cache.has(config.roles.team)) {
             return interaction.reply({
-                content: ":x: Keine Berechtigung.",
+                content: "Keine Berechtigung.",
                 flags: [MessageFlags.Ephemeral],
             });
         }
@@ -9066,7 +8925,7 @@ client.on("interactionCreate", async (interaction) => {
             let won = false;
             let payout = 0;
             let betDesc = betType;
-            const numBet = parseInt(betType);
+            const numBet = /^\d+$/.test(betType) ? parseInt(betType) : NaN;
             if (!isNaN(numBet) && numBet >= 0 && numBet <= 36) {
                 won = spin === numBet;
                 payout = won ? betAmount * 35 : -betAmount;
@@ -9891,102 +9750,6 @@ client.on("interactionCreate", async (interaction) => {
                 flags: [MessageFlags.Ephemeral],
             });
             console.log(`${user.username} hat seinen Kontostand eingesehen.`);
-        }
-    }
-    if (commandName === "bank-admin") {
-        const subCommand = options.getSubcommand();
-        const isDev = user.id === config.users.sysadmin;
-        if (
-            !member.permissions.has(PermissionsBitField.Flags.ManageServer) &&
-            !isDev
-        ) {
-            return interaction.reply({
-                content: "❌ Dieser Befehl ist der Serverleitung vorbehalten.",
-                flags: [MessageFlags.Ephemeral],
-            });
-        }
-        const amount = options.getInteger("anzahl");
-        const targetUser = options.getUser("nutzer") || user;
-        if (amount <= 0) {
-            return interaction.reply({
-                content: "Bitte gib eine gültige Anzahl an Keksen an.",
-                flags: [MessageFlags.Ephemeral],
-            });
-        }
-        const targetData = await getEcoData(targetUser.id);
-        let currentBalance = targetData.balance || 0;
-        if (subCommand === "add") {
-            currentBalance += amount;
-            console.log(`${user.username} hat sich ${amount} Kekse hinzugefügt`);
-        } else if (subCommand === "remove") {
-            currentBalance = Math.max(0, currentBalance - amount);
-            console.log(`${user.username} hat sich ${amount} Kekse entfernt`);
-        }
-        targetData.balance = currentBalance;
-        await setEcoData(targetUser.id, targetData);
-        const logEmbed = new EmbedBuilder()
-            .setTitle("Konto-Aktualisierung")
-            .setDescription(`Konto von <@${targetUser.id}> wurde aktualisiert.`)
-            .addFields(
-                {
-                    name: "Aktion",
-                    value: subCommand === "add" ? `+${amount} Kekse` : `-${amount} Kekse`,
-                },
-                { name: "Neuer Kontostand", value: `${currentBalance} Kekse` },
-            )
-            .setColor(0xffffff);
-        await user.send({ embeds: [logEmbed] }).catch(() => { });
-        return interaction.reply({
-            content: `✅ Das Konto von <@${targetUser.id}> wurde erfolgreich modifiziert.`,
-            flags: [MessageFlags.Ephemeral],
-        });
-    }
-    if (commandName === "bank-mod") {
-        const subCommand = options.getSubcommand();
-        const isDev = user.id === config.users.sysadmin;
-        if (
-            !member.permissions.has(PermissionsBitField.Flags.ManageMessages) &&
-            !member.permissions.has(PermissionsBitField.Flags.ManageServer) &&
-            !isDev
-        ) {
-            return interaction.reply({
-                content:
-                    "❌ Du hast keine Berechtigung, um Kontoinformationen einzusehen.",
-                flags: [MessageFlags.Ephemeral],
-            });
-        }
-        if (subCommand === "see") {
-            const targetUser = options.getUser("nutzer");
-            const data = await getEcoData(targetUser.id);
-            const dmEmbed = new EmbedBuilder()
-                .setTitle(`Konto-Details von ${targetUser.username}`)
-                .setColor(0xffffff)
-                .addFields(
-                    { name: "User ID", value: data.userId || targetUser.id },
-                    { name: "Discord Name", value: data.username || "Kein Name" },
-                    {
-                        name: "Minecraft Name",
-                        value: data.mcUsername || "Nicht registriert",
-                    },
-                    { name: "Kontostand", value: `${data.balance || 0} Kekse` },
-                    { name: "Gesperrt?", value: data.blocked ? "Ja" : "Nein" },
-                );
-            await user.send({ embeds: [dmEmbed] }).catch(() => { });
-            return interaction.reply({
-                content: `✅ Die Kontodetails von ${targetUser.username} wurden dir per DM zugestellt.`,
-                flags: [MessageFlags.Ephemeral],
-            });
-            console.log(
-                `${user.username} hat den Kontostand von ${targetUser.username} eingesehen`,
-            );
-        }
-        if (subCommand === "get") {
-            const existingKekse = await initEconomyGetKekse(client);
-            return interaction.reply({
-                content: `Es sind aktuell ${existingKekse} Kekse im Umlauf.`,
-                flags: [MessageFlags.Ephemeral],
-            });
-            console.log(`${user.username} hat die "bank get"-Funktion genutzt`);
         }
     }
     if (commandName === "remind") {
