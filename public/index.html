@@ -935,6 +935,11 @@
         #console .md-mention.unknown {
             opacity: .6
         }
+		#console .log-error,
+		#console .log-error .log-body,
+		#console .log-error .log-body * {
+ 		   color: #f87171;
+		}
     </style>
 </head>
 <body>
@@ -1874,9 +1879,9 @@
                                     minute: "2-digit",
                                     second: "2-digit",
                                 });
-                                const color = /warning|fehler|error|fail|crit/i.test(logText) ? "#f87171" : "var(--text-primary)";
+                                const cls = /warning|fehler|error|fail|crit/i.test(logText) ? " log-error" : "";
                                 html =
-                                    '<div class="log-line" style="color:' + color + '"><span class="log-time">[' + dateStr + " " + timeStr + ']</span><span class="log-body">' +
+                                    '<div class="log-line' + cls + '"><span class="log-time">[' + dateStr + " " + timeStr + ']</span><span class="log-body">' +
                                     renderDiscordMarkdown(logText, mentionCtx) +
                                     "</span></div>";
                                 logRenderCache.set(key, html);
