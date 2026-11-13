@@ -6003,7 +6003,7 @@ export function initHelp(client) {
         const args = msg.content.slice(1).trim().split(" ");
         const cmd = args.shift().toLowerCase();
         if (cmd !== "help") return;
-        console.log(`[HELP] Von ${msg.author.username}`);
+        console.log(`Von ${msg.author.username}`);
         await handleTextHelpCommand(msg);
     });
 }
