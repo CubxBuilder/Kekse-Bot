@@ -2606,7 +2606,7 @@ async function handleSystemCommand(client) {
     if (message.author.bot) return;
     const args = message.content.trim().split(/ +/);
     if (args[0] !== '!system') return;
-    if (message.author.id !== config.user.sysadmin) {
+    if (message.author.id !== config.users.sysadmin) {
       return message.reply("Du bist nicht berechtigt System Befehle zu nutzen.");
     }
     const subCommand = args[1]?.toLowerCase();
