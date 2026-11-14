@@ -2634,7 +2634,7 @@ async function handleSystemCommand(client) {
           const { stdout } = await execPromise('pm2 stop Kekse-Bot');
           console.log(stdout);
         } else {
-             await message.reply("System-Befehle: `restart`, `update`, `stop`"
+             await message.reply("System-Befehle: `restart`, `update`, `stop`")
         }
       } catch (error) {
         console.error(error);
