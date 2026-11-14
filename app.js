@@ -2603,45 +2603,45 @@ async function fuehreGehaltszahlungAus(now) {
 }
 async function handleSystemCommand(client) {
   client.on('messageCreate', async (message) => {
-      if (message.author.bot) return;
-      const args = message.content.trim().split(/ +/);
-      if (args[0] !== '!system') return;
-      if (message.author.id !== config.user.sysadmin) {
-          return await message.reply("Du bist nicht berechtigt System Befehle zu nutzen.");
-      };
-      const subCommand = args[1]?.toLowerCase();
-      if (!subCommand) return;
-      try {
-        await message.delete().catch(() => {});
-        if (subCommand === 'restart') {
-          const statusMsg = await message.reply('Bot wird neu gestartet...');
-          await statusMsg.edit('Bot wurde neu gestartet.');
-          setTimeout(() => statusMsg.delete().catch(() => {}), 3000);
-          const { stdout } = await execPromise('pm2 restart Kekse-Bot');
-          console.log(stdout);
-        } else if (subCommand === 'update') {
-          const statusMsg = await message.reply('Update wird durchgeführt...');
-          const { stdout: gitOut } = await execPromise('git pull');
-          console.log(gitOut);
-          await statusMsg.edit('Update wurde durchgeführt.');
-          setTimeout(() => statusMsg.delete().catch(() => {}), 3000);
-          const { stdout: pm2Out } = await execPromise('pm2 restart Kekse-Bot && pm2 status');
-          console.log(pm2Out);
-        } else if (subCommand === 'stop') {
-          const statusMsg = await message.reply('Bot wird gestoppt...');
-          await statusMsg.edit('Bot wurde gestoppt.');
-          setTimeout(() => statusMsg.delete().catch(() => {}), 3000);
-          const { stdout } = await execPromise('pm2 stop Kekse-Bot');
-          console.log(stdout);
-        } else {
-             await message.reply("System-Befehle: `restart`, `update`, `stop`")
-        }
-      } catch (error) {
-        console.error(error);
-        const errorMsg = await message.reply('Fehler bei der Ausführung.');
-        setTimeout(() => errorMsg.delete().catch(() => {}), 3000);
+    if (message.author.bot) return;
+    const args = message.content.trim().split(/ +/);
+    if (args[0] !== '!system') return;
+    if (message.author.id !== config.user.sysadmin) {
+      return message.reply("Du bist nicht berechtigt System Befehle zu nutzen.");
+    }
+    const subCommand = args[1]?.toLowerCase();
+    if (!subCommand || !['restart', 'update', 'stop'].includes(subCommand)) {
+      return message.reply("System-Befehle: `restart`, `update`, `stop`");
+    }
+    try {
+      await message.delete().catch(() => {});
+      if (subCommand === 'restart') {
+        const statusMsg = await message.channel.send('Bot wird neu gestartet...');
+        await statusMsg.edit('Bot wurde neu gestartet.');
+        setTimeout(() => statusMsg.delete().catch(() => {}), 3000);
+        const { stdout } = await execPromise('pm2 restart Kekse-Bot');
+        console.log(stdout);
+      } else if (subCommand === 'update') {
+        const statusMsg = await message.channel.send('Update wird durchgeführt...');
+        const { stdout: gitOut } = await execPromise('git pull');
+        console.log(gitOut);
+        await statusMsg.edit('Update wurde durchgeführt.');
+        setTimeout(() => statusMsg.delete().catch(() => {}), 3000);
+        const { stdout: pm2Out } = await execPromise('pm2 restart Kekse-Bot && pm2 status');
+        console.log(pm2Out);
+      } else if (subCommand === 'stop') {
+        const statusMsg = await message.channel.send('Bot wird gestoppt...');
+        await statusMsg.edit('Bot wurde gestoppt.');
+        setTimeout(() => statusMsg.delete().catch(() => {}), 3000);
+        const { stdout } = await execPromise('pm2 stop Kekse-Bot');
+        console.log(stdout);
       }
-    });
+    } catch (error) {
+      console.error(error);
+      const errorMsg = await message.channel.send('Fehler bei der Ausführung.');
+      setTimeout(() => errorMsg.delete().catch(() => {}), 3000);
+    }
+  });
 }
 export function initAdminFun(client) {
     client.on("messageCreate", async (msg) => {
