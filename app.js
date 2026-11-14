@@ -5862,7 +5862,7 @@ export function initHelp(client) {
         const args = msg.content.slice(1).trim().split(" ");
         const cmd = args.shift().toLowerCase();
         if (cmd !== "help") return;
-        console.log(`Von <@${user.id}>`);
+        console.log(`<@${msg.author.id}> hat \`!help\` genutzt`);
         await handleTextHelpCommand(msg);
     });
 }
