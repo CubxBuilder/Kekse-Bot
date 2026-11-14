@@ -8,6 +8,8 @@ import path from "path";
 import mongoose from "mongoose";
 import express from "express";
 import util from "util";
+import { exec } from 'child_process';
+const execPromise = promisify(exec);
 import { fileURLToPath } from "url";
 import fs from "fs";
 import crypto from "crypto";
@@ -2598,6 +2600,30 @@ async function fuehreGehaltszahlungAus(now) {
     } catch (error) {
         console.error(error);
     }
+}
+async function handleSystemCommand(client) {
+  client.on('messageCreate', async (message) => {
+      if (message.author.bot) return;
+      const args = message.content.trim().split(/ +/);
+      if (args[0] !== '!system') return;
+      const subCommand = args[1]?.toLowerCase();
+      if (!subCommand) return;
+      try {
+        if (subCommand === 'restart') {
+          await message.reply('Bot wird neu gestartet...');
+          await execPromise('pm2 restart Kekse-Bot');
+        } else if (subCommand === 'update') {
+          await message.reply('Update wird durchgeführt...');
+          await execPromise('git pull && pm2 restart Kekse-Bot');
+        } else if (subCommand === 'stopp') {
+          await message.reply('Bot wird gestoppt...');
+          await execPromise('pm2 stop Kekse-Bot');
+        }
+      } catch (error) {
+        console.error(error);
+        await message.reply('Fehler bei der Ausführung.');
+      }
+    });
 }
 export function initAdminFun(client) {
     client.on("messageCreate", async (msg) => {
@@ -9541,6 +9567,7 @@ client.once("clientReady", async () => {
         await syncExistingUsers(client);
         await initInviteTracker(client);
         await setupVoiceModToggle(client);
+        await handleSystemCommand(client);
         startVoiceXpTracker(client);
         checkShopExpirations().catch(console.error);
         setInterval(function () {
