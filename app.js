@@ -516,7 +516,6 @@ export async function initEconomyGetKekse(client) {
 const stealBusy = new Set();
 const payallBusy = new Set();
 const userLocks = new Map();
-
 function withUserLock(userId, task) {
     const previous = userLocks.get(userId) || Promise.resolve();
     const run = previous.then(function () {
@@ -529,7 +528,6 @@ function withUserLock(userId, task) {
     });
     return run;
 }
-
 const LOCKED_SLASH_COMMANDS = ["roulette", "coinflip", "jackpot", "crash", "highlow", "blackjack", "slot", "bank", "steal"];
 async function performSteal(guild, thiefMember) {
     const thiefId = thiefMember.id;
@@ -3915,7 +3913,6 @@ function pickWinners(pool, count, excluded) {
     return winners;
 }
 let giveawayQueue = Promise.resolve();
-
 function updateActiveGiveaways(mutator) {
     const run = giveawayQueue.then(async function () {
         const data = (await getGivData("activeGiveaways")) || {};
@@ -4461,16 +4458,13 @@ export function registerMessageCommands(client) {
 }
 const bugReportCooldown = new Map();
 const BUG_REPORT_COOLDOWN_MS = 2 * 60 * 1000;
-
 function clipText(value, max) {
     const text = String(value === null || value === undefined ? "" : value);
     return text.length > max ? text.slice(0, max - 1) + "…" : text;
 }
-
 function singleLine(value) {
     return String(value || "").replace(/`/g, "'").replace(/\s+/g, " ").trim();
 }
-
 function fitLines(lines, max) {
     if (!lines.length) return "Keine Einträge";
     const perLine = Math.max(20, Math.floor(max / lines.length) - 1);
@@ -4481,13 +4475,11 @@ function fitLines(lines, max) {
         .join("\n");
     return clipText(joined, max);
 }
-
 function timeLabel(timestamp, withSeconds) {
     const options = { timeZone: "Europe/Berlin", hour: "2-digit", minute: "2-digit" };
     if (withSeconds) options.second = "2-digit";
     return new Date(timestamp).toLocaleTimeString("de-DE", options);
 }
-
 async function readRecentLogs(count) {
     let entries = await readLogFile(logDateString());
     if (entries.length < count) {
@@ -4496,12 +4488,10 @@ async function readRecentLogs(count) {
     }
     return entries.slice(-count);
 }
-
 async function readRecentMessages(msg, count) {
     const fetched = await msg.channel.messages.fetch({ limit: count, before: msg.id });
     return [...fetched.values()].reverse();
 }
-
 function describeMessage(message) {
     const name = message.member ? message.member.displayName : message.author.username;
     const parts = [];
@@ -4512,7 +4502,6 @@ function describeMessage(message) {
     if (message.stickers.size) parts.push("[Sticker]");
     return `[${timeLabel(message.createdTimestamp, false)}] ${singleLine(name)}: ${parts.join(" ") || "[leer]"}`;
 }
-
 export function initBugReport(client) {
     client.on("messageCreate", async function (msg) {
         if (msg.author.bot || !msg.guild || !msg.member) return;
@@ -5064,7 +5053,6 @@ function buildTicketInfoEmbeds({
 }
 export async function initTickets(client) {
     let ticketQueue = Promise.resolve();
-
     function updateTickets(mutator) {
         const run = ticketQueue.then(async function () {
             const stored = (await getTickData("tickets")) || {};
