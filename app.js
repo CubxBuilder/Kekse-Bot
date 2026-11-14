@@ -154,7 +154,7 @@ async function runJackpotDraw(channel) {
     await setEcoData(winner.userId, winnerData);
     const chance = ((winner.betAmount / totalPool) * 100).toFixed(1);
     const winEmbed = casinoEmbed({
-        title: "💰 Jackpot",
+        title: "Jackpot",
         description: `Pool: **${totalPool} Kekse**`,
         headline: "**Jackpot gezogen**",
         detail: `<@${winner.userId}> gewinnt ${totalPool} Kekse mit ${chance}% Gewinnchance.`,
@@ -681,7 +681,7 @@ function playSlot(betAmount) {
 }
 function buildSlotEmbed(result, betAmount, balance) {
     return casinoEmbed({
-        title: "🎰 Slotmaschine",
+        title: "Slotmaschine",
         bet: betAmount,
         headline: `**${result.reels.map((reel) => reel.emoji).join("  |  ")}**`,
         detail: result.label,
@@ -697,7 +697,7 @@ function buildJackpotEmbed(extra = "") {
         })
         .join("\n");
     return casinoEmbed({
-        title: "💰 Jackpot",
+        title: "Jackpot",
         description: `Pool: **${jackpotState.totalPool} Kekse**`,
         headline: `Teilnehmer (${jackpotState.entries.length})`,
         detail: clipText(list, 1000) || "Keine",
@@ -740,7 +740,7 @@ async function playHighLow(userId, betAmount, startBalance, limitText, reply) {
         );
     const buildRunning = (note) =>
         casinoEmbed({
-            title: "🃏 Higher or Lower",
+            title: "Higher or Lower",
             bet: betAmount,
             headline: `**Aktuelle Karte: ${currentCard.display}**`,
             detail: `${note ? note + "\n" : ""}Streak: **${streak}** | Multiplikator: **${multiplier.toFixed(2)}x**\nIst die nächste Karte höher oder niedriger?${limitText ? `\n*(${limitText})*` : ""}`,
@@ -819,7 +819,7 @@ async function playHighLow(userId, betAmount, startBalance, limitText, reply) {
             .edit({
                 embeds: [
                     casinoEmbed({
-                        title: "🃏 Higher or Lower",
+                        title: "Higher or Lower",
                         bet: betAmount,
                         headline: `**Karte: ${shown.display}**`,
                         detail,
@@ -881,7 +881,7 @@ async function playBlackjack(userId, betAmount, startBalance, reply) {
         const headline = `**Du: ${score(playerHand)}  |  Dealer: ${dealerScore}**`;
         if (!reveal) {
             return casinoEmbed({
-                title: "♠️ Blackjack",
+                title: "Blackjack",
                 bet: betAmount,
                 headline,
                 detail: hands,
@@ -892,7 +892,7 @@ async function playBlackjack(userId, betAmount, startBalance, reply) {
             });
         }
         return casinoEmbed({
-            title: "♠️ Blackjack",
+            title: "Blackjack",
             bet: betAmount,
             headline,
             detail: `${hands}\n${status}`,
@@ -1224,7 +1224,7 @@ export async function initEconomySystem(client) {
                 await setEcoData(winner.id, winnerData);
                 await setEcoData(loser.id, loserData);
                 const resultEmbed = casinoEmbed({
-                    title: "🪙 Coinflip",
+                    title: "Coinflip",
                     description: `<@${msg.author.id}> gegen <@${targetUser.id}> | Einsatz: **${betAmount} Kekse**`,
                     headline: "**Gewinner**",
                     detail: `<@${winner.id}> gewinnt gegen <@${loser.id}>.`,
@@ -1420,7 +1420,7 @@ export async function initEconomySystem(client) {
                     resultText = `**Gewinner:** <@${winner.id}> ${SSP_EMOJI[c2]} **+${betAmount} Kekse**\n**Verlierer:** <@${loser.id}> ${SSP_EMOJI[c1]} **-${betAmount} Kekse**`;
                 }
                 const resultEmbed = casinoEmbed({
-                    title: "✂️ Schere Stein Papier",
+                    title: "Schere Stein Papier",
                     description: `Einsatz: **${betAmount} Kekse**`,
                     headline: `**${SSP_EMOJI[c1]} ${c1}  |  ${SSP_EMOJI[c2]} ${c2}**`,
                     detail: `<@${msg.author.id}> gegen <@${targetUser.id}>`,
@@ -1547,7 +1547,7 @@ export async function initEconomySystem(client) {
                 );
                 await setEcoData(msg.author.id, userData);
                 const roulEmbed = casinoEmbed({
-                    title: "🎡 Roulette",
+                    title: "Roulette",
                     bet: betAmount,
                     headline: `**${spinEmoji} ${spin}**`,
                     detail: `Deine Wette: ${betDesc}`,
@@ -1595,7 +1595,7 @@ export async function initEconomySystem(client) {
                 );
                 await setEcoData(msg.author.id, userData);
                 const cfEmbed = casinoEmbed({
-                    title: "🪙 Coinflip",
+                    title: "Coinflip",
                     bet: betAmount,
                     headline: `**${flip === "heads" ? "Kopf (Heads)" : "Zahl (Tails)"}**`,
                     detail: `Du hast auf ${choice === "heads" ? "Kopf" : "Zahl"} gesetzt.`,
@@ -9048,7 +9048,7 @@ async function handleSlashCommand(interaction) {
             );
             await setEcoData(user.id, userData);
             const roulEmbed = casinoEmbed({
-                title: "🎡 Roulette",
+                title: "Roulette",
                 bet: betAmount,
                 headline: `**${spinEmoji} ${spin}**`,
                 detail: `Deine Wette: ${betDesc}`,
@@ -9071,7 +9071,7 @@ async function handleSlashCommand(interaction) {
             );
             await setEcoData(user.id, userData);
             const cfEmbed = casinoEmbed({
-                title: "🪙 Coinflip",
+                title: "Coinflip",
                 bet: betAmount,
                 headline: `**${flip === "heads" ? "Kopf (Heads)" : "Zahl (Tails)"}**`,
                 detail: `Du hast auf ${choice === "heads" ? "Kopf" : "Zahl"} gesetzt.`,
