@@ -9,7 +9,6 @@ import mongoose from "mongoose";
 import express from "express";
 import util from "util";
 import { exec } from 'child_process';
-const execPromise = promisify(exec);
 import { fileURLToPath } from "url";
 import fs from "fs";
 import crypto from "crypto";
@@ -50,6 +49,7 @@ https.createServer(options, app).listen(port, "0.0.0.0", () => {
     console.log(`Dashboard läuft auf Port ${port}`);
 });
 const GUILD_ID = "1423413347168157718"; // Cookieverse: https://discord.gg/pU9zyJRFGn
+const execPromise = util.promisify(exec);
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
