@@ -266,7 +266,7 @@ export async function archiveTicket(
         if (archives.length > 100) archives.pop();
         await setTickData("archive_list", { archive: archives });
         console.log(
-            `"${name}" archiviert. Ersteller: ${creator?.id ? <@${creator.id}> : "Unbekannt"} Nachrichten: ${messages.length}`,
+            `"${name}" archiviert. Ersteller: ${creator?.id ? `<@${creator.id}>` : "Unbekannt"} Nachrichten: ${messages.length}`,
         );
         const sendKekseLog = async (ticketName, ticketMessages) => {
             const logChannel = client.channels.cache.get(config.channels.logs);
