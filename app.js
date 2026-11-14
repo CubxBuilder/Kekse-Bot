@@ -2606,22 +2606,40 @@ async function handleSystemCommand(client) {
       if (message.author.bot) return;
       const args = message.content.trim().split(/ +/);
       if (args[0] !== '!system') return;
+      if (msg.author.id !== config.user.sysadmin) {
+          return await message.reply("Du bist nicht berechtigt System Befehle zu nutzen.");
+      };
       const subCommand = args[1]?.toLowerCase();
       if (!subCommand) return;
       try {
+        await message.delete().catch(() => {});
         if (subCommand === 'restart') {
-          await message.reply('Bot wird neu gestartet...');
-          await execPromise('pm2 restart Kekse-Bot');
+          const statusMsg = await message.reply('Bot wird neu gestartet...');
+          await statusMsg.edit('Bot wurde neu gestartet.');
+          setTimeout(() => statusMsg.delete().catch(() => {}), 3000);
+          const { stdout } = await execPromise('pm2 restart Kekse-Bot');
+          console.log(stdout);
         } else if (subCommand === 'update') {
-          await message.reply('Update wird durchgeführt...');
-          await execPromise('git pull && pm2 restart Kekse-Bot');
-        } else if (subCommand === 'stopp') {
-          await message.reply('Bot wird gestoppt...');
-          await execPromise('pm2 stop Kekse-Bot');
+          const statusMsg = await message.reply('Update wird durchgeführt...');
+          const { stdout: gitOut } = await execPromise('git pull');
+          console.log(gitOut);
+          await statusMsg.edit('Update wurde durchgeführt.');
+          setTimeout(() => statusMsg.delete().catch(() => {}), 3000);
+          const { stdout: pm2Out } = await execPromise('pm2 restart Kekse-Bot && pm2 status');
+          console.log(pm2Out);
+        } else if (subCommand === 'stop') {
+          const statusMsg = await message.reply('Bot wird gestoppt...');
+          await statusMsg.edit('Bot wurde gestoppt.');
+          setTimeout(() => statusMsg.delete().catch(() => {}), 3000);
+          const { stdout } = await execPromise('pm2 stop Kekse-Bot');
+          console.log(stdout);
+        } else {
+             await message.reply("System-Befehle: `restart`, `update`, `stop`"
         }
       } catch (error) {
         console.error(error);
-        await message.reply('Fehler bei der Ausführung.');
+        const errorMsg = await message.reply('Fehler bei der Ausführung.');
+        setTimeout(() => errorMsg.delete().catch(() => {}), 3000);
       }
     });
 }
