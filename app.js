@@ -7539,7 +7539,7 @@ async function runRetentionCleanup() {
             console.error(`${label} fehlgeschlagen:`, error);
         }
     }
-    if (results.length) console.log(`Gelöscht: ${results.join(", ")}`);
+    if (results.length) console.log(`Gelöscht: ${results.join(", ")} (Auto Cleanup)`);
 }
 function startRetentionCleanup() {
     setTimeout(runRetentionCleanup, 60 * 1000);
