@@ -5151,7 +5151,7 @@ const BEWERBUNG_VORLAGE_TEXT = `
 > - Bei stark nachlässiger Ausführung der obigen Punkte kann und wird die Bewerbung abgelehnt werden
 > **Bewerbungs-Voraussetzungen:**
 > - Du erfüllst das Mindestalter von 14 Jahren
-> - Du bist aktiv im angegebenen Spiel / auf dem angegebenen Server und diesem Discord-Server
+> - Du bist aktiv im angegebenen Spiel / auf dem angegebenen Server und diesem Discord-Server (Counting ausgeschlossen)
 > - Du bist stehts ehrlich und freundlich gegenüber anderen Mitgliedern
 `;
 function parseYesNo(input) {
