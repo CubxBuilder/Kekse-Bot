@@ -1,5 +1,6 @@
 import { Client, ModalBuilder, REST, Routes, SlashCommandBuilder, GatewayIntentBits, Partials, ChannelType, PermissionFlagsBits, EmbedBuilder, Events, AuditLogEvent, MessageFlags, MessageType, PermissionsBitField, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, TextInputBuilder, TextInputStyle, ComponentType } from "discord.js";
 import https from "https";
+import { execFile } from "child_process";
 import "dotenv/config";
 if (!process.env.DASHBOARD_CODE_SECRET) {
     throw new Error("DASHBOARD_CODE_SECRET fehlt in der .env");
@@ -8,7 +9,6 @@ import path from "path";
 import mongoose from "mongoose";
 import express from "express";
 import util from "util";
-import { exec } from 'child_process';
 import { fileURLToPath } from "url";
 import fs from "fs";
 import crypto from "crypto";
@@ -4546,6 +4546,192 @@ function describeMessage(message) {
     if (message.stickers.size) parts.push("[Sticker]");
     return `[${timeLabel(message.createdTimestamp, false)}] ${singleLine(name)}: ${parts.join(" ") || "[leer]"}`;
 }
+const BACKUP_DIR = path.join(__dirname, "backup");
+const BACKUP_PATTERN = /^database-backup-(\d{2})-(\d{2})-(\d{4})\.json\.gz$/;
+const RESTORE_PROCESS = "Kekse-Restore";
+const RESTORE_CONFIRM_MS = 60 * 1000;
+const RESTORE_CODE_MS = 5 * 60 * 1000;
+const pendingRestores = new Map();
+let restoreBusy = false;
+function listBackups() {
+    let files;
+    try {
+        files = fs.readdirSync(BACKUP_DIR);
+    } catch {
+        return [];
+    }
+    return files
+        .map((file) => {
+            const match = file.match(BACKUP_PATTERN);
+            if (!match) return null;
+            const stat = fs.statSync(path.join(BACKUP_DIR, file));
+            return { file, key: match[3] + match[2] + match[1], size: stat.size, mtime: stat.mtimeMs };
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.key.localeCompare(a.key))
+        .map((entry, index) => ({ ...entry, id: index + 1 }));
+}
+function takeBackupRestore(codeHash, userId) {
+    for (const [token, pending] of pendingRestores) {
+        if (pending.expiresAt <= Date.now()) {
+            pendingRestores.delete(token);
+            continue;
+        }
+        if (pending.stage === "code" && pending.userId === userId && pending.codeHash === codeHash) {
+            pendingRestores.delete(token);
+            return pending;
+        }
+    }
+    return null;
+}
+function startBackupRestore(file) {
+    restoreBusy = true;
+    return new Promise((resolve, reject) => {
+        execFile("pm2", ["delete", RESTORE_PROCESS], () => {
+            execFile(
+                "pm2",
+                ["start", path.join(__dirname, "restore.mjs"), "--name", RESTORE_PROCESS, "--no-autorestart", "--", file],
+                (error, stdout, stderr) => {
+                    if (error) {
+                        restoreBusy = false;
+                        reject(new Error((stderr || stdout || error.message).trim()));
+                    } else {
+                        resolve();
+                    }
+                },
+            );
+        });
+    });
+}
+export function initBackups(client) {
+    client.on("messageCreate", async (msg) => {
+        if (msg.author.bot || !msg.content.startsWith("!backups")) return;
+        const args = msg.content.trim().split(/\s+/);
+        if (args[0].toLowerCase() !== "!backups") return;
+        if (msg.author.id !== config.users.sysadmin) {
+            console.log(`<@${msg.author.id}> hat !backups ohne Berechtigung genutzt.`);
+            return;
+        }
+        const sub = args[1]?.toLowerCase();
+        if (!sub) {
+            const backups = listBackups();
+            console.log(`<@${msg.author.id}> hat !backups genutzt.`);
+            console.log(`Reply ${msg.author.username}: [backups]`);
+            if (!backups.length) return msg.reply("Es sind keine Backups vorhanden.");
+            const embed = new EmbedBuilder()
+                .setColor("#ffffff")
+                .setTitle("Backups")
+                .setDescription(
+                    backups
+                        .map(
+                            (b) =>
+                                `**${b.id}** | \`${b.file}\` | ${(b.size / 1048576).toFixed(2)} MB | <t:${Math.floor(b.mtime / 1000)}:f>`,
+                        )
+                        .join("\n"),
+                )
+                .setFooter({ text: "Laden mit !backups load <id>" });
+            return msg.reply({ embeds: [embed] });
+        }
+        if (sub !== "load") return;
+        const id = parseInt(args[2]);
+        if (!Number.isInteger(id)) return denyReply(msg, "Nutzung: `!backups load <id>`");
+        if (restoreBusy) return denyReply(msg, "Es läuft bereits eine Wiederherstellung.");
+        const backup = listBackups().find((b) => b.id === id);
+        if (!backup) return denyReply(msg, `Backup ${id} existiert nicht. Nutze \`!backups\`.`);
+        for (const [oldToken, old] of pendingRestores) {
+            if (old.userId === msg.author.id) pendingRestores.delete(oldToken);
+        }
+        const token = crypto.randomBytes(8).toString("hex");
+        pendingRestores.set(token, {
+            file: backup.file,
+            userId: msg.author.id,
+            stage: "confirm",
+            expiresAt: Date.now() + RESTORE_CONFIRM_MS,
+        });
+        const embed = new EmbedBuilder()
+            .setColor("#ffffff")
+            .setTitle("Backup laden")
+            .setDescription(
+                `Datei: \`${backup.file}\`\nErstellt: <t:${Math.floor(backup.mtime / 1000)}:f>\n\nDer aktuelle Datenbankstand wird durch dieses Backup ersetzt. Der Bot wird dafür kurz gestoppt und startet danach neu. Der aktuelle Stand wird vorher automatisch gesichert.\n\n**Bist du sicher?**`,
+            )
+            .setFooter({ text: "Kekse Bot | Backup System" });
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId(`backup_yes_${token}`).setLabel("Ja, laden").setStyle(ButtonStyle.Danger),
+            new ButtonBuilder().setCustomId(`backup_no_${token}`).setLabel("Abbrechen").setStyle(ButtonStyle.Secondary),
+        );
+        console.log(`<@${msg.author.id}> hat das Laden von ${backup.file} angefragt.`);
+        console.log(`Reply ${msg.author.username}: [backup load]`);
+        const confirmMsg = await msg.reply({ embeds: [embed], components: [row] });
+        setTimeout(() => {
+            const pending = pendingRestores.get(token);
+            if (!pending || pending.stage !== "confirm") return;
+            pendingRestores.delete(token);
+            console.log(`Die Anfrage zum Laden von ${backup.file} ist abgelaufen.`);
+            confirmMsg.edit({ content: "Die Anfrage ist abgelaufen.", embeds: [], components: [] }).catch(() => { });
+        }, RESTORE_CONFIRM_MS);
+    });
+    client.on("interactionCreate", async (interaction) => {
+        if (!interaction.isButton()) return;
+        const match = interaction.customId.match(/^backup_(yes|no)_([0-9a-f]{16})$/);
+        if (!match) return;
+        const action = match[1];
+        const token = match[2];
+        if (interaction.user.id !== config.users.sysadmin) {
+            console.log(`<@${interaction.user.id}> hat versucht, eine Backup-Anfrage zu bestätigen.`);
+            return interaction.reply({
+                content: "Du bist nicht berechtigt, diesen Button zu nutzen.",
+                flags: [MessageFlags.Ephemeral],
+            });
+        }
+        const pending = pendingRestores.get(token);
+        if (!pending || pending.stage !== "confirm" || pending.expiresAt <= Date.now()) {
+            return interaction.reply({
+                content: "Diese Anfrage ist nicht mehr gültig.",
+                flags: [MessageFlags.Ephemeral],
+            });
+        }
+        if (action === "no") {
+            pendingRestores.delete(token);
+            console.log(`<@${interaction.user.id}> hat das Laden von ${pending.file} abgebrochen.`);
+            return interaction.update({ content: "Abgebrochen.", embeds: [], components: [] });
+        }
+        if (restoreBusy) {
+            return interaction.reply({
+                content: "Es läuft bereits eine Wiederherstellung.",
+                flags: [MessageFlags.Ephemeral],
+            });
+        }
+        const code = String(crypto.randomInt(10000000, 99999999));
+        const validUntil = Date.now() + RESTORE_CODE_MS;
+        try {
+            await interaction.user.send(
+                `**Backup laden**\nDatei: \`${pending.file}\`\nBestätigungscode: \`${code}\`\nGültig bis: <t:${Math.floor(validUntil / 1000)}:T>\n\nGib den Code mit \`/dashboard-verify\` ein. Erst danach wird das Backup geladen.`,
+            );
+        } catch {
+            pendingRestores.delete(token);
+            console.log(`Der Bestätigungscode konnte nicht per DM an <@${interaction.user.id}> gesendet werden.`);
+            return interaction.update({
+                content: "Der Code konnte dir nicht per DM zugestellt werden. Erlaube Direktnachrichten und versuche es erneut.",
+                embeds: [],
+                components: [],
+            });
+        }
+        pending.stage = "code";
+        pending.codeHash = dashboardCodeHash(code);
+        pending.expiresAt = validUntil;
+        console.log(`Der Bestätigungscode für ${pending.file} wurde per DM an <@${interaction.user.id}> gesendet.`);
+        setTimeout(() => {
+            if (pendingRestores.get(token) !== pending) return;
+            pendingRestores.delete(token);
+            console.log(`Der Bestätigungscode für ${pending.file} ist abgelaufen.`);
+        }, RESTORE_CODE_MS);
+        return interaction.update({
+            content: "Der Bestätigungscode wurde dir per DM geschickt. Gib ihn innerhalb von 5 Minuten mit `/dashboard-verify` ein.",
+            embeds: [],
+            components: [],
+        });
+    });
+}
 export function initBugReport(client) {
     client.on("messageCreate", async function (msg) {
         if (msg.author.bot || !msg.guild || !msg.member) return;
@@ -8152,7 +8338,7 @@ async function handleSlashCommand(interaction) {
         channel: currentChannel,
     } = interaction;
     if (commandName === "dashboard-verify") {
-        if (!member?.roles?.cache?.has(config.roles.team)) {
+        if (!member?.roles?.cache?.has(config.roles.team) && user.id !== config.users.sysadmin) {
             return interaction.reply({
                 content: "Du benötigst die Team-Rolle.",
                 flags: [MessageFlags.Ephemeral]
@@ -8166,6 +8352,27 @@ async function handleSlashCommand(interaction) {
             });
         }
         const codeHash = dashboardCodeHash(code);
+        const restoreRequest = takeBackupRestore(codeHash, user.id);
+        if (restoreRequest) {
+            console.log(`<@${user.id}> hat den Code zum Laden von ${restoreRequest.file} bestätigt.`);
+            await interaction.reply({
+                content: `Code bestätigt. ${restoreRequest.file} wird geladen. Der Bot wird kurz gestoppt und startet danach neu. Das Ergebnis bekommst du per DM.`,
+                flags: [MessageFlags.Ephemeral],
+            });
+            try {
+                await startBackupRestore(restoreRequest.file);
+                console.log(`Die Wiederherstellung von ${restoreRequest.file} wurde gestartet.`);
+            } catch (error) {
+                console.error(`Die Wiederherstellung konnte nicht gestartet werden: ${error.message}`);
+                await interaction
+                    .followUp({
+                        content: "Die Wiederherstellung konnte nicht gestartet werden. Details stehen im Log.",
+                        flags: [MessageFlags.Ephemeral],
+                    })
+                    .catch(() => { });
+            }
+            return;
+        }
         const pending = (await dbGet("dashboard", "pending")) || {};
         const entry = Object.entries(pending).find(
             ([, p]) =>
@@ -9593,6 +9800,7 @@ client.once("clientReady", async () => {
         }, 30000);
         wage().catch(console.error);
         initBugReport(client);
+        initBackups(client);
         setInterval(() => wage().catch(console.error), 60 * 1000);
         console.log(`Server-Sync gestartet...`);
         console.log(`Bot online: ${client.user.tag}`);
