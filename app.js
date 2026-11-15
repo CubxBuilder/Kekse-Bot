@@ -4547,7 +4547,7 @@ function describeMessage(message) {
     if (message.stickers.size) parts.push("[Sticker]");
     return `[${timeLabel(message.createdTimestamp, false)}] ${singleLine(name)}: ${parts.join(" ") || "[leer]"}`;
 }
-const BACKUP_DIR = path.join(__dirname, "backup");
+const BACKUP_DIR = path.join(__dirname, "backups");
 const BACKUP_PATTERN = /^database-backup-(\d{2})-(\d{2})-(\d{4})\.json\.gz$/;
 const RESTORE_PROCESS = "Kekse-Restore";
 const RESTORE_CONFIRM_MS = 60 * 1000;
