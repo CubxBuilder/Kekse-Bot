@@ -537,7 +537,7 @@ async function performSteal(guild, thiefMember) {
     if (!thiefMember.roles.cache.has(config.roles.economy)) {
         return {
             ok: false,
-            text: "Du benötigst ein Bankkonto, um zu klauen. Nutze `!bank create`.",
+            text: "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (\"!bank create\")",
         };
     }
     if (stealBusy.has(thiefId)) {
@@ -1053,7 +1053,7 @@ export async function initEconomySystem(client) {
             return msg.delete().catch(() => { });
         }
         if (command === "!shop_setup") {
-            if (msg.author.id !== config.users.sysadmin) return;
+            if (msg.author.id !== config.users.sysadmin) return msg.reply("Du bist nicht berechtigt System Befehle zu nutzen.");
             const setupId = args[1];
             if (!setupId) {
                 console.log(`Reply ${msg.author.username}: setup_id is missing`);
@@ -1071,7 +1071,7 @@ export async function initEconomySystem(client) {
             const shopChannel = msg.guild.channels.cache.get(config.channels.shop);
             if (!shopChannel) return msg.reply("Shop-Kanal wurde nicht gefunden!");
             const shopEmbed = new EmbedBuilder()
-                .setTitle(`🛒 Server Shop`)
+                .setTitle(`🛒 Kekse Shop`)
                 .setDescription(description)
                 .setColor(0xffffff)
                 .addFields(
@@ -1445,10 +1445,10 @@ export async function initEconomySystem(client) {
         if (command === "!casino") {
             const hasEcoRole = msg.member.roles.cache.has(config.roles.economy);
             if (!hasEcoRole) {
-                console.log(`Reply ${msg.author.username}: Du benötigst ein Account um im Casino zu spielen. nutze "!bank create".`);
+                console.log(`Reply ${msg.author.username}: Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. ("!bank create")`);
                 return msg.reply({
                     content:
-                        "Du benötigst ein Account um im Casino zu spielen. Nutze `!bank create`.",
+                        "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (\"!bank create\")",
                     flags: [MessageFlags.Ephemeral],
                 });
             }
@@ -1461,10 +1461,10 @@ export async function initEconomySystem(client) {
             }
             const userData = await getEcoData(msg.author.id);
             if (userData.blocked) {
-                console.log(`Reply ${msg.author.username}: Dein Konto ist gesperrt. Wenn es sich um ein Missverständnis handelt wende dich an den Support -> #Ticket`);
+                console.log(`Reply ${msg.author.username}: Dein Konto ist gesperrt.`);
                 return msg.reply({
                     content:
-                        "Dein Konto ist gesperrt. Wenn es sich um ein Missverständnis handelt wende dich an den Support → <#1423413348493430905>",
+                        "Dein Konto ist gesperrt.",
                     flags: [MessageFlags.Ephemeral],
                 });
             }
@@ -2053,7 +2053,7 @@ export async function initEconomySystem(client) {
                 const helpEmbed = new EmbedBuilder()
                     .setTitle(":bank: Bank-System Hilfe")
                     .setColor(0xffffff)
-                    .setDescription("Hier findest du alle verfügbaren Befehle:")
+                    .setDescription("Hier findest du alle verfügbaren Bank-Befehle:")
                     .addFields(
                         {
                             name: "`!bank create`",
@@ -2065,7 +2065,11 @@ export async function initEconomySystem(client) {
                         },
                         {
                             name: "`!bank pay`",
-                            value: "Überweise Kekse an eine andere Person.",
+                            value: "Überweise x Kekse an eine andere Person.",
+                        },
+                        {
+                            name: "`!bank payall`",
+                            value: "Überweise x Kekse an alle Personen."
                         },
                     );
                 console.log(`Reply ${msg.author.username}: [Bank help]`);
@@ -2085,7 +2089,7 @@ export async function initEconomySystem(client) {
                     return msg.reply({ content: "Nutzung: `!bank pay @User <Betrag>`" });
                 }
                 if (userData.blocked) {
-                    return denyReply(msg, "Dein Konto ist gesperrt. Wenn es sich um ein Missverständnis handelt wende dich an den Support.");
+                    return denyReply(msg, "Dein Konto ist gesperrt.");
                 }
                 if (targetUserId === msg.author.id) {
                     console.log(`Reply ${msg.author.username}: Du kannst dir selbst keine Kekse überweisen.`);
@@ -2166,10 +2170,10 @@ export async function initEconomySystem(client) {
                     return denyReply(msg, "Nutzung: `!bank payall <Betrag pro Konto>`");
                 }
                 if (!hasEcoRole) {
-                    return denyReply(msg, "Du hast noch kein Konto. Nutze `!bank create`, um dich zu registrieren.");
+                    return denyReply(msg, "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (\"!bank create\")");
                 }
                 if (payallBusy.has(msg.author.id)) {
-                    return denyReply(msg, "Du hast bereits eine offene Massenüberweisung.");
+                    return denyReply(msg, "Du hast bereits eine offene Überweisung.");
                 }
                 const loadRecipients = async function () {
                     const members = [...msg.guild.members.cache.values()].filter(function (m) {
@@ -2186,7 +2190,7 @@ export async function initEconomySystem(client) {
                 };
                 const senderData = await getEcoData(msg.author.id);
                 if (senderData.blocked) {
-                    return denyReply(msg, "Dein Konto ist gesperrt. Wenn es sich um ein Missverständnis handelt wende dich an den Support.");
+                    return denyReply(msg, "Dein Konto ist gesperrt.");
                 }
                 const preview = await loadRecipients();
                 if (!preview.length) return denyReply(msg, "Es gibt keine anderen aktiven Konten.");
@@ -2221,7 +2225,7 @@ export async function initEconomySystem(client) {
                     const total = amount * recipients.length;
                     if (!recipients.length || sender.blocked || total > (sender.balance || 0)) {
                         return confirmMsg
-                            .edit({ content: "Die Überweisung wurde abgebrochen. Dein Guthaben reicht nicht mehr aus oder dein Konto ist gesperrt." })
+                            .edit({ content: "Die Überweisung wurde abgebrochen." })
                             .catch(function () { });
                     }
                     sender.balance = (sender.balance || 0) - total;
@@ -2237,7 +2241,7 @@ export async function initEconomySystem(client) {
                     console.log(`<@${msg.author.id}> hat per !bank payall ${amount} Kekse an ${recipients.length} Konten überwiesen (${total} Kekse).`);
                     await confirmMsg
                         .edit({
-                            content: `<@${msg.author.id}> hat **${amount} Kekse** an **${recipients.length} Konten** überwiesen (insgesamt **${total} Kekse**).`,
+                            content: `<@${msg.author.id}> hat **${amount} Kekse** an **${recipients.length} Konten** überwiesen`,
                             allowedMentions: { parse: [] },
                         })
                         .catch(function () { });
@@ -2255,27 +2259,27 @@ export async function initEconomySystem(client) {
                     const existingKekse = await initEconomyGetKekse(client);
                     return msg.reply(`Es sind aktuell ${existingKekse} Kekse im Umlauf.`);
                 } else {
-                    console.log(`Reply ${msg.author.username}: Du hast nicht die Berechtigung diese Funktion zu nutzen. Wenn es sich um einen Fehler handelt wende dich bitte an den Support.`);
+                    console.log(`Reply ${msg.author.username}: Du hast nicht die Berechtigung diese Funktion zu nutzen.`);
                     return msg.reply(
-                        `Du hast nicht die Berechtigung diese Funktion zu nutzen. Wenn es sich um einen Fehler handelt wende dich bitte an den Support.`,
+                        `Du hast nicht die Berechtigung diese Funktion zu nutzen.`,
                     );
                 }
             }
             if (!subCommand) {
                 if (!hasEcoRole) {
-                    console.log(`Reply ${msg.author.username}: Du hast noch kein Konto. Nutze "!bank create", um dich zu registrieren.`);
+                    console.log(`Reply ${msg.author.username}: Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. ("!bank create").`);
                     return msg.reply({
                         content:
-                            "Du hast noch kein Konto. Nutze `!bank create`, um dich zu registrieren.",
+                            "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (\"!bank create\").",
                         flags: [MessageFlags.Ephemeral],
                     });
                 }
                 const userData = await getEcoData(msg.author.id);
                 if (userData.blocked) {
-                    console.log(`Reply ${msg.author.username}: Dein Konto ist gesperrt. Wenn es sich um ein Missverständnis handelt wende dich an den Support -> #Ticket`);
+                    console.log(`Reply ${msg.author.username}: Dein Konto ist gesperrt.`);
                     return msg.reply({
                         content:
-                            `Dein Konto ist gesperrt. Wenn es sich um ein Missverständnis handelt wende dich an den Support → <#${config.channels.ticket}>`,
+                            `Dein Konto ist gesperrt.`,
                         flags: [MessageFlags.Ephemeral],
                     });
                 }
@@ -2308,10 +2312,10 @@ export async function initEconomySystem(client) {
                     "",
                 );
                 if (interaction.user.id !== allowedUserId) {
-                    console.log(`Reply ${interaction.user.username}: Du kannst diesen Button nicht nutzen, da du den Befehl nicht eingegeben hast.`);
+                    console.log(`Reply ${interaction.user.username}: Du kannst diesen Button nicht nutzen.`);
                     return interaction.reply({
                         content:
-                            "Du kannst diesen Button nicht nutzen, da du den Befehl nicht eingegeben hast.",
+                            "Du kannst diesen Button nicht nutzen.",
                         flags: [MessageFlags.Ephemeral],
                     });
                 }
@@ -2340,10 +2344,10 @@ export async function initEconomySystem(client) {
             if (interaction.customId.startsWith("daily_claim_")) {
                 const hasEcoRole = interaction.member.roles.cache.has(config.roles.economy);
                 if (!hasEcoRole) {
-                    console.log(`Reply ${interaction.user.username}: Du benötigst zuerst ein registriertes Bankkonto ("!bank create")`);
+                    console.log(`Reply ${interaction.user.username}: Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. ("!bank create")`);
                     return interaction.reply({
                         content:
-                            "Du benötigst zuerst ein registriertes Bankkonto (`!bank create`).",
+                            "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (\"!bank create\").",
                         flags: [MessageFlags.Ephemeral],
                     });
                 }
@@ -2353,7 +2357,7 @@ export async function initEconomySystem(client) {
                 });
                 const userData = (await getEcoData(interaction.user.id)) || {};
                 if (userData.blocked) {
-                    return interaction.reply({ content: "Dein Konto ist gesperrt. Bitte wende dich an den Support.", flags: [MessageFlags.Ephemeral] });
+                    return interaction.reply({ content: "Dein Konto ist gesperrt.", flags: [MessageFlags.Ephemeral] });
                 }
                 if (!userData.claimedDailies) {
                     userData.claimedDailies = {};
@@ -2373,7 +2377,7 @@ export async function initEconomySystem(client) {
                 console.log(`Reply ${interaction.user.username}: Dir wurden 100 Kekse auf dein Bankkonto gutgeschrieben.`);
                 return interaction.reply({
                     content:
-                        "Erfolgreich! Dir wurden 100 Kekse auf dein Bankkonto gutgeschrieben.",
+                        "Dir wurden 100 Kekse auf dein Bankkonto gutgeschrieben.",
                     flags: [MessageFlags.Ephemeral],
                 });
             }
@@ -2383,31 +2387,31 @@ export async function initEconomySystem(client) {
                 const SHOP_ITEMS = {
                     giveaway: {
                         roleId: config.roles.giveawayDouble,
-                        name: ":tada: Double Chance Giveaway",
+                        name: "Double Chance Giveaway",
                         duration: null,
                         price: 100000,
                     },
                     puffer: {
                         roleId: config.roles.countingPuffer,
-                        name: ":shield: Counting Puffer",
+                        name: "Counting Puffer",
                         duration: null,
                         price: 25000,
                     },
                     xp30: {
                         roleId: config.roles.countingXp30,
-                        name: ":zap: Counting XP Booster (30 Min)",
+                        name: "Counting XP Booster (30 Min)",
                         duration: 30 * 60 * 1000,
                         price: 50000,
                     },
                     xp60: {
                         roleId: config.roles.countingXp60,
-                        name: ":fire: Counting XP Booster (60 Min)",
+                        name: "Counting XP Booster (60 Min)",
                         duration: 60 * 60 * 1000,
                         price: 100000,
                     },
                     vip: {
                         roleId: config.roles.vip,
-                        name: ":gem: VIP-Rolle (7d)",
+                        name: "VIP-Rolle (7d)",
                         duration: 7 * 24 * 60 * 60 * 1000,
                         price: 500000,
                     },
@@ -2440,7 +2444,7 @@ export async function initEconomySystem(client) {
                 try {
                     const finalData = (await getEcoData(interaction.user.id)) || {};
                     if (finalData.blocked) {
-                        return interaction.reply({ content: "Dein Konto ist gesperrt. Bitte wende dich an den Support.", flags: MessageFlags.Ephemeral });
+                        return interaction.reply({ content: "Dein Konto ist gesperrt.", flags: MessageFlags.Ephemeral });
                     }
                     if ((finalData.balance || 0) < item.price) {
                         return interaction.reply({ content: "Du hast nicht genug Kekse für diesen Kauf!", flags: MessageFlags.Ephemeral });
@@ -3355,7 +3359,7 @@ export function initVerification(client) {
     });
     client.on("messageCreate", async (msg) => {
         if (msg.content === "!setup_verify") {
-            if (!msg.member.roles.cache.has(config.roles.team)) return;
+            if (!msg.member.roles.cache.has(config.roles.team)) return msg.reply("Du bist nicht berechtigt System Befehle zu nutzen.");
             const row = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
                     .setCustomId("verify_user")
@@ -3387,8 +3391,8 @@ export function initRules(client) {
     client.on("messageCreate", async (msg) => {
         if (msg.content === "!setup_rules") {
             if (!msg.member.roles.cache.has(config.roles.team)) {
-                console.log(`Reply ${msg.author.username}: Du hast keine Berechtigung diese funktion zu nutzen.`);
-                msg.reply(`Du hast keine Berechtigung diese Funktion zu nutzen.`);
+                console.log(`Reply ${msg.author.username}: Du bist nicht berechtigt System Befehle zu nutzen.`);
+                msg.reply(`Du bist nicht berechtigt System Befehle zu nutzen.`);
                 return;
             }
             const defaultRule = new EmbedBuilder()
@@ -4363,7 +4367,7 @@ export function registerMessageCommands(client) {
     client.on("messageCreate", async (msg) => {
         if (msg.author.bot || !msg.content.startsWith("!")) return;
         if (msg.content.startsWith("!setup_dashboardInfo")) {
-            if (msg.author.id !== config.users.sysadmin) return;
+            if (msg.author.id !== config.users.sysadmin) return msg.reply("Du bist nicht berechtigt System Befehle zu nutzen.");
             const infoEmbed = new EmbedBuilder()
                 .setColor("#ffffff")
                 .setTitle(`Dashboard Login`)
@@ -5132,21 +5136,23 @@ async function blockUser(
 }
 const BEWERBUNG_VORLAGE_TEXT = `
 > ### Bewerbungsvorlage:
-> - Rufname & Ingame-Name
-> - Alter
-> - Auf welchem Spiel / Auf welchem Server bist du aktiv? Zur Auswahl stehen derzeit: \`Minevale.de\` \`CraftValley.de\` \`BrawlStars\`
-> - Weshalb du in den Clan willst
-> - In welchen Clans warst du bereits
-> - Warum du in unseren Clan aufgenommen werden solltest
-> - Deine Stärken
+> - Rufname & Ingame-Name.
+> - Wie alt bist du?
+> - In welchem Spiel / Auf welchem Server bist du aktiv? Zur Auswahl stehen derzeit: \`Minevale.de\` \`CraftValley.de\` \`BrawlStars\`
+> - Weshalb willst du in den Clan?
+> - In welchen Clans warst du bereits?
+> - Warum solltest du in den Clan aufgenommen werden?
+> - Was sind deine Stärken?
 > - Spielzeit: (Minecraft & Minecraft Server) / BrawlStars
 > **Weitere Informationen:**
 > - Schreibe in ganzen Sätzen
-> - Keine KI verwenden
+> - Verwende keine KI
 > - Achte auf eine säuberliche, äußere Form deiner Bewerbung
 > - Bei stark nachlässiger Ausführung der obigen Punkte kann und wird die Bewerbung abgelehnt werden
-> **Voraussetzungen beachten:**
+> **Bewerbungs-Voraussetzungen:**
+> - Du erfüllst das Mindestalter von 14 Jahren
 > - Du bist aktiv im angegebenen Spiel / auf dem angegebenen Server und diesem Discord-Server
+> - Du bist stehts ehrlich und freundlich gegenüber anderen Mitgliedern
 `;
 function parseYesNo(input) {
     if (!input) return false;
