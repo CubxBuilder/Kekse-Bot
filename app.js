@@ -537,7 +537,7 @@ async function performSteal(guild, thiefMember) {
     if (!thiefMember.roles.cache.has(config.roles.economy)) {
         return {
             ok: false,
-            text: "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (\"!bank create\")",
+            text: "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (\`!bank create\`)",
         };
     }
     if (stealBusy.has(thiefId)) {
@@ -1448,7 +1448,7 @@ export async function initEconomySystem(client) {
                 console.log(`Reply ${msg.author.username}: Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. ("!bank create")`);
                 return msg.reply({
                     content:
-                        "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (\"!bank create\")",
+                        "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (\`!bank create\`)",
                     flags: [MessageFlags.Ephemeral],
                 });
             }
@@ -2170,7 +2170,7 @@ export async function initEconomySystem(client) {
                     return denyReply(msg, "Nutzung: `!bank payall <Betrag pro Konto>`");
                 }
                 if (!hasEcoRole) {
-                    return denyReply(msg, "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (\"!bank create\")");
+                    return denyReply(msg, "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (\`!bank create\`)");
                 }
                 if (payallBusy.has(msg.author.id)) {
                     return denyReply(msg, "Du hast bereits eine offene Überweisung.");
@@ -2270,7 +2270,7 @@ export async function initEconomySystem(client) {
                     console.log(`Reply ${msg.author.username}: Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. ("!bank create").`);
                     return msg.reply({
                         content:
-                            "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (\"!bank create\").",
+                            "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (\`!bank create\`).",
                         flags: [MessageFlags.Ephemeral],
                     });
                 }
@@ -2347,7 +2347,7 @@ export async function initEconomySystem(client) {
                     console.log(`Reply ${interaction.user.username}: Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. ("!bank create")`);
                     return interaction.reply({
                         content:
-                            "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (\"!bank create\").",
+                            "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (\`!bank create\`).",
                         flags: [MessageFlags.Ephemeral],
                     });
                 }
