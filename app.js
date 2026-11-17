@@ -920,8 +920,10 @@ async function playBlackjack(userId, betAmount, startBalance, reply) {
         return casinoEmbed({
             title: "Blackjack",
             bet: betAmount,
-            headline,
-            detail: `${hands}\n${status}`,
+            playerScore: scoreP,
+            playerHand: player,
+            dealerScore: scoreD,
+            dealerHand: dealer,
             ...casinoResult(total - betAmount),
             balance,
         });
