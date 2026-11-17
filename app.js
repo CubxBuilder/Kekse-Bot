@@ -644,6 +644,7 @@ function casinoEmbed(options) {
                 text: `${options.running ? "Kontostand" : "Neuer Kontostand"}: ${options.balance} Kekse`,
             });
         }
+        return embed;
     } else {
         const embed = new EmbedBuilder()
         .setTitle(options.title)
@@ -660,8 +661,8 @@ function casinoEmbed(options) {
                 text: `${options.running ? "Kontostand" : "Neuer Kontostand"}: ${options.balance} Kekse`,
             });
         }
+        return embed;
     }
-    return embed;
 }
 function casinoResult(payout) {
     if (payout > 0) return { outcome: "Gewonnen!", amount: `+${payout} Kekse` };
