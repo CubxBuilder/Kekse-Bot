@@ -902,7 +902,7 @@ async function playBlackjack(userId, betAmount, startBalance, reply) {
         const player = `${playerHand.map((card) => card.name).join(" ")}`;
         const dealer = `${reveal ? dealerHand.map((card) => card.name).join(" ") : `${dealerHand[0].name} :flower_playing_cards:`}`
         const scoreD = reveal ? score(dealerHand) : `${dealerHand[0].value} + ?`;
-        const scoreP = reveal ? score(playerHand) : `${playerHand[0].value} + ?`;
+        const scoreP = score(playerHand);
         if (!reveal) {
             return casinoEmbed({
                 title: "Blackjack",
