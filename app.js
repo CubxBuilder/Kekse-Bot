@@ -627,7 +627,25 @@ async function performSteal(guild, thiefMember) {
     }
 }
 function casinoEmbed(options) {
-    const embed = new EmbedBuilder()
+    if (options.title === "Blackjack") {
+        const embed = new EmbedBuilder()
+        .setTitle(options.title)
+        .setDescription(options.description || `Dein Einsatz: **${options.bet} Kekse**`)
+        .addFields(
+            { name: `**Deine Hand (${options.playerScore})**`, value: options.playerHand, inline: true },
+            { name: `**Dealer Hand (${options.dealerScore})**`, value: options.dealerHand, inline: true },
+            { name: options.outcome, value: options.amount, inline: false},
+        )
+        .setColor(0x333333);
+        if (options.footer) {
+            embed.setFooter({ text: options.footer });
+        } else if (options.balance !== undefined) {
+            embed.setFooter({
+                text: `${options.running ? "Kontostand" : "Neuer Kontostand"}: ${options.balance} Kekse`,
+            });
+        }
+    } else {
+        const embed = new EmbedBuilder()
         .setTitle(options.title)
         .setDescription(options.description || `Dein Einsatz: **${options.bet} Kekse**`)
         .addFields(
@@ -635,12 +653,13 @@ function casinoEmbed(options) {
             { name: options.outcome, value: options.amount },
         )
         .setColor(0x333333);
-    if (options.footer) {
-        embed.setFooter({ text: options.footer });
-    } else if (options.balance !== undefined) {
-        embed.setFooter({
-            text: `${options.running ? "Kontostand" : "Neuer Kontostand"}: ${options.balance} Kekse`,
-        });
+        if (options.footer) {
+            embed.setFooter({ text: options.footer });
+        } else if (options.balance !== undefined) {
+            embed.setFooter({
+                text: `${options.running ? "Kontostand" : "Neuer Kontostand"}: ${options.balance} Kekse`,
+            });
+        }
     }
     return embed;
 }
@@ -879,15 +898,17 @@ async function playBlackjack(userId, betAmount, startBalance, reply) {
             new ButtonBuilder().setCustomId("bj_stand").setLabel("Stand").setStyle(ButtonStyle.Primary),
         );
     const buildView = (reveal, status, total, balance) => {
-        const hands = `Deine Hand: ${playerHand.map((card) => card.name).join(" ")}\nDealer: ${reveal ? dealerHand.map((card) => card.name).join(" ") : `${dealerHand[0].name} :flower_playing_cards:`}`;
-        const dealerScore = reveal ? score(dealerHand) : `${dealerHand[0].value} + ?`;
-        const headline = `**Du: ${score(playerHand)}  |  Dealer: ${dealerScore}**`;
+        const player = `Deine Hand: ${playerHand.map((card) => card.name).join(" ")}`;
+        const dealer = `${reveal ? dealerHand.map((card) => card.name).join(" ") : `${dealerHand[0].name} :flower_playing_cards:`}`
+        const score = reveal ? score(dealerHand) : `${dealerHand[0].value} + ?`;
         if (!reveal) {
             return casinoEmbed({
                 title: "Blackjack",
                 bet: betAmount,
-                headline,
-                detail: hands,
+                playerScore: `${score(playerHand)}`,
+                playerHand: player,
+                dealerScore: score,
+                dealerHand: dealer,
                 outcome: "Möglicher Gewinn",
                 amount: `${betAmount * 2} Kekse`,
                 balance: startBalance,
