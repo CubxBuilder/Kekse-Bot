@@ -898,16 +898,17 @@ async function playBlackjack(userId, betAmount, startBalance, reply) {
             new ButtonBuilder().setCustomId("bj_stand").setLabel("Stand").setStyle(ButtonStyle.Primary),
         );
     const buildView = (reveal, status, total, balance) => {
-        const player = `Deine Hand: ${playerHand.map((card) => card.name).join(" ")}`;
+        const player = `${playerHand.map((card) => card.name).join(" ")}`;
         const dealer = `${reveal ? dealerHand.map((card) => card.name).join(" ") : `${dealerHand[0].name} :flower_playing_cards:`}`
-        const score = reveal ? score(dealerHand) : `${dealerHand[0].value} + ?`;
+        const scoreD = reveal ? score(dealerHand) : `${dealerHand[0].value} + ?`;
+        const scoreP = reveal ? score(playerHand) : `${playerHand[0].value} + ?`;
         if (!reveal) {
             return casinoEmbed({
                 title: "Blackjack",
                 bet: betAmount,
-                playerScore: `${score(playerHand)}`,
+                playerScore: scoreP,
                 playerHand: player,
-                dealerScore: score,
+                dealerScore: scoreD,
                 dealerHand: dealer,
                 outcome: "Möglicher Gewinn",
                 amount: `${betAmount * 2} Kekse`,
