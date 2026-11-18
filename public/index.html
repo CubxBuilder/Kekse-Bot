@@ -146,20 +146,31 @@
             flex-direction: column;
         }
         #console {
-            flex: 1;
-            background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)), url("verify.png");
-			background-position: center;
-			background-size: cover;
-            border-radius: var(--radius-sm);
-            padding: 10px;
-            font-family: "Courier New", monospace;
-			font-size: 0.78rem;
-            color: var(--text-secondary);
-            overflow-y: auto;
-            border: 1px solid var(--border);
-            max-height: 300px;
-            overflow-x: hidden;
-        }
+    		position: relative;
+    		flex: 1;
+    		border-radius: var(--radius-sm);
+    		padding: 10px;
+    		font-family: "Courier New", monospace;
+    		font-size: 0.78rem;
+    		color: var(--text-secondary);
+    		overflow-y: auto;
+    		border: 1px solid var(--border);
+    		max-height: 300px;
+    		overflow-x: hidden;
+    		z-index: 1;
+		}
+		#console::before {
+    		content: "";
+    		position: absolute;
+    		inset: 0;
+    		background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)), url("verify.png");
+   		 	background-position: center;
+    		background-size: cover;
+    		filter: blur(5px);
+    		transform: scale(1.05);
+   		 	z-index: -1;
+		}
+
         #functions-used {
             grid-column: 1 / -1;
             flex-direction: column;
@@ -885,7 +896,6 @@
             overflow-wrap: anywhere
         }
         #console .log-time {
-            color: var(--text-muted);
             margin-right: 8px
         }
         #console .md-h {
@@ -1883,7 +1893,7 @@
                                 });
                                 const cls = /warning|fehler|error|fail|crit/i.test(logText) ? " log-error" : "";
                                 html =
-                                    '<div class="log-line' + cls + '"><span class="log-time">[' + dateStr + " " + timeStr + ']</span><span class="log-body">' +
+                                    '<div class="log-line' + cls + '"><span class="log-time">' + timeStr + ' > </span><span class="log-body">' +
                                     renderDiscordMarkdown(logText, mentionCtx) +
                                     "</span></div>";
                                 logRenderCache.set(key, html);
