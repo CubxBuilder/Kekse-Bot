@@ -596,16 +596,17 @@ async function handleXpModal(interaction, client) {
         content: `Du kannst heute nur noch **${formatNumber(Math.max(0, remaining))} XP** kaufen.`,
       });
     }
-    const balance = data.balance || 0;
-    const price = Math.ceil(amount * getXpPrice(balance, getRankIndex(member)));
-    if (balance < price) {
-      console.log(
-        `Reply ${interaction.user.username}: Nicht genug Kekse für ${amount} XP.`,
-      );
-      return interaction.editReply({
-        content: `Du hast nicht genug Kekse! ${formatNumber(amount)} XP kosten **${formatNumber(price)} Kekse** (Du hast: ${formatNumber(balance)}).`,
-      });
-    }
+        const balance = data.balance || 0;
+        const rankIndex = getRankIndex(member);
+        const perXp = getXpPrice(balance, rankIndex);
+        const price = Math.ceil(amount * perXp);
+        console.log(`XP-Kauf ${interaction.user.username}: Rang-Index ${rankIndex}, ${perXp} Kekse pro XP, Kontostand ${balance}.`);
+        if (balance < price) {
+            console.log(`Reply ${interaction.user.username}: Nicht genug Kekse für ${amount} XP.`);
+            return interaction.editReply({
+                content: `Du hast nicht genug Kekse! ${formatNumber(amount)} XP kosten **${formatNumber(price)} Kekse** (${formatNumber(perXp, 1)} pro XP, Du hast: ${formatNumber(balance)}).`,
+            });
+        }
     data.balance = balance - price;
     data.xpBought = {
       day: new Date().toISOString().slice(0, 10),
