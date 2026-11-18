@@ -503,6 +503,47 @@ export async function getWageData(key) {
     const data = await dbGet("wage", key);
     return data || {};
 }
+const XP_BASE_PRICE = 10;
+const XP_DAILY_CAP = 1000;
+const RANK_COOLDOWN = 7 * 24 * 60 * 60 * 1000;
+
+function formatNumber(value, digits) {
+    return value.toLocaleString("de-DE", { maximumFractionDigits: digits || 0 });
+}
+
+function getRankIndex(member) {
+    let index = -1;
+    for (let i = 0; i < ROLES_TIERS.length; i++) {
+        if (member.roles.cache.has(ROLES_TIERS[i].id)) index = i;
+    }
+    return index;
+}
+const WEALTH_THRESHOLD = 100000;
+const XP_WEALTH_RATE = 0.001;
+const RANK_WEALTH_BASE = 0.15;
+const RANK_WEALTH_STEP = 0.05;
+const RANK_WEALTH_MAX = 0.5;
+
+function getXpPrice(balance, rankIndex) {
+    const rankMultiplier = 1 + (rankIndex + 1) * 0.25;
+    const surplus = Math.max(0, balance - WEALTH_THRESHOLD);
+    return (XP_BASE_PRICE + surplus * XP_WEALTH_RATE) * rankMultiplier;
+}
+
+function getRankPrice(balance, rankIndex) {
+    const next = ROLES_TIERS[rankIndex + 1];
+    if (!next) return null;
+    const currentNeeded = rankIndex >= 0 ? ROLES_TIERS[rankIndex].needed : 0;
+    const basePrice = Math.ceil((next.needed - currentNeeded) * XP_BASE_PRICE);
+    if (balance <= WEALTH_THRESHOLD) return basePrice;
+    const rate = Math.min(RANK_WEALTH_MAX, RANK_WEALTH_BASE + (rankIndex + 1) * RANK_WEALTH_STEP);
+    return Math.max(basePrice, Math.ceil(balance * rate));
+}
+function getXpBoughtToday(data) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (data.xpBought && data.xpBought.day === today) return data.xpBought.amount;
+    return 0;
+}
 export async function initEconomyGetKekse(client) {
     try {
         const StorageModel = mongoose.model("BotStorage");
@@ -1101,31 +1142,54 @@ export async function initEconomySystem(client) {
                 .setColor(0xffffff)
                 .addFields(
                     {
-                        name: "🎉 Double Chance Giveaway → `100.000 Kekse`",
-                        value: "Erhöht die Gewinnchance bei Giveaways.",
-                        inline: false,
+                        name: "🎉 Double Chance Giveaway",
+                        value: "`100.000 Kekse`",
+                        inline: true,
                     },
                     {
-                        name: "🛡️ Counting Puffer → `25.000 Kekse`",
-                        value:
-                            "Erlaubt dir einen Fehler beim Zählen, ohne dass die Zahl zurückgesetzt wird.",
-                        inline: false,
+                        name: "🛡️ Counting Puffer",
+                        value: "`25.000 Kekse`",
+                        inline: true,
                     },
                     {
-                        name: "⚡ Counting XP Booster (30 Min) → `50.000 Kekse`",
-                        value: "Du erhältst 30 Minuten lang doppelte XP beim Zählen.",
-                        inline: false,
+                        name: "\u200b",
+                        value: "\u200b",
+                        inline: true,
                     },
                     {
-                        name: "🔥 Counting XP Booster (60 Min) → `100.000 Kekse`",
-                        value: "Du erhältst 60 Minuten lang doppelte XP beim Zählen.",
-                        inline: false,
+                        name: "⚡ Counting XP Booster (30 Min)",
+                        value: "`50.000 Kekse`",
+                        inline: true,
                     },
                     {
-                        name: "💎 VIP Rolle (7d) → `500.000 Kekse`",
-                        value:
-                            "Erhöhte Position in der Server-Liste und teilnahme an spezifischen Events.",
-                        inline: false,
+                        name: "🔥 Counting XP Booster (60 Min)",
+                        value: "`100.000 Kekse`",
+                        inline: true,
+                    },
+                    {
+                        name: "\u200b",
+                        value: "\u200b",
+                        inline: true,
+                    },
+                    {
+                        name: "✨ + XP (Rangsystem)",
+                        value: "`Individuell`",
+                        inline: true,
+                    },
+                    {
+                        name: "⬆️ Rang-Upgrade (Rangsystem)",
+                        value: "`Individuell`",
+                        inline: true,
+                    },
+                    {
+                        name: "\u200b",
+                        value: "\u200b",
+                        inline: true,
+                    },
+                    {
+                        name: "💎 VIP Rolle (7d)",
+                        value: "`500.000 Kekse`",
+                        inline: true,
                     },
                 )
                 .setFooter({
@@ -1137,6 +1201,8 @@ export async function initEconomySystem(client) {
                     ["shop_puffer", "Counting Puffer", "🛡️"],
                     ["shop_xp30", "XP Booster 30m", "⚡"],
                     ["shop_xp60", "XP Booster 60m", "🔥"],
+                    ["shop_xpUp", "+ XP Rangsystem", "✨"],
+                    ["shop_rankUp", "Rang-Upgrade", "⬆️"],
                     ["shop_vip", "VIP-Rolle", "💎"],
                 ].map(([id, label, emoji]) =>
                     new ButtonBuilder()
@@ -2409,6 +2475,58 @@ export async function initEconomySystem(client) {
             if (interaction.customId.startsWith("shop_")) {
                 const member = interaction.member;
                 const itemType = interaction.customId.replace("shop_", "");
+                if (itemType === "xpUp") {
+    const data = (await getEcoData(interaction.user.id)) || {};
+    if (data.blocked) {
+        return interaction.reply({ content: "Dein Konto ist gesperrt.", flags: MessageFlags.Ephemeral });
+    }
+    const rankIndex = getRankIndex(member);
+    const perXp = getXpPrice(data.balance || 0, rankIndex);
+    const remaining = XP_DAILY_CAP - getXpBoughtToday(data);
+    if (remaining <= 0) {
+        return interaction.reply({ content: "Du hast dein XP-Limit für heute erreicht.", flags: MessageFlags.Ephemeral });
+    }
+    const input = new TextInputBuilder()
+        .setCustomId("xp_amount")
+        .setLabel(`Preis: ${formatNumber(perXp, 1)} Kekse pro XP`.slice(0, 45))
+        .setPlaceholder(`Heute noch max. ${formatNumber(remaining)} XP`)
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true);
+    const modal = new ModalBuilder()
+        .setCustomId("shopmodal_xp")
+        .setTitle("XP kaufen")
+        .addComponents(new ActionRowBuilder().addComponents(input));
+    return interaction.showModal(modal);
+}
+
+if (itemType === "rankUp") {
+    const data = (await getEcoData(interaction.user.id)) || {};
+    if (data.blocked) {
+        return interaction.reply({ content: "Dein Konto ist gesperrt.", flags: MessageFlags.Ephemeral });
+    }
+    const rankIndex = getRankIndex(member);
+    const next = ROLES_TIERS[rankIndex + 1];
+    if (!next) {
+        return interaction.reply({ content: "Du hast bereits den höchsten Rang!", flags: MessageFlags.Ephemeral });
+    }
+    const waitLeft = (data.lastRankUp || 0) + RANK_COOLDOWN - Date.now();
+    if (waitLeft > 0) {
+        const days = Math.ceil(waitLeft / (24 * 60 * 60 * 1000));
+        return interaction.reply({
+            content: `Du kannst erst in ${days} Tag(en) wieder einen Rang kaufen.`,
+            flags: MessageFlags.Ephemeral,
+        });
+    }
+    const price = getRankPrice(data.balance || 0, rankIndex);
+    const embed = new EmbedBuilder()
+        .setColor(0xffffff)
+        .setTitle("Rang-Upgrade")
+        .setDescription(`Nächster Rang: **${next.name}**\nPreis: **${formatNumber(price)} Kekse**\nDein Kontostand: ${formatNumber(data.balance || 0)} Kekse`);
+    const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId("rankconfirm").setLabel("Kaufen").setStyle(ButtonStyle.Success)
+    );
+    return interaction.reply({ embeds: [embed], components: [row], flags: MessageFlags.Ephemeral });
+}
                 const SHOP_ITEMS = {
                     giveaway: {
                         roleId: config.roles.giveawayDouble,
@@ -2433,6 +2551,14 @@ export async function initEconomySystem(client) {
                         name: "Counting XP Booster (60 Min)",
                         duration: 60 * 60 * 1000,
                         price: 100000,
+                    },
+                    xpUp: {
+                        name: "+ XP Rangsystem",
+                        duration: null,
+                    },
+                    rankUp: {
+                        name: "+ Rang-Upgrade",
+                        duration: null,
                     },
                     vip: {
                         roleId: config.roles.vip,
@@ -2523,6 +2649,82 @@ export async function initEconomySystem(client) {
                     });
                 }
             }
+            if (interaction.isModalSubmit() && interaction.customId === "shopmodal_xp") {
+    const member = interaction.member;
+    const amount = parseInt(interaction.fields.getTextInputValue("xp_amount").replace(/\./g, ""), 10);
+    if (!Number.isInteger(amount) || amount < 1) {
+        return interaction.reply({ content: "Bitte gib eine gültige Zahl ein!", flags: MessageFlags.Ephemeral });
+    }
+    const data = (await getEcoData(interaction.user.id)) || {};
+    if (data.blocked) {
+        return interaction.reply({ content: "Dein Konto ist gesperrt.", flags: MessageFlags.Ephemeral });
+    }
+    const bought = getXpBoughtToday(data);
+    const remaining = XP_DAILY_CAP - bought;
+    if (amount > remaining) {
+        return interaction.reply({
+            content: `Du kannst heute nur noch **${formatNumber(Math.max(0, remaining))} XP** kaufen.`,
+            flags: MessageFlags.Ephemeral,
+        });
+    }
+    const balance = data.balance || 0;
+    const price = Math.ceil(amount * getXpPrice(balance, getRankIndex(member)));
+    if (balance < price) {
+        return interaction.reply({
+            content: `Du hast nicht genug Kekse! ${formatNumber(amount)} XP kosten **${formatNumber(price)} Kekse** (Du hast: ${formatNumber(balance)}).`,
+            flags: MessageFlags.Ephemeral,
+        });
+    }
+    data.balance = balance - price;
+    data.xpBought = { day: new Date().toISOString().slice(0, 10), amount: bought + amount };
+    if (!data.userId) data.userId = interaction.user.id;
+    if (!data.username) data.username = interaction.user.username;
+    await setEcoData(interaction.user.id, data);
+    await logTransaction(interaction.user.id, price, "minus", `Shop: ${amount} XP`);
+    addXP(interaction.user.id, amount, client);
+    return interaction.reply({
+        content: `Kauf erfolgreich: **${formatNumber(amount)} XP** für **${formatNumber(price)} Kekse**.`,
+        flags: MessageFlags.Ephemeral,
+    });
+}
+
+if (interaction.isButton() && interaction.customId === "rankconfirm") {
+    const member = interaction.member;
+    const data = (await getEcoData(interaction.user.id)) || {};
+    if (data.blocked) {
+        return interaction.update({ content: "Dein Konto ist gesperrt.", embeds: [], components: [] });
+    }
+    const rankIndex = getRankIndex(member);
+    const next = ROLES_TIERS[rankIndex + 1];
+    if (!next) {
+        return interaction.update({ content: "Du hast bereits den höchsten Rang!", embeds: [], components: [] });
+    }
+    if ((data.lastRankUp || 0) + RANK_COOLDOWN > Date.now()) {
+        return interaction.update({ content: "Dein Rang-Upgrade ist noch auf Wartezeit.", embeds: [], components: [] });
+    }
+    const balance = data.balance || 0;
+    const price = getRankPrice(balance, rankIndex);
+    if (balance < price) {
+        return interaction.update({
+            content: `Du hast nicht genug Kekse! Der Rang kostet **${formatNumber(price)} Kekse**.`,
+            embeds: [],
+            components: [],
+        });
+    }
+    data.balance = balance - price;
+    data.lastRankUp = Date.now();
+    if (!data.userId) data.userId = interaction.user.id;
+    if (!data.username) data.username = interaction.user.username;
+    if (rankIndex >= 0) await member.roles.remove(ROLES_TIERS[rankIndex].id);
+    await member.roles.add(next.id);
+    await setEcoData(interaction.user.id, data);
+    await logTransaction(interaction.user.id, price, "minus", `Shop: Rang ${next.name}`);
+    return interaction.update({
+        content: `Kauf erfolgreich: Du bist jetzt **${next.name}**!`,
+        embeds: [],
+        components: [],
+    });
+}
         }
         if (interaction.isModalSubmit()) {
             if (interaction.customId.startsWith("bank_create_")) {
