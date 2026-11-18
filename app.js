@@ -522,11 +522,6 @@ function getShopRankIndex(member) {
     }
     return index;
 }
-const WEALTH_THRESHOLD = 100000;
-const XP_WEALTH_RATE = 0.001;
-const RANK_WEALTH_BASE = 0.15;
-const RANK_WEALTH_STEP = 0.05;
-const RANK_WEALTH_MAX = 0.5;
 function getXpPrice(balance, rankIndex) {
     const rankMultiplier = 1 + (rankIndex + 1) * 0.25;
     const surplus = Math.max(0, balance - WEALTH_THRESHOLD);
