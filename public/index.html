@@ -157,7 +157,7 @@
     		border: 1px solid var(--border);
     		max-height: 300px;
     		overflow-x: hidden;
-    		z-index: 1;
+    		z-index: 2;
 		}
 		#console::before {
     		content: "";
@@ -168,7 +168,7 @@
     		background-size: cover;
     		filter: blur(5px);
     		transform: scale(1.05);
-   		 	z-index: -1;
+   		 	z-index: 1;
 		}
 
         #functions-used {
@@ -1893,7 +1893,7 @@
                                 });
                                 const cls = /warning|fehler|error|fail|crit/i.test(logText) ? " log-error" : "";
                                 html =
-                                    '<div class="log-line' + cls + '"><span class="log-time">' + timeStr + ' > </span><span class="log-body">' +
+                                    '<div class="log-line' + cls + '"><span class="log-time">' + timeStr + ' -- </span><span class="log-body">' +
                                     renderDiscordMarkdown(logText, mentionCtx) +
                                     "</span></div>";
                                 logRenderCache.set(key, html);
