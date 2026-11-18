@@ -636,6 +636,71 @@ async function handleXpModal(interaction, client) {
     return interaction.reply(payload);
   }
 }
+async function handleRankConfirm(interaction) {
+  try {
+    await interaction.deferUpdate();
+    const data = (await getEcoData(interaction.user.id)) || {};
+    if (data.blocked) {
+      console.log(`Reply ${interaction.user.username}: Konto gesperrt.`);
+      return interaction.editReply({
+        content: "Dein Konto ist gesperrt.",
+        embeds: [],
+        components: [],
+      });
+    }
+    const xpData = await getXpData(interaction.user.id);
+    const rank = xpData.rang !== undefined ? xpData.rang : 0;
+    const xp = xpData.xp !== undefined ? xpData.xp : 0;
+    const next = ROLES_TIERS[rank + 1];
+    if (!next) {
+      console.log(`Reply ${interaction.user.username}: Höchster Rang bereits erreicht.`);
+      return interaction.editReply({
+        content: "Du hast bereits den höchsten Rang!",
+        embeds: [],
+        components: [],
+      });
+    }
+    if ((data.lastRankUp || 0) + RANK_COOLDOWN > Date.now()) {
+      console.log(`Reply ${interaction.user.username}: Rang-Upgrade auf Wartezeit.`);
+      return interaction.editReply({
+        content: "Dein Rang-Upgrade ist noch auf Wartezeit.",
+        embeds: [],
+        components: [],
+      });
+    }
+    const balance = data.balance || 0;
+    const price = getRankPrice(balance, rank, xp);
+    if (balance < price) {
+      console.log(`Reply ${interaction.user.username}: Nicht genug Kekse für Rang ${next.name}.`);
+      return interaction.editReply({
+        content: `Du hast nicht genug Kekse! Der Rang kostet **${formatNumber(price)} Kekse**.`,
+        embeds: [],
+        components: [],
+      });
+    }
+    data.balance = balance - price;
+    data.lastRankUp = Date.now();
+    if (!data.userId) data.userId = interaction.user.id;
+    if (!data.username) data.username = interaction.user.username;
+    await setEcoData(interaction.user.id, data);
+    await logTransaction(interaction.user.id, price, "minus", `Shop: Rang ${next.name}`);
+    await addXP(interaction.user.id, ROLES_TIERS[rank].needed - xp, interaction.client);
+    console.log(`Reply ${interaction.user.username}: Kauf erfolgreich: Rang ${next.name} für ${price} Kekse.`);
+    return interaction.editReply({
+      content: `Kauf erfolgreich: Du bist jetzt **${next.name}**!`,
+      embeds: [],
+      components: [],
+    });
+  } catch (error) {
+    console.error("Fehler beim Rang-Kauf:", error);
+    const payload = {
+      content: "Es gab einen Fehler beim Verarbeiten deines Kaufs!",
+      flags: MessageFlags.Ephemeral,
+    };
+    if (interaction.deferred || interaction.replied) return interaction.followUp(payload);
+    return interaction.reply(payload);
+  }
+}
 export async function initEconomyGetKekse(client) {
   try {
     const StorageModel = mongoose.model("BotStorage");
@@ -2760,26 +2825,21 @@ export async function initEconomySystem(client) {
       }
     }
   });
-  client.on("interactionCreate", async (interaction) => {
+    client.on("interactionCreate", async function (interaction) {
+    if (interaction.isButton() && interaction.customId === "rankconfirm") {
+      return withUserLock(interaction.user.id, function () {
+        return handleRankConfirm(interaction);
+      });
+    }
     const locked =
       (interaction.isButton() &&
         (interaction.customId.startsWith("daily_claim_") ||
           interaction.customId.startsWith("shop_"))) ||
       (interaction.isModalSubmit() &&
-        interaction.customId.startsWith("bank_create_")) ||
-      (interaction.isModalSubmit() && interaction.customId === "shopmodal_xp");
+        interaction.customId.startsWith("bank_create_"));
     if (!locked) {
       handleEconomyInteraction(interaction);
       return;
-    }
-    if (
-      interaction.isModalSubmit() &&
-      interaction.customId === "shopmodal_xp"
-    ) {
-      return handleXpModal(interaction, client);
-    }
-    if (interaction.isButton() && interaction.customId === "rankconfirm") {
-      return handleRankConfirm(interaction);
     }
     return withUserLock(interaction.user.id, function () {
       return handleEconomyInteraction(interaction);
@@ -3171,86 +3231,6 @@ export async function initEconomySystem(client) {
           content: `Kauf erfolgreich: **${formatNumber(amount)} XP** für **${formatNumber(price)} Kekse**.`,
           flags: MessageFlags.Ephemeral,
         });
-      }
-      async function handleRankConfirm(interaction) {
-        try {
-          await interaction.deferUpdate();
-          const member = interaction.member;
-          const data = (await getEcoData(interaction.user.id)) || {};
-          if (data.blocked) {
-            console.log(`Reply ${interaction.user.username}: Konto gesperrt.`);
-            return interaction.editReply({
-              content: "Dein Konto ist gesperrt.",
-              embeds: [],
-              components: [],
-            });
-          }
-          const rankIndex = getRankIndex(member);
-          const next = RANK_TIERS[rankIndex + 1];
-          if (!next) {
-            console.log(
-              `Reply ${interaction.user.username}: Höchster Rang bereits erreicht.`,
-            );
-            return interaction.editReply({
-              content: "Du hast bereits den höchsten Rang!",
-              embeds: [],
-              components: [],
-            });
-          }
-          if ((data.lastRankUp || 0) + RANK_COOLDOWN > Date.now()) {
-            console.log(
-              `Reply ${interaction.user.username}: Rang-Upgrade auf Wartezeit.`,
-            );
-            return interaction.editReply({
-              content: "Dein Rang-Upgrade ist noch auf Wartezeit.",
-              embeds: [],
-              components: [],
-            });
-          }
-          const balance = data.balance || 0;
-          const price = getRankPrice(balance, rankIndex);
-          if (balance < price) {
-            console.log(
-              `Reply ${interaction.user.username}: Nicht genug Kekse für Rang ${next.name}.`,
-            );
-            return interaction.editReply({
-              content: `Du hast nicht genug Kekse! Der Rang kostet **${formatNumber(price)} Kekse**.`,
-              embeds: [],
-              components: [],
-            });
-          }
-          data.balance = balance - price;
-          data.lastRankUp = Date.now();
-          if (!data.userId) data.userId = interaction.user.id;
-          if (!data.username) data.username = interaction.user.username;
-          if (rankIndex >= 0)
-            await member.roles.remove(RANK_TIERS[rankIndex].id);
-          await member.roles.add(next.id);
-          await setEcoData(interaction.user.id, data);
-          await logTransaction(
-            interaction.user.id,
-            price,
-            "minus",
-            `Shop: Rang ${next.name}`,
-          );
-          console.log(
-            `Reply ${interaction.user.username}: Kauf erfolgreich: Rang ${next.name} für ${price} Kekse.`,
-          );
-          return interaction.editReply({
-            content: `Kauf erfolgreich: Du bist jetzt **${next.name}**!`,
-            embeds: [],
-            components: [],
-          });
-        } catch (error) {
-          console.error("Fehler beim Rang-Kauf:", error);
-          const payload = {
-            content: "Es gab einen Fehler beim Verarbeiten deines Kaufs!",
-            flags: MessageFlags.Ephemeral,
-          };
-          if (interaction.deferred || interaction.replied)
-            return interaction.followUp(payload);
-          return interaction.reply(payload);
-        }
       }
     }
     if (interaction.isModalSubmit()) {
