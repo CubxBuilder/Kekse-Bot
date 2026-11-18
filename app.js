@@ -566,43 +566,39 @@ function getXpBoughtToday(data) {
 }
 async function handleXpModal(interaction, client) {
   try {
-    const member = interaction.member;
     const amount = parseInt(
       interaction.fields.getTextInputValue("xp_amount").replace(/\./g, ""),
       10,
     );
     if (!Number.isInteger(amount) || amount < 1) {
-      console.log(`Reply ${interaction.user.username}: Ungültige XP-Anzahl.`);
+      console.log(`Reply ${interaction.user.username}: Bitte gib eine gültige Zahl ein!`);
       return interaction.editReply({
         content: "Bitte gib eine gültige Zahl ein!",
       });
     }
     const data = (await getEcoData(interaction.user.id)) || {};
     if (data.blocked) {
-      console.log(`Reply ${interaction.user.username}: Konto gesperrt.`);
+      console.log(`Reply ${interaction.user.username}: Dein Konto ist gesperrt.`);
       return interaction.editReply({ content: "Dein Konto ist gesperrt." });
     }
     const bought = getXpBoughtToday(data);
     const remaining = XP_DAILY_CAP - bought;
     if (amount > remaining) {
-      console.log(
-        `Reply ${interaction.user.username}: XP-Tageslimit erreicht.`,
-      );
+      console.log(`Reply ${interaction.user.username}: Du kannst heute nur noch ${formatNumber(Math.max(0, remaining))} XP kaufen.`);
       return interaction.editReply({
         content: `Du kannst heute nur noch **${formatNumber(Math.max(0, remaining))} XP** kaufen.`,
       });
     }
-                const balance = data.balance || 0;
-          const rank = await getShopRank(interaction.user.id);
-          const perXp = getXpPrice(data.balance || 0, rank);
-        const price = Math.ceil(amount * perXp);
-        console.log(`XP-Kauf ${interaction.user.username}: Rang ${rank}, ${perXp} Kekse pro XP, Kontostand ${balance}.`);
-        if (balance < price) {
-            console.log(`Reply ${interaction.user.username}: Nicht genug Kekse für ${amount} XP.`);
-            return interaction.editReply({
-                content: `Du hast nicht genug Kekse! ${formatNumber(amount)} XP kosten **${formatNumber(price)} Kekse** (${formatNumber(perXp, 1)} pro XP, Du hast: ${formatNumber(balance)}).`,
-            });
-        }
+    const balance = data.balance || 0;
+    const rank = await getShopRank(interaction.user.id);
+    const perXp = getXpPrice(balance, rank);
+    const price = Math.ceil(amount * perXp);
+    if (balance < price) {
+      console.log(`Reply ${interaction.user.username}: Du hast nicht genug Kekse für diesen Kauf! ${formatNumber(amount)} XP kosten ${formatNumber(price)} Kekse (${formatNumber(perXp, 1)} pro XP, Du hast: ${formatNumber(balance)}).`);
+      return interaction.editReply({
+        content: `Du hast nicht genug Kekse für diesen Kauf! ${formatNumber(amount)} XP kosten **${formatNumber(price)} Kekse** (${formatNumber(perXp, 1)} pro XP, Du hast: ${formatNumber(balance)}).`,
+      });
+    }
     data.balance = balance - price;
     data.xpBought = {
       day: new Date().toISOString().slice(0, 10),
@@ -618,14 +614,14 @@ async function handleXpModal(interaction, client) {
       `Shop: ${amount} XP`,
     );
     addXP(interaction.user.id, amount, client);
-    console.log(
-      `Reply ${interaction.user.username}: Kauf erfolgreich: ${amount} XP für ${price} Kekse.`,
-    );
+    console.log(`<@${interaction.user.id}> hat ${formatNumber(amount)} XP im Shop erworben.`);
+    console.log(`Reply ${interaction.user.username}: Kauf erfolgreich: ${formatNumber(amount)} XP für ${formatNumber(price)} Kekse.`);
     return interaction.editReply({
       content: `Kauf erfolgreich: **${formatNumber(amount)} XP** für **${formatNumber(price)} Kekse**.`,
     });
   } catch (error) {
-    console.error("Fehler beim XP-Kauf:", error);
+    console.error("Fehler beim Shop-Kauf:", error);
+    console.log(`Reply ${interaction.user.username}: Es gab einen Fehler beim Verarbeiten deines Kaufs.`);
     const payload = {
       content: "Es gab einen Fehler beim Verarbeiten deines Kaufs!",
       flags: MessageFlags.Ephemeral,
@@ -639,7 +635,7 @@ async function handleRankConfirm(interaction) {
   try {
     const data = (await getEcoData(interaction.user.id)) || {};
     if (data.blocked) {
-      console.log(`Reply ${interaction.user.username}: Konto gesperrt.`);
+      console.log(`Reply ${interaction.user.username}: Dein Konto ist gesperrt.`);
       return interaction.editReply({
         content: "Dein Konto ist gesperrt.",
         embeds: [],
@@ -651,7 +647,7 @@ async function handleRankConfirm(interaction) {
     const xp = xpData.xp !== undefined ? xpData.xp : 0;
     const next = ROLES_TIERS[rank + 1];
     if (!next) {
-      console.log(`Reply ${interaction.user.username}: Höchster Rang bereits erreicht.`);
+      console.log(`Reply ${interaction.user.username}: Du hast bereits den höchsten Rang!`);
       return interaction.editReply({
         content: "Du hast bereits den höchsten Rang!",
         embeds: [],
@@ -659,7 +655,7 @@ async function handleRankConfirm(interaction) {
       });
     }
     if ((data.lastRankUp || 0) + RANK_COOLDOWN > Date.now()) {
-      console.log(`Reply ${interaction.user.username}: Rang-Upgrade auf Wartezeit.`);
+      console.log(`Reply ${interaction.user.username}: Dein Rang-Upgrade ist noch auf Wartezeit.`);
       return interaction.editReply({
         content: "Dein Rang-Upgrade ist noch auf Wartezeit.",
         embeds: [],
@@ -669,9 +665,9 @@ async function handleRankConfirm(interaction) {
     const balance = data.balance || 0;
     const price = getRankPrice(balance, rank, xp);
     if (balance < price) {
-      console.log(`Reply ${interaction.user.username}: Nicht genug Kekse für Rang ${next.name}.`);
+      console.log(`Reply ${interaction.user.username}: Du hast nicht genug Kekse für diesen Kauf! Der Rang ${next.name} kostet ${formatNumber(price)} Kekse (Du hast: ${formatNumber(balance)}).`);
       return interaction.editReply({
-        content: `Du hast nicht genug Kekse! Der Rang kostet **${formatNumber(price)} Kekse**.`,
+        content: `Du hast nicht genug Kekse für diesen Kauf! Der Rang **${next.name}** kostet **${formatNumber(price)} Kekse** (Du hast: ${formatNumber(balance)}).`,
         embeds: [],
         components: [],
       });
@@ -681,21 +677,33 @@ async function handleRankConfirm(interaction) {
     if (!data.userId) data.userId = interaction.user.id;
     if (!data.username) data.username = interaction.user.username;
     await setEcoData(interaction.user.id, data);
-    await logTransaction(interaction.user.id, price, "minus", `Shop: Rang ${next.name}`);
-    await addXP(interaction.user.id, ROLES_TIERS[rank].needed - xp, interaction.client);
-    console.log(`Reply ${interaction.user.username}: Kauf erfolgreich: Rang ${next.name} für ${price} Kekse.`);
+    await logTransaction(
+      interaction.user.id,
+      price,
+      "minus",
+      `Shop: Rang ${next.name}`,
+    );
+    await addXP(
+      interaction.user.id,
+      ROLES_TIERS[rank].needed - xp,
+      interaction.client,
+    );
+    console.log(`<@${interaction.user.id}> hat den Rang ${next.name} im Shop erworben.`);
+    console.log(`Reply ${interaction.user.username}: Kauf erfolgreich: Du bist jetzt ${next.name}!`);
     return interaction.editReply({
       content: `Kauf erfolgreich: Du bist jetzt **${next.name}**!`,
       embeds: [],
       components: [],
     });
   } catch (error) {
-    console.error("Fehler beim Rang-Kauf:", error);
+    console.error("Fehler beim Shop-Kauf:", error);
+    console.log(`Reply ${interaction.user.username}: Es gab einen Fehler beim Verarbeiten deines Kaufs.`);
     const payload = {
       content: "Es gab einen Fehler beim Verarbeiten deines Kaufs!",
       flags: MessageFlags.Ephemeral,
     };
-    if (interaction.deferred || interaction.replied) return interaction.followUp(payload);
+    if (interaction.deferred || interaction.replied)
+      return interaction.followUp(payload);
     return interaction.reply(payload);
   }
 }
@@ -2828,7 +2836,6 @@ export async function initEconomySystem(client) {
       interaction.isModalSubmit() &&
       interaction.customId === "shopmodal_xp"
     ) {
-      console.log(`Reply ${interaction.user.username}: [xp formular empfangen]`);
       const deferred = await interaction
         .deferReply({ flags: MessageFlags.Ephemeral })
         .then(function () {
@@ -2844,7 +2851,6 @@ export async function initEconomySystem(client) {
       });
     }
     if (interaction.isButton() && interaction.customId === "rankconfirm") {
-      console.log(`Reply ${interaction.user.username}: [rang bestätigung empfangen]`);
       const deferred = await interaction
         .deferUpdate()
         .then(function () {
@@ -2969,18 +2975,20 @@ export async function initEconomySystem(client) {
       if (interaction.customId.startsWith("shop_")) {
         const member = interaction.member;
         const itemType = interaction.customId.replace("shop_", "");
-        if (itemType === "xpUp") {
+                if (itemType === "xpUp") {
           const data = (await getEcoData(interaction.user.id)) || {};
           if (data.blocked) {
+            console.log(`Reply ${interaction.user.username}: Dein Konto ist gesperrt.`);
             return interaction.reply({
               content: "Dein Konto ist gesperrt.",
               flags: MessageFlags.Ephemeral,
             });
           }
-                    const rank = await getShopRank(interaction.user.id);
+          const rank = await getShopRank(interaction.user.id);
           const perXp = getXpPrice(data.balance || 0, rank);
           const remaining = XP_DAILY_CAP - getXpBoughtToday(data);
           if (remaining <= 0) {
+            console.log(`Reply ${interaction.user.username}: Du hast dein XP-Limit für heute erreicht.`);
             return interaction.reply({
               content: "Du hast dein XP-Limit für heute erreicht.",
               flags: MessageFlags.Ephemeral,
@@ -3003,6 +3011,7 @@ export async function initEconomySystem(client) {
         if (itemType === "rankUp") {
           const data = (await getEcoData(interaction.user.id)) || {};
           if (data.blocked) {
+            console.log(`Reply ${interaction.user.username}: Dein Konto ist gesperrt.`);
             return interaction.reply({
               content: "Dein Konto ist gesperrt.",
               flags: MessageFlags.Ephemeral,
@@ -3012,6 +3021,7 @@ export async function initEconomySystem(client) {
           const rank = xpData.rang !== undefined ? xpData.rang : 0;
           const next = ROLES_TIERS[rank + 1];
           if (!next) {
+            console.log(`Reply ${interaction.user.username}: Du hast bereits den höchsten Rang!`);
             return interaction.reply({
               content: "Du hast bereits den höchsten Rang!",
               flags: MessageFlags.Ephemeral,
@@ -3020,6 +3030,7 @@ export async function initEconomySystem(client) {
           const waitLeft = (data.lastRankUp || 0) + RANK_COOLDOWN - Date.now();
           if (waitLeft > 0) {
             const days = Math.ceil(waitLeft / (24 * 60 * 60 * 1000));
+            console.log(`Reply ${interaction.user.username}: Du kannst erst in ${days} Tag(en) wieder einen Rang kaufen.`);
             return interaction.reply({
               content: `Du kannst erst in ${days} Tag(en) wieder einen Rang kaufen.`,
               flags: MessageFlags.Ephemeral,
@@ -3038,6 +3049,7 @@ export async function initEconomySystem(client) {
               .setLabel("Kaufen")
               .setStyle(ButtonStyle.Success),
           );
+          console.log(`Reply ${interaction.user.username}: Rang-Upgrade auf ${next.name} kostet ${formatNumber(price)} Kekse (Du hast: ${formatNumber(data.balance || 0)}). [Button]`);
           return interaction.reply({
             embeds: [embed],
             components: [row],
