@@ -1452,7 +1452,6 @@ export async function initEconomySystem(client) {
         });
       const row1 = new ActionRowBuilder().addComponents(
         [
-          ["shop_giveaway", "Giveaway Chance", "🎉"],
           ["shop_puffer", "Counting Puffer", "🛡️"],
           ["shop_xp30", "XP Booster 30m", "⚡"],
           ["shop_xp60", "XP Booster 60m", "🔥"],
@@ -1466,8 +1465,19 @@ export async function initEconomySystem(client) {
       );
       const row2 = new ActionRowBuilder().addComponents(
         [
+          ["shop_giveaway", "Giveaway Chance", "🎉"],
           ["shop_xpUp", "+ XP Rangsystem", "✨"],
           ["shop_rankUp", "Rang-Upgrade", "⬆️"],
+        ].map(([id, label, emoji]) =>
+          new ButtonBuilder()
+            .setCustomId(id)
+            .setLabel(label)
+            .setEmoji(emoji)
+            .setStyle(ButtonStyle.Secondary),
+        ),
+      );
+      const row3 = new ActionRowBuilder().addComponents(
+        [
           ["shop_vip", "VIP-Rolle", "💎"],
         ].map(([id, label, emoji]) =>
           new ButtonBuilder()
@@ -1477,7 +1487,7 @@ export async function initEconomySystem(client) {
             .setStyle(ButtonStyle.Secondary),
         ),
       );
-      await shopChannel.send({ embeds: [shopEmbed], components: [row1, row2] });
+      await shopChannel.send({ embeds: [shopEmbed], components: [row1, row2, row3] });
       console.log(`Neuer Shop erstellt (setup_${setupId})`);
       console.log(
         `Reply ${msg.author.username}: Shop erfolgreich im Kanal #Shop erstellt.`,
