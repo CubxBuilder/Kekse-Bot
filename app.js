@@ -600,7 +600,12 @@ async function handleXpModal(interaction, client) {
         const rankIndex = getRankIndex(member);
         const perXp = getXpPrice(balance, rankIndex);
         const price = Math.ceil(amount * perXp);
-        console.log(`XP-Kauf ${interaction.user.username}: Rang-Index ${rankIndex}, ${perXp} Kekse pro XP, Kontostand ${balance}.`);
+            const matchedTiers = ROLES_TIERS.filter(function (tier) {
+            return member.roles.cache.has(tier.id);
+        }).map(function (tier) {
+            return `${tier.name} (${tier.id})`;
+        });
+        console.log(`XP-Kauf ${interaction.user.username}: Rang-Index ${rankIndex}, ${perXp} Kekse pro XP, Kontostand ${balance}, erkannte Rang-Rollen: ${matchedTiers.join(", ") || "keine"}.`);
         if (balance < price) {
             console.log(`Reply ${interaction.user.username}: Nicht genug Kekse für ${amount} XP.`);
             return interaction.editReply({
