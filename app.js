@@ -538,27 +538,24 @@ const RANK_WEALTH_MAX = 0.5;
 function formatNumber(value, digits) {
   return value.toLocaleString("de-DE", { maximumFractionDigits: digits || 0 });
 }
-function getShopRankIndex(member) {
-  let index = -1;
-  for (let i = 0; i < RANK_TIERS.length; i++) {
-    if (member.roles.cache.has(RANK_TIERS[i].id)) index = i;
-  }
-  return index;
+async function getShopRank(userId) {
+  const xpData = await getXpData(userId);
+  return xpData.rang !== undefined ? xpData.rang : 0;
 }
-function getXpPrice(balance, rankIndex) {
-  const rankMultiplier = 1 + (rankIndex + 1) * 0.25;
+function getXpPrice(balance, rank) {
+  const rankMultiplier = 1 + rank * 0.25;
   const surplus = Math.max(0, balance - WEALTH_THRESHOLD);
   return (XP_BASE_PRICE + surplus * XP_WEALTH_RATE) * rankMultiplier;
 }
-function getRankPrice(balance, rankIndex) {
-  const next = RANK_TIERS[rankIndex + 1];
-  if (!next) return null;
-  const currentNeeded = rankIndex >= 0 ? RANK_TIERS[rankIndex].needed : 0;
-  const basePrice = Math.ceil((next.needed - currentNeeded) * XP_BASE_PRICE);
+function getRankPrice(balance, rank, xp) {
+  const tier = ROLES_TIERS[rank];
+  if (!tier || rank >= ROLES_TIERS.length - 1) return null;
+  const missing = Math.max(1, tier.needed - xp);
+  const basePrice = Math.ceil(missing * XP_BASE_PRICE);
   if (balance <= WEALTH_THRESHOLD) return basePrice;
   const rate = Math.min(
     RANK_WEALTH_MAX,
-    RANK_WEALTH_BASE + (rankIndex + 1) * RANK_WEALTH_STEP,
+    RANK_WEALTH_BASE + (rank + 1) * RANK_WEALTH_STEP,
   );
   return Math.max(basePrice, Math.ceil(balance * rate));
 }
@@ -596,16 +593,11 @@ async function handleXpModal(interaction, client) {
         content: `Du kannst heute nur noch **${formatNumber(Math.max(0, remaining))} XP** kaufen.`,
       });
     }
-        const balance = data.balance || 0;
-        const rankIndex = getRankIndex(member);
-        const perXp = getXpPrice(balance, rankIndex);
+                const balance = data.balance || 0;
+          const rank = await getShopRank(interaction.user.id);
+          const perXp = getXpPrice(data.balance || 0, rank);
         const price = Math.ceil(amount * perXp);
-            const matchedTiers = RANK_TIERS.filter(function (tier) {
-            return member.roles.cache.has(tier.id);
-        }).map(function (tier) {
-            return `${tier.name} (${tier.id})`;
-        });
-        console.log(`XP-Kauf ${interaction.user.username}: Rang-Index ${rankIndex}, ${perXp} Kekse pro XP, Kontostand ${balance}, erkannte Rang-Rollen: ${matchedTiers.join(", ") || "keine"}.`);
+        console.log(`XP-Kauf ${interaction.user.username}: Rang ${rank}, ${perXp} Kekse pro XP, Kontostand ${balance}.`);
         if (balance < price) {
             console.log(`Reply ${interaction.user.username}: Nicht genug Kekse für ${amount} XP.`);
             return interaction.editReply({
@@ -2897,8 +2889,8 @@ export async function initEconomySystem(client) {
               flags: MessageFlags.Ephemeral,
             });
           }
-          const rankIndex = getShopRankIndex(member);
-          const perXp = getXpPrice(data.balance || 0, rankIndex);
+                    const rank = await getShopRank(interaction.user.id);
+          const perXp = getXpPrice(data.balance || 0, rank);
           const remaining = XP_DAILY_CAP - getXpBoughtToday(data);
           if (remaining <= 0) {
             return interaction.reply({
@@ -2928,8 +2920,9 @@ export async function initEconomySystem(client) {
               flags: MessageFlags.Ephemeral,
             });
           }
-          const rankIndex = getShopRankIndex(member);
-          const next = RANK_TIERS[rankIndex + 1];
+          const xpData = await getXpData(interaction.user.id);
+          const rank = xpData.rang !== undefined ? xpData.rang : 0;
+          const next = ROLES_TIERS[rank + 1];
           if (!next) {
             return interaction.reply({
               content: "Du hast bereits den höchsten Rang!",
@@ -2944,7 +2937,7 @@ export async function initEconomySystem(client) {
               flags: MessageFlags.Ephemeral,
             });
           }
-          const price = getRankPrice(data.balance || 0, rankIndex);
+          const price = getRankPrice(data.balance || 0, rank, xpData.xp || 0);
           const embed = new EmbedBuilder()
             .setColor(0xffffff)
             .setTitle("Rang-Upgrade")
