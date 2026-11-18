@@ -566,7 +566,6 @@ function getXpBoughtToday(data) {
 }
 async function handleXpModal(interaction, client) {
   try {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const member = interaction.member;
     const amount = parseInt(
       interaction.fields.getTextInputValue("xp_amount").replace(/\./g, ""),
@@ -638,7 +637,6 @@ async function handleXpModal(interaction, client) {
 }
 async function handleRankConfirm(interaction) {
   try {
-    await interaction.deferUpdate();
     const data = (await getEcoData(interaction.user.id)) || {};
     if (data.blocked) {
       console.log(`Reply ${interaction.user.username}: Konto gesperrt.`);
@@ -2826,7 +2824,37 @@ export async function initEconomySystem(client) {
     }
   });
     client.on("interactionCreate", async function (interaction) {
+        if (
+      interaction.isModalSubmit() &&
+      interaction.customId === "shopmodal_xp"
+    ) {
+      console.log(`Reply ${interaction.user.username}: [xp formular empfangen]`);
+      const deferred = await interaction
+        .deferReply({ flags: MessageFlags.Ephemeral })
+        .then(function () {
+          return true;
+        })
+        .catch(function (error) {
+          console.error("XP-Formular konnte nicht bestätigt werden:", error);
+          return false;
+        });
+      if (!deferred) return;
+      return withUserLock(interaction.user.id, function () {
+        return handleXpModal(interaction, client);
+      });
+    }
     if (interaction.isButton() && interaction.customId === "rankconfirm") {
+      console.log(`Reply ${interaction.user.username}: [rang bestätigung empfangen]`);
+      const deferred = await interaction
+        .deferUpdate()
+        .then(function () {
+          return true;
+        })
+        .catch(function (error) {
+          console.error("Rang-Bestätigung konnte nicht bestätigt werden:", error);
+          return false;
+        });
+      if (!deferred) return;
       return withUserLock(interaction.user.id, function () {
         return handleRankConfirm(interaction);
       });
