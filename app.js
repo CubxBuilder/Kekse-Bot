@@ -701,11 +701,6 @@ async function handleRankConfirm(interaction) {
     if (!data.userId) data.userId = interaction.user.id;
     if (!data.username) data.username = interaction.user.username;
     await setEcoData(interaction.user.id, data);
-    const d = await getXpData(userId);
-    const cur = d.rang !== undefined ? d.rang : 0;
-    const next = cur + 1;
-    if (next < 0 || next >= ROLES_TIERS.length)
-      fail("Kein weiterer Rang möglich.");
     await setXpData(userId, { rang: next, xp: 0 });
     await applyTierRole(userId, next, client);
     await logTransaction(
