@@ -540,8 +540,8 @@ function formatNumber(value, digits) {
 }
 function getShopRankIndex(member) {
   let index = -1;
-  for (let i = 0; i < ROLES_TIERS.length; i++) {
-    if (member.roles.cache.has(ROLES_TIERS[i].id)) index = i;
+  for (let i = 0; i < RANK_TIERS.length; i++) {
+    if (member.roles.cache.has(RANK_TIERS[i].id)) index = i;
   }
   return index;
 }
@@ -551,9 +551,9 @@ function getXpPrice(balance, rankIndex) {
   return (XP_BASE_PRICE + surplus * XP_WEALTH_RATE) * rankMultiplier;
 }
 function getRankPrice(balance, rankIndex) {
-  const next = ROLES_TIERS[rankIndex + 1];
+  const next = RANK_TIERS[rankIndex + 1];
   if (!next) return null;
-  const currentNeeded = rankIndex >= 0 ? ROLES_TIERS[rankIndex].needed : 0;
+  const currentNeeded = rankIndex >= 0 ? RANK_TIERS[rankIndex].needed : 0;
   const basePrice = Math.ceil((next.needed - currentNeeded) * XP_BASE_PRICE);
   if (balance <= WEALTH_THRESHOLD) return basePrice;
   const rate = Math.min(
@@ -600,7 +600,7 @@ async function handleXpModal(interaction, client) {
         const rankIndex = getRankIndex(member);
         const perXp = getXpPrice(balance, rankIndex);
         const price = Math.ceil(amount * perXp);
-            const matchedTiers = ROLES_TIERS.filter(function (tier) {
+            const matchedTiers = RANK_TIERS.filter(function (tier) {
             return member.roles.cache.has(tier.id);
         }).map(function (tier) {
             return `${tier.name} (${tier.id})`;
@@ -2929,7 +2929,7 @@ export async function initEconomySystem(client) {
             });
           }
           const rankIndex = getShopRankIndex(member);
-          const next = ROLES_TIERS[rankIndex + 1];
+          const next = RANK_TIERS[rankIndex + 1];
           if (!next) {
             return interaction.reply({
               content: "Du hast bereits den höchsten Rang!",
@@ -3193,7 +3193,7 @@ export async function initEconomySystem(client) {
             });
           }
           const rankIndex = getRankIndex(member);
-          const next = ROLES_TIERS[rankIndex + 1];
+          const next = RANK_TIERS[rankIndex + 1];
           if (!next) {
             console.log(
               `Reply ${interaction.user.username}: Höchster Rang bereits erreicht.`,
@@ -3231,7 +3231,7 @@ export async function initEconomySystem(client) {
           if (!data.userId) data.userId = interaction.user.id;
           if (!data.username) data.username = interaction.user.username;
           if (rankIndex >= 0)
-            await member.roles.remove(ROLES_TIERS[rankIndex].id);
+            await member.roles.remove(RANK_TIERS[rankIndex].id);
           await member.roles.add(next.id);
           await setEcoData(interaction.user.id, data);
           await logTransaction(
@@ -6713,6 +6713,9 @@ const ROLES_TIERS = [
   { id: config.roles.rank.smaragt, needed: 50000, name: "Smaragd" },
   { id: config.roles.rank.obsidian, needed: 100000, name: "Obsidian" },
 ];
+const RANK_TIERS = ROLES_TIERS.slice().sort(function (a, b) {
+    return a.needed - b.needed;
+});
 const invitesTracker = new Map();
 export async function addXP(userId, xpAmount, client) {
   if (xpAmount <= 0) return;
