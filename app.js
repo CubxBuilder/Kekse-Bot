@@ -571,20 +571,26 @@ async function handleXpModal(interaction, client) {
       10,
     );
     if (!Number.isInteger(amount) || amount < 1) {
-      console.log(`Reply ${interaction.user.username}: Bitte gib eine gültige Zahl ein!`);
+      console.log(
+        `Reply ${interaction.user.username}: Bitte gib eine gültige Zahl ein!`,
+      );
       return interaction.editReply({
         content: "Bitte gib eine gültige Zahl ein!",
       });
     }
     const data = (await getEcoData(interaction.user.id)) || {};
     if (data.blocked) {
-      console.log(`Reply ${interaction.user.username}: Dein Konto ist gesperrt.`);
+      console.log(
+        `Reply ${interaction.user.username}: Dein Konto ist gesperrt.`,
+      );
       return interaction.editReply({ content: "Dein Konto ist gesperrt." });
     }
     const bought = getXpBoughtToday(data);
     const remaining = XP_DAILY_CAP - bought;
     if (amount > remaining) {
-      console.log(`Reply ${interaction.user.username}: Du kannst heute nur noch ${formatNumber(Math.max(0, remaining))} XP kaufen.`);
+      console.log(
+        `Reply ${interaction.user.username}: Du kannst heute nur noch ${formatNumber(Math.max(0, remaining))} XP kaufen.`,
+      );
       return interaction.editReply({
         content: `Du kannst heute nur noch **${formatNumber(Math.max(0, remaining))} XP** kaufen.`,
       });
@@ -594,7 +600,9 @@ async function handleXpModal(interaction, client) {
     const perXp = getXpPrice(balance, rank);
     const price = Math.ceil(amount * perXp);
     if (balance < price) {
-      console.log(`Reply ${interaction.user.username}: Du hast nicht genug Kekse für diesen Kauf! ${formatNumber(amount)} XP kosten ${formatNumber(price)} Kekse (${formatNumber(perXp, 1)} pro XP, Du hast: ${formatNumber(balance)}).`);
+      console.log(
+        `Reply ${interaction.user.username}: Du hast nicht genug Kekse für diesen Kauf! ${formatNumber(amount)} XP kosten ${formatNumber(price)} Kekse (${formatNumber(perXp, 1)} pro XP, Du hast: ${formatNumber(balance)}).`,
+      );
       return interaction.editReply({
         content: `Du hast nicht genug Kekse für diesen Kauf! ${formatNumber(amount)} XP kosten **${formatNumber(price)} Kekse** (${formatNumber(perXp, 1)} pro XP, Du hast: ${formatNumber(balance)}).`,
       });
@@ -614,14 +622,20 @@ async function handleXpModal(interaction, client) {
       `Shop: ${amount} XP`,
     );
     addXP(interaction.user.id, amount, client);
-    console.log(`<@${interaction.user.id}> hat ${formatNumber(amount)} XP im Shop erworben.`);
-    console.log(`Reply ${interaction.user.username}: Kauf erfolgreich: ${formatNumber(amount)} XP für ${formatNumber(price)} Kekse.`);
+    console.log(
+      `<@${interaction.user.id}> hat ${formatNumber(amount)} XP im Shop erworben.`,
+    );
+    console.log(
+      `Reply ${interaction.user.username}: Kauf erfolgreich: ${formatNumber(amount)} XP für ${formatNumber(price)} Kekse.`,
+    );
     return interaction.editReply({
       content: `Kauf erfolgreich: **${formatNumber(amount)} XP** für **${formatNumber(price)} Kekse**.`,
     });
   } catch (error) {
     console.error("Fehler beim Shop-Kauf:", error);
-    console.log(`Reply ${interaction.user.username}: Es gab einen Fehler beim Verarbeiten deines Kaufs.`);
+    console.log(
+      `Reply ${interaction.user.username}: Es gab einen Fehler beim Verarbeiten deines Kaufs.`,
+    );
     const payload = {
       content: "Es gab einen Fehler beim Verarbeiten deines Kaufs!",
       flags: MessageFlags.Ephemeral,
@@ -635,7 +649,9 @@ async function handleRankConfirm(interaction) {
   try {
     const data = (await getEcoData(interaction.user.id)) || {};
     if (data.blocked) {
-      console.log(`Reply ${interaction.user.username}: Dein Konto ist gesperrt.`);
+      console.log(
+        `Reply ${interaction.user.username}: Dein Konto ist gesperrt.`,
+      );
       return interaction.editReply({
         content: "Dein Konto ist gesperrt.",
         embeds: [],
@@ -647,7 +663,9 @@ async function handleRankConfirm(interaction) {
     const xp = xpData.xp !== undefined ? xpData.xp : 0;
     const next = ROLES_TIERS[rank + 1];
     if (!next) {
-      console.log(`Reply ${interaction.user.username}: Du hast bereits den höchsten Rang!`);
+      console.log(
+        `Reply ${interaction.user.username}: Du hast bereits den höchsten Rang!`,
+      );
       return interaction.editReply({
         content: "Du hast bereits den höchsten Rang!",
         embeds: [],
@@ -655,7 +673,9 @@ async function handleRankConfirm(interaction) {
       });
     }
     if ((data.lastRankUp || 0) + RANK_COOLDOWN > Date.now()) {
-      console.log(`Reply ${interaction.user.username}: Dein Rang-Upgrade ist noch auf Wartezeit.`);
+      console.log(
+        `Reply ${interaction.user.username}: Dein Rang-Upgrade ist noch auf Wartezeit.`,
+      );
       return interaction.editReply({
         content: "Dein Rang-Upgrade ist noch auf Wartezeit.",
         embeds: [],
@@ -665,7 +685,9 @@ async function handleRankConfirm(interaction) {
     const balance = data.balance || 0;
     const price = getRankPrice(balance, rank, xp);
     if (balance < price) {
-      console.log(`Reply ${interaction.user.username}: Du hast nicht genug Kekse für diesen Kauf! Der Rang ${next.name} kostet ${formatNumber(price)} Kekse (Du hast: ${formatNumber(balance)}).`);
+      console.log(
+        `Reply ${interaction.user.username}: Du hast nicht genug Kekse für diesen Kauf! Der Rang ${next.name} kostet ${formatNumber(price)} Kekse (Du hast: ${formatNumber(balance)}).`,
+      );
       return interaction.editReply({
         content: `Du hast nicht genug Kekse für diesen Kauf! Der Rang **${next.name}** kostet **${formatNumber(price)} Kekse** (Du hast: ${formatNumber(balance)}).`,
         embeds: [],
@@ -688,8 +710,12 @@ async function handleRankConfirm(interaction) {
       ROLES_TIERS[rank].needed - xp,
       interaction.client,
     );
-    console.log(`<@${interaction.user.id}> hat den Rang ${next.name} im Shop erworben.`);
-    console.log(`Reply ${interaction.user.username}: Kauf erfolgreich: Du bist jetzt ${next.name}!`);
+    console.log(
+      `<@${interaction.user.id}> hat den Rang ${next.name} im Shop erworben.`,
+    );
+    console.log(
+      `Reply ${interaction.user.username}: Kauf erfolgreich: Du bist jetzt ${next.name}!`,
+    );
     return interaction.editReply({
       content: `Kauf erfolgreich: Du bist jetzt **${next.name}**!`,
       embeds: [],
@@ -697,7 +723,9 @@ async function handleRankConfirm(interaction) {
     });
   } catch (error) {
     console.error("Fehler beim Shop-Kauf:", error);
-    console.log(`Reply ${interaction.user.username}: Es gab einen Fehler beim Verarbeiten deines Kaufs.`);
+    console.log(
+      `Reply ${interaction.user.username}: Es gab einen Fehler beim Verarbeiten deines Kaufs.`,
+    );
     const payload = {
       content: "Es gab einen Fehler beim Verarbeiten deines Kaufs!",
       flags: MessageFlags.Ephemeral,
@@ -1477,9 +1505,7 @@ export async function initEconomySystem(client) {
         ),
       );
       const row3 = new ActionRowBuilder().addComponents(
-        [
-          ["shop_vip", "VIP-Rolle", "💎"],
-        ].map(([id, label, emoji]) =>
+        [["shop_vip", "VIP-Rolle", "💎"]].map(([id, label, emoji]) =>
           new ButtonBuilder()
             .setCustomId(id)
             .setLabel(label)
@@ -1487,7 +1513,10 @@ export async function initEconomySystem(client) {
             .setStyle(ButtonStyle.Secondary),
         ),
       );
-      await shopChannel.send({ embeds: [shopEmbed], components: [row1, row2, row3] });
+      await shopChannel.send({
+        embeds: [shopEmbed],
+        components: [row1, row2, row3],
+      });
       console.log(`Neuer Shop erstellt (setup_${setupId})`);
       console.log(
         `Reply ${msg.author.username}: Shop erfolgreich im Kanal #Shop erstellt.`,
@@ -2841,8 +2870,8 @@ export async function initEconomySystem(client) {
       }
     }
   });
-    client.on("interactionCreate", async function (interaction) {
-        if (
+  client.on("interactionCreate", async function (interaction) {
+    if (
       interaction.isModalSubmit() &&
       interaction.customId === "shopmodal_xp"
     ) {
@@ -2867,7 +2896,10 @@ export async function initEconomySystem(client) {
           return true;
         })
         .catch(function (error) {
-          console.error("Rang-Bestätigung konnte nicht bestätigt werden:", error);
+          console.error(
+            "Rang-Bestätigung konnte nicht bestätigt werden:",
+            error,
+          );
           return false;
         });
       if (!deferred) return;
@@ -2985,10 +3017,12 @@ export async function initEconomySystem(client) {
       if (interaction.customId.startsWith("shop_")) {
         const member = interaction.member;
         const itemType = interaction.customId.replace("shop_", "");
-                if (itemType === "xpUp") {
+        if (itemType === "xpUp") {
           const data = (await getEcoData(interaction.user.id)) || {};
           if (data.blocked) {
-            console.log(`Reply ${interaction.user.username}: Dein Konto ist gesperrt.`);
+            console.log(
+              `Reply ${interaction.user.username}: Dein Konto ist gesperrt.`,
+            );
             return interaction.reply({
               content: "Dein Konto ist gesperrt.",
               flags: MessageFlags.Ephemeral,
@@ -2998,7 +3032,9 @@ export async function initEconomySystem(client) {
           const perXp = getXpPrice(data.balance || 0, rank);
           const remaining = XP_DAILY_CAP - getXpBoughtToday(data);
           if (remaining <= 0) {
-            console.log(`Reply ${interaction.user.username}: Du hast dein XP-Limit für heute erreicht.`);
+            console.log(
+              `Reply ${interaction.user.username}: Du hast dein XP-Limit für heute erreicht.`,
+            );
             return interaction.reply({
               content: "Du hast dein XP-Limit für heute erreicht.",
               flags: MessageFlags.Ephemeral,
@@ -3021,7 +3057,9 @@ export async function initEconomySystem(client) {
         if (itemType === "rankUp") {
           const data = (await getEcoData(interaction.user.id)) || {};
           if (data.blocked) {
-            console.log(`Reply ${interaction.user.username}: Dein Konto ist gesperrt.`);
+            console.log(
+              `Reply ${interaction.user.username}: Dein Konto ist gesperrt.`,
+            );
             return interaction.reply({
               content: "Dein Konto ist gesperrt.",
               flags: MessageFlags.Ephemeral,
@@ -3031,7 +3069,9 @@ export async function initEconomySystem(client) {
           const rank = xpData.rang !== undefined ? xpData.rang : 0;
           const next = ROLES_TIERS[rank + 1];
           if (!next) {
-            console.log(`Reply ${interaction.user.username}: Du hast bereits den höchsten Rang!`);
+            console.log(
+              `Reply ${interaction.user.username}: Du hast bereits den höchsten Rang!`,
+            );
             return interaction.reply({
               content: "Du hast bereits den höchsten Rang!",
               flags: MessageFlags.Ephemeral,
@@ -3040,7 +3080,9 @@ export async function initEconomySystem(client) {
           const waitLeft = (data.lastRankUp || 0) + RANK_COOLDOWN - Date.now();
           if (waitLeft > 0) {
             const days = Math.ceil(waitLeft / (24 * 60 * 60 * 1000));
-            console.log(`Reply ${interaction.user.username}: Du kannst erst in ${days} Tag(en) wieder einen Rang kaufen.`);
+            console.log(
+              `Reply ${interaction.user.username}: Du kannst erst in ${days} Tag(en) wieder einen Rang kaufen.`,
+            );
             return interaction.reply({
               content: `Du kannst erst in ${days} Tag(en) wieder einen Rang kaufen.`,
               flags: MessageFlags.Ephemeral,
@@ -3059,7 +3101,9 @@ export async function initEconomySystem(client) {
               .setLabel("Kaufen")
               .setStyle(ButtonStyle.Success),
           );
-          console.log(`Reply ${interaction.user.username}: Rang-Upgrade auf ${next.name} kostet ${formatNumber(price)} Kekse (Du hast: ${formatNumber(data.balance || 0)}). [Button]`);
+          console.log(
+            `Reply ${interaction.user.username}: Rang-Upgrade auf ${next.name} kostet ${formatNumber(price)} Kekse (Du hast: ${formatNumber(data.balance || 0)}). [Button]`,
+          );
           return interaction.reply({
             embeds: [embed],
             components: [row],
@@ -3500,15 +3544,36 @@ export function initAuditLogs(client) {
       msg.channel.id === config.channels.logs
     )
       return;
+    let deleter = msg.author;
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      const fetchedLogs = await msg.guild.fetchAuditLogs({
+        limit: 5,
+        type: AuditLogEvent.MessageDelete,
+      });
+      const deletionLog = fetchedLogs.entries.find(
+        (entry) =>
+          entry.target.id === msg.author.id &&
+          entry.extra.channel.id === msg.channel.id &&
+          Date.now() - entry.createdTimestamp < 5000,
+      );
+      if (deletionLog) {
+        deleter = deletionLog.executor;
+      }
+    } catch (error) {
+      console.error("Fehler beim Abrufen der Audit-Logs:", error);
+    }
     console.log(
-      `Nachricht von <@${msg.author?.id}> in <#${msg.channel.id}> wurde gelöscht.`,
+      `Nachricht von <@${msg.author?.id}> in <#${msg.channel.id}> wurde von <@${deleter?.id}> gelöscht.`,
     );
     const ghostPing =
-      msg.mentions.users.size > 0 ? "**GHOST PING ERKANNT**\n" : "";
+      msg.author?.id === deleter?.id && msg.mentions.users.size > 0
+        ? "**GHOST PING ERKANNT**\n"
+        : "";
     await sendLog(
       "Nachricht gelöscht",
       msg.author,
-      `${ghostPing}**Kanal:** ${msg.channel}\n**Inhalt:**\n\`\`\`${msg.content || "Kein Textinhalt"}\`\`\``,
+      `${ghostPing}**Kanal:** ${msg.channel}\n**Gelöscht von:** ${deleter}\n**Inhalt:**\n\`\`\`${msg.content || "Kein Textinhalt"}\`\`\``,
       "#ffffff",
       null,
       msg.channel.id,
@@ -6737,7 +6802,7 @@ const ROLES_TIERS = [
   { id: config.roles.rank.obsidian, needed: 100000, name: "Obsidian" },
 ];
 const RANK_TIERS = ROLES_TIERS.slice().sort(function (a, b) {
-    return a.needed - b.needed;
+  return a.needed - b.needed;
 });
 const invitesTracker = new Map();
 export async function addXP(userId, xpAmount, client) {
@@ -7766,11 +7831,9 @@ app.post(
     try {
       const ip = req.ip || req.socket.remoteAddress || "unknown";
       if (dashboardLoginBlocked(ip)) {
-        return res
-          .status(429)
-          .json({
-            error: "Zu viele Loginversuche. Bitte später erneut versuchen.",
-          });
+        return res.status(429).json({
+          error: "Zu viele Loginversuche. Bitte später erneut versuchen.",
+        });
       }
       const username = String(req.body?.username || "").trim();
       const password = String(req.body?.password || "");
@@ -7795,12 +7858,10 @@ app.post(
       }
       const accountKey = dashboardKey(config.username);
       if (limitBlocked(dashboardLimits, "acc:" + accountKey, 10)) {
-        return res
-          .status(429)
-          .json({
-            error:
-              "Zu viele Versuche für dieses Konto. Bitte später erneut versuchen.",
-          });
+        return res.status(429).json({
+          error:
+            "Zu viele Versuche für dieses Konto. Bitte später erneut versuchen.",
+        });
       }
       const accounts = (await dbGet("dashboard", "accounts")) || {};
       const account = accounts[accountKey];
@@ -7834,12 +7895,10 @@ app.post(
         return res.json({ status: "authenticated", level: config.level });
       }
       if (limitBlocked(dashboardLimits, "chal:" + accountKey, 5)) {
-        return res
-          .status(429)
-          .json({
-            error:
-              "Zu viele Anmeldeversuche. Bitte in ein paar Minuten erneut versuchen.",
-          });
+        return res.status(429).json({
+          error:
+            "Zu viele Anmeldeversuche. Bitte in ein paar Minuten erneut versuchen.",
+        });
       }
       limitHit(dashboardLimits, "chal:" + accountKey, 10 * 60 * 1000);
       const challenge = await createDashboardChallenge(
@@ -7913,12 +7972,10 @@ app.post(
         password.length > 128 ||
         password !== confirmation
       ) {
-        return res
-          .status(400)
-          .json({
-            error:
-              "Passwörter müssen übereinstimmen und mindestens 12 Zeichen lang sein.",
-          });
+        return res.status(400).json({
+          error:
+            "Passwörter müssen übereinstimmen und mindestens 12 Zeichen lang sein.",
+        });
       }
       const pending = (await dbGet("dashboard", "pending")) || {};
       const challenge = pending[id];
@@ -8201,12 +8258,10 @@ app.post(
       const actorKey = dashboardKey(actor.username);
       const action = String(req.body?.action || "");
       if (limitBlocked(dashboardLimits, "step:" + actorKey, 5)) {
-        return res
-          .status(429)
-          .json({
-            error:
-              "Zu viele Bestätigungen. Bitte in ein paar Minuten erneut versuchen.",
-          });
+        return res.status(429).json({
+          error:
+            "Zu viele Bestätigungen. Bitte in ein paar Minuten erneut versuchen.",
+        });
       }
       const data = await prepareAccountAction(action, req.body?.data, actor);
       limitHit(dashboardLimits, "step:" + actorKey, 10 * 60 * 1000);
