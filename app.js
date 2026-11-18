@@ -1216,7 +1216,7 @@ export async function initEconomySystem(client) {
                     ["shop_vip", "VIP-Rolle", "💎"],
                 ].map(([id, label, emoji]) =>
                     new ButtonBuilder()
-                      .setcustomId(id)
+                      .setCustomId(id)
                       .setLabel(label)
                       .setEmoji(emoji)
                       .setStyle(ButtonStyle.Secondary)
