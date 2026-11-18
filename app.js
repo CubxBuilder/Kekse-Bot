@@ -511,7 +511,7 @@ function formatNumber(value, digits) {
     return value.toLocaleString("de-DE", { maximumFractionDigits: digits || 0 });
 }
 
-function getRankIndex(member) {
+function getShopRankIndex(member) {
     let index = -1;
     for (let i = 0; i < ROLES_TIERS.length; i++) {
         if (member.roles.cache.has(ROLES_TIERS[i].id)) index = i;
@@ -2480,7 +2480,7 @@ export async function initEconomySystem(client) {
     if (data.blocked) {
         return interaction.reply({ content: "Dein Konto ist gesperrt.", flags: MessageFlags.Ephemeral });
     }
-    const rankIndex = getRankIndex(member);
+    const rankIndex = getShopRankIndex(member);
     const perXp = getXpPrice(data.balance || 0, rankIndex);
     const remaining = XP_DAILY_CAP - getXpBoughtToday(data);
     if (remaining <= 0) {
@@ -2504,7 +2504,7 @@ if (itemType === "rankUp") {
     if (data.blocked) {
         return interaction.reply({ content: "Dein Konto ist gesperrt.", flags: MessageFlags.Ephemeral });
     }
-    const rankIndex = getRankIndex(member);
+    const rankIndex = getShopRankIndex(member);
     const next = ROLES_TIERS[rankIndex + 1];
     if (!next) {
         return interaction.reply({ content: "Du hast bereits den höchsten Rang!", flags: MessageFlags.Ephemeral });
@@ -2668,7 +2668,7 @@ if (itemType === "rankUp") {
         });
     }
     const balance = data.balance || 0;
-    const price = Math.ceil(amount * getXpPrice(balance, getRankIndex(member)));
+    const price = Math.ceil(amount * getXpPrice(balance, getShopRankIndex(member)));
     if (balance < price) {
         return interaction.reply({
             content: `Du hast nicht genug Kekse! ${formatNumber(amount)} XP kosten **${formatNumber(price)} Kekse** (Du hast: ${formatNumber(balance)}).`,
@@ -2694,7 +2694,7 @@ if (interaction.isButton() && interaction.customId === "rankconfirm") {
     if (data.blocked) {
         return interaction.update({ content: "Dein Konto ist gesperrt.", embeds: [], components: [] });
     }
-    const rankIndex = getRankIndex(member);
+    const rankIndex = getShopRankIndex(member);
     const next = ROLES_TIERS[rankIndex + 1];
     if (!next) {
         return interaction.update({ content: "Du hast bereits den höchsten Rang!", embeds: [], components: [] });
