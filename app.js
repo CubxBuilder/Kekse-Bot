@@ -2399,8 +2399,11 @@ export async function initEconomySystem(client) {
         const locked =
             (interaction.isButton() &&
                 (interaction.customId.startsWith("daily_claim_") || interaction.customId.startsWith("shop_"))) ||
-            (interaction.isModalSubmit() && interaction.customId.startsWith("bank_create_"));
-        if (!locked) return handleEconomyInteraction(interaction);
+            (interaction.isModalSubmit() && interaction.customId.startsWith("bank_create_")) || interaction.isModalSubmit() && interaction.customId === "shopmodal_xp";
+        if (!locked) { 
+            handleEconomyInteraction(interaction);
+            return;
+        }
         return withUserLock(interaction.user.id, function () {
             return handleEconomyInteraction(interaction);
         });
