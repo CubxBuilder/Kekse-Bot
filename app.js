@@ -1195,15 +1195,12 @@ export async function initEconomySystem(client) {
                 .setFooter({
                     text: "Für den Einkauf im Shop benötigst du ein regestriertes Konto. Wenn du noch keins besitzt, erstelle eins mit `!bank create`",
                 });
-            const row = new ActionRowBuilder().addComponents(
+            const row1 = new ActionRowBuilder().addComponents(
                 [
                     ["shop_giveaway", "Giveaway Chance", "🎉"],
                     ["shop_puffer", "Counting Puffer", "🛡️"],
                     ["shop_xp30", "XP Booster 30m", "⚡"],
                     ["shop_xp60", "XP Booster 60m", "🔥"],
-                    ["shop_xpUp", "+ XP Rangsystem", "✨"],
-                    ["shop_rankUp", "Rang-Upgrade", "⬆️"],
-                    ["shop_vip", "VIP-Rolle", "💎"],
                 ].map(([id, label, emoji]) =>
                     new ButtonBuilder()
                         .setCustomId(id)
@@ -1212,7 +1209,20 @@ export async function initEconomySystem(client) {
                         .setStyle(ButtonStyle.Secondary),
                 ),
             );
-            await shopChannel.send({ embeds: [shopEmbed], components: [row] });
+            const row2 = new ActionRowBuilder().addComponents(
+                [
+                    ["shop_xpUp", "+ XP Rangsystem", "✨"],
+                    ["shop_rankUp", "Rang-Upgrade", "⬆️"],
+                    ["shop_vip", "VIP-Rolle", "💎"],
+                ].map(([id, label, emoji]) =>
+                    new ButtonBuilder()
+                      .setcustomId(id)
+                      .setLabel(label)
+                      .setEmoji(emoji)
+                      .setStyle(ButtonStyle.Secondary)
+                ),
+            );
+            await shopChannel.send({ embeds: [shopEmbed], components: [row1, row2] });
             console.log(`Neuer Shop erstellt (setup_${setupId})`);
             console.log(`Reply ${msg.author.username}: Shop erfolgreich im Kanal #Shop erstellt.`);
             return msg.reply(
