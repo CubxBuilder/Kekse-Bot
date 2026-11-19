@@ -615,15 +615,13 @@ async function handleXpModal(interaction, client) {
     if (!data.userId) data.userId = interaction.user.id;
     if (!data.username) data.username = interaction.user.username;
     await setEcoData(interaction.user.id, data);
-    const d = await getXpData(interaction.user.id);
-    await setXpData(interaction.user.id, { xp: (d.xp += amount) });
     await logTransaction(
       interaction.user.id,
       price,
       "minus",
       `Shop: ${amount} XP`,
     );
-    addXP(interaction.user.id, amount, client);
+    await addXP(interaction.user.id, amount, client);
     console.log(
       `<@${interaction.user.id}> hat ${formatNumber(amount)} XP im Shop erworben.`,
     );
@@ -1148,11 +1146,123 @@ async function playHighLow(userId, betAmount, startBalance, limitText, reply) {
   });
 }
 async function playCrash(userId, betAmount, startBalance, reply) {
-  crashGames.set(userId, true);
-  console.log(`Reply ${msg.author.username}: [crash]`);
-  await playCrash(msg.author.id, betAmount, userData.balance, (payload) =>
-    msg.reply(payload),
+  const crashPoint = parseFloat(
+    Math.max(1.01, 0.97 / (1 - Math.random())).toFixed(2),
   );
+  let multiplier = 1.0;
+  let finished = false;
+  let intervalHandle = null;
+  crashGames.set(userId, true);
+  function possible() {
+    return Math.floor(betAmount * multiplier);
+  }
+  function buildRow() {
+    return new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`crash_cashout_${userId}`)
+        .setLabel(`Cash Out (${possible()} Kekse)`)
+        .setStyle(ButtonStyle.Success),
+    );
+  }
+  function buildRunning() {
+    return casinoEmbed({
+      title: "Crash",
+      bet: betAmount,
+      headline: `**${multiplier.toFixed(2)}x**`,
+      detail: "Steigt noch…\nDrücke **Cash Out** vor dem Crash!",
+      outcome: "Möglicher Gewinn",
+      amount: `${possible()} Kekse`,
+      balance: startBalance,
+      running: true,
+    });
+  }
+  let gameMsg;
+  try {
+    gameMsg = await reply({
+      embeds: [buildRunning()],
+      components: [buildRow()],
+    });
+  } catch (error) {
+    crashGames.delete(userId);
+    throw error;
+  }
+  const collector = gameMsg.createMessageComponentCollector({
+    filter: function (i) {
+      return i.user.id === userId && i.customId === `crash_cashout_${userId}`;
+    },
+    componentType: ComponentType.Button,
+    time: 120000,
+  });
+  async function finish(cashedAt, timedOut) {
+    if (finished) return;
+    finished = true;
+    clearInterval(intervalHandle);
+    collector.stop("done");
+    crashGames.delete(userId);
+    const total = cashedAt === null ? 0 : Math.floor(betAmount * cashedAt);
+    const fresh = await getEcoData(userId);
+    if (total > 0) {
+      fresh.balance = (fresh.balance || 0) + total;
+      await logTransaction(userId, total, "plus", "Casino Crash");
+      await setEcoData(userId, fresh);
+    }
+    const net = total - betAmount;
+    console.log(
+      `<@${userId}> hat den Crash beendet (${net >= 0 ? "+" : ""}${net} Kekse).`,
+    );
+    let headline = `**Gecrasht bei ${crashPoint.toFixed(2)}x**`;
+    let detail = "Die Rakete ist explodiert.";
+    if (cashedAt !== null) {
+      headline = `**Ausgecasht bei ${cashedAt.toFixed(2)}x**`;
+      detail = "Rechtzeitig ausgezahlt.";
+    } else if (timedOut) {
+      headline = "**Zeit abgelaufen**";
+      detail = "Du hast nicht rechtzeitig ausgezahlt.";
+    }
+    await gameMsg
+      .edit({
+        embeds: [
+          casinoEmbed({
+            title: "Crash",
+            bet: betAmount,
+            headline,
+            detail,
+            ...casinoResult(net),
+            balance: fresh.balance || 0,
+          }),
+        ],
+        components: [],
+      })
+      .catch(function () {});
+  }
+  collector.on("collect", async function (interaction) {
+    if (finished) {
+      await interaction
+        .reply({
+          content: "Zu spät - das Spiel ist bereits beendet!",
+          flags: [MessageFlags.Ephemeral],
+        })
+        .catch(function () {});
+      return;
+    }
+    const cashedAt = multiplier;
+    interaction.deferUpdate().catch(function () {});
+    await finish(cashedAt, false);
+  });
+  collector.on("end", async function (collected, reason) {
+    if (reason === "time") await finish(null, true);
+  });
+  intervalHandle = setInterval(async function () {
+    if (finished) return;
+    multiplier = parseFloat((multiplier + 0.2).toFixed(2));
+    if (multiplier >= crashPoint) {
+      await finish(null, false);
+      return;
+    }
+    await gameMsg
+      .edit({ embeds: [buildRunning()], components: [buildRow()] })
+      .catch(function () {});
+  }, 1500);
 }
 async function playBlackjack(userId, betAmount, startBalance, reply) {
   const suits = [":spades:", ":hearts:", ":diamonds:", ":clubs:"];
@@ -10843,7 +10953,7 @@ async function handleSlashCommand(interaction) {
       await logTransaction(user.id, betAmount, "minus", "Casino Higher Lower");
       await setEcoData(user.id, userData);
       hlGames.set(user.id, true);
-      console.log(`Reply ${msg.author.username}: [higher/lower]`);
+      console.log(`Reply ${user.username}: [higher/lower]`);
       await playHighLow(
         user.id,
         betAmount,
