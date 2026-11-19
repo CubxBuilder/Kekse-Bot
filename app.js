@@ -701,8 +701,8 @@ async function handleRankConfirm(interaction) {
     if (!data.userId) data.userId = interaction.user.id;
     if (!data.username) data.username = interaction.user.username;
     await setEcoData(interaction.user.id, data);
-    await setXpData(interaction.user.id, { rang: next, xp: 0 });
-    await applyTierRole(interaction.user.id, next, client);
+    await setXpData(interaction.user.id, { rang: next-1, xp: 0 });
+    await applyTierRole(interaction.user.id, next-1, client);
     await logTransaction(
       interaction.user.id,
       price,
