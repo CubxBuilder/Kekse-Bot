@@ -2218,7 +2218,7 @@
             });
         function renderMsg(msg) {
             const attachHtml = msg.attachments?.length
-                ? `<div class="msg-attachments">${msg.attachments.map((a) => (isImg(a.url) ? `<img src="${encodeURI(a.url)}" onclick="window.open('${encodeURI(a.url)}')">` : `<a href="${encodeURI(a.url)}" target="_blank">${escapeHTML(a.name)}</a>`)).join("")}</div>`
+                ? `<div class="msg-attachments">${msg.attachments.map((a) => (isImg(a.url) ? `<a href="${encodeURI(a.url)}" target="_blank" rel="noopener noreferrer"><img src="${encodeURI(a.url)}"></a>` : `<a href="${encodeURI(a.url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(a.name)}</a>`)).join("")}</div>`
                 : "";
             const stickerHtml = msg.stickers?.length
                 ? `<div class="msg-stickers">${msg.stickers.map((s) => `<img src="${encodeURI(s.url)}">`).join("")}</div>`
