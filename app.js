@@ -699,19 +699,13 @@ async function handleRankConfirm(interaction) {
     if (!data.userId) data.userId = interaction.user.id;
     if (!data.username) data.username = interaction.user.username;
     await setEcoData(interaction.user.id, data);
-    await setXpData(interaction.user.id, { rang: next-1, xp: 0 });
-    await applyTierRole(interaction.user.id, next-1, client);
-    await logTransaction(
+        await logTransaction(
       interaction.user.id,
       price,
       "minus",
       `Shop: Rang ${next.name}`,
     );
-    await addXP(
-      interaction.user.id,
-      ROLES_TIERS[rank].needed - xp,
-      interaction.client,
-    );
+    await addXP(interaction.user.id, ROLES_TIERS[rank].needed - xp, client);
     console.log(
       `<@${interaction.user.id}> hat den Rang ${next.name} im Shop erworben.`,
     );
@@ -1433,13 +1427,13 @@ async function playBlackjack(userId, betAmount, startBalance, reply) {
   });
 }
 export async function initEconomySystem(client) {
+  client.on("messageCreate", function (msg) {
+    if (msg.author.bot || !msg.member || !msg.content.startsWith("!")) return;
+    return withUserLock(msg.author.id, function () {
+      return handleEconomyMessage(msg);
+    });
+  });
   async function handleEconomyMessage(msg) {
-    if (msg.author.bot || !msg.member) return;
-  }
-  client.on("messageCreate", async (msg) => {
-    async function handleEconomyMessage(msg) {
-      if (msg.author.bot || !msg.member) return;
-    }
     if (msg.author.bot || !msg.member) return;
     if (!msg.content.startsWith("!")) return;
     if (msg.content === "!wage pay" && msg.author.id == config.users.sysadmin) {
@@ -1711,6 +1705,7 @@ export async function initEconomySystem(client) {
         filter: (i) => i.user.id === targetUser.id,
         componentType: ComponentType.Button,
         time: 30000,
+        max: 1,
       });
       collector.on("collect", async (interaction) => {
         if (interaction.customId.startsWith("cf_decline_")) {
@@ -1723,6 +1718,19 @@ export async function initEconomySystem(client) {
         }
         const freshChallenger = await getEcoData(msg.author.id);
         const freshChallenged = await getEcoData(targetUser.id);
+        if (
+          freshChallenger.blocked ||
+          freshChallenged.blocked ||
+          (freshChallenger.balance || 0) < betAmount ||
+          (freshChallenged.balance || 0) < betAmount
+        ) {
+          await interaction.update({
+            content:
+              "Das Spiel wurde abgebrochen, weil ein Konto gesperrt ist oder nicht genug Kekse hat.",
+            components: [],
+          });
+          return collector.stop();
+        }
         const flip = Math.random() < 0.5;
         const winner = flip ? msg.author : targetUser;
         const loser = flip ? targetUser : msg.author;
@@ -1928,6 +1936,16 @@ export async function initEconomySystem(client) {
         }
         const freshChallenger = await getEcoData(msg.author.id);
         const freshChallenged = await getEcoData(targetUser.id);
+        if (
+          freshChallenger.blocked ||
+          freshChallenged.blocked ||
+          (freshChallenger.balance || 0) < betAmount ||
+          (freshChallenged.balance || 0) < betAmount
+        ) {
+          return inviteMsg.channel.send(
+            "Das Spiel wurde abgebrochen, weil ein Konto gesperrt ist oder nicht genug Kekse hat.",
+          );
+        }
         let resultText;
         let winner = null;
         let loser = null;
@@ -2983,7 +3001,7 @@ export async function initEconomySystem(client) {
         }
       }
     }
-  });
+  }
   client.on("interactionCreate", async function (interaction) {
     if (
       interaction.isModalSubmit() &&
