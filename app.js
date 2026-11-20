@@ -21,6 +21,7 @@ import {
   TextInputBuilder,
   TextInputStyle,
   ComponentType,
+  StringSelectMenuBuilder,
 } from "discord.js";
 import https from "https";
 import { execFile } from "child_process";
@@ -397,7 +398,7 @@ async function readLogFile(day) {
       if (!line) continue;
       try {
         const e = JSON.parse(line);
-        out.push({ t: e.t, m: e.m });
+        out.push({ t: e.t, m: e.m, type: e.type });
       } catch {}
     }
     return out;
@@ -6118,6 +6119,441 @@ export function initBugReport(client) {
     );
   });
 }
+let refundQueue = Promise.resolve();
+function updateRefunds(mutator) {
+  const run = refundQueue.then(async function () {
+    const data = (await dbGet("refunds", "requests")) || {};
+    if (!data.items) data.items = {};
+    if (!data.lastId) data.lastId = 0;
+    const result = await mutator(data);
+    await dbSet("refunds", "requests", data);
+    return result;
+  });
+  refundQueue = run.catch(function () {});
+  return run;
+}
+async function readRefunds() {
+  const data = (await dbGet("refunds", "requests")) || {};
+  return data.items || {};
+}
+function formatRefundTime(timestamp) {
+  return new Date(timestamp).toLocaleString("de-DE", {
+    timeZone: "Europe/Berlin",
+  });
+}
+function bankLine(entry) {
+  const sign = entry.type === "plus" ? "+" : entry.type === "minus" ? "-" : "";
+  return `[${formatRefundTime(entry.timestamp)}] ${sign}${entry.amount} ${singleLine(entry.description)}`;
+}
+async function collectRefundLogs(userId, username) {
+  const yesterday = await readLogFile(
+    logDateString(new Date(Date.now() - 86400000)),
+  );
+  const entries = yesterday.concat(await readLogFile(logDateString()));
+  const own = entries
+    .filter(function (e) {
+      const text = String(e.m);
+      return text.includes(userId) || text.startsWith(`Reply ${username}:`);
+    })
+    .slice(-10);
+  const cutoff = Date.now() - 3600000;
+  const errors = entries
+    .filter(function (e) {
+      return (
+        e.type === "error" &&
+        (e.t >= cutoff || String(e.m).includes(userId))
+      );
+    })
+    .slice(-10);
+  return {
+    own: own.map(function (e) {
+      return { t: e.t, m: clipText(e.m, 300) };
+    }),
+    errors: errors.map(function (e) {
+      return { t: e.t, m: clipText(e.m, 2000) };
+    }),
+  };
+}
+async function collectBankLogs(userId, count) {
+  const doc = await dbGet("economy", "tx_" + userId);
+  return ((doc && doc.history) || []).slice(0, count);
+}
+async function collectUserMessages(guild, userId, count) {
+  const channels = [
+    ...guild.channels.cache
+      .filter(function (c) {
+        return (
+          c.type === ChannelType.GuildText &&
+          c.viewable &&
+          c.id !== config.channels.logs
+        );
+      })
+      .values(),
+  ];
+  const found = [];
+  for (let i = 0; i < channels.length; i += 10) {
+    const batches = await Promise.all(
+      channels.slice(i, i + 10).map(function (c) {
+        return c.messages
+          .fetch({ limit: 100 })
+          .then(function (batch) {
+            return { channel: c.name, batch };
+          })
+          .catch(function () {
+            return null;
+          });
+      }),
+    );
+    for (const entry of batches) {
+      if (!entry) continue;
+      for (const m of entry.batch.values()) {
+        if (m.author.id !== userId) continue;
+        found.push({
+          t: m.createdTimestamp,
+          channel: entry.channel,
+          text: clipText(singleLine(m.content) || "[Anhang/Embed]", 200),
+        });
+      }
+    }
+  }
+  return found
+    .sort(function (a, b) {
+      return b.t - a.t;
+    })
+    .slice(0, count);
+}
+async function sendRefundDm(user, request) {
+  const logLines = request.logs.map(function (e) {
+    return `[${formatRefundTime(e.t)}] ${singleLine(e.m)}`;
+  });
+  const bankLines = request.bank.map(bankLine);
+  const messageLines = request.messages.map(function (m) {
+    return `[${formatRefundTime(m.t)}] #${m.channel}: ${m.text}`;
+  });
+  const embed = new EmbedBuilder()
+    .setColor("#ffffff")
+    .setTitle(`Refund-Request #${request.id}`)
+    .setDescription(
+      `**Moderator:** <@${request.modId}> (${request.modName})\n**User:** <@${request.userId}> (${request.userName})\n**Betrag:** ${formatNumber(request.amount)} Kekse\n**Beschreibung:** ${request.description || "Keine"}\n**Erstellt:** <t:${Math.floor(request.createdAt / 1000)}:F>\n**Fehler im Log:** ${request.errors.length ? "Ja (Anhang)" : "Nein"}`,
+    )
+    .addFields(
+      {
+        name: "Letzte 10 Logeinträge",
+        value: "```" + fitLines(logLines, 980) + "```",
+      },
+      {
+        name: "Letzte 10 Bank-Logs",
+        value: "```" + fitLines(bankLines, 980) + "```",
+      },
+      {
+        name: "Letzte 10 Nachrichten",
+        value: "```" + fitLines(messageLines, 980) + "```",
+      },
+    )
+    .setFooter({ text: "Kekse Bot | Refund System" })
+    .setTimestamp();
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`refund_accept_${request.id}`)
+      .setLabel("Accept")
+      .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
+      .setCustomId(`refund_decline_${request.id}`)
+      .setLabel("Decline")
+      .setStyle(ButtonStyle.Danger),
+    new ButtonBuilder()
+      .setCustomId(`refund_stop_${request.id}`)
+      .setLabel("Stop")
+      .setStyle(ButtonStyle.Secondary),
+  );
+  const payload = { embeds: [embed], components: [row] };
+  if (request.errors.length) {
+    const text = request.errors
+      .map(function (e) {
+        return `[${formatRefundTime(e.t)}] ${e.m}`;
+      })
+      .join("\n\n");
+    payload.files = [
+      new AttachmentBuilder(Buffer.from(text, "utf-8"), {
+        name: `fehler_${request.id}.txt`,
+      }),
+    ];
+  }
+  return user
+    .send(payload)
+    .then(function () {
+      return true;
+    })
+    .catch(function () {
+      return false;
+    });
+}
+async function sendRefundLog(state, request, admin) {
+  console.log(
+    `Refund #${request.id} (Moderator: ${request.modName}, User: ${request.userName}, Betrag: ${request.amount} Kekse) wurde von ${admin.username} ${state}.`,
+  );
+  const logChannel = client.channels.cache.get(config.channels.logs);
+  if (!logChannel) return;
+  const logEmbed = new EmbedBuilder()
+    .setColor("#ffffff")
+    .setAuthor({
+      name: admin.username,
+      iconURL: admin.displayAvatarURL({ size: 512 }),
+    })
+    .setDescription(
+      `**Aktion:** \`Refund ${state}\`\n**Moderator:** ${request.modName}\n**User:** ${request.userName}\n**Betrag:** ${formatNumber(request.amount)} Kekse\n**Beschreibung:** ${request.description || "Keine"}\n**Administrator:** ${admin.username}`,
+    )
+    .setFooter({ text: "Kekse Bot | Refund System" })
+    .setTimestamp();
+  await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
+}
+export function initRefunds(client) {
+  client.on("messageCreate", async (msg) => {
+    if (msg.author.bot || !msg.guild || !msg.member) return;
+    if (!/^!refund(\s|$)/i.test(msg.content)) return;
+    if (!msg.member.roles.cache.has(config.roles.team))
+      return denyReply(
+        msg,
+        "Du hast keine Berechtigung diesen Befehl zu nutzen.",
+      );
+    const args = msg.content.trim().split(/\s+/);
+    args.shift();
+    const userId = (args.shift() || "").replace(/[<@!>]/g, "");
+    const amount = parseInt(args.shift());
+    const description = clipText(args.join(" ").trim(), 500);
+    if (!/^\d{17,20}$/.test(userId) || isNaN(amount) || amount <= 0)
+      return denyReply(
+        msg,
+        "Nutzung: `!refund @User <Anzahl> <Beschreibung>`",
+      );
+    if (!msg.member.roles.cache.has(config.roles.economy))
+      return denyReply(
+        msg,
+        "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (`!bank create`)",
+      );
+    const target = await client.users.fetch(userId).catch(() => null);
+    if (!target) return denyReply(msg, "User nicht gefunden.");
+    const [logs, messages, bank] = await Promise.all([
+      collectRefundLogs(userId, target.username),
+      collectUserMessages(msg.guild, userId, 10),
+      collectBankLogs(userId, 10),
+    ]);
+    const id = await updateRefunds((data) => {
+      data.lastId += 1;
+      const newId = String(data.lastId);
+      data.items[newId] = {
+        id: newId,
+        amount,
+        description: description || null,
+        modId: msg.author.id,
+        modName: msg.author.username,
+        userId,
+        userName: target.username,
+        createdAt: Date.now(),
+        logs: logs.own,
+        errors: logs.errors,
+        bank,
+        messages,
+      };
+      return newId;
+    });
+    await withUserLock(msg.author.id, async () => {
+      const eco = await getEcoData(msg.author.id);
+      eco.balance = (eco.balance || 0) + amount;
+      await setEcoData(msg.author.id, eco);
+      await logTransaction(
+        msg.author.id,
+        amount,
+        "plus",
+        `Refund-Guthaben #${id}`,
+      );
+    });
+    console.log(
+      `<@${msg.author.id}> hat Refund-Request #${id} über ${amount} Kekse für <@${userId}> erstellt.`,
+    );
+    return denyReply(
+      msg,
+      `Refund-Request **#${id}** erstellt. **${formatNumber(amount)} Kekse** wurden deinem Konto gutgeschrieben.`,
+    );
+  });
+  client.on("messageCreate", async (msg) => {
+    if (msg.author.bot || !msg.guild || !msg.member) return;
+    if (!/^!refunds\s*$/i.test(msg.content)) return;
+    if (!msg.member.roles.cache.has(config.roles.admin))
+      return denyReply(
+        msg,
+        "Du hast keine Berechtigung diesen Befehl zu nutzen.",
+      );
+    const items = Object.values(await readRefunds())
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, 25);
+    if (!items.length) {
+      const empty = await msg.reply("Es gibt keine offenen Refund-Requests.");
+      return setTimeout(() => {
+        empty.delete().catch(() => {});
+        msg.delete().catch(() => {});
+      }, 10000);
+    }
+    const embed = new EmbedBuilder()
+      .setColor("#ffffff")
+      .setTitle("Offene Refund-Requests")
+      .setDescription(
+        clipText(
+          items
+            .map(
+              (r) =>
+                `**#${r.id}** | <@${r.modId}> → <@${r.userId}> | ${formatNumber(r.amount)} Kekse | <t:${Math.floor(r.createdAt / 1000)}:R>`,
+            )
+            .join("\n"),
+          4000,
+        ),
+      )
+      .setFooter({
+        text: "Kekse Bot",
+      });
+    const select = new StringSelectMenuBuilder()
+      .setCustomId("refunds_select")
+      .setPlaceholder("Request auswählen")
+      .addOptions(
+        items.map((r) => ({
+          label: clipText(
+            `#${r.id} | ${r.userName} | ${formatNumber(r.amount)} Kekse`,
+            100,
+          ),
+          description: clipText(
+            `Mod: ${r.modName}${r.description ? " | " + r.description : ""}`,
+            100,
+          ),
+          value: r.id,
+        })),
+      );
+    const listMsg = await msg.reply({
+      embeds: [embed],
+      components: [
+        new ActionRowBuilder().addComponents(select),
+        new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId("refunds_cancel")
+            .setLabel("Abbrechen")
+            .setStyle(ButtonStyle.Danger),
+        ),
+      ],
+    });
+    const collector = listMsg.createMessageComponentCollector({
+      filter: (i) => i.user.id === msg.author.id,
+      idle: 60000,
+    });
+    collector.on("collect", async (interaction) => {
+      if (interaction.customId === "refunds_cancel") {
+        await interaction.deferUpdate().catch(() => {});
+        return collector.stop("cancel");
+      }
+      const id = interaction.values[0];
+      const request = (await readRefunds())[id];
+      if (!request) {
+        return interaction.reply({
+          content: "Diese Request existiert nicht mehr.",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+      const sent = await sendRefundDm(interaction.user, request);
+      if (!sent) {
+        return interaction.reply({
+          content:
+            "Die DM konnte nicht zugestellt werden. Erlaube Direktnachrichten und versuche es erneut.",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+      await interaction.deferUpdate().catch(() => {});
+      console.log(
+        `<@${interaction.user.id}> hat Refund-Request #${id} angefordert.`,
+      );
+      collector.stop("selected");
+    });
+    collector.on("end", () => {
+      listMsg.delete().catch(() => {});
+      msg.delete().catch(() => {});
+    });
+  });
+  client.on("interactionCreate", async (interaction) => {
+    if (!interaction.isButton()) return;
+    const match = interaction.customId.match(
+      /^refund_(accept|decline|stop)_(\d+)$/,
+    );
+    if (!match) return;
+    const action = match[1];
+    const id = match[2];
+    const guild = await client.guilds.fetch(GUILD_ID).catch(() => null);
+    const adminMember = guild
+      ? await guild.members.fetch(interaction.user.id).catch(() => null)
+      : null;
+    if (!adminMember || !adminMember.roles.cache.has(config.roles.admin)) {
+      return interaction.reply({
+        content: "Du bist nicht berechtigt, diesen Button zu nutzen.",
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
+    await interaction.deferUpdate().catch(() => {});
+    if (action === "stop") {
+      return interaction.message.delete().catch(() => {});
+    }
+    const request = await updateRefunds((data) => {
+      const item = data.items[id];
+      delete data.items[id];
+      return item || null;
+    });
+    const finish = (content) =>
+      interaction
+        .editReply({ content, embeds: [], components: [], attachments: [] })
+        .catch(() => {});
+    if (!request) return finish("Diese Request existiert nicht mehr.");
+    if (action === "accept") {
+      await sendRefundLog("genehmigt", request, interaction.user);
+      await sendDashboardDm(
+        request.modId,
+        `Dein Refund **#${request.id}** über **${formatNumber(request.amount)} Kekse** für ${request.userName} wurde von einem Administrator geprüft und genehmigt.`,
+      );
+      return finish(`Refund #${request.id} wurde genehmigt.`);
+    }
+    const modBalance = await withUserLock(request.modId, async () => {
+      const eco = await getEcoData(request.modId);
+      eco.balance = (eco.balance || 0) - request.amount;
+      await setEcoData(request.modId, eco);
+      await logTransaction(
+        request.modId,
+        request.amount,
+        "minus",
+        `Refund #${request.id} abgelehnt`,
+      );
+      return eco.balance;
+    });
+    await sendRefundLog("abgelehnt", request, interaction.user);
+    await sendDashboardDm(
+      request.modId,
+      `Dein Refund **#${request.id}** über **${formatNumber(request.amount)} Kekse** für ${request.userName} wurde von einem Administrator geprüft und abgelehnt. Der Betrag wurde von deinem Konto abgezogen. Neuer Kontostand: **${formatNumber(modBalance)} Kekse**`,
+    );
+    await finish(`Refund #${request.id} wurde abgelehnt.`);
+    const files = [];
+    for (const [label, uid] of [
+      ["moderator", request.modId],
+      ["user", request.userId],
+    ]) {
+      const history = await collectBankLogs(uid, 100);
+      files.push(
+        new AttachmentBuilder(
+          Buffer.from(history.map(bankLine).join("\n") || "Keine Einträge", "utf-8"),
+          { name: `bank_${label}_${uid}.txt` },
+        ),
+      );
+    }
+    await interaction.user
+      .send({
+        content: `**Refund #${request.id} abgelehnt.**\nBank-Logs von Moderator ${request.modName} (${request.modId}) und User ${request.userName} (${request.userId}):`,
+        files,
+      })
+      .catch(() => {});
+  });
+}
 export function initPing(client) {
   client.on("messageCreate", async (msg) => {
     if (!msg.content.startsWith("!ping") || msg.author.bot) return;
@@ -11479,6 +11915,7 @@ client.once("clientReady", async () => {
     wage().catch(console.error);
     initBugReport(client);
     initBackups(client);
+    initRefunds(client);
     setInterval(() => wage().catch(console.error), 60 * 1000);
     console.log(`Server-Sync gestartet...`);
     console.log(`Bot online: ${client.user.tag}`);
