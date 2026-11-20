@@ -10408,7 +10408,6 @@ async function handleSlashCommand(interaction) {
     );
   }
   if (commandName === "help") {
-    console.log(`Von <@${user.id}>`);
     await handleSlashHelpCommand(interaction);
     console.log(`<@${user.id}> hat die "help"-Funktion genutzt`);
   }
