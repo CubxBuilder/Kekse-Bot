@@ -8037,7 +8037,6 @@ app.get("/api/stats", requireDashboardAuth, async (req, res) => {
     const { users, txLogs } = guild
       ? await buildUserDatabase(guild)
       : { users: [], txLogs: {} };
-    };
     const payload = {
       guild: {
         name: guild?.name || "Kekse Server",
