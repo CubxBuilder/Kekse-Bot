@@ -535,6 +535,11 @@ const XP_WEALTH_RATE = 0.001;
 const RANK_WEALTH_BASE = 0.15;
 const RANK_WEALTH_STEP = 0.05;
 const RANK_WEALTH_MAX = 0.5;
+const ITEM_WEALTH_RATE = 0.02;
+function getItemPrice(basePrice, balance) {
+  const surplus = Math.max(0, balance - WEALTH_THRESHOLD);
+  return Math.ceil(basePrice + surplus * ITEM_WEALTH_RATE);
+}
 function formatNumber(value, digits) {
   return value.toLocaleString("de-DE", { maximumFractionDigits: digits || 0 });
 }
@@ -563,6 +568,43 @@ function getXpBoughtToday(data) {
   const today = new Date().toISOString().slice(0, 10);
   if (data.xpBought && data.xpBought.day === today) return data.xpBought.amount;
   return 0;
+}
+async function sendPurchaseReceipt(user, itemName, price, balance) {
+  const embed = new EmbedBuilder()
+    .setColor(0xffffff)
+    .setTitle(":receipt: Deine Shop-Quittung")
+    .setDescription("Vielen Dank für deinen Einkauf auf unserem Server!")
+    .addFields(
+      { name: "Gekauftes Item", value: itemName, inline: true },
+      {
+        name: "Abgezogene Kekse",
+        value: `-${formatNumber(price)}`,
+        inline: true,
+      },
+      {
+        name: "Neuer Kontostand",
+        value: `${formatNumber(balance)} Kekse`,
+        inline: false,
+      },
+    )
+    .setTimestamp();
+  await user.send({ embeds: [embed] }).catch(() => {
+    console.log(`Konnte keine DM an <@${user.id}> senden.`);
+  });
+  const logChannel = client.channels.cache.get(config.channels.logs);
+  if (!logChannel) return;
+  const logEmbed = new EmbedBuilder()
+    .setColor("#ffffff")
+    .setAuthor({
+      name: user.username,
+      iconURL: user.displayAvatarURL({ size: 512 }),
+    })
+    .setDescription(
+      `**Aktion:** \`Shop Kauf\`\n**Item:** ${itemName}\n**Preis:** ${formatNumber(price)} Kekse\n**Neuer Kontostand:** ${formatNumber(balance)} Kekse`,
+    )
+    .setFooter({ text: "Kekse Bot | Shop System" })
+    .setTimestamp();
+  await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
 }
 async function handleXpModal(interaction, client) {
   try {
@@ -622,6 +664,12 @@ async function handleXpModal(interaction, client) {
       `Shop: ${amount} XP`,
     );
     await addXP(interaction.user.id, amount, client);
+    await sendPurchaseReceipt(
+      interaction.user,
+      `${formatNumber(amount)} XP`,
+      price,
+      data.balance,
+    );
     console.log(
       `<@${interaction.user.id}> hat ${formatNumber(amount)} XP im Shop erworben.`,
     );
@@ -706,6 +754,12 @@ async function handleRankConfirm(interaction) {
       `Shop: Rang ${next.name}`,
     );
     await addXP(interaction.user.id, ROLES_TIERS[rank].needed - xp, client);
+    await sendPurchaseReceipt(
+      interaction.user,
+      `Rang ${next.name}`,
+      price,
+      data.balance,
+    );
     console.log(
       `<@${interaction.user.id}> hat den Rang ${next.name} im Shop erworben.`,
     );
@@ -1013,7 +1067,8 @@ async function playHighLow(userId, betAmount, startBalance, limitText, reply) {
   let lastCard = null;
   let streak = 0;
   let multiplier = 1.0;
-  let busy = false;
+  let over = false;
+  let chain = Promise.resolve();
   const possible = () => Math.floor(betAmount * multiplier);
   const buildRow = () =>
     new ActionRowBuilder().addComponents(
@@ -1042,6 +1097,23 @@ async function playHighLow(userId, betAmount, startBalance, limitText, reply) {
       balance: startBalance,
       running: true,
     });
+  const payout = async (total) => {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const fresh = await getEcoData(userId);
+        if (total > 0) {
+          fresh.balance = (fresh.balance || 0) + total;
+          await setEcoData(userId, fresh);
+          await logTransaction(userId, total, "plus", "Casino Higher Lower");
+        }
+        return fresh.balance || 0;
+      } catch (error) {
+        console.error("Fehler bei der Higher/Lower-Auszahlung:", error);
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+    return null;
+  };
   let gameMsg;
   try {
     gameMsg = await reply({
@@ -1050,6 +1122,7 @@ async function playHighLow(userId, betAmount, startBalance, limitText, reply) {
     });
   } catch (error) {
     hlGames.delete(userId);
+    await payout(betAmount);
     throw error;
   }
   const collector = gameMsg.createMessageComponentCollector({
@@ -1057,86 +1130,108 @@ async function playHighLow(userId, betAmount, startBalance, limitText, reply) {
     componentType: ComponentType.Button,
     time: 90000,
   });
-  collector.on("collect", async (interaction) => {
-    try {
-      await interaction.deferUpdate();
-      if (busy) return;
-      busy = true;
-      if (interaction.customId === `hl_cashout_${userId}`) {
-        collector.stop("cashout");
-        return;
-      }
-      const choice = interaction.customId.startsWith("hl_higher")
-        ? "higher"
-        : "lower";
-      const nextCard = drawCard();
-      lastCard = nextCard;
-      if (nextCard.value === currentCard.value) {
-        currentCard = nextCard;
-        await gameMsg
-          .edit({
-            embeds: [buildRunning("Unentschieden, neue Karte.")],
-            components: [buildRow()],
-          })
-          .catch(() => {});
-      } else if ((choice === "higher") === nextCard.value > currentCard.value) {
-        streak++;
-        multiplier = parseFloat((multiplier + 0.5).toFixed(2));
-        currentCard = nextCard;
-        await gameMsg
-          .edit({
-            embeds: [
-              buildRunning(`Richtig! Die Karte war ${nextCard.display}.`),
-            ],
-            components: [buildRow()],
-          })
-          .catch(() => {});
-      } else {
-        collector.stop("wrong");
-        return;
-      }
-      busy = false;
-    } catch (error) {
-      busy = false;
-      console.error("Fehler im Higher/Lower-Collector:", error);
-    }
-  });
-  collector.on("end", async (collected, reason) => {
-    hlGames.delete(userId);
-    const total = reason !== "wrong" && streak > 0 ? possible() : 0;
-    const fresh = await getEcoData(userId);
-    if (total > 0) {
-      fresh.balance = (fresh.balance || 0) + total;
-      await logTransaction(userId, total, "plus", "Casino Higher Lower");
-      await setEcoData(userId, fresh);
-    }
-    const net = total - betAmount;
-    console.log(
-      `<@${userId}> hat das Higher/Lower-Spiel beendet (${net >= 0 ? "+" : ""}${net} Kekse).`,
-    );
-    const shown = reason === "wrong" && lastCard ? lastCard : currentCard;
-    let detail;
-    if (reason === "wrong") detail = "Falsch geraten.";
-    else if (reason === "cashout")
-      detail = `Ausgezahlt bei ${multiplier.toFixed(2)}x.`;
-    else if (streak > 0)
-      detail = `Zeit abgelaufen, automatisch ausgezahlt bei ${multiplier.toFixed(2)}x.`;
-    else detail = "Zeit abgelaufen.";
-    await gameMsg
-      .edit({
-        embeds: [
-          casinoEmbed({
-            title: "Higher or Lower",
-            bet: betAmount,
-            headline: `**Karte: ${shown.display}**`,
-            detail,
-            ...casinoResult(net),
-            balance: fresh.balance || 0,
-          }),
-        ],
-        components: [],
+  collector.on("collect", (interaction) => {
+    chain = chain
+      .then(async () => {
+        await interaction.deferUpdate().catch(() => {});
+        if (over) return;
+        if (interaction.customId === `hl_cashout_${userId}`) {
+          if (streak > 0) {
+            over = true;
+            collector.stop("cashout");
+          }
+          return;
+        }
+        const choice = interaction.customId.startsWith("hl_higher")
+          ? "higher"
+          : "lower";
+        const nextCard = drawCard();
+        lastCard = nextCard;
+        if (nextCard.value === currentCard.value) {
+          currentCard = nextCard;
+          await gameMsg
+            .edit({
+              embeds: [buildRunning("Unentschieden, neue Karte.")],
+              components: [buildRow()],
+            })
+            .catch(() => {});
+        } else if (
+          (choice === "higher") ===
+          nextCard.value > currentCard.value
+        ) {
+          streak++;
+          multiplier = parseFloat((multiplier + 0.5).toFixed(2));
+          currentCard = nextCard;
+          await gameMsg
+            .edit({
+              embeds: [
+                buildRunning(`Richtig! Die Karte war ${nextCard.display}.`),
+              ],
+              components: [buildRow()],
+            })
+            .catch(() => {});
+        } else {
+          over = true;
+          collector.stop("wrong");
+        }
       })
-      .catch(() => {});
+      .catch((error) => {
+        console.error("Fehler im Higher/Lower-Collector:", error);
+      });
+  });
+  collector.on("end", (collected, reason) => {
+    over = true;
+    hlGames.delete(userId);
+    chain = chain
+      .then(() =>
+        withUserLock(userId, async () => {
+          const total = reason !== "wrong" && streak > 0 ? possible() : 0;
+          const balance = await payout(total);
+          if (balance === null) {
+            console.error(
+              `<@${userId}> Auszahlung von ${total} Keksen im Higher/Lower fehlgeschlagen.`,
+            );
+            await gameMsg
+              .edit({
+                content:
+                  "Die Auszahlung ist fehlgeschlagen. Bitte erstelle ein Ticket.",
+                components: [],
+              })
+              .catch(() => {});
+            return;
+          }
+          const net = total - betAmount;
+          console.log(
+            `<@${userId}> hat das Higher/Lower-Spiel beendet (${net >= 0 ? "+" : ""}${net} Kekse).`,
+          );
+          const shown = reason === "wrong" && lastCard ? lastCard : currentCard;
+          let detail;
+          if (reason === "wrong") detail = "Falsch geraten.";
+          else if (reason === "cashout")
+            detail = `Ausgezahlt bei ${multiplier.toFixed(2)}x.`;
+          else if (streak > 0)
+            detail = `Zeit abgelaufen, automatisch ausgezahlt bei ${multiplier.toFixed(2)}x.`;
+          else detail = "Zeit abgelaufen.";
+          await gameMsg
+            .edit({
+              embeds: [
+                casinoEmbed({
+                  title: "Higher or Lower",
+                  bet: betAmount,
+                  headline: `**Karte: ${shown.display}**`,
+                  detail,
+                  ...casinoResult(net),
+                  balance,
+                }),
+              ],
+              components: [],
+            })
+            .catch(() => {});
+        }),
+      )
+      .catch((error) => {
+        console.error("Fehler beim Beenden von Higher/Lower:", error);
+      });
   });
 }
 async function playCrash(userId, betAmount, startBalance, reply) {
@@ -1534,12 +1629,12 @@ export async function initEconomySystem(client) {
         .addFields(
           {
             name: "🎉 Double Chance Giveaway",
-            value: "`100.000 Kekse`",
+            value: "`10.000 Kekse (Basispreis)`",
             inline: true,
           },
           {
             name: "🛡️ Counting Puffer",
-            value: "`25.000 Kekse`",
+            value: "`2.500 Kekse (Basispreis)`",
             inline: true,
           },
           {
@@ -1549,12 +1644,12 @@ export async function initEconomySystem(client) {
           },
           {
             name: "⚡ Counting XP Booster (30 Min)",
-            value: "`50.000 Kekse`",
+            value: "`5.000 Kekse (Basispreis)`",
             inline: true,
           },
           {
             name: "🔥 Counting XP Booster (60 Min)",
-            value: "`100.000 Kekse`",
+            value: "`10.000 Kekse (Basispreis)`",
             inline: true,
           },
           {
@@ -1584,7 +1679,7 @@ export async function initEconomySystem(client) {
           },
         )
         .setFooter({
-          text: "Für den Einkauf im Shop benötigst du ein regestriertes Konto. Wenn du noch keins besitzt, erstelle eins mit `!bank create`",
+          text: "Ab einem Kontostand von 100.000 Keksen, wird der Basispreis um 2% des Kontostandes erhöht.\n Für den Einkauf im Shop benötigst du ein regestriertes Konto. Wenn du noch keins besitzt, erstelle eins mit `!bank create`",
         });
       const row1 = new ActionRowBuilder().addComponents(
         [
@@ -3055,6 +3150,13 @@ export async function initEconomySystem(client) {
   });
   async function handleEconomyInteraction(interaction) {
     if (interaction.isButton()) {
+      if (interaction.customId === "shopcancel") {
+        return interaction.update({
+          content: "Kauf abgebrochen.",
+          embeds: [],
+          components: [],
+        });
+      }
       if (interaction.customId.startsWith("open_bank_modal_")) {
         const allowedUserId = interaction.customId.replace(
           "open_bank_modal_",
@@ -3148,7 +3250,13 @@ export async function initEconomySystem(client) {
       }
       if (interaction.customId.startsWith("shop_")) {
         const member = interaction.member;
-        const itemType = interaction.customId.replace("shop_", "");
+        let itemType = interaction.customId.replace("shop_", "");
+        const confirmed = itemType.startsWith("confirm_");
+        if (confirmed) itemType = itemType.slice(8);
+        const respond = confirmed
+          ? ({ flags, ...payload }) =>
+              interaction.update({ embeds: [], components: [], ...payload })
+          : (payload) => interaction.reply(payload);
         if (itemType === "xpUp") {
           const data = (await getEcoData(interaction.user.id)) || {};
           if (data.blocked) {
@@ -3247,25 +3355,25 @@ export async function initEconomySystem(client) {
             roleId: config.roles.giveawayDouble,
             name: "Double Chance Giveaway",
             duration: null,
-            price: 100000,
+            price: 10000,
           },
           puffer: {
             roleId: config.roles.countingPuffer,
             name: "Counting Puffer",
             duration: null,
-            price: 25000,
+            price: 2500,
           },
           xp30: {
             roleId: config.roles.countingXp30,
             name: "Counting XP Booster (30 Min)",
             duration: 30 * 60 * 1000,
-            price: 50000,
+            price: 5000,
           },
           xp60: {
             roleId: config.roles.countingXp60,
             name: "Counting XP Booster (60 Min)",
             duration: 60 * 60 * 1000,
-            price: 100000,
+            price: 10000,
           },
           xpUp: {
             name: "+ XP Rangsystem",
@@ -3287,7 +3395,7 @@ export async function initEconomySystem(client) {
           console.log(
             `Reply ${interaction.user.username}: Dieses Item existiert nicht.`,
           );
-          return interaction.reply({
+          return respond({
             content: "Dieses Item existiert nicht!",
             flags: MessageFlags.Ephemeral,
           });
@@ -3296,41 +3404,60 @@ export async function initEconomySystem(client) {
           console.log(
             `Reply ${interaction.user.username}: Du besitzt das Item ${item.name} bereits.`,
           );
-          return interaction.reply({
+          return respond({
             content: `Du besitzt das Item **${item.name}** bereits!`,
             flags: MessageFlags.Ephemeral,
           });
         }
-        let freshData = await getEcoData(interaction.user.id);
-        if (!freshData || typeof freshData !== "object") freshData = {};
-        let currentCookies = freshData.balance || 0;
-        if (currentCookies < item.price) {
+        const freshData = (await getEcoData(interaction.user.id)) || {};
+        if (freshData.blocked) {
+          return respond({
+            content: "Dein Konto ist gesperrt.",
+            flags: MessageFlags.Ephemeral,
+          });
+        }
+        const balance = freshData.balance || 0;
+        const price = getItemPrice(item.price, balance);
+        if (balance < price) {
           console.log(
-            `Reply ${interaction.user.username}: Du hast nicht genug Kekse für diesen Kauf! 1x ${item.name} kostet ${item.price.toLocaleString("de-DE")} Kekse (Du hast: ${currentCookies.toLocaleString("de-DE")}).`,
+            `Reply ${interaction.user.username}: Du hast nicht genug Kekse für diesen Kauf! 1x ${item.name} kostet ${formatNumber(price)} Kekse (Du hast: ${formatNumber(balance)}).`,
+          );
+          return respond({
+            content: `Du hast nicht genug Kekse für diesen Kauf! 1x **${item.name}** kostet **${formatNumber(price)} Kekse** (Du hast: ${formatNumber(balance)}).`,
+            flags: MessageFlags.Ephemeral,
+          });
+        }
+        if (!confirmed) {
+          const confirmEmbed = new EmbedBuilder()
+            .setColor(0xffffff)
+            .setTitle("Kaufbestätigung")
+            .setDescription(
+              `Item: **${item.name}**\nPreis: **${formatNumber(price)} Kekse**\nDein Kontostand: ${formatNumber(balance)} Kekse\nNach dem Kauf: ${formatNumber(balance - price)} Kekse`,
+            );
+          const confirmRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId(`shop_confirm_${itemType}`)
+              .setLabel("Kaufen")
+              .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+              .setCustomId("shopcancel")
+              .setLabel("Abbrechen")
+              .setStyle(ButtonStyle.Secondary),
+          );
+          console.log(
+            `Reply ${interaction.user.username}: Kaufbestätigung für ${item.name} (${formatNumber(price)} Kekse). [Button]`,
           );
           return interaction.reply({
-            content: `Du hast nicht genug Kekse für diesen Kauf! 1x **${item.name}** kostet **${item.price.toLocaleString("de-DE")} Kekse** (Du hast: ${currentCookies.toLocaleString("de-DE")}).`,
+            embeds: [confirmEmbed],
+            components: [confirmRow],
             flags: MessageFlags.Ephemeral,
           });
         }
         try {
-          const finalData = (await getEcoData(interaction.user.id)) || {};
-          if (finalData.blocked) {
-            return interaction.reply({
-              content: "Dein Konto ist gesperrt.",
-              flags: MessageFlags.Ephemeral,
-            });
-          }
-          if ((finalData.balance || 0) < item.price) {
-            return interaction.reply({
-              content: "Du hast nicht genug Kekse für diesen Kauf!",
-              flags: MessageFlags.Ephemeral,
-            });
-          }
-          finalData.balance -= item.price;
-          if (!finalData.userId) finalData.userId = interaction.user.id;
-          if (!finalData.username)
-            finalData.username = interaction.user.username;
+          freshData.balance = balance - price;
+          if (!freshData.userId) freshData.userId = interaction.user.id;
+          if (!freshData.username)
+            freshData.username = interaction.user.username;
           if (item.duration) {
             await addShopExpiration(
               interaction.user.id,
@@ -3340,10 +3467,10 @@ export async function initEconomySystem(client) {
             );
           }
           await member.roles.add(item.roleId);
-          await setEcoData(interaction.user.id, finalData);
+          await setEcoData(interaction.user.id, freshData);
           await logTransaction(
             interaction.user.id,
-            item.price,
+            price,
             "minus",
             `Shop: ${item.name}`,
           );
@@ -3353,35 +3480,22 @@ export async function initEconomySystem(client) {
           console.log(
             `Reply ${interaction.user.username}: Kauf erfolgreich: Du hast ${item.name} erhalten!`,
           );
-          await interaction.reply({
+          await respond({
             content: `Kauf erfolgreich: Du hast **${item.name}** erhalten!`,
             flags: MessageFlags.Ephemeral,
           });
           addXP(interaction.user.id, 100, client);
-          const invoiceEmbed = {
-            color: 0xffffff,
-            title: ":receipt: Deine Shop-Quittung",
-            description: `Vielen Dank für deinen Einkauf auf unserem Server!`,
-            fields: [
-              { name: "Gekauftes Item", value: item.name, inline: true },
-              {
-                name: "Abgezogene Kekse",
-                value: `-${item.price.toLocaleString("de-DE")}`,
-                inline: true,
-              },
-              {
-                name: "Neuer Kontostand",
-                value: `${finalData.balance.toLocaleString("de-DE")} Kekse`,
-                inline: false,
-              },
-            ],
-            timestamp: new Date(),
-          };
-          await interaction.user.send({ embeds: [invoiceEmbed] }).catch(() => {
-            console.log(`Konnte keine DM an <@${interaction.user.id}> senden.`);
-          });
+          await sendPurchaseReceipt(
+            interaction.user,
+            item.name,
+            price,
+            freshData.balance,
+          );
         } catch (error) {
           console.error("Fehler beim Shop-Kauf:", error);
+          console.log(
+            `Reply ${interaction.user.username}: Es gab einen Fehler beim Verarbeiten deines Kaufs.`,
+          );
           const payload = {
             content: "Es gab einen Fehler beim Verarbeiten deines Kaufs!",
             flags: MessageFlags.Ephemeral,
@@ -3389,13 +3503,6 @@ export async function initEconomySystem(client) {
           return interaction.replied || interaction.deferred
             ? interaction.followUp(payload)
             : interaction.reply(payload);
-          console.log(
-            `Reply ${interaction.user.username}: Es gab einen Fehler beim Verarbeiten deines Kaufs.`,
-          );
-          return interaction.reply({
-            content: "Es gab einen Fehler beim Verarbeiten deines Kaufs!",
-            flags: MessageFlags.Ephemeral,
-          });
         }
       }
       if (
@@ -7242,7 +7349,7 @@ const getHelpData = {
           `<#${config.channels.counting}> Der Kanal für das Counting Spiel\n` +
           `<#${config.channels.daily}> Hier kannst du dir alle 24 Stunden 100 kostenlose Kekse abholen.\n` +
           `<#${config.channels.casino}> Der Bereich für alle Casino-Spiele und Wetten.\n` +
-          `<#${config.channels.shop}> Tausche deine Kekse gegen Booster, doppelte Giveaway Chance oder die VIP-Rolle ein.\n` +
+          `<#${config.channels.shop}> Tausche deine Kekse gegen Booster, doppelte Giveaway Chance oder Rang-Upgrades ein.\n` +
           `<#${config.channels.ticket}> Hier kannst du Tickets für Support, Gewinne oder Bewerbungen erstellen.`,
       );
   },
