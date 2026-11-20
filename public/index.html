@@ -1328,6 +1328,7 @@
         });
         let authPollTimer = null;
         let statsTimer = null;
+        let logsTimer = null;
         let currentChallengeId = null;
         function showLogin(message = "") {
             authLevel = null;
@@ -1335,6 +1336,11 @@
                 clearInterval(statsTimer);
                 statsTimer = null;
             }
+            if (logsTimer) {
+                clearInterval(logsTimer);
+                logsTimer = null;
+            }
+            consoleInitialized = false;
             if (authPollTimer) {
                 clearInterval(authPollTimer);
                 authPollTimer = null;
@@ -1368,7 +1374,9 @@
             await fetchStats();
             await fetchTickets();
             await loadAdminAccounts();
-            if (!statsTimer) statsTimer = setInterval(fetchStats, 1000);
+            await fetchLogs();
+            if (!statsTimer) statsTimer = setInterval(fetchStats, 2000);
+            if (!logsTimer) logsTimer = setInterval(fetchLogs, 2000);
         }
         let adminAccounts = [];
         let accountFlow = null;
@@ -1825,7 +1833,10 @@
             return out;
         }
         const logRenderCache = new Map();
+        let statsBusy = false;
         async function fetchStats() {
+            if (statsBusy) return;
+            statsBusy = true;
             try {
                 const res = await fetch("/api/stats", {
                     credentials: "same-origin",
@@ -1850,12 +1861,6 @@
                 set("uptime", fmtUptime(d.uptime));
                 set("version", d.version);
                 set("last-restart", fmtDate(d.lastRestart));
-                set("tickets-created", d.stats?.tickets);
-                set("polls-created", d.stats?.polls);
-                set("giveaways-created", d.stats?.giveaways);
-                set("commands-used", d.stats?.commands);
-                set("scams-prevented", d.stats?.scams);
-                set("messages-deleted", d.stats?.deleted);
                 set("Version", d.version);
                 set("uptime-foot", fmtUptime(d.uptime));
                 set("ping-foot", fmtPing(d.ping?.now));
@@ -1869,49 +1874,62 @@
                     chart.data.datasets[0].data = d.ping.history;
                     chart.update("none");
                 }
-                if (d.logs && d.logs.length) {
-                    const con = $("console");
-                    const currentScrollTop = con.scrollTop;
-                    const currentScrollHeight = con.scrollHeight;
-                    const isAtBottom =
-                        currentScrollHeight - con.clientHeight <= currentScrollTop + 15;
-                    const mentionCtx = buildMentionContext(d.mentions);
-                    if (logRenderCache.size > 5000) logRenderCache.clear();
-                    con.innerHTML = d.logs
-                        .map(function (l) {
-                            const logText = l.m || "";
-                            const key = l.t + "|" + logText;
-                            let html = logRenderCache.get(key);
-                            if (html === undefined) {
-                                const dateObj = new Date(l.t);
-                                const dateStr = dateObj.toLocaleDateString("de-DE", {
-                                    day: "2-digit",
-                                    month: "2-digit",
-                                    year: "numeric",
-                                });
-                                const timeStr = dateObj.toLocaleTimeString("de-DE", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    second: "2-digit",
-                                });
-                                const cls = /warning|fehler|error|fail|crit/i.test(logText) ? " log-error" : "";
-                                html =
-                                    '<div class="log-line' + cls + '"><span class="log-time">' + timeStr + '  >  </span><span class="log-body">' +
-                                    renderDiscordMarkdown(logText, mentionCtx) +
-                                    "</span></div>";
-                                logRenderCache.set(key, html);
-                            }
-                            return html;
-                        })
-                        .join("");
-                    if (isAtBottom) {
-                        con.scrollTop = con.scrollHeight;
-                    } else {
-                        con.scrollTop = currentScrollTop;
-                    }
-                }
             } catch (e) {
                 console.error(e);
+            } finally {
+                statsBusy = false;
+            }
+        }
+        let logsBusy = false;
+        let consoleInitialized = false;
+        async function fetchLogs() {
+            if (logsBusy) return;
+            logsBusy = true;
+            try {
+                const res = await fetch("/api/logs", {
+                    credentials: "same-origin",
+                });
+                if (res.status === 401) {
+                    showLogin();
+                    return;
+                }
+                if (!res.ok) return;
+                const d = await res.json();
+                if (!d.logs || !d.logs.length) return;
+                const con = $("console");
+                const top = con.scrollTop;
+                const wasAtBottom =
+                    !consoleInitialized ||
+                    con.scrollHeight - con.clientHeight <= top + 15;
+                const mentionCtx = buildMentionContext(d.mentions);
+                if (logRenderCache.size > 5000) logRenderCache.clear();
+                con.innerHTML = d.logs
+                    .map(function (l) {
+                        const logText = l.m || "";
+                        const key = l.t + "|" + logText;
+                        let html = logRenderCache.get(key);
+                        if (html === undefined) {
+                            const timeStr = new Date(l.t).toLocaleTimeString("de-DE", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                second: "2-digit",
+                            });
+                            const cls = /warning|fehler|error|fail|crit/i.test(logText) ? " log-error" : "";
+                            html =
+                                '<div class="log-line' + cls + '"><span class="log-time">' + timeStr + '  >  </span><span class="log-body">' +
+                                renderDiscordMarkdown(logText, mentionCtx) +
+                                "</span></div>";
+                            logRenderCache.set(key, html);
+                        }
+                        return html;
+                    })
+                    .join("");
+                con.scrollTop = wasAtBottom ? con.scrollHeight : top;
+                consoleInitialized = true;
+            } catch (e) {
+                console.error(e);
+            } finally {
+                logsBusy = false;
             }
         }
         let openUserId = null;
