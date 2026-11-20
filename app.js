@@ -7893,6 +7893,16 @@ function collectLogMentions(guild, logs) {
   }
   return { users, roles, channels };
 }
+app.get("/api/logs", requireDashboardAuth, async (req, res) => {
+  try {
+    const guild =
+      client.guilds.cache.get(GUILD_ID) || client.guilds.cache.first();
+    const logs = await readRecentLogs(300);
+    res.json({ logs, mentions: collectLogMentions(guild, logs) });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 app.get("/api/stats", requireDashboardAuth, async (req, res) => {
   if (statsCache.data && Date.now() - statsCache.time < 15000)
     return res.json(statsCache.data);
@@ -7920,8 +7930,7 @@ app.get("/api/stats", requireDashboardAuth, async (req, res) => {
     const { users, txLogs } = guild
       ? await buildUserDatabase(guild)
       : { users: [], txLogs: {} };
-    const mappedLogs = await readLogFile(logDateString());
-    const mentions = collectLogMentions(guild, mappedLogs);
+    };
     const payload = {
       guild: {
         name: guild?.name || "Kekse Server",
@@ -7947,8 +7956,6 @@ app.get("/api/stats", requireDashboardAuth, async (req, res) => {
       },
       userDatabase: users,
       transactionLogs: txLogs,
-      logs: mappedLogs,
-      mentions,
     };
     statsCache = { time: Date.now(), data: payload };
     res.json(payload);
