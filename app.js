@@ -572,13 +572,13 @@ function getXpBoughtToday(data) {
 async function sendPurchaseReceipt(user, itemName, price, balance) {
   const embed = new EmbedBuilder()
     .setColor(0xffffff)
-    .setTitle(":receipt: Deine Shop-Quittung")
-    .setDescription("Vielen Dank für deinen Einkauf auf unserem Server!")
+    .setTitle(":receipt: Shop-Quittung")
+    .setDescription("Vielen Dank für deinen Einkauf!")
     .addFields(
       { name: "Gekauftes Item", value: itemName, inline: true },
       {
-        name: "Abgezogene Kekse",
-        value: `-${formatNumber(price)}`,
+        name: "Preis",
+        value: `${formatNumber(price)} Kekse`,
         inline: true,
       },
       {
