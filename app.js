@@ -2110,7 +2110,7 @@ export async function initEconomySystem(client) {
           },
         )
         .setFooter({
-          text: "Ab einem Kontostand von 100.000 Keksen, wird der Basispreis um 2% des Kontostandes erhöht.\n Für den Einkauf im Shop benötigst du ein regestriertes Konto. Wenn du noch keins besitzt, erstelle eins mit `!bank create`",
+          text: "Ab einem Kontostand von 100.000 Keksen, wird der Basispreis um 2% des Kontostandes erhöht.\nFür den Einkauf im Shop benötigst du ein regestriertes Konto. Wenn du noch keins besitzt, erstelle eins mit `!bank create`",
         });
       const row1 = new ActionRowBuilder().addComponents(
         [
@@ -2141,7 +2141,7 @@ export async function initEconomySystem(client) {
       const row3 = new ActionRowBuilder().addComponents(
         [
           ["shop_vip", "VIP-Rolle", "💎"],
-          ["shop_charred", "Verkohlter Keks", "🍘"],
+          ["shop_charred", "Verkohlter Keks", "🍪"],
         ].map(([id, label, emoji]) =>
           new ButtonBuilder()
             .setCustomId(id)
