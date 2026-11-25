@@ -2126,7 +2126,7 @@ export async function initEconomySystem(client) {
           },
         )
         .setFooter({
-            text: "Ab einem Kontostand von 100.000 Keksen steigen die Preise um 2% des Betrags.\nGekaufte Items löst du mit `!inventory` ein. Für den Einkauf benötigst du ein registriertes Konto (!bank create).",
+            text: "Ab einem Kontostand von 100.000 Keksen steigen die Preise um 2% des Betrags.\nGekaufte Items löst du mit \`!inventory\` ein. Für den Einkauf benötigst du ein registriertes Konto (!bank create).",
         });
       const row1 = new ActionRowBuilder().addComponents(
         [
