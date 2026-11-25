@@ -786,6 +786,98 @@ async function handleRankConfirm(interaction) {
     return interaction.reply(payload);
   }
 }
+const goldCookieClaimed = new Set();
+const GOLD_COOKIE_CHANCE = 100;
+const GOLD_COOKIE_EXCLUDED = [config.channels.counting, config.channels.logs];
+function rollGoldCookieAmount() {
+  if (crypto.randomInt(100) < 80) return (crypto.randomInt(8) + 2) * 100;
+  return (crypto.randomInt(90) + 10) * 100;
+}
+function isPublicChannel(channel) {
+  if (!channel || channel.type !== ChannelType.GuildText) return false;
+  if (GOLD_COOKIE_EXCLUDED.includes(channel.id)) return false;
+  const permissions = channel.permissionsFor(channel.guild.roles.everyone);
+  return !!permissions && permissions.has(PermissionFlagsBits.ViewChannel);
+}
+export function initGoldenCookie(client) {
+  client.on("messageCreate", async function (msg) {
+    if (msg.author.bot || msg.system || !msg.guild) return;
+    if (msg.guild.id !== GUILD_ID || !isPublicChannel(msg.channel)) return;
+    if (crypto.randomInt(GOLD_COOKIE_CHANCE) !== 0) return;
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("goldcookie_claim")
+        .setLabel("Einsammeln")
+        .setEmoji("🍪")
+        .setStyle(ButtonStyle.Success),
+    );
+    const sent = await msg.channel
+      .send({
+        content:
+          ":cookie: Ein **goldener Keks** ist aufgetaucht! Wer ihn zuerst einsammelt, bekommt Kekse.",
+        components: [row],
+      })
+      .catch(function () {
+        return null;
+      });
+    if (sent) console.log(`Goldener Keks in <#${msg.channel.id}> erschienen.`);
+  });
+  client.on("interactionCreate", async function (interaction) {
+    if (!interaction.isButton() || interaction.customId !== "goldcookie_claim")
+      return;
+    const userId = interaction.user.id;
+    const messageId = interaction.message.id;
+    function reject(text) {
+      return interaction
+        .reply({ content: text, flags: [MessageFlags.Ephemeral] })
+        .catch(function () {});
+    }
+    if (goldCookieClaimed.has(messageId)) {
+      return reject("Dieser goldene Keks wurde bereits eingesammelt.");
+    }
+    const data = await getEcoData(userId);
+    if (!interaction.member.roles.cache.has(config.roles.economy)) {
+      return reject(
+        "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (`!bank create`)",
+      );
+    }
+    if (data.blocked) return reject("Dein Konto ist gesperrt.");
+    if (goldCookieClaimed.has(messageId)) {
+      return reject("Dieser goldene Keks wurde bereits eingesammelt.");
+    }
+    goldCookieClaimed.add(messageId);
+    const amount = rollGoldCookieAmount();
+    const updated = await interaction
+      .update({
+        content: `<@${userId}> hat einen goldenen Keks eingesammelt und **${formatNumber(amount)} Kekse** erhalten.`,
+        components: [],
+        allowedMentions: { parse: [] },
+      })
+      .then(function () {
+        return true;
+      })
+      .catch(function () {
+        return false;
+      });
+    if (!updated) {
+      goldCookieClaimed.delete(messageId);
+      return;
+    }
+    try {
+      await withUserLock(userId, async function () {
+        const fresh = await getEcoData(userId);
+        fresh.balance = (fresh.balance || 0) + amount;
+        await setEcoData(userId, fresh);
+        await logTransaction(userId, amount, "plus", "Goldener Keks");
+      });
+      console.log(
+        `<@${userId}> hat einen goldenen Keks eingesammelt (${amount} Kekse).`,
+      );
+    } catch (error) {
+      console.error("Goldener Keks konnte nicht gutgeschrieben werden:", error);
+    }
+  });
+}
 export async function initEconomyGetKekse(client) {
   try {
     const StorageModel = mongoose.model("BotStorage");
@@ -798,6 +890,331 @@ export async function initEconomyGetKekse(client) {
     console.error(err);
     return 0;
   }
+}
+const stealBusy = new Set();const SHOP_CATALOG = {
+  giveaway: {
+    roleId: config.roles.giveawayDouble,
+    name: "Double Chance Giveaway",
+    info: "Doppelte Gewinnchance im nächsten Giveaway",
+    duration: null,
+    price: 10000,
+  },
+  puffer: {
+    roleId: config.roles.countingPuffer,
+    name: "Counting Puffer",
+    info: "Fängt den nächsten Counting-Fehler ab",
+    duration: null,
+    price: 2500,
+  },
+  xp30: {
+    roleId: config.roles.countingXp30,
+    name: "Counting XP Booster (30 Min)",
+    info: "Doppelte Counting-Punkte für 30 Minuten",
+    duration: 30 * 60 * 1000,
+    price: 5000,
+  },
+  xp60: {
+    roleId: config.roles.countingXp60,
+    name: "Counting XP Booster (60 Min)",
+    info: "Doppelte Counting-Punkte für 60 Minuten",
+    duration: 60 * 60 * 1000,
+    price: 10000,
+  },
+  vip: {
+    roleId: config.roles.vip,
+    name: "VIP-Rolle (7d)",
+    info: "VIP-Rolle für 7 Tage",
+    duration: 7 * 24 * 60 * 60 * 1000,
+    price: 500000,
+  },
+  charred: {
+    roleId: null,
+    name: "Verkohlter Keks",
+    info: "Schützt 1x vor !steal",
+    duration: null,
+    price: 500,
+  },
+};
+function normalizeInventory(raw) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const inv = { items: {}, charredActive: source.charredActive === true };
+  for (const type of Object.keys(SHOP_CATALOG)) {
+    const count =
+      source.items && Number.isInteger(source.items[type])
+        ? source.items[type]
+        : 0;
+    inv.items[type] = Math.max(0, count);
+  }
+  return inv;
+}
+let inventoryQueue = Promise.resolve();
+function updateInventory(userId, mutator) {
+  const run = inventoryQueue.then(async function () {
+    const key = "inv_" + userId;
+    const inv = normalizeInventory(await dbGet("economy", key));
+    const before = JSON.stringify(inv);
+    const result = await mutator(inv);
+    if (JSON.stringify(inv) !== before) await dbSet("economy", key, inv);
+    return result;
+  });
+  inventoryQueue = run.catch(function () {});
+  return run;
+}
+async function readInventory(userId) {
+  return normalizeInventory(await dbGet("economy", "inv_" + userId));
+}
+async function getShopExpiration(userId, roleId) {
+  const data = (await dbGet("shop", "expirations")) || {};
+  const entry = data[userId + "_" + roleId];
+  return entry ? entry.expiresAt : null;
+}
+function consumeCharredCookie(userId) {
+  return updateInventory(userId, function (inv) {
+    if (!inv.charredActive) return false;
+    inv.charredActive = false;
+    return true;
+  });
+}
+async function activateInventoryItem(member, type) {
+  const item = SHOP_CATALOG[type];
+  if (!item) return { ok: false, text: "Dieses Item existiert nicht." };
+  const userId = member.id;
+  if (item.roleId && !item.duration && member.roles.cache.has(item.roleId)) {
+    return { ok: false, text: `**${item.name}** ist bereits aktiv.` };
+  }
+  const taken = await updateInventory(userId, function (inv) {
+    if (inv.items[type] < 1) return "missing";
+    if (type === "charred" && inv.charredActive) return "active";
+    inv.items[type] -= 1;
+    if (type === "charred") inv.charredActive = true;
+    return "ok";
+  });
+  if (taken === "missing") {
+    return { ok: false, text: "Du besitzt dieses Item nicht (mehr)." };
+  }
+  if (taken === "active") {
+    return { ok: false, text: `**${item.name}** ist bereits aktiv.` };
+  }
+  if (!item.roleId) {
+    console.log(`<@${userId}> hat ${item.name} eingelöst.`);
+    return {
+      ok: true,
+      text: `**${item.name}** wurde eingelöst. ${item.info}.`,
+    };
+  }
+  try {
+    let expiresAt = null;
+    if (item.duration) {
+      const existing = member.roles.cache.has(item.roleId)
+        ? await getShopExpiration(userId, item.roleId)
+        : null;
+      expiresAt = Math.max(Date.now(), existing || 0) + item.duration;
+      await addShopExpiration(userId, item.roleId, item.name, expiresAt);
+    }
+    await member.roles.add(item.roleId);
+    console.log(`<@${userId}> hat ${item.name} eingelöst.`);
+    const until = expiresAt
+      ? ` Läuft <t:${Math.floor(expiresAt / 1000)}:R> ab.`
+      : "";
+    return { ok: true, text: `**${item.name}** wurde eingelöst.${until}` };
+  } catch (error) {
+    console.error("Fehler beim Einlösen:", error);
+    await updateInventory(userId, function (inv) {
+      inv.items[type] += 1;
+    });
+    return {
+      ok: false,
+      text: "Das Item konnte nicht eingelöst werden. Es liegt weiter in deinem Inventar.",
+    };
+  }
+}
+async function buildInventoryView(member) {
+  const inv = await readInventory(member.id);
+  const expirations = (await dbGet("shop", "expirations")) || {};
+  const activeLines = [];
+  const ownedLines = [];
+  const options = [];
+  for (const [type, item] of Object.entries(SHOP_CATALOG)) {
+    if (item.roleId && member.roles.cache.has(item.roleId)) {
+      const entry = expirations[member.id + "_" + item.roleId];
+      if (entry) {
+        const stamp = Math.floor(entry.expiresAt / 1000);
+        activeLines.push(
+          `**${item.name}** | läuft <t:${stamp}:R> ab (<t:${stamp}:f>)`,
+        );
+      } else {
+        activeLines.push(`**${item.name}** | aktiv`);
+      }
+    }
+    if (type === "charred" && inv.charredActive) {
+      activeLines.push(`**${item.name}** | aktiv (schützt 1x vor !steal)`);
+    }
+    const count = inv.items[type];
+    if (count > 0) {
+      ownedLines.push(`${formatNumber(count)}x **${item.name}** - ${item.info}`);
+      options.push({
+        label: clipText(`${item.name} (${formatNumber(count)}x)`, 100),
+        description: clipText(item.info, 100),
+        value: type,
+      });
+    }
+  }
+  const embed = new EmbedBuilder()
+    .setColor(0xffffff)
+    .setTitle(`Inventar von ${member.displayName}`)
+    .addFields(
+      {
+        name: "Aktiviert",
+        value: activeLines.length
+          ? clipText(activeLines.join("\n"), 1000)
+          : "Keine aktiven Items.",
+      },
+      {
+        name: "Im Inventar",
+        value: ownedLines.length
+          ? clipText(ownedLines.join("\n"), 1000)
+          : "Dein Inventar ist leer. Items kaufst du im Shop.",
+      },
+    )
+    .setFooter({
+      text: "Wähle unten ein Item aus, um es einzulösen. Ränge und XP werden sofort beim Kauf eingelöst.",
+    });
+  const components = [];
+  if (options.length) {
+    components.push(
+      new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId("inventory_activate")
+          .setPlaceholder("Item einlösen")
+          .addOptions(options),
+      ),
+    );
+  }
+  return { embeds: [embed], components };
+}
+async function handleShopItem(interaction, itemType, confirmed) {
+  const item = SHOP_CATALOG[itemType];
+  const userId = interaction.user.id;
+  function respond(payload) {
+    if (!confirmed) {
+      return interaction.reply({
+        ...payload,
+        flags: MessageFlags.Ephemeral,
+      });
+    }
+    return interaction.update({ embeds: [], components: [], ...payload });
+  }
+  try {
+    const data = (await getEcoData(userId)) || {};
+    if (data.blocked) return respond({ content: "Dein Konto ist gesperrt." });
+    const balance = data.balance || 0;
+    const price = getItemPrice(item.price, balance);
+    if (balance < price) {
+      return respond({
+        content: `Du hast nicht genug Kekse für diesen Kauf! 1x **${item.name}** kostet **${formatNumber(price)} Kekse** (Du hast: ${formatNumber(balance)}).`,
+      });
+    }
+    if (!confirmed) {
+      const embed = new EmbedBuilder()
+        .setColor(0xffffff)
+        .setTitle("Kaufbestätigung")
+        .setDescription(
+          `Item: **${item.name}**\n${item.info}\nPreis: **${formatNumber(price)} Kekse**\nDein Kontostand: ${formatNumber(balance)} Kekse\nNach dem Kauf: ${formatNumber(balance - price)} Kekse\n\nDas Item landet in deinem Inventar und wird dort mit \`!inventory\` eingelöst.`,
+        );
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`shop_confirm_${itemType}`)
+          .setLabel("Kaufen")
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId("shopcancel")
+          .setLabel("Abbrechen")
+          .setStyle(ButtonStyle.Secondary),
+      );
+      console.log(
+        `Reply ${interaction.user.username}: Kaufbestätigung für ${item.name} (${formatNumber(price)} Kekse). [Button]`,
+      );
+      return interaction.reply({
+        embeds: [embed],
+        components: [row],
+        flags: MessageFlags.Ephemeral,
+      });
+    }
+    await updateInventory(userId, function (inv) {
+      inv.items[itemType] += 1;
+    });
+    data.balance = balance - price;
+    if (!data.userId) data.userId = userId;
+    if (!data.username) data.username = interaction.user.username;
+    await setEcoData(userId, data);
+    await logTransaction(userId, price, "minus", `Shop: ${item.name}`);
+    console.log(`<@${userId}> hat ${item.name} im Shop erworben.`);
+    console.log(
+      `Reply ${interaction.user.username}: Kauf erfolgreich: ${item.name} liegt im Inventar.`,
+    );
+    await respond({
+      content: `Kauf erfolgreich: **${item.name}** liegt jetzt in deinem Inventar. Löse es mit \`!inventory\` ein.`,
+    });
+    await sendPurchaseReceipt(interaction.user, item.name, price, data.balance);
+  } catch (error) {
+    console.error("Fehler beim Shop-Kauf:", error);
+    const payload = {
+      content: "Es gab einen Fehler beim Verarbeiten deines Kaufs!",
+      flags: MessageFlags.Ephemeral,
+    };
+    return interaction.replied || interaction.deferred
+      ? interaction.followUp(payload)
+      : interaction.reply(payload);
+  }
+}
+export function initInventory(client) {
+  client.on("messageCreate", async function (msg) {
+    if (msg.author.bot || !msg.guild || !msg.member) return;
+    if (!/^!inventory\s*$/i.test(msg.content)) return;
+    if (!msg.member.roles.cache.has(config.roles.economy)) {
+      return denyReply(
+        msg,
+        "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (`!bank create`)",
+      );
+    }
+    const eco = await getEcoData(msg.author.id);
+    if (eco.blocked) return denyReply(msg, "Dein Konto ist gesperrt.");
+    console.log(`<@${msg.author.id}> hat !inventory genutzt`);
+    console.log(`Reply ${msg.author.username}: [inventory]`);
+    const reply = await msg.reply(await buildInventoryView(msg.member));
+    const collector = reply.createMessageComponentCollector({
+      componentType: ComponentType.StringSelect,
+      idle: 120000,
+      time: 600000,
+    });
+    collector.on("collect", async function (interaction) {
+      if (interaction.user.id !== msg.author.id) {
+        return interaction.reply({
+          content: "Das ist nicht dein Inventar. Benutze selbst `!inventory`.",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+      await interaction.deferUpdate().catch(function () {});
+      const type = interaction.values[0];
+      const result = await withUserLock(interaction.user.id, function () {
+        return activateInventoryItem(interaction.member, type);
+      });
+      const fresh = await interaction.guild.members
+        .fetch({ user: interaction.user.id, force: true })
+        .catch(function () {
+          return interaction.member;
+        });
+      await interaction
+        .editReply(await buildInventoryView(fresh))
+        .catch(function () {});
+      await interaction
+        .followUp({ content: result.text, flags: MessageFlags.Ephemeral })
+        .catch(function () {});
+    });
+    collector.on("end", function () {
+      reply.delete().catch(function () {});
+    });
+  });
 }
 const stealBusy = new Set();
 const payallBusy = new Set();
@@ -889,6 +1306,17 @@ async function performSteal(guild, thiefMember) {
       return {
         ok: false,
         text: "Aktuell gibt es niemanden, von dem du Kekse klauen kannst.",
+      };
+    }
+    if (await consumeCharredCookie(victimMember.id)) {
+      thiefData.lastSteal = today;
+      await setEcoData(thiefId, thiefData);
+      console.log(
+        `<@${thiefId}> hat einen verkohlten Keks von <@${victimMember.id}> geklaut.`,
+      );
+      return {
+        ok: true,
+        text: `<@${thiefId}> hat einen verkohlten Keks von <@${victimMember.id}> geklaut.`,
       };
     }
     thiefData.balance = (thiefData.balance || 0) + amount;
@@ -1437,31 +1865,28 @@ async function playBlackjack(userId, betAmount, startBalance, reply) {
       playerHand: player,
       dealerScore: scoreD,
       dealerHand: dealer,
+      description: `Dein Einsatz: **${betAmount} Kekse**\n${status}`,
       ...casinoResult(total - betAmount),
       balance,
     });
   };
-  if (score(playerHand) === 21) {
-    const dealerBlackjack = score(dealerHand) === 21;
-    const total = dealerBlackjack
-      ? betAmount
-      : betAmount + Math.floor(betAmount * 1.5);
+  const playerBlackjack = score(playerHand) === 21;
+  const dealerBlackjack = score(dealerHand) === 21;
+  if (playerBlackjack || dealerBlackjack) {
+    let total = 0;
+    let status = "Der Dealer hat Blackjack. Verloren!";
+    if (playerBlackjack && dealerBlackjack) {
+      total = betAmount;
+      status = "Beide haben Blackjack! Unentschieden.";
+    } else if (playerBlackjack) {
+      total = betAmount + Math.floor(betAmount * 1.5);
+      status = "Blackjack! Du erhältst das 1.5-fache deines Einsatzes.";
+    }
     const balance = await credit(total);
     console.log(
-      `<@${userId}> hat einen Blackjack (${total - betAmount >= 0 ? "+" : ""}${total - betAmount} Kekse).`,
+      `<@${userId}> hat Blackjack gespielt (${total - betAmount >= 0 ? "+" : ""}${total - betAmount} Kekse).`,
     );
-    await reply({
-      embeds: [
-        buildView(
-          true,
-          dealerBlackjack
-            ? "Beide haben Blackjack! Unentschieden."
-            : "Blackjack! Du erhältst das 1.5-fache deines Einsatzes.",
-          total,
-          balance,
-        ),
-      ],
-    });
+    await reply({ embeds: [buildView(true, status, total, balance)] });
     return;
   }
   const gameMsg = await reply({
@@ -1678,6 +2103,11 @@ export async function initEconomySystem(client) {
             value: "`500.000 Kekse`",
             inline: true,
           },
+          {
+            name: "🍘 Verkohlter Keks",
+            value: "`500 Kekse (Basispreis)`",
+            inline: true,
+          },
         )
         .setFooter({
           text: "Ab einem Kontostand von 100.000 Keksen, wird der Basispreis um 2% des Kontostandes erhöht.\n Für den Einkauf im Shop benötigst du ein regestriertes Konto. Wenn du noch keins besitzt, erstelle eins mit `!bank create`",
@@ -1709,7 +2139,10 @@ export async function initEconomySystem(client) {
         ),
       );
       const row3 = new ActionRowBuilder().addComponents(
-        [["shop_vip", "VIP-Rolle", "💎"]].map(([id, label, emoji]) =>
+        [
+          ["shop_vip", "VIP-Rolle", "💎"],
+          ["shop_charred", "Verkohlter Keks", "🍘"],
+        ].map(([id, label, emoji]) =>
           new ButtonBuilder()
             .setCustomId(id)
             .setLabel(label)
@@ -3351,6 +3784,8 @@ export async function initEconomySystem(client) {
             flags: MessageFlags.Ephemeral,
           });
         }
+        if (SHOP_CATALOG[itemType])
+          return handleShopItem(interaction, itemType, confirmed);
         const SHOP_ITEMS = {
           giveaway: {
             roleId: config.roles.giveawayDouble,
@@ -7705,7 +8140,8 @@ const getHelpData = {
       .setTitle("Hilfemenü")
       .setDescription(
         "Willkommen im Hilfemenü! Klicke auf die Buttons unten, um zwischen den Kategorien zu wechseln.\n\n" +
-          `Falls du ein Supportanliegen hast, einen Gewinn abholen möchtest (Giveaway oder Event) oder dich für den Clan bewerben willst, erstelle bitte ein Ticket in <#${config.channels.ticket}>.`,
+          `Falls du ein Supportanliegen hast, einen Gewinn abholen möchtest (Giveaway oder Event) oder dich für den Clan bewerben willst, erstelle bitte ein Ticket in <#${config.channels.ticket}>.\n\n` +
+          "Mit etwas Glück erscheint in öffentlichen Kanälen ein **goldener Keks**. Wer ihn zuerst einsammelt, erhält Kekse.",
       )
       .setColor("#ffffff");
   },
@@ -7768,7 +8204,8 @@ const getHelpData = {
           "`!top` (`/top`) - Zeige serverweite Bestenliste im Counting\n" +
           "`!coinflip @User x` - Fordert einen Spieler zu Coinflip heraus\n" +
           "`!ssp @User x` - Fordert einen Spieler zu Schere-Stein-Papier heraus\n" +
-          "`!steal` (`/steal`) - Klaue einmal täglich 1-100 Kekse von einem zufälligen Mitglied",
+          "`!steal` (`/steal`) - Klaue einmal täglich 1-100 Kekse von einem zufälligen Mitglied (ein Verkohlter Keks schützt davor)\n" +
+          "`!inventory` - Zeigt dein Inventar an und löst gekaufte Items ein",
       );
   },
   getChannelsEmbed: () => {
@@ -7785,7 +8222,7 @@ const getHelpData = {
           `<#${config.channels.counting}> Der Kanal für das Counting Spiel\n` +
           `<#${config.channels.daily}> Hier kannst du dir alle 24 Stunden 100 kostenlose Kekse abholen.\n` +
           `<#${config.channels.casino}> Der Bereich für alle Casino-Spiele und Wetten.\n` +
-          `<#${config.channels.shop}> Tausche deine Kekse gegen Booster, doppelte Giveaway Chance oder Rang-Upgrades ein.\n` +
+          `<#${config.channels.shop}> Tausche deine Kekse gegen Booster, doppelte Giveaway Chance, Rang-Upgrades oder einen Verkohlten Keks ein. Gekaufte Items löst du mit \`!inventory\` ein.\n` +
           `<#${config.channels.ticket}> Hier kannst du Tickets für Support, Gewinne oder Bewerbungen erstellen.`,
       );
   },
@@ -9568,8 +10005,8 @@ async function purgeUserData(userId, options) {
   }
   const names = await collectUserNames(userId, member);
   const parts = [];
-  if (await deleteStorageKeys("economy", [userId, "tx_" + userId]))
-    parts.push("Konto und Transaktionen");
+  if (await deleteStorageKeys("economy", [userId, "tx_" + userId]))  
+  if (await deleteStorageKeys("economy", [userId, "tx_" + userId, "inv_" + userId])) parts.push("Konto und Transaktionen");
   if (await deleteStorageKeys("xp", [userId])) parts.push("XP und Rang");
   if (await purgeInviteData(userId)) parts.push("Einladungsdaten");
   if (await purgeCountingData(userId, guild)) parts.push("Counting-Stand");
@@ -11916,6 +12353,8 @@ client.once("clientReady", async () => {
     initBugReport(client);
     initBackups(client);
     initRefunds(client);
+    initInventory(client);
+    initGoldenCookie(client);
     setInterval(() => wage().catch(console.error), 60 * 1000);
     console.log(`Server-Sync gestartet...`);
     console.log(`Bot online: ${client.user.tag}`);
