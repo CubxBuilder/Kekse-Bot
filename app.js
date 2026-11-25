@@ -814,7 +814,7 @@ export function initGoldenCookie(client) {
     const sent = await msg.channel
       .send({
         content:
-          ":cookie: Ein **goldener Keks** ist aufgetaucht! Wer ihn zuerst einsammelt, bekommt Kekse.",
+          ":cookie: Ein **goldener Keks** ist aufgetaucht! Wer ihn zuerst einsammelt, bekommt ihn.",
         components: [row],
       })
       .catch(function () {
@@ -1024,7 +1024,7 @@ async function activateInventoryItem(member, type) {
     });
     return {
       ok: false,
-      text: "Das Item konnte nicht eingelöst werden. Es liegt weiter in deinem Inventar.",
+      text: "Das Item konnte nicht eingelöst werden.",
     };
   }
 }
@@ -1077,7 +1077,7 @@ async function buildInventoryView(member) {
       },
     )
     .setFooter({
-      text: "Wähle unten ein Item aus, um es einzulösen. Ränge und XP werden sofort beim Kauf eingelöst.",
+      text: "Wähle unten ein Item aus, um es einzulösen.",
     });
   const components = [];
   if (options.length) {
@@ -1153,7 +1153,7 @@ async function handleShopItem(interaction, itemType, confirmed) {
       `Reply ${interaction.user.username}: Kauf erfolgreich: ${item.name} liegt im Inventar.`,
     );
     await respond({
-      content: `Kauf erfolgreich: **${item.name}** liegt jetzt in deinem Inventar. Löse es mit \`!inventory\` ein.`,
+      content: `Kauf erfolgreich: **${item.name}** liegt jetzt in deinem Inventar. Löse es in \`!inventory\` ein.`,
     });
     await sendPurchaseReceipt(interaction.user, item.name, price, data.balance);
   } catch (error) {
