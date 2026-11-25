@@ -2100,7 +2100,7 @@ export async function initEconomySystem(client) {
           },
           {
             name: "💎 VIP Rolle (7d)",
-            value: "`500.000 Kekse`",
+            value: "`500.000 Kekse (Basispreis)`",
             inline: true,
           },
           {
@@ -2108,9 +2108,14 @@ export async function initEconomySystem(client) {
             value: "`500 Kekse (Basispreis)`",
             inline: true,
           },
+          {
+            name: "\u200b",
+            value: "\u200b",
+            inline: true,
+          },
         )
         .setFooter({
-          text: "Ab einem Kontostand von 100.000 Keksen, wird der Basispreis um 2% des Kontostandes erhöht.\nFür den Einkauf im Shop benötigst du ein regestriertes Konto. Wenn du noch keins besitzt, erstelle eins mit `!bank create`",
+            text: "Ab einem Kontostand von 100.000 Keksen steigen die Preise um 2% des Betrags über 100.000 Kekse.\nGekaufte Items löst du mit !inventory ein. Für den Einkauf benötigst du ein registriertes Konto (!bank create).",
         });
       const row1 = new ActionRowBuilder().addComponents(
         [
