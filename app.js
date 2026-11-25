@@ -1091,6 +1091,14 @@ async function buildInventoryView(member) {
       ),
     );
   }
+  components.push(
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("inventory_close")
+        .setLabel("Schließen")
+        .setStyle(ButtonStyle.Secondary),
+    ),
+  );
   return { embeds: [embed], components };
 }
 async function handleShopItem(interaction, itemType, confirmed) {
@@ -1184,8 +1192,7 @@ export function initInventory(client) {
     console.log(`Reply ${msg.author.username}: [inventory]`);
     const reply = await msg.reply(await buildInventoryView(msg.member));
     const collector = reply.createMessageComponentCollector({
-      componentType: ComponentType.StringSelect,
-      idle: 120000,
+      idle: 30000,
       time: 600000,
     });
     collector.on("collect", async function (interaction) {
@@ -1194,6 +1201,10 @@ export function initInventory(client) {
           content: "Das ist nicht dein Inventar. Benutze selbst `!inventory`.",
           flags: [MessageFlags.Ephemeral],
         });
+      }
+      if (interaction.customId === "inventory_close") {
+        await interaction.deferUpdate().catch(function () {});
+        return collector.stop("closed");
       }
       await interaction.deferUpdate().catch(function () {});
       const type = interaction.values[0];
@@ -2104,7 +2115,7 @@ export async function initEconomySystem(client) {
             inline: true,
           },
           {
-            name: "🍘 Verkohlter Keks",
+            name: "🍪 Verkohlter Keks",
             value: "`500 Kekse (Basispreis)`",
             inline: true,
           },
@@ -2115,7 +2126,7 @@ export async function initEconomySystem(client) {
           },
         )
         .setFooter({
-            text: "Ab einem Kontostand von 100.000 Keksen steigen die Preise um 2% des Betrags über 100.000 Kekse.\nGekaufte Items löst du mit !inventory ein. Für den Einkauf benötigst du ein registriertes Konto (!bank create).",
+            text: "Ab einem Kontostand von 100.000 Keksen steigen die Preise um 2% des Betrags.\nGekaufte Items löst du mit `!inventory` ein. Für den Einkauf benötigst du ein registriertes Konto (!bank create).",
         });
       const row1 = new ActionRowBuilder().addComponents(
         [
