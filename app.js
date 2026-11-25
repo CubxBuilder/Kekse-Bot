@@ -1128,7 +1128,7 @@ async function handleShopItem(interaction, itemType, confirmed) {
         .setColor(0xffffff)
         .setTitle("Kaufbestätigung")
         .setDescription(
-          `Item: **${item.name}**\n${item.info}\nPreis: **${formatNumber(price)} Kekse**\nDein Kontostand: ${formatNumber(balance)} Kekse\nNach dem Kauf: ${formatNumber(balance - price)} Kekse\n\nDas Item landet in deinem Inventar und wird dort mit \`!inventory\` eingelöst.`,
+          `Item: **${item.name}**\n${item.info}\nPreis: **${formatNumber(price)} Kekse**\nDein Kontostand: ${formatNumber(balance)} Kekse\nNach dem Kauf: ${formatNumber(balance - price)} Kekse\n\nDas Item landet in deinem \`!inventory\``,
         );
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
