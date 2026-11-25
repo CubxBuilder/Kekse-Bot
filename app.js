@@ -891,7 +891,8 @@ export async function initEconomyGetKekse(client) {
     return 0;
   }
 }
-const stealBusy = new Set();const SHOP_CATALOG = {
+const stealBusy = new Set();
+const SHOP_CATALOG = {
   giveaway: {
     roleId: config.roles.giveawayDouble,
     name: "Double Chance Giveaway",
@@ -1216,7 +1217,6 @@ export function initInventory(client) {
     });
   });
 }
-const stealBusy = new Set();
 const payallBusy = new Set();
 const userLocks = new Map();
 function withUserLock(userId, task) {
