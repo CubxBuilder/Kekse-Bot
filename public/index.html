@@ -553,6 +553,15 @@
             flex: 1;
             min-height: 0;
         }
+        #ticket-archive.collapsed .archive-body,
+        #accounts-database.collapsed .archive-body {
+            display: none;
+        }
+        #ticket-archive h3,
+        #accounts-database h3 {
+            cursor: pointer;
+            user-select: none;
+        }
         @media (max-width: 900px) {
             main {
                 grid-template-columns: 1fr;
@@ -1208,7 +1217,7 @@
         </footer>
     </div>
     <div id="login-screen">
-        <form id="login-card">
+		<form id="login-card" novalidate>
             <h2>Kekse Bot Dashboard</h2>
             <p>Bitte melde dich mit deinen Dashboard-Zugangsdaten an.</p>
             <div id="login-form">
@@ -1793,12 +1802,12 @@
             }
             function emphasis(value) {
                 let s = value;
-                s = s.replace(/\*\*\*(?=\S)(.+?)(?<=\S)\*\*\*/g, "<strong><em>$1</em></strong>");
-                s = s.replace(/\*\*(?=\S)(.+?)(?<=\S)\*\*/g, "<strong>$1</strong>");
-                s = s.replace(/(?<!\w)__(?=\S)(.+?)(?<=\S)__(?!\w)/g, "<u>$1</u>");
-                s = s.replace(/\*(?=[^\s*])(.+?)(?<=[^\s*])\*/g, "<em>$1</em>");
-                s = s.replace(/(?<!\w)_(?=[^\s_])(.+?)(?<=[^\s_])_(?!\w)/g, "<em>$1</em>");
-                s = s.replace(/~~(?=\S)(.+?)(?<=\S)~~/g, "<s>$1</s>");
+                s = s.replace(/\*\*\*(\S(?:.*?\S)?)\*\*\*/g, "<strong><em>$1</em></strong>");
+                s = s.replace(/\*\*(\S(?:.*?\S)?)\*\*/g, "<strong>$1</strong>");
+                s = s.replace(/(^|\W)__(\S(?:.*?\S)?)__(?!\w)/g, "$1<u>$2</u>");
+                s = s.replace(/\*([^\s*](?:.*?[^\s*])?)\*/g, "<em>$1</em>");
+                s = s.replace(/(^|\W)_([^\s_](?:.*?[^\s_])?)_(?!\w)/g, "$1<em>$2</em>");
+                s = s.replace(/~~(\S(?:.*?\S)?)~~/g, "<s>$1</s>");
                 return s;
             }
             function inline(value) {
@@ -2120,7 +2129,7 @@
             if (sortBy === "rang")
                 list.sort((a, b) => b.tier - a.tier || b.xp - a.xp);
             if (sortBy === "rank") list.sort((a, b) => b.rankIndex - a.rankIndex);
-            syncRows(list.length);
+            syncRows(list);
         }
         $("acc-filter").addEventListener("change", processAndRenderAccounts);
         function openUserModal(id) {
@@ -2274,13 +2283,14 @@
         }
         $("ticket-search").addEventListener("input", processAndRenderTickets);
         const escapeHTML = (str) =>
-            str
-                ? str
-                    .toString()
+            str == null
+                ? ""
+                : String(str)
                     .replace(/&/g, "&amp;")
                     .replace(/</g, "&lt;")
                     .replace(/>/g, "&gt;")
-                : "";
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#39;");
         const isImg = (url) => /\.(png|jpe?g|gif|webp|svg)/i.test(url);
         const fmtTs = (ms) =>
             new Date(ms).toLocaleString("de-DE", {
