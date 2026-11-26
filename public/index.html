@@ -142,6 +142,22 @@
             height: 100% !important;
             border-radius: var(--radius-sm);
         }
+        .console-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .console-head select {
+            padding: 3px 8px;
+            font-size: 0.72rem;
+            text-transform: none;
+            letter-spacing: normal;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: white;
+        }
         #logs {
             flex-direction: column;
         }
@@ -1033,7 +1049,12 @@
                 </div>
             </article>
             <article>
-                <h3>Console</h3>
+                <h3 class="console-head">
+                    <span>Console</span>
+                    <select id="log-day">
+                        <option value="today">Heute</option>
+                    </select>
+                </h3>
                 <div class="console" id="console">
                     <div class="no-logs">Warte auf Logs...</div>
                 </div>
@@ -1882,11 +1903,45 @@
         }
         let logsBusy = false;
         let consoleInitialized = false;
+        let selectedLogDay = "today";
+        let renderedLogDays = "";
+        function updateLogDays(d) {
+            const select = $("log-day");
+            const signature = d.today + "|" + (d.days || []).join(",");
+            if (signature === renderedLogDays) return;
+            renderedLogDays = signature;
+            const options = [
+                '<option value="today">Heute (' + escapeHTML(d.today.replace(/-/g, ".")) + ")</option>",
+            ];
+            for (const day of d.days || []) {
+                if (day === d.today) continue;
+                options.push(
+                    '<option value="' + escapeHTML(day) + '">' + escapeHTML(day.replace(/-/g, ".")) + "</option>",
+                );
+            }
+            select.innerHTML = options.join("");
+            select.value = selectedLogDay;
+            if (select.value !== selectedLogDay) {
+                selectedLogDay = "today";
+                select.value = "today";
+            }
+        }
+        $("log-day").addEventListener("change", function () {
+            selectedLogDay = this.value;
+            consoleInitialized = false;
+            fetchLogs();
+        });
         async function fetchLogs() {
             if (logsBusy) return;
+            if (selectedLogDay !== "today" && consoleInitialized) return;
             logsBusy = true;
             try {
-                const res = await fetch("/api/logs", {
+                const requestedDay = selectedLogDay;
+                const query =
+                    requestedDay === "today"
+                        ? ""
+                        : "?day=" + encodeURIComponent(requestedDay);
+                const res = await fetch("/api/logs" + query, {
                     credentials: "same-origin",
                 });
                 if (res.status === 401) {
@@ -1895,8 +1950,14 @@
                 }
                 if (!res.ok) return;
                 const d = await res.json();
-                if (!d.logs || !d.logs.length) return;
+                if (requestedDay !== selectedLogDay) return;
+                updateLogDays(d);
                 const con = $("console");
+                if (!d.logs || !d.logs.length) {
+                    con.innerHTML = '<div class="no-logs">Keine Logs für diesen Tag.</div>';
+                    consoleInitialized = selectedLogDay !== "today";
+                    return;
+                }
                 const top = con.scrollTop;
                 const wasAtBottom =
                     !consoleInitialized ||
