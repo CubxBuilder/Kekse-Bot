@@ -4069,6 +4069,232 @@ export async function initEconomySystem(client) {
     }
   }
 }
+export function initYearlyReset(client) {
+  let finished = false;
+  let running = false;
+  const categories = [
+    {
+      enabled: true,
+      label: "Top-Counting",
+      color: "#A7DBDA",
+      collect: collectCounting,
+      reset: resetCounting,
+    },
+    {
+      enabled: true,
+      label: "Top-Kekse",
+      color: "#94872C",
+      collect: collectKekse,
+      reset: resetKekse,
+    },
+    {
+      enabled: true,
+      label: "Top-Rang",
+      color: "#914141",
+      collect: collectRang,
+      reset: resetRang,
+    },
+  ];
+  function berlinDate() {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/Berlin",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+    }).formatToParts(new Date());
+    const map = {};
+    for (const part of parts) map[part.type] = part.value;
+    return {
+      year: Number(map.year),
+      month: Number(map.month),
+      day: Number(map.day),
+    };
+  }
+  function selectTopMembers(guild, ranking) {
+    const eligible = ranking.filter(function (entry) {
+      const member = guild.members.cache.get(entry.userId);
+      return (
+        member && !member.user.bot && entry.userId !== config.users.sysadmin
+      );
+    });
+    if (!eligible.length) return [];
+    const top = Math.max(
+      ...eligible.map(function (entry) {
+        return entry.value;
+      }),
+    );
+    if (top <= 0) return [];
+    return eligible.filter(function (entry) {
+      return entry.value === top;
+    });
+  }
+  async function collectCounting() {
+    return Object.entries(countingData.scoreboard || {}).map(function ([
+      userId,
+      score,
+    ]) {
+      return { userId, value: score, text: `${formatNumber(score)} Zählungen` };
+    });
+  }
+  async function collectKekse() {
+    const docs = await storageModel()
+      .find({ namespace: "economy", key: /^\d+$/ }, { key: 1 })
+      .lean();
+    const list = [];
+    for (const doc of docs) {
+      const data = await getEcoData(doc.key);
+      if (data.blocked || !data.username) continue;
+      const balance = data.balance || 0;
+      list.push({
+        userId: doc.key,
+        value: balance,
+        text: `${formatNumber(balance)} Kekse`,
+      });
+    }
+    return list;
+  }
+  async function collectRang() {
+    const docs = await storageModel()
+      .find({ namespace: "xp", key: /^\d+$/ }, { key: 1 })
+      .lean();
+    const list = [];
+    for (const doc of docs) {
+      const data = await getXpData(doc.key);
+      const tier = Math.min(data.rang || 0, ROLES_TIERS.length - 1);
+      const xp = data.xp || 0;
+      list.push({
+        userId: doc.key,
+        value: tier * 1e12 + xp,
+        text: `${ROLES_TIERS[tier].name} (${formatNumber(xp)} XP)`,
+      });
+    }
+    return list;
+  }
+  async function resetCounting(guild) {
+    await withCountingLock(async function () {
+      countingData.scoreboard = {};
+      countingData.milestonesClaimed = {};
+      recalcKing();
+      await saveCounting();
+    });
+    const kingRole = guild.roles.cache.get(config.roles.countingKing);
+    if (!kingRole) return;
+    for (const member of [...kingRole.members.values()]) {
+      await member.roles.remove(kingRole).catch(function () {});
+    }
+  }
+  async function resetKekse() {
+    const docs = await storageModel()
+      .find({ namespace: "economy", key: /^\d+$/ }, { key: 1 })
+      .lean();
+    for (const doc of docs) {
+      await withUserLock(doc.key, async function () {
+        const data = await getEcoData(doc.key);
+        if (!data.balance) return;
+        data.balance = 0;
+        await setEcoData(doc.key, data);
+      });
+    }
+  }
+  async function resetRang(guild) {
+    const docs = await storageModel()
+      .find({ namespace: "xp", key: /^\d+$/ }, { key: 1 })
+      .lean();
+    const higherIds = ROLES_TIERS.slice(1).map(function (tier) {
+      return tier.id;
+    });
+    for (const doc of docs) {
+      await setXpData(doc.key, { rang: 0, xp: 0 });
+      const member = guild.members.cache.get(doc.key);
+      if (!member || member.user.bot) continue;
+      const hasHigher = higherIds.some(function (id) {
+        return member.roles.cache.has(id);
+      });
+      if (hasHigher) {
+        await member.roles.remove(higherIds).catch(function () {});
+      }
+      if (!member.roles.cache.has(ROLES_TIERS[0].id)) {
+        await member.roles.add(ROLES_TIERS[0].id).catch(function () {});
+      }
+    }
+  }
+  async function runReset(year) {
+    const guild = client.guilds.cache.get(GUILD_ID);
+    if (!guild) throw new Error("Server nicht verfügbar.");
+    for (const category of categories) {
+      if (!category.enabled) continue;
+      const roleName = `${category.label} ${year}`;
+      const exists = guild.roles.cache.some(function (role) {
+        return role.name === roleName;
+      });
+      if (exists) {
+        console.log(
+          `${roleName} existiert bereits. Diese Kategorie wird übersprungen.`,
+        );
+        continue;
+      }
+      try {
+        const winners = selectTopMembers(guild, await category.collect());
+        const role = await guild.roles.create({
+          name: roleName,
+          color: category.color,
+          permissions: [],
+          reason: `Jahresauswertung ${year}`,
+        });
+        if (!winners.length) console.log(`${roleName}: Keine Gewinner.`);
+        let failed = 0;
+        for (const winner of winners) {
+          const member = guild.members.cache.get(winner.userId);
+          const given = await member.roles
+            .add(role)
+            .then(function () {
+              return true;
+            })
+            .catch(function () {
+              return false;
+            });
+          if (given) {
+            console.log(
+              `<@${winner.userId}> hat die Rolle <@&${role.id}> erhalten (${winner.text}).`,
+            );
+          } else {
+            failed++;
+            console.error(
+              `<@${winner.userId}> konnte die Rolle ${roleName} nicht erhalten.`,
+            );
+          }
+        }
+        if (failed) {
+          console.error(
+            `${roleName}: ${failed} Zuweisung(en) fehlgeschlagen. Die Daten bleiben erhalten.`,
+          );
+          continue;
+        }
+        await category.reset(guild);
+        console.log(`${roleName}: Daten wurden zurückgesetzt.`);
+      } catch (error) {
+        console.error(`${roleName} fehlgeschlagen:`, error);
+      }
+    }
+    statsCache.time = 0;
+  }
+  async function check() {
+    if (finished || running) return;
+    const now = berlinDate();
+    if (now.month !== 1 || now.day !== 1) return;
+    running = true;
+    try {
+      await runReset(now.year - 1);
+      finished = true;
+    } catch (error) {
+      console.error("Jahreswechsel fehlgeschlagen:", error);
+    } finally {
+      running = false;
+    }
+  }
+  check();
+  setInterval(check, 60 * 1000);
+}
 export async function wage(force = false) {
   const now = new Date();
   const aktuellerMonat = now.getMonth();
