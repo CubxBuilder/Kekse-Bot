@@ -2002,7 +2002,7 @@
         const badge = (t, c) =>
             `<span class="badge" style="color:${c}">${t}</span>`;
         function userRowHtml(u) {
-            const logs = (rawTxLogsCache[u.userId] || []).slice(0, 200);
+            const logs = (rawTxLogsCache[u.userId] || []);
             const isOpen = openedLogUsers.has(u.userId);
             const logHtml = logs.length
                 ? logs
@@ -2120,15 +2120,7 @@
             if (sortBy === "rang")
                 list.sort((a, b) => b.tier - a.tier || b.xp - a.xp);
             if (sortBy === "rank") list.sort((a, b) => b.rankIndex - a.rankIndex);
-            const total = list.length;
-            list = list.slice(0, 100);
-            set(
-                "acc-limit-note",
-                total > 100
-                    ? `Zeige 100 von ${total} Usern - Suche oder Filter nutzen.`
-                    : "",
-            );
-            syncRows(list);
+            syncRows(list.length);
         }
         $("acc-filter").addEventListener("change", processAndRenderAccounts);
         function openUserModal(id) {
