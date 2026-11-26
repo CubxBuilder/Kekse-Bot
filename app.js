@@ -1513,6 +1513,23 @@ async function playHighLow(userId, betAmount, startBalance, limitText, reply) {
     "A",
   ];
   const suits = [":spades:", ":hearts:", ":diamonds:", ":clubs:"];
+  const WIN_CHANCE = 1/3;
+  const drawRigged = (current, choice) => {
+    const win = crypto.randomInt(1000000) < WIN_CHANCE * 1000000;
+    const values = ranks.map((_, i) => i + 2);
+    const winPool = values.filter((v) =>
+      choice === "higher" ? v > current : v < current,
+    );
+    const losePool = values.filter((v) =>
+      choice === "higher" ? v <= current : v >= current,
+    );
+    const pool = win && winPool.length ? winPool : losePool;
+    const value = pool[crypto.randomInt(pool.length)];
+    return {
+      display: `${ranks[value - 2]}${suits[crypto.randomInt(suits.length)]}`,
+      value,
+    };
+  };
   const drawCard = () => {
     const index = crypto.randomInt(ranks.length);
     return {
@@ -1602,20 +1619,13 @@ async function playHighLow(userId, betAmount, startBalance, limitText, reply) {
         const choice = interaction.customId.startsWith("hl_higher")
           ? "higher"
           : "lower";
-        const nextCard = drawCard();
+        const nextCard = drawRigged(currentCard.value, choice);
         lastCard = nextCard;
-        if (nextCard.value === currentCard.value) {
-          currentCard = nextCard;
-          await gameMsg
-            .edit({
-              embeds: [buildRunning("Unentschieden, neue Karte.")],
-              components: [buildRow()],
-            })
-            .catch(() => {});
-        } else if (
-          (choice === "higher") ===
-          nextCard.value > currentCard.value
-        ) {
+        const won =
+          choice === "higher"
+            ? nextCard.value > currentCard.value
+            : nextCard.value < currentCard.value;
+        if (won) {
           streak++;
           multiplier = parseFloat((multiplier + 0.5).toFixed(2));
           currentCard = nextCard;
