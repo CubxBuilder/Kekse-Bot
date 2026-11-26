@@ -1521,9 +1521,17 @@ async function playHighLow(userId, betAmount, startBalance, limitText, reply) {
       choice === "higher" ? v > current : v < current,
     );
     const losePool = values.filter((v) =>
-      choice === "higher" ? v <= current : v >= current,
+      choice === "higher" ? v < current : v > current,
     );
-    const pool = win && winPool.length ? winPool : losePool;
+    const tiePool = values.filter((v) => v === current);
+    const tie = crypto.randomInt(ranks.length) === 0;
+    const pool = tie
+      ? tiePool
+      : win && winPool.length
+        ? winPool
+        : losePool.length
+          ? losePool
+          : tiePool;
     const value = pool[crypto.randomInt(pool.length)];
     return {
       display: `${ranks[value - 2]}${suits[crypto.randomInt(suits.length)]}`,
@@ -1625,7 +1633,15 @@ async function playHighLow(userId, betAmount, startBalance, limitText, reply) {
           choice === "higher"
             ? nextCard.value > currentCard.value
             : nextCard.value < currentCard.value;
-        if (won) {
+        if (nextCard.value === currentCard.value) {
+          currentCard = nextCard;
+          await gameMsg
+            .edit({
+              embeds: [buildRunning("Unentschieden, neue Karte.")],
+              components: [buildRow()],
+            })
+            .catch(() => {});
+        } else if (won) {
           streak++;
           multiplier = parseFloat((multiplier + 0.5).toFixed(2));
           currentCard = nextCard;
@@ -1673,7 +1689,8 @@ async function playHighLow(userId, betAmount, startBalance, limitText, reply) {
           );
           const shown = reason === "wrong" && lastCard ? lastCard : currentCard;
           let detail;
-          if (reason === "wrong") detail = "Falsch geraten.";
+          if (reason === "wrong")
+            detail = `Falsch geraten: ${currentCard.display} → ${lastCard.display}`;
           else if (reason === "cashout")
             detail = `Ausgezahlt bei ${multiplier.toFixed(2)}x.`;
           else if (streak > 0)
