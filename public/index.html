@@ -553,14 +553,63 @@
             flex: 1;
             min-height: 0;
         }
-        #ticket-archive.collapsed .archive-body,
-        #accounts-database.collapsed .archive-body {
-            display: none;
+        #ticket-archive,
+        #accounts-database {
+            height: 480px;
+            max-height: none;
         }
-        #ticket-archive h3,
-        #accounts-database h3 {
-            cursor: pointer;
-            user-select: none;
+        #accounts-database .table-scroll {
+            flex: 1;
+            min-height: 0;
+            max-height: none;
+        }
+        @media (max-width: 900px) {
+            #ticket-archive,
+            #accounts-database {
+                height: auto;
+            }
+            #ticket-archive .ticket-list {
+                flex: none;
+                max-height: 420px;
+            }
+            #accounts-database .table-scroll {
+                flex: none;
+                max-height: 520px;
+            }
+            #ticket-archive h3,
+            #accounts-database h3 {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                cursor: pointer;
+                user-select: none;
+            }
+            #ticket-archive h3 {
+                justify-content: space-between;
+            }
+            #accounts-database h3 #auth-level {
+                margin-left: auto;
+                float: none !important;
+            }
+            #ticket-archive h3::after,
+            #accounts-database h3::after {
+                content: "▼";
+                font-size: 0.7rem;
+                transition: transform 0.2s;
+            }
+            #ticket-archive:not(.collapsed) h3::after,
+            #accounts-database:not(.collapsed) h3::after {
+                transform: rotate(180deg);
+            }
+            #ticket-archive.collapsed h3,
+            #accounts-database.collapsed h3 {
+                border-bottom: none;
+                padding-bottom: 0;
+            }
+            #ticket-archive.collapsed .archive-body,
+            #accounts-database.collapsed .archive-body {
+                display: none;
+            }
         }
         @media (max-width: 900px) {
             main {
