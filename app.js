@@ -788,6 +788,18 @@ async function handleRankConfirm(interaction) {
 }
 const goldCookieClaimed = new Set();
 const GOLD_COOKIE_CHANCE = 100;
+const GOLD_COOKIE_MIN_WORDS = 3;
+const GOLD_COOKIE_USER_COOLDOWN_MS = 60 * 1000;
+const goldCookieLastRoll = new Map();
+function countRealWords(text) {
+  const cleaned = String(text || "")
+    .replace(/https?:\/\/\S+/gi, " ")
+    .replace(/<a?:\w+:\d+>/g, " ")
+    .replace(/<[@#&!]+\d+>/g, " ")
+    .replace(/`+/g, " ");
+  const words = cleaned.toLowerCase().match(/[\p{L}\p{N}]{2,}/gu) || [];
+  return new Set(words).size;
+}
 const GOLD_COOKIE_EXCLUDED = [config.channels.counting, config.channels.logs];
 function rollGoldCookieAmount() {
   if (crypto.randomInt(100) < 80) return (crypto.randomInt(8) + 2) * 100;
@@ -803,6 +815,11 @@ export function initGoldenCookie(client) {
   client.on("messageCreate", async function (msg) {
     if (msg.author.bot || msg.system || !msg.guild) return;
     if (msg.guild.id !== GUILD_ID || !isPublicChannel(msg.channel)) return;
+    if (msg.content.startsWith("!")) return;
+    if (countRealWords(msg.content) < GOLD_COOKIE_MIN_WORDS) return;
+    const lastRoll = goldCookieLastRoll.get(msg.author.id) || 0;
+    if (Date.now() - lastRoll < GOLD_COOKIE_USER_COOLDOWN_MS) return;
+    goldCookieLastRoll.set(msg.author.id, Date.now());
     if (crypto.randomInt(GOLD_COOKIE_CHANCE) !== 0) return;
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -8889,12 +8906,43 @@ function collectLogMentions(guild, logs) {
   }
   return { users, roles, channels };
 }
-app.get("/api/logs", requireDashboardAuth, async (req, res) => {
+const LOG_DAY_PATTERN = /^\d{2}-\d{2}-\d{4}$/;
+async function listLogDays() {
+  const files = await fs.promises.readdir(LOG_DIR).catch(function () {
+    return [];
+  });
+  return files
+    .map(function (file) {
+      const match = file.match(/^(\d{2})-(\d{2})-(\d{4})\.log$/);
+      return match
+        ? { day: `${match[1]}-${match[2]}-${match[3]}`, key: match[3] + match[2] + match[1] }
+        : null;
+    })
+    .filter(Boolean)
+    .sort(function (a, b) {
+      return b.key.localeCompare(a.key);
+    })
+    .map(function (entry) {
+      return entry.day;
+    });
+}
+app.get("/api/logs", requireDashboardAuth, async function (req, res) {
   try {
+    const today = logDateString();
+    const requested = String(req.query.day || "");
+    const day = LOG_DAY_PATTERN.test(requested) ? requested : today;
+    const entries = await readLogFile(day);
+    const logs = entries.slice(day === today ? -500 : -2000);
     const guild =
       client.guilds.cache.get(GUILD_ID) || client.guilds.cache.first();
-    const logs = await readRecentLogs(300);
-    res.json({ logs, mentions: collectLogMentions(guild, logs) });
+    res.json({
+      day,
+      today,
+      days: await listLogDays(),
+      total: entries.length,
+      logs,
+      mentions: collectLogMentions(guild, logs),
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
