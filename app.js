@@ -4399,7 +4399,7 @@ if (cmd === 'marathon') {
         return `\`\`\`\n ${spaceBefore} o \n ${spaceBefore}/T\\\n${spaceBefore}${legs}${spaceAfter}🍪\n${ground}\n\`\`\``;
     };
     try {
-        const animMessage = await msg.channel.send(renderFrame(0));
+        const animMessage = await msg.reply(renderFrame(0));
         const interval = setInterval(async () => {
             currentStep++;
             try {
@@ -4412,7 +4412,7 @@ if (cmd === 'marathon') {
                     data.balance += 10;
                     await setEcoData(msg.author.id, data);
                     await logTransaction(msg.author.id, 10, "plus", `AdminFun (Marathon)`);
-                    await msg.channel.send('Du hast 10 Kekse gefunden!');
+                    await msg.reply('Du hast 10 Kekse gefunden!');
                     isMarathonRunning = false;
                 }
             } catch {
