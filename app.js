@@ -4382,7 +4382,44 @@ export function initAdminFun(client) {
     if (!msg.content.startsWith("!")) return;
     const args = msg.content.slice(1).split(/\s+/);
     const cmd = args.shift().toLowerCase();
-    // if (cmd === "") {}
+    let isMarathonRunning = false;
+if (cmd === 'marathon') {
+    if (isMarathonRunning) return message.reply('⏳ Es läuft bereits ein Marathon!');
+    isMarathonRunning = true;
+    const totalSteps = 20;
+    let currentStep = 0;
+    const renderFrame = (step, finished = false) => {
+        const spaceBefore = '  '.repeat(step);
+        const spaceAfter = '  '.repeat(totalSteps - step);
+        const ground = '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""';
+        if (finished) {
+            return `\`\`\`\n${spaceBefore}\\o/\n${spaceBefore} T \n${spaceBefore}/ \\\n${ground}\n\`\`\``;
+        }
+        const legs = step % 2 === 0 ? '  |\\' : ' /| ';
+        return `\`\`\`\n${spaceBefore} o \n${spaceBefore}/T\\\n${spaceBefore}${legs}${spaceAfter}🍪\n${ground}\n\`\`\``;
+    };
+    try {
+        const animMessage = await message.channel.send(renderFrame(0));
+        const interval = setInterval(async () => {
+            currentStep++;
+            try {
+                if (currentStep < totalSteps) {
+                    await animMessage.edit(renderFrame(currentStep, false));
+                } else {
+                    clearInterval(interval);
+                    await animMessage.edit(renderFrame(currentStep, true));
+                    await message.channel.send('Du hast 10 Kekse gefunden!');
+                    isMarathonRunning = false;
+                }
+            } catch {
+                clearInterval(interval);
+                isMarathonRunning = false;
+            }
+        }, 500);
+    } catch {
+        isMarathonRunning = false;
+    }
+  }
   });
 }
 const AUDIT_CONSOLE_TEXT = {
