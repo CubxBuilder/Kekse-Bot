@@ -895,7 +895,7 @@ export function initGoldenCookie(client) {
     }
   });
 }
-export async function initEconomyGetKekse(client) {const DAILY_BASE = 100;
+const DAILY_BASE = 100;
 const DAILY_BONUS_STEP_DAYS = 7;
 const DAILY_BONUS_PER_STEP = 100;
 const DAILY_ROLE_STREAK = 100;
