@@ -4383,7 +4383,7 @@ export function initAdminFun(client) {
     const args = msg.content.slice(1).split(/\s+/);
     const cmd = args.shift().toLowerCase();
     let isMarathonRunning = false;
-if (cmd === 'marathon') {
+if (cmd === '!marathon') {
     if (isMarathonRunning) return message.reply('⏳ Es läuft bereits ein Marathon!');
     isMarathonRunning = true;
     const totalSteps = 20;
