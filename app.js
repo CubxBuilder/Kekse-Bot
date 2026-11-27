@@ -4395,7 +4395,7 @@ if (cmd === 'marathon') {
         if (finished) {
             return `\`\`\`\n${spaceBefore}\\o/\n${spaceBefore} T \n${spaceBefore}/ \\\n${ground}\n\`\`\``;
         }
-        const legs = step % 2 === 0 ? ' /\\' : ' || ';
+        const legs = step % 2 === 0 ? '/\\' : '||  ';
         return `\`\`\`\n${spaceBefore} o \n${spaceBefore}/T\\\n${spaceBefore}${legs}${spaceAfter}🍪\n${ground}\n\`\`\``;
     };
     try {
@@ -4415,7 +4415,7 @@ if (cmd === 'marathon') {
                 clearInterval(interval);
                 isMarathonRunning = false;
             }
-        }, 500);
+        }, 1000);
     } catch {
         isMarathonRunning = false;
     }
