@@ -4386,11 +4386,11 @@ export function initAdminFun(client) {
 if (cmd === 'marathon') {
     if (isMarathonRunning) return msg.reply('Du läufst bereits einen Marathon!');
     isMarathonRunning = true;
-    const totalSteps = 50;
+    const totalSteps = 20;
     let currentStep = 0;
     const renderFrame = (step, finished = false) => {
         const spaceBefore = ' '.repeat(step);
-        const spaceAfter = '  '.repeat(totalSteps - step);
+        const spaceAfter = '  '.repeat(totalSteps);
         const ground = '""""""""""""""""""""""""""""""""""""""""""""""""""""""';
         if (finished) {
             return `\`\`\`\n${spaceBefore}\\o/\n${spaceBefore} T \n${spaceBefore}/ \\\n${ground}\n\`\`\``;
