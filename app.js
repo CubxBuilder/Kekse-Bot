@@ -4396,7 +4396,7 @@ if (cmd === 'marathon') {
             return `\`\`\`\n${spaceBefore}\\o/\n${spaceBefore} T \n${spaceBefore}/ \\\n${ground}\n\`\`\``;
         }
         const legs = step % 2 === 0 ? ' /\\' : ' ||  ';
-        return `\`\`\`\n${spaceBefore} o \n${spaceBefore}/T\\\n${spaceBefore}${legs}${spaceAfter}🍪\n${ground}\n\`\`\``;
+        return `\`\`\`\n ${spaceBefore} o \n ${spaceBefore}/T\\\n${spaceBefore}${legs}${spaceAfter}🍪\n${ground}\n\`\`\``;
     };
     try {
         const animMessage = await msg.channel.send(renderFrame(0));
