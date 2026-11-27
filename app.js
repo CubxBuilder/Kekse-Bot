@@ -4395,7 +4395,7 @@ if (cmd === 'marathon') {
         if (finished) {
             return `\`\`\`\n${spaceBefore}\\o/\n${spaceBefore} T \n${spaceBefore}/ \\\n${ground}\n\`\`\``;
         }
-        const legs = step % 2 === 0 ? ' /\\' : ' /|  ';
+        const legs = step % 2 === 0 ? ' /\\' : ' /|';
         return `\`\`\`\n ${spaceBefore} o \n ${spaceBefore}/T\\\n${spaceBefore}${legs}${spaceAfter}🍪\n${ground}\n\`\`\``;
     };
     try {
@@ -4409,7 +4409,7 @@ if (cmd === 'marathon') {
                     clearInterval(interval);
                     await animMessage.edit(renderFrame(currentStep, true));
                     const data = await getEcoData(msg.author.id);
-                    data.balance = data.balance += 10;
+                    data.balance += 10;
                     await setEcoData(msg.author.id, data);
                     await logTransaction(msg.author.id, 10, "plus", `AdminFun (Marathon)`);
                     await msg.channel.send('Du hast 10 Kekse gefunden!');
