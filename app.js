@@ -4391,11 +4391,11 @@ if (cmd === 'marathon') {
     const renderFrame = (step, finished = false) => {
         const spaceBefore = '  '.repeat(step);
         const spaceAfter = '  '.repeat(totalSteps - step);
-        const ground = '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""';
+        const ground = '""""""""""""""""""""""""""""""""""""""""""""""""""';
         if (finished) {
             return `\`\`\`\n${spaceBefore}\\o/\n${spaceBefore} T \n${spaceBefore}/ \\\n${ground}\n\`\`\``;
         }
-        const legs = step % 2 === 0 ? '  |\\' : ' /| ';
+        const legs = step % 2 === 0 ? ' /\\' : ' || ';
         return `\`\`\`\n${spaceBefore} o \n${spaceBefore}/T\\\n${spaceBefore}${legs}${spaceAfter}🍪\n${ground}\n\`\`\``;
     };
     try {
