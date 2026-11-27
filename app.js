@@ -4378,13 +4378,13 @@ async function handleSystemCommand(client) {
   });
 }
 export function initAdminFun(client) {
+  let isMarathonRunning = false;
   client.on("messageCreate", async (msg) => {
     if (!msg.content.startsWith("!")) return;
     const args = msg.content.slice(1).split(/\s+/);
     const cmd = args.shift().toLowerCase();
-    let isMarathonRunning = false;
-if (cmd === '!marathon') {
-    if (isMarathonRunning) return message.reply('Du läufst bereits einen Marathon!');
+if (cmd === 'marathon') {
+    if (isMarathonRunning) return msg.reply('Du läufst bereits einen Marathon!');
     isMarathonRunning = true;
     const totalSteps = 20;
     let currentStep = 0;
@@ -4399,7 +4399,7 @@ if (cmd === '!marathon') {
         return `\`\`\`\n${spaceBefore} o \n${spaceBefore}/T\\\n${spaceBefore}${legs}${spaceAfter}🍪\n${ground}\n\`\`\``;
     };
     try {
-        const animMessage = await message.channel.send(renderFrame(0));
+        const animMessage = await msg.channel.send(renderFrame(0));
         const interval = setInterval(async () => {
             currentStep++;
             try {
@@ -4408,7 +4408,7 @@ if (cmd === '!marathon') {
                 } else {
                     clearInterval(interval);
                     await animMessage.edit(renderFrame(currentStep, true));
-                    await message.channel.send('Du hast 10 Kekse gefunden!');
+                    await msg.channel.send('Du hast 10 Kekse gefunden!');
                     isMarathonRunning = false;
                 }
             } catch {
