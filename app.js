@@ -895,6 +895,166 @@ export function initGoldenCookie(client) {
     }
   });
 }
+export async function initEconomyGetKekse(client) {const DAILY_BASE = 100;
+const DAILY_BONUS_STEP_DAYS = 7;
+const DAILY_BONUS_PER_STEP = 100;
+const DAILY_ROLE_STREAK = 100;
+const DAILY_MULTIPLIER_MEMBER = 2;
+const DAILY_MULTIPLIER_TEAM = 3;
+function berlinDayKey(date) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Berlin",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date || new Date());
+  const map = {};
+  for (const part of parts) map[part.type] = part.value;
+  return `${map.year}-${map.month}-${map.day}`;
+}
+function dayNumber(key) {
+  const [year, month, day] = key.split("-").map(Number);
+  return Math.round(Date.UTC(year, month - 1, day) / 86400000);
+}
+function dayLabel(count) {
+  return `${formatNumber(count)} ${count === 1 ? "Tag" : "Tage"}`;
+}
+function getDailyMultiplier(member) {
+  if (
+    member.roles.cache.has(config.roles.team) ||
+    member.roles.cache.has(config.roles.admin)
+  ) {
+    return DAILY_MULTIPLIER_TEAM;
+  }
+  if (member.roles.cache.has(config.roles.member)) {
+    return DAILY_MULTIPLIER_MEMBER;
+  }
+  return 1;
+}
+function getDailyAmount(streak) {
+  return (
+    DAILY_BASE +
+    Math.floor(streak / DAILY_BONUS_STEP_DAYS) * DAILY_BONUS_PER_STEP
+  );
+}
+function getDailyStatus(data) {
+  const today = berlinDayKey();
+  const daily =
+    data && data.daily && typeof data.daily === "object" ? data.daily : {};
+  const last = typeof daily.last === "string" ? daily.last : null;
+  const gap = last ? dayNumber(today) - dayNumber(last) : null;
+  const legacyToday = Object.values(
+    (data && data.claimedDailies) || {},
+  ).includes(
+    new Date().toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" }),
+  );
+  const alive = gap !== null && gap >= 0 && gap <= 1;
+  const streak = alive ? Number(daily.streak) || 0 : 0;
+  return {
+    today,
+    claimedToday: gap === 0 || legacyToday,
+    atRisk: gap === 1,
+    streak,
+    best: Math.max(Number(daily.best) || 0, streak),
+  };
+}
+async function claimDaily(member) {
+  const userId = member.id;
+  if (!member.roles.cache.has(config.roles.economy)) {
+    return {
+      ok: false,
+      text: "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (`!bank create`)",
+    };
+  }
+  const data = (await getEcoData(userId)) || {};
+  if (data.blocked) return { ok: false, text: "Dein Konto ist gesperrt." };
+  const status = getDailyStatus(data);
+  if (status.claimedToday) {
+    return {
+      ok: false,
+      text: "Du hast deine täglichen Kekse bereits abgeholt! Versuche es nach 00:00 Uhr (de_DE) erneut.",
+    };
+  }
+  const broken =
+    status.streak === 0 && Number(data.daily && data.daily.streak) > 1;
+  const streak = status.streak + 1;
+  const base = getDailyAmount(streak);
+  const multiplier = getDailyMultiplier(member);
+  const amount = base * multiplier;
+  data.balance = (data.balance || 0) + amount;
+  data.daily = {
+    streak,
+    last: status.today,
+    best: Math.max(status.best, streak),
+  };
+  await setEcoData(userId, data);
+  await logTransaction(userId, amount, "plus", `Daily (Streak ${streak})`);
+  let gotRole = false;
+  if (
+    streak >= DAILY_ROLE_STREAK &&
+    !member.roles.cache.has(config.roles.daily)
+  ) {
+    gotRole = await member.roles
+      .add(config.roles.daily)
+      .then(function () {
+        return true;
+      })
+      .catch(function () {
+        return false;
+      });
+  }
+  console.log(
+    `<@${userId}> hat seine täglichen Kekse abgeholt (${formatNumber(amount)} Kekse, Streak ${streak}).`,
+  );
+  const bonus = base - DAILY_BASE;
+  let calculation = `${DAILY_BASE} Basis`;
+  if (bonus > 0) calculation += ` + ${formatNumber(bonus)} Streak-Bonus`;
+  if (multiplier > 1) calculation = `(${calculation}) x${multiplier}`;
+  const lines = [
+    `Dir wurden **${formatNumber(amount)} Kekse** auf dein Bankkonto gutgeschrieben.`,
+    `Streak: **${dayLabel(streak)}**`,
+  ];
+  if (gotRole) {
+    lines.push(
+      `Du hast die Rolle <@&${config.roles.daily}> erhalten. (500 Tage Streak)`,
+    );
+  }
+  return { ok: true, text: lines.join("\n") };
+}
+function buildStreakEmbed(member, data) {
+  const status = getDailyStatus(data);
+  const multiplier = getDailyMultiplier(member);
+  const nextAmount = getDailyAmount(status.streak + 1) * multiplier;
+  const toBonus =
+    DAILY_BONUS_STEP_DAYS - (status.streak % DAILY_BONUS_STEP_DAYS);
+  let today = status.claimedToday ? "Bereits abgeholt" : "Noch nicht abgeholt";
+  if (status.atRisk && !status.claimedToday) {
+    today += " (hol es heute ab, sonst bricht deine Streak ab)";
+  }
+  const roleText = member.roles.cache.has(config.roles.daily)
+    ? `Erreicht: <@&${config.roles.daily}>`
+    : `Noch ${dayLabel(Math.max(0, DAILY_ROLE_STREAK - status.streak))} bis <@&${config.roles.daily}>`;
+  return new EmbedBuilder()
+    .setColor(0xffffff)
+    .setTitle(`Daily-Streak von ${member.displayName}`)
+    .addFields(
+      { name: "Aktuelle Streak", value: dayLabel(status.streak), inline: true },
+      { name: "Beste Streak", value: dayLabel(status.best), inline: true },
+      { name: "Heute", value: today },
+      {
+        name: "Nächstes Daily",
+        value: `${formatNumber(nextAmount)} Kekse${multiplier > 1 ? ` (x${multiplier})` : ""}`,
+        inline: true,
+      },
+      {
+        name: "Nächster Bonus",
+        value: `in ${dayLabel(toBonus)} (+${DAILY_BONUS_PER_STEP} pro Daily)`,
+        inline: true,
+      },
+      { name: "Rolle", value: roleText },
+    )
+    .setFooter({ text: "Kekse Clan" });
+}
 export async function initEconomyGetKekse(client) {
   try {
     const StorageModel = mongoose.model("BotStorage");
@@ -1207,13 +1367,19 @@ export function initInventory(client) {
     if (eco.blocked) return denyReply(msg, "Dein Konto ist gesperrt.");
     console.log(`<@${msg.author.id}> hat !inventory genutzt`);
     console.log(`Reply ${msg.author.username}: [inventory]`);
-    const reply = await msg.reply(await buildInventoryView(msg.member));
+    await showInventory(msg.member, function (payload) {
+      return msg.reply(payload);
+    });
+  });
+}
+async function showInventory(member, send) {
+    const reply = await send(await buildInventoryView(member));
     const collector = reply.createMessageComponentCollector({
       idle: 30000,
       time: 600000,
     });
     collector.on("collect", async function (interaction) {
-      if (interaction.user.id !== msg.author.id) {
+      if (interaction.user.id !== member.id) {
         return interaction.reply({
           content: "Das ist nicht dein Inventar. Benutze selbst `!inventory`.",
           flags: [MessageFlags.Ephemeral],
@@ -1243,7 +1409,14 @@ export function initInventory(client) {
     collector.on("end", function () {
       reply.delete().catch(function () {});
     });
-  });
+}
+async function inventoryAccessError(member) {
+  if (!member.roles.cache.has(config.roles.economy)) {
+    return "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (`!bank create`)";
+  }
+  const eco = await getEcoData(member.id);
+  if (eco.blocked) return "Dein Konto ist gesperrt.";
+  return null;
 }
 const payallBusy = new Set();
 const userLocks = new Map();
@@ -2047,6 +2220,25 @@ export async function initEconomySystem(client) {
       console.log(`Reply ${msg.author.username}: [leaderboard]`);
       return msg.reply({ embeds: [embed] });
     }
+    if (command === "!daily") {
+      const result = await claimDaily(msg.member);
+      console.log(`Reply ${msg.author.username}: ${result.text}`);
+      return msg.reply({
+        content: result.text,
+        allowedMentions: { parse: [] },
+      });
+    }
+    if (command === "!streak") {
+      if (!msg.member.roles.cache.has(config.roles.economy)) {
+        return denyReply(
+          msg,
+          "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (`!bank create`)",
+        );
+      }
+      const streakData = await getEcoData(msg.author.id);
+      console.log(`Reply ${msg.author.username}: [streak]`);
+      return msg.reply({ embeds: [buildStreakEmbed(msg.member, streakData)] });
+    }
     if (command === "!steal") {
       const result = await performSteal(msg.guild, msg.member);
       console.log(`Reply ${msg.author.username}: ${result.text}`);
@@ -2070,7 +2262,7 @@ export async function initEconomySystem(client) {
       const embed = new EmbedBuilder()
         .setTitle(":cookie: Tägliche Kekse")
         .setDescription(
-          `${description}\n\nKlicke auf den Button unten, um 100 Kekse zu erhalten.`,
+          `${description}\n\nKlicke auf den Button, um deine täglichen Kekse abzuholen. Du kannst diese auch mit \`!daily\` abholen.`,
         )
         .setColor(0xffffff);
       const row = new ActionRowBuilder().addComponents(
@@ -3693,52 +3885,10 @@ export async function initEconomySystem(client) {
         return;
       }
       if (interaction.customId.startsWith("daily_claim_")) {
-        const hasEcoRole = interaction.member.roles.cache.has(
-          config.roles.economy,
-        );
-        if (!hasEcoRole) {
-          console.log(
-            `Reply ${interaction.user.username}: Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. ("!bank create")`,
-          );
-          return interaction.reply({
-            content:
-              "Du benötigst ein registriertes Bankkonto um diese Funktion nutzen zu können. (\`!bank create\`).",
-            flags: [MessageFlags.Ephemeral],
-          });
-        }
-        const setupId = interaction.customId.replace("daily_claim_", "");
-        const localizedDateStr = new Date().toLocaleDateString("de-DE", {
-          timeZone: "Europe/Berlin",
-        });
-        const userData = (await getEcoData(interaction.user.id)) || {};
-        if (userData.blocked) {
-          return interaction.reply({
-            content: "Dein Konto ist gesperrt.",
-            flags: [MessageFlags.Ephemeral],
-          });
-        }
-        if (!userData.claimedDailies) {
-          userData.claimedDailies = {};
-        }
-        if (userData.claimedDailies[setupId] === localizedDateStr) {
-          console.log(
-            `Reply ${interaction.user.username}: Du hast deine Kekse für dieses Event heute bereits abgeholt! Versuche es nach 00:00 Uhr (de-DE) erneut.`,
-          );
-          return interaction.reply({
-            content: `Du hast deine Kekse für **dieses Event** heute bereits abgeholt! Versuche es nach 00:00 Uhr (de-DE) erneut.`,
-            flags: [MessageFlags.Ephemeral],
-          });
-        }
-        const payout = 100;
-        userData.balance = (userData.balance || 0) + payout;
-        userData.claimedDailies[setupId] = localizedDateStr;
-        await setEcoData(interaction.user.id, userData);
-        await logTransaction(interaction.user.id, payout, "plus", "Daily");
-        console.log(
-          `Reply ${interaction.user.username}: Dir wurden 100 Kekse auf dein Bankkonto gutgeschrieben.`,
-        );
+        const result = await claimDaily(interaction.member);
+        console.log(`Reply ${interaction.user.username}: ${result.text}`);
         return interaction.reply({
-          content: "Dir wurden 100 Kekse auf dein Bankkonto gutgeschrieben.",
+          content: result.text,
           flags: [MessageFlags.Ephemeral],
         });
       }
@@ -8237,6 +8387,11 @@ const getHelpData = {
           inline: true,
         },
         { name: "Counting", value: `${countedRight} Zahlen`, inline: true },
+        {
+          name: "Daily-Streak",
+          value: dayLabel(getDailyStatus(ecoData).streak),
+          inline: true,
+        },
       );
   },
   getCommandsEmbed: () => {
@@ -8265,7 +8420,9 @@ const getHelpData = {
           "`!coinflip @User x` - Fordert einen Spieler zu Coinflip heraus\n" +
           "`!ssp @User x` - Fordert einen Spieler zu Schere-Stein-Papier heraus\n" +
           "`!steal` (`/steal`) - Klaue einmal täglich 1-100 Kekse von einem zufälligen Mitglied (ein Verkohlter Keks schützt davor)\n" +
-          "`!inventory` - Zeigt dein Inventar an und löst gekaufte Items ein",
+          "`!inventory` - Zeigt dein Inventar an und löst gekaufte Items ein\n" +
+          "`!daily` - Hole deine täglichen Kekse ab\n" +
+          "`!streak` - Zeigt deine Daily-Streak an",
       );
   },
   getChannelsEmbed: () => {
@@ -8280,7 +8437,7 @@ const getHelpData = {
           `<#${config.channels.events}> Hier werden Events angekündigt\n` +
           `<#${config.channels.werbung}> In diesem Kanal darfst du deine eigenen Projekte bewerben.\n` +
           `<#${config.channels.counting}> Der Kanal für das Counting Spiel\n` +
-          `<#${config.channels.daily}> Hier kannst du dir alle 24 Stunden 100 kostenlose Kekse abholen.\n` +
+          `<#${config.channels.daily}> Hier kannst du dir deine täglichen Kekse abholen. Je höher die Streak, desto mehr bekommst du.\n` +
           `<#${config.channels.casino}> Der Bereich für alle Casino-Spiele und Wetten.\n` +
           `<#${config.channels.shop}> Tausche deine Kekse gegen Booster, doppelte Giveaway Chance, Rang-Upgrades oder einen Verkohlten Keks ein. Gekaufte Items löst du mit \`!inventory\` ein.\n` +
           `<#${config.channels.ticket}> Hier kannst du Tickets für Support, Gewinne oder Bewerbungen erstellen.`,
@@ -8291,6 +8448,10 @@ const helpRow = new ActionRowBuilder().addComponents(
   new ButtonBuilder()
     .setCustomId("help_profile")
     .setLabel("Profil")
+    .setStyle(ButtonStyle.Secondary),
+  new ButtonBuilder()
+    .setCustomId("help_inventory")
+    .setLabel("Inventar")
     .setStyle(ButtonStyle.Secondary),
   new ButtonBuilder()
     .setCustomId("help_commands")
@@ -8337,6 +8498,21 @@ function createHelpCollector(messageTarget, userId, userUsername) {
       });
     }
     await interaction.deferUpdate();
+    if (interaction.customId === "help_inventory") {
+      const problem = await inventoryAccessError(interaction.member);
+      if (problem) {
+        return interaction
+          .followUp({ content: problem, flags: MessageFlags.Ephemeral })
+          .catch(function () {});
+      }
+      console.log(
+        `<@${interaction.user.id}> hat !inventory über !help genutzt`,
+      );
+      await showInventory(interaction.member, function (payload) {
+        return interaction.channel.send(payload);
+      });
+      return;
+    }
     let newEmbed;
     if (interaction.customId === "help_profile") {
       newEmbed = await getHelpData.getProfileEmbed(
@@ -11778,7 +11954,7 @@ async function handleSlashCommand(interaction) {
     const embed = new EmbedBuilder()
       .setTitle(":cookie: Tägliche Kekse")
       .setDescription(
-        `${description}\n\nKlicke auf den Button unten, um 100 Kekse zu erhalten.`,
+        `${description}\n\nKlicke auf den Button, um deine täglichen Kekse abzuholen. Du kannst diese auch mit \`!daily\` abholen.`,
       )
       .setColor(0xffffff);
     const row = new ActionRowBuilder().addComponents(
