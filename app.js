@@ -4384,7 +4384,7 @@ export function initAdminFun(client) {
     const cmd = args.shift().toLowerCase();
     let isMarathonRunning = false;
 if (cmd === '!marathon') {
-    if (isMarathonRunning) return message.reply('⏳ Es läuft bereits ein Marathon!');
+    if (isMarathonRunning) return message.reply('Du läufst bereits einen Marathon!');
     isMarathonRunning = true;
     const totalSteps = 20;
     let currentStep = 0;
