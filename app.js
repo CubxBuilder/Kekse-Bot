@@ -8392,6 +8392,11 @@ const getHelpData = {
           value: dayLabel(getDailyStatus(ecoData).streak),
           inline: true,
         },
+        {
+          name: "\u200b",
+          value: "\u200b",
+          inline: true,
+        },
       );
   },
   getCommandsEmbed: () => {
